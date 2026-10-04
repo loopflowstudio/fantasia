@@ -346,12 +346,27 @@ no overlap means equal-cost comparison is unavailable. One seed and a four-leg
 deal block prove workflow, not method-level uncertainty. ETU-91 owns final
 replayed study and offline-regeneration evidence on the integrated code.
 
-ETU-91's inherited-ABI smoke and report regeneration are preliminary. The two
-retained cohorts contain 24 and 72 exact-replayed games, but neither has
-overlapping observed cost ranges across all arms; equal-cost results remain
-unavailable. Summing setup and stage durations omits inter-stage persistence;
-final study accounting needs the executor's cumulative checkpoint clock. Final
-study acceptance still requires the integrated ETU-89/ETU-90 implementation
-and ETU-75 semantic checkpoint admission. Study arena evidence does not satisfy
-ETU-82's demo-run contract, ETU-85's improvement comparison, S1–S5 competence,
-or the chapter's human-challenger outcome.
+ETU-91 now has integrated semantic study proof: final learning-speed and
+five-arm smokes completed in 91 and 204 seconds with 24 and 72 exact-replayed
+games, two checkpoints per arm, and unchanged offline-regenerated metrics and
+reports. Both use the executor's cumulative checkpoint clock and have observed
+cost overlap. Earlier inherited-ABI evidence remains preliminary. A later
+five-arm attempt failed when a merge exposed conflict markers to a child
+process; that attempt remains retained separately. Never edit imported source
+while a multiprocessing measurement is running.
+
+Scientific plan generation scales measured updates and teacher games, retains
+cumulative fitting, reserves 168 hours across calibration, both three-seed
+studies, evaluation and recovery, and checks projected storage against a 4 GiB
+reserve. The three fixed anchors, untouched endpoint deals and full nine-cell
+main comparison remain explicit. Count extrapolation is not long-run timing
+proof. No scientific study ran here; root owns calibration and the unique launch.
+Post-training evaluation resume retains failed cells without replacement, uses
+remaining original time and cannot turn an incomplete cohort into a strength
+claim. Training checkpoints do not support process resume.
+
+Jack Heart requested keeping ETU-91 and its checkout open to preserve ignored
+`.runs` evidence. Detailed attempts, commands and evidence limits live in the
+[study protocol](../../experiments/training-regimes.md). This evidence does not
+satisfy ETU-82's demo-run contract, ETU-85's improvement comparison, S1–S5
+competence, or the chapter's human-challenger outcome.

@@ -329,3 +329,46 @@ without training or network access. Run exports, checkpoint bytes and compressed
 Command traces are digest-checked. Root owns cross-study time accounting; the
 runner cannot infer other processes or the campaign's external ledger. No
 parallel scientific training is authorized.
+
+## Integrated workflow evidence (2026-10-04)
+
+ETU-91 consumed ETU-89/ETU-90 and ETU-75's semantic checkpoint contract.
+The final learning-speed smoke completed in 91.08 seconds with 24 games;
+the final five-arm smoke completed in 204.20 seconds with 72 games. Both
+exported two checkpoints per arm, reloaded ordinary w4 checkpoints, evaluated
+all four deck/seat legs and exactly replayed every completed game. The learning
+arm retained its collect/train handoff. All six saved metrics/report outputs
+were unchanged after offline notebook/report regeneration for each final cohort.
+Equal-cost windows exist in these final smoke cohorts; one seed and one deal
+block still cannot establish method-level strength or select treatments.
+
+Retained attempts remain local under this Task checkout's ignored `.runs`;
+Jack Heart requested keeping the Task and checkout open to preserve them.
+They are not archived model releases. The preceding inherited-ABI cohorts
+remain preliminary and are never relabeled as current-world evidence.
+
+| Directory under `.runs` | Status | Seconds | Completed stored game rows |
+| --- | --- | ---: | ---: |
+| `integrated-learning-speed-1` | completed | 83.24 | 24 |
+| `integrated-ataraxos-ablations-1` | completed | 208.87 | 72 |
+| `integrated-learning-speed-final` | completed | 91.08 | 24 |
+| `integrated-ataraxos-ablations-final` | failed | 203.62 | 48 |
+| `integrated-ataraxos-ablations-final-2` | completed | 204.17 | 72 |
+
+The failed five-arm attempt was interrupted after a child process read transient
+merge-conflict markers during main integration. Its partial artifacts and failed
+report remain intact; the subsequent run used a new directory. No failed row was
+replaced in that cohort. Do not change imported source while child processes
+are running.
+
+Validation: 14 study tests and six debug native vector tests passed; Ruff and
+whitespace checks passed. The broader training/collector/supervised/arena gate
+had 95 passes and four unchanged historical artifact failures: INT-7's retained
+shards lack semantic tensors, INT-8's frozen loader/source digests reject the
+new world, and the old arena fixture lacks a w4 binding. No frozen artifact or
+admission check was rewritten to make these pass. CI owns its separate matrix.
+
+No calibration or scientific cohort ran in this Task. Root must run integrated
+calibration on the landed code and commit generated plans before scoring.
+Study evidence does not satisfy ETU-82 demo completion, ETU-85 improvement,
+current-world S1–S5 certification, or the human-challenger outcome.

@@ -247,7 +247,7 @@ def scientific_plan(calibration, prior_seconds, reserved_disk_bytes=0):
         recipes=tuple(r.model_dump(mode="json") for r in recipes),
         runtime_identities=identities,
         projected_disk_bytes=projected_bytes,
-        disk_reserve_bytes=reserve,
+        disk_reserve_bytes=4 * 1024**3,
         allocation_seconds=allocation,
         prior_campaign_seconds=prior_seconds,
         calibration_evidence=f"{out}; study SHA256 {hashlib.sha256((out / 'study.json').read_bytes()).hexdigest()}; projected evaluation including 25% margin and report allowance {estimate:.1f}s; count extrapolation, not a guaranteed runtime; measured storage bytes {measured}; projected bytes with 25% margin {projected_bytes}",
