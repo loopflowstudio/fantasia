@@ -256,3 +256,232 @@ def test_uncertainty_clusters_training_seeds_and_four_leg_deals():
     assert result["score_a"] == 0.5
     assert "crossed" in result["method"]
     assert paired_uncertainty(cells[:3])[0]["status"] == "unavailable"
+
+
+def test_calibrated_plan_scales_work_and_reserves_both_studies(tmp_path, monkeypatch):
+    from experiments.runners.run_training_regimes import calibration_plan
+    from experiments.runners.training_plan import scientific_plan
+
+    plan = calibration_plan("learning-speed")
+    entries = []
+    for recipe in plan.recipes:
+        stages = []
+        for stage in recipe["stages"]:
+            stages.append(dict(id=stage["id"], seconds=8, export_seconds=0.1))
+        path = tmp_path / f"{recipe['id']}.json"
+        path.write_text(
+            json.dumps(
+                dict(
+                    status="completed",
+                    regime=recipe,
+                    stages=stages,
+                    setup_seconds=1,
+                    identities={
+                        k: "a" * 64
+                        for k in (
+                            "engine_extension_sha256",
+                            "engine_source_sha256",
+                            "training_source_sha256",
+                            "content_manifest_sha256",
+                            "observation_abi_sha256",
+                            "action_abi_sha256",
+                            "matchup_sha256",
+                        )
+                    },
+                )
+            )
+        )
+        entries.append(dict(path=str(path)))
+    study = dict(
+        study="learning-speed",
+        profile="calibration",
+        status="completed",
+        runs=entries,
+        measurements=[],
+        comparisons=[
+            dict(
+                b=b,
+                replay={"passed": True},
+                rows=[{}] * 4,
+                scheduled_games=4,
+                evaluation_seconds=4,
+            )
+            for b in (
+                "direct-self-play",
+                "random-smoke-anchor",
+                "scripted-greedy-fixed-anchor",
+                "puct-64-fixed-anchor",
+            )
+        ],
+    )
+    (tmp_path / "study.json").write_text(json.dumps(study))
+    resolved = scientific_plan(tmp_path, 0)
+    assert resolved.allocation_seconds == 132 * 3600
+    assert resolved.prior_campaign_seconds == 25 * 3600
+    assert resolved.protocol.checkpoint_count == 4
+    assert len(resolved.protocol.endpoint_seed_pairs) == 9
+    assert resolved.recipes[0]["stages"][0]["games"] > 4
+    assert resolved.recipes[1]["stages"][0]["updates"] > 8
+    assert resolved.recipes[1]["stages"][0]["transitions"] == 256
+    assert resolved.recipes[0]["stages"][-1]["datasets"] == [
+        f"collect-{i}" for i in range(4)
+    ]
+    from types import SimpleNamespace
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            "experiments.runners.training_plan.shutil.disk_usage",
+            lambda _: SimpleNamespace(free=0),
+        )
+        with pytest.raises(ValueError, match="storage infeasible"):
+            scientific_plan(tmp_path, 0)
+    with pytest.raises(ValueError, match="insufficient budget"):
+        scientific_plan(tmp_path, 30 * 3600)
+    study["status"] = "failed"
+    (tmp_path / "study.json").write_text(json.dumps(study))
+    with pytest.raises(ValueError, match="completed integrated"):
+        scientific_plan(tmp_path, 0)
+
+
+def test_resume_evaluates_remaining_cells_without_retraining_or_retrying_failure(
+    tmp_path, monkeypatch
+):
+    import torch
+
+    from experiments.runners import run_training_regimes as runner
+    from manabot.sim import teacher1_evidence
+    from manabot.training.models import StageRecord, TrainingRun
+
+    identities = {
+        k: "a" * 64
+        for k in (
+            "engine_extension_sha256",
+            "engine_source_sha256",
+            "training_source_sha256",
+            "content_manifest_sha256",
+            "observation_abi_sha256",
+            "action_abi_sha256",
+            "matchup_sha256",
+        )
+    }
+    monkeypatch.setattr(
+        teacher1_evidence, "runtime_fingerprints", lambda *a, **kw: identities.copy()
+    )
+    monkeypatch.setattr(teacher1_evidence, "source_bundle_sha256", lambda *a: "a" * 64)
+    monkeypatch.setattr(
+        runner, "execute_regime", lambda *a: pytest.fail("resume must not retrain")
+    )
+    monkeypatch.setattr(
+        runner, "load_checkpoint_agent", lambda *a: (torch.nn.Linear(1, 1), None)
+    )
+    monkeypatch.setattr(runner, "report", lambda *a: None)
+    calls = []
+
+    def play_cell(**kw):
+        calls.append(kw)
+        return (
+            [
+                dict(
+                    failure=None,
+                    terminated=True,
+                    truncated=False,
+                    replay_passed=True,
+                    score_a=0.5,
+                )
+                for _ in range(4)
+            ],
+            None,
+            {"passed": True},
+        )
+
+    monkeypatch.setattr(runner, "play_cell", play_cell)
+    recipes = [runner.smoke_recipe(n) for n in runner.STUDIES["learning-speed"]]
+    protocol = EvaluationProtocol(
+        study="learning-speed",
+        regime_digests=tuple(
+            canonical_sha256(r.model_dump(mode="json")) for r in recipes
+        ),
+    )
+    entries = []
+    for recipe in recipes:
+        checkpoint = tmp_path / f"{recipe.id}.pt"
+        checkpoint.write_bytes(b"fixture")
+        artifact = dict(
+            path=str(checkpoint), sha256=hashlib.sha256(b"fixture").hexdigest(), bytes=7
+        )
+        run = TrainingRun(
+            id=recipe.id,
+            regime=recipe,
+            regime_digest=canonical_sha256(recipe.model_dump(mode="json")),
+            seed=197,
+            seed_streams={},
+            identities=identities,
+            status="completed",
+            stages=[
+                StageRecord(
+                    id=f"policy-{i}",
+                    status="completed",
+                    cumulative_seconds=i + 1,
+                    artifacts={"raw": artifact},
+                )
+                for i in range(2)
+            ],
+        )
+        path = tmp_path / f"{recipe.id}.json"
+        path.write_text(run.model_dump_json())
+        entries.append(
+            dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+        )
+    failed = dict(
+        a="search-distillation",
+        b="direct-self-play",
+        training_seed=197,
+        b_training_seed=197,
+        phase="development",
+        cutoff=0,
+        rows=[],
+        scheduled_games=4,
+        replay={"passed": False},
+        evaluation_seconds=1,
+        trace=None,
+    )
+    study = dict(
+        study="learning-speed",
+        profile="workflow-smoke",
+        status="failed",
+        seconds=1,
+        runs=entries,
+        measurements=[],
+        comparisons=[failed],
+        protocol_sha256=canonical_sha256(protocol.model_dump(mode="json")),
+    )
+    (tmp_path / "study.json").write_text(json.dumps(study))
+    (tmp_path / "protocol.json").write_text(protocol.model_dump_json())
+    (tmp_path / "recipes.json").write_text(
+        json.dumps([r.model_dump(mode="json") for r in recipes])
+    )
+    with pytest.raises(RuntimeError, match="incomplete arena cohort"):
+        runner.run_study("learning-speed", tmp_path, resume=True)
+    saved = json.loads((tmp_path / "study.json").read_text())
+    assert len(calls) == 5
+    assert len(saved["comparisons"]) == 6
+    assert saved["comparisons"][0] == failed
+    assert saved["status"] == "failed"
+
+
+def test_report_rejects_changed_command_trace(tmp_path):
+    trace = tmp_path / "commands.gz"
+    trace.write_bytes(b"changed")
+    study = dict(
+        runs=[],
+        measurements=[],
+        comparisons=[
+            dict(
+                trace=dict(
+                    path=str(trace), sha256=hashlib.sha256(b"original").hexdigest()
+                )
+            )
+        ],
+    )
+    with pytest.raises(ValueError, match="trace digest"):
+        verify_saved_inputs(tmp_path, study)

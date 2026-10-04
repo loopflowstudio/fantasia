@@ -123,6 +123,14 @@ def verify_saved_inputs(out, study):
             and hashlib.sha256(path.read_bytes()).hexdigest() != item["sha256"]
         ):
             raise ValueError("run export digest mismatch")
+    for cell in study.get("comparisons", []):
+        trace = cell.get("trace")
+        if (
+            trace
+            and hashlib.sha256(Path(trace["path"]).read_bytes()).hexdigest()
+            != trace["sha256"]
+        ):
+            raise ValueError("arena trace digest mismatch")
     for row in study["measurements"]:
         artifact = row["checkpoint"]
         if (
@@ -254,13 +262,13 @@ def report(out):
         "",
         "Playing score is measured against the named opponent. Cost curves use the fixed random anchor; paired-recipe matches are listed separately. Smoke points prove execution only. Scientific profiles report every seed separately; three seeds provide only exploratory uncertainty, not a confirmatory method claim.",
         "",
-        "| Recipe | Cutoff | Opponent | Training seconds | Decisions | Complete games | Score |",
-        "| --- | --- | --- | ---: | ---: | ---: | ---: |",
+        "| Recipe | Seed | Variant | Phase | Cutoff | Opponent | Training seconds | Decisions | Complete games | Score |",
+        "| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: |",
     ]
     for row in rows:
         score = "unavailable" if row["score"] is None else f"{row['score']:.3f}"
         lines.append(
-            f"| {row['regime']} | {row['cutoff']} | {row['opponent']} | {row['training_seconds']:.2f} | {row['decisions']} | {row['games']} | {score} |"
+            f"| {row['regime']} | {row['seed']} | {row.get('variant', 'raw')} | {row.get('phase', 'development')} | {row['cutoff']} | {row['opponent']} | {row['training_seconds']:.2f} | {row['decisions']} | {row['games']} | {score} |"
         )
     lines += [
         "",

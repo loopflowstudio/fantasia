@@ -123,6 +123,9 @@ class ResolvedStudy(BaseModel):
     recipes: tuple[dict, ...]
     allocation_seconds: float = Field(gt=0, le=168 * 3600)
     prior_campaign_seconds: float = Field(ge=0)
+    runtime_identities: dict[str, str] = Field(default_factory=dict)
+    projected_disk_bytes: int = Field(default=0, ge=0)
+    disk_reserve_bytes: int = Field(default=4 * 1024**3, ge=0)
     calibration_evidence: str
 
     @model_validator(mode="after")

@@ -2,7 +2,9 @@
 
 import argparse
 import hashlib
+import json
 from pathlib import Path
+import shutil
 import signal
 import time
 
@@ -17,12 +19,13 @@ from manabot.arena.models import (
     canonical_sha256,
 )
 from manabot.sim.flat_mc import load_checkpoint_agent
-from manabot.training.analysis import report, valid_game
+from manabot.training.analysis import report, valid_game, verify_saved_inputs
 from manabot.training.execution import atomic_json, execute_regime
 from manabot.training.models import (
     CollectSearch,
     StageRecord,
     TrainingRegime,
+    TrainingRun,
     TrainSelfPlay,
 )
 from manabot.verify.store import VerifyStore
@@ -127,13 +130,38 @@ def calibration_plan(study):
     )
 
 
-def run_study(study, out, plan=None):
+def run_study(study, out, plan=None, resume=False):
     if "cumulative_seconds" not in StageRecord.model_fields:
         raise RuntimeError(
             "ETU-89 cumulative checkpoint clock must be integrated before study execution"
         )
-    out.mkdir(parents=True, exist_ok=False)
-    start = time.perf_counter()
+    if plan is not None and plan.protocol.purpose == "scientific":
+        free = shutil.disk_usage(out.parent).free
+        if free < plan.projected_disk_bytes + plan.disk_reserve_bytes:
+            raise RuntimeError(
+                "insufficient free disk for frozen study and evidence reserve"
+            )
+    retained = None
+    resumed_runs = []
+    if resume:
+        retained = json.loads((out / "study.json").read_text())
+        verify_saved_inputs(out, retained)
+        if retained["status"] == "running":
+            raise ValueError(
+                "unclean shutdown has no final cost receipt; use report-only and account for the lost interval before a new cohort"
+            )
+        if retained["status"] == "completed":
+            raise ValueError("study already completed; use --report-only")
+        for entry in retained["runs"]:
+            run = TrainingRun.model_validate_json(Path(entry["path"]).read_text())
+            if run.status != "completed":
+                raise ValueError(
+                    "interrupted training cannot resume; retain this attempt and freeze a new cohort"
+                )
+            resumed_runs.append(run)
+    else:
+        out.mkdir(parents=True, exist_ok=False)
+    start = time.perf_counter() - (retained["seconds"] if retained else 0)
     if plan is None:
         recipes = [smoke_recipe(name) for name in STUDIES[study]]
         protocol = EvaluationProtocol(
@@ -147,9 +175,57 @@ def run_study(study, out, plan=None):
         recipes = [TrainingRegime.model_validate(r) for r in plan.recipes]
         if [r.id for r in recipes] != STUDIES[study]:
             raise ValueError("resolved recipes must preserve the study arm order")
-        atomic_json(out / "resolved-plan.json", plan.model_dump(mode="json"))
-    atomic_json(out / "recipes.json", [r.model_dump(mode="json") for r in recipes])
-    atomic_json(out / "protocol.json", protocol.model_dump(mode="json"))
+        if not resume:
+            atomic_json(out / "resolved-plan.json", plan.model_dump(mode="json"))
+    if resume or (plan is not None and plan.protocol.purpose == "scientific"):
+        from manabot.env import ObservationSpace
+        from manabot.sim.teacher1_evidence import (
+            runtime_fingerprints,
+            source_bundle_sha256,
+        )
+
+        current = runtime_fingerprints(
+            protocol.training_seeds[0],
+            match_hypers=recipes[0].match,
+            observation_space=ObservationSpace(recipes[0].observation),
+        )
+        current["training_source_sha256"] = source_bundle_sha256(
+            sorted((ROOT / "manabot").rglob("*.py"))
+        )
+        expected = (
+            plan.runtime_identities
+            if plan and plan.protocol.purpose == "scientific"
+            else {
+                k: resumed_runs[0].identities[k]
+                for k in (
+                    "engine_extension_sha256",
+                    "engine_source_sha256",
+                    "training_source_sha256",
+                    "content_manifest_sha256",
+                    "observation_abi_sha256",
+                    "action_abi_sha256",
+                    "matchup_sha256",
+                )
+            }
+        )
+        if not expected or any(current.get(k) != v for k, v in expected.items()):
+            raise ValueError(
+                "runtime/source differs from calibrated or retained cohort"
+            )
+    if resume:
+        if retained["protocol_sha256"] != canonical_sha256(
+            protocol.model_dump(mode="json")
+        ):
+            raise ValueError("resume protocol differs from frozen cohort")
+        if {(r.regime.id, r.seed) for r in resumed_runs} != {
+            (r.id, seed) for r in recipes for seed in protocol.training_seeds
+        }:
+            raise ValueError(
+                "resume requires every frozen training run to have completed"
+            )
+    else:
+        atomic_json(out / "recipes.json", [r.model_dump(mode="json") for r in recipes])
+        atomic_json(out / "protocol.json", protocol.model_dump(mode="json"))
     result = {
         "study": study,
         "profile": protocol.purpose,
@@ -162,6 +238,19 @@ def run_study(study, out, plan=None):
         "limits": f"{protocol.process_seconds} seconds total; {len(protocol.training_seeds)} training seeds; {protocol.uncertainty}; purpose={protocol.purpose}",
     }
 
+    if retained:
+        result = retained
+        result.setdefault("interruptions", []).append(
+            {
+                "seconds": result["seconds"],
+                "error": result.pop("error", "process stopped"),
+            }
+        )
+        result["status"] = "running"
+    remaining = protocol.process_seconds - (time.perf_counter() - start)
+    if remaining <= 0:
+        raise TimeoutError("frozen study allocation is exhausted; cannot resume")
+
     def save():
         result["seconds"] = time.perf_counter() - start
         atomic_json(out / "study.json", result)
@@ -170,12 +259,12 @@ def run_study(study, out, plan=None):
         raise TimeoutError("study exceeded its frozen process deadline")
 
     signal.signal(signal.SIGALRM, deadline)
-    signal.setitimer(signal.ITIMER_REAL, protocol.process_seconds)
+    signal.setitimer(signal.ITIMER_REAL, remaining)
     save()
     try:
-        runs = []
+        runs = resumed_runs
         with VerifyStore(out / "training.sqlite") as store:
-            for index, seed in enumerate(protocol.training_seeds):
+            for index, seed in enumerate(() if resume else protocol.training_seeds):
                 for recipe in recipes if index % 2 == 0 else list(reversed(recipes)):
                     entry = {
                         "path": str(out / f"{recipe.id}-seed-{seed}" / "run.json"),
@@ -280,6 +369,27 @@ def run_study(study, out, plan=None):
             baseline=None,
             phase="development",
         ):
+            identity = (
+                a_run.regime.id,
+                a_run.seed,
+                b_run.regime.id if b_run else baseline.player_id,
+                b_run.seed if b_run else None,
+                cutoff,
+                phase,
+            )
+            if any(
+                (
+                    c["a"],
+                    c["training_seed"],
+                    c["b"],
+                    c.get("b_training_seed"),
+                    c["cutoff"],
+                    c.get("phase", "development"),
+                )
+                == identity
+                for c in result["comparisons"]
+            ):
+                return
             a = registration(a_run, a_stage)
             b = registration(b_run, b_stage) if b_run else baseline
             deals = (
@@ -372,10 +482,6 @@ def run_study(study, out, plan=None):
                     )
                 )
             save()
-            if not valid:
-                raise RuntimeError(
-                    "incomplete arena cohort; retained attempts cannot establish a score"
-                )
 
         if any(
             len(stages) != protocol.checkpoint_count for stages in checkpoints.values()
@@ -433,9 +539,21 @@ def run_study(study, out, plan=None):
                         baseline=baseline,
                         phase="endpoint",
                     )
-        result["status"] = "completed"
+        incomplete = any(
+            not c["replay"]["passed"]
+            or len(c["rows"]) != c["scheduled_games"]
+            or not all(valid_game(row) for row in c["rows"])
+            for c in result["comparisons"]
+        )
+        result["status"] = "failed" if incomplete else "completed"
+        if incomplete:
+            result["error"] = (
+                "incomplete arena cohort; every attempted cell retained without retry"
+            )
         save()
         report(out)
+        if incomplete:
+            raise RuntimeError(result["error"])
         save()
     except BaseException as error:
         result["status"] = "failed"
@@ -454,18 +572,57 @@ def main():
     )
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--write-plan", type=Path)
+    parser.add_argument("--calibration", type=Path)
+    parser.add_argument("--companion-plan", type=Path)
+    parser.add_argument("--prior-campaign-seconds", type=float, default=0)
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--report-only", type=Path)
     args = parser.parse_args()
     if args.write_plan:
-        if args.profile != "calibration" or args.plan or args.out or args.report_only:
-            parser.error("--write-plan requires calibration and no execution arguments")
+        if (
+            args.profile == "smoke"
+            or args.plan
+            or args.out
+            or args.report_only
+            or args.resume
+        ):
+            parser.error(
+                "--write-plan requires calibration/scientific and no execution arguments"
+            )
         if args.write_plan.exists():
             parser.error("refusing to overwrite an existing plan")
-        atomic_json(
-            args.write_plan, calibration_plan(args.study).model_dump(mode="json")
-        )
+        if args.profile == "scientific":
+            from experiments.runners.training_plan import scientific_plan
+
+            if args.calibration is None:
+                parser.error("scientific plan generation requires --calibration")
+            reserved = 0
+            if args.companion_plan:
+                companion = ResolvedStudy.model_validate_json(
+                    args.companion_plan.read_text()
+                )
+                if companion.protocol.study == args.study:
+                    parser.error("companion must be the other study")
+                reserved = companion.projected_disk_bytes
+            plan = scientific_plan(
+                args.calibration, args.prior_campaign_seconds, reserved
+            )
+            if plan.protocol.study != args.study:
+                parser.error("calibration belongs to a different study")
+        else:
+            plan = calibration_plan(args.study)
+            plan = ResolvedStudy.model_validate(
+                {
+                    **plan.model_dump(),
+                    "prior_campaign_seconds": args.prior_campaign_seconds,
+                }
+            )
+        args.write_plan.parent.mkdir(parents=True, exist_ok=True)
+        atomic_json(args.write_plan, plan.model_dump(mode="json"))
         return
+    if args.calibration or args.prior_campaign_seconds or args.companion_plan:
+        parser.error("calibration evidence/accounting arguments require --write-plan")
     if args.report_only:
         report(args.report_only.resolve())
         return
@@ -484,7 +641,7 @@ def main():
         parser.error("smoke does not accept a scientific plan")
     torch.set_num_threads(1)
     out = args.out.resolve()
-    run_study(args.study, out, plan)
+    run_study(args.study, out, plan, resume=args.resume)
 
 
 if __name__ == "__main__":

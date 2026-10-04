@@ -54,7 +54,7 @@ is selected. Incomplete teacher games remain charged and
 excluded with explicit counts. No free pre-existing corpus or warm start.
 
 **B: direct self-play.** Current policy plays both sides; train a joint
-policy/value model for at most 22 hours/run including export. Pilot defaults:
+policy/value model for at most 18 hours/run including export. Pilot defaults:
 16 streams, 256 learner transitions/stream, gamma=1, policy GAE lambda=.95,
 value lambda=1 with rollout-boundary bootstrapping, four epochs, four
 minibatches, ratio clip .1, value weight .5, gradient norm .5. Separate the
@@ -121,8 +121,8 @@ players. Primary evaluation is all nine A-seed/B-seed matchups, 128 untouched
 deal blocks each: 4,608 games. Secondary evaluation uses every candidate
 against fixed random, scripted-greedy and PUCT-64 anchors, 32 blocks each:
 2,304 games. Keep anchor results separate from direct head-to-head strength.
-Save checkpoints at cumulative 5.5, 11, 16.5 and 22 hour ceilings, with actual
-elapsed cost attached. Capture the latest complete checkpoint at each cutoff;
+The main run has four export stages within an 18-hour ceiling. Freeze interior
+cost cutoffs from integrated calibration, with actual elapsed cost attached. Capture the latest complete checkpoint at each cutoff;
 never use a future checkpoint or interpolate weights. Compare all six runs at
 the first three cutoffs against the same three anchors on 16 development blocks
 each (3,456 additional games), plus paired-seed A/B matches on 32 blocks each
@@ -215,10 +215,10 @@ be filled with future weights. Fixed update counts are not equal-cost evidence.
 After the final source lands, prepare and run the two timing cohorts:
 
 ```sh
-uv run experiments/runners/run_training_regimes.py --study learning-speed --profile calibration --write-plan .runs/learning-calibration-plan.json
-uv run experiments/runners/run_training_regimes.py --study learning-speed --profile calibration --plan .runs/learning-calibration-plan.json --out .runs/learning-calibration-1
-uv run experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile calibration --write-plan .runs/ablation-calibration-plan.json
-uv run experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile calibration --plan .runs/ablation-calibration-plan.json --out .runs/ablation-calibration-1
+uv run --extra notebook experiments/runners/run_training_regimes.py --study learning-speed --profile calibration --write-plan .runs/learning-calibration-plan.json
+uv run --extra notebook experiments/runners/run_training_regimes.py --study learning-speed --profile calibration --plan .runs/learning-calibration-plan.json --out .runs/learning-calibration-1
+uv run --extra notebook experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile calibration --write-plan .runs/ablation-calibration-plan.json
+uv run --extra notebook experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile calibration --plan .runs/ablation-calibration-plan.json --out .runs/ablation-calibration-1
 ```
 
 The generated plans each allow one CPU hour, use full width-64 models, two
@@ -254,22 +254,78 @@ disjoint from all development deals. Three seeds support exploratory inference
 only.
 Main candidates remain raw outputs, with no post-hoc best-seed selection.
 
-Create the final resolved JSON by adapting the calibration plans with measured
-counts, stage continuations, independent seeds, exact deal lists and cutoffs
-(screen proposed 900/1800/3600 seconds; main 16200/32400/48600/64800). Bind all
-resolved recipe digests again and cite the saved calibration paths. Commit
-these frozen files before the root uses:
+Generate both scientific plans from the completed calibration evidence. These
+commands write plans only; they do not train. The default allocation is frozen
+as a ceiling: 4 hours calibration, 21 hours screen (15 training + 6 evaluation),
+132 hours comparison (108 training + 24 evaluation), and 11 hours recovery.
+Use `--prior-campaign-seconds` for actual prior time if it exceeds the reserved
+4-hour / 25-hour minima. If extra failures consume the recovery allocation,
+amend the envelope before scoring; the generator refuses to spend it silently.
 
 ```sh
-uv run experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile scientific --plan .runs/frozen-ablation-plan.json --out .runs/ablation-scientific-1
-uv run experiments/runners/run_training_regimes.py --study learning-speed --profile scientific --plan .runs/frozen-learning-plan.json --out .runs/learning-scientific-1
-uv run experiments/runners/run_training_regimes.py --report-only .runs/learning-scientific-1
+uv run --extra notebook experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile scientific --calibration .runs/ablation-calibration-1 --write-plan .runs/frozen-ablation-plan.json
+uv run --extra notebook experiments/runners/run_training_regimes.py --study learning-speed --profile scientific --calibration .runs/learning-calibration-1 --companion-plan .runs/frozen-ablation-plan.json --write-plan .runs/frozen-learning-plan.json
 ```
 
-Existing output directories are never overwritten. A failed run retains its
-SQLite record, artifacts, partial comparisons and failure; there is no exact
-process resume. Offline reporting can inspect partial evidence without training.
-A retry uses a new directory and records all earlier time in the campaign
-ledger and next plan. Root coordination and `prior_campaign_seconds` are
-required: the runner validates the declared 168-hour envelope but cannot infer
-other processes or allocations. No parallel scientific training is authorized.
+The generator keeps the calibrated width, streams, transitions, optimizer,
+epochs and teacher strength. It scales **updates and teacher games**, not only
+timeouts. It preserves optimizer continuation and cumulative teacher datasets.
+Counts target 75% of each stage allowance using the slower observed per-unit
+rate; cumulative fitting is priced at the final corpus size. Three screen
+checkpoints and four main checkpoints remain distinct from nominal elapsed
+cutoffs. Predicted interior cost cutoffs span 110% of the slowest first export
+to 90% of the earliest predicted final export. Actual overlap is checked after
+execution; predictions never manufacture equal-cost points.
+
+The generator prices each of the three anchors from its measured four-leg cost,
+adds 25% timing margin and ten minutes for analysis, then selects development
+blocks up to 16, endpoint anchor blocks at twice that count, and endpoint paired
+blocks at twice that count for the screen or eight times for the comparison.
+Selection uses timing only. Even the smallest cohort must fit before a plan
+can be written. Inspect and commit the exact resulting counts, identities,
+seeds, deals and predictions before root starts scoring. Count extrapolation
+is not evidence of long-run reliability or adequate statistical power.
+
+Storage is also a pre-scoring gate. Calibration measures actual bytes for shards,
+checkpoints, training records and arena/report artifacts. Projected growth follows
+game/update/checkpoint/evaluation counts, with 25% margin plus a 4 GiB free-disk
+reserve. The main plan additionally reserves the screen's projected bytes via
+`--companion-plan`. With only 14 GiB free, a plan may fail this gate; retain the
+error and archive evidence to an explicitly chosen larger volume or amend the
+workload before scoring. No automatic deletion or omitted evidence is allowed.
+Scientific execution checks free disk again and requires the calibrated native,
+content, ABI and training-source identities. Regenerate calibration after source
+drift; do not relabel old measurements.
+
+After committing the two generated plans, root alone runs:
+
+```sh
+uv run --extra notebook experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile scientific --plan .runs/frozen-ablation-plan.json --out .runs/ablation-scientific-1
+uv run --extra notebook experiments/runners/run_training_regimes.py --study learning-speed --profile scientific --plan .runs/frozen-learning-plan.json --out .runs/learning-scientific-1
+uv run --extra notebook experiments/runners/run_training_regimes.py --report-only .runs/learning-scientific-1
+```
+
+Existing output directories are never overwritten by a new execution. Failed
+training retains SQLite state and partial artifacts; model checkpoints are not
+collector/process snapshots. An interrupted training cohort needs a new plan
+and output directory, charging all previous work. Do not restart the complete
+108-hour comparison casually: its failure may require a smaller amended study.
+
+If **all training runs completed**, `--resume` can finish unattempted arena cells
+and reporting from verified immutable run/checkpoint artifacts, without training:
+
+```sh
+uv run --extra notebook experiments/runners/run_training_regimes.py --study learning-speed --profile scientific --plan .runs/frozen-learning-plan.json --out .runs/learning-scientific-1 --resume
+```
+
+An unclean kill leaving status `running` has no final elapsed-cost receipt and
+cannot auto-resume; account for the lost interval before a new cohort.
+Resume verifies source/runtime and protocol identities and uses only remaining
+time in the original process allowance; downtime creates no compute credit.
+Completed cells are reused. Failed or interrupted cells remain unresolved and
+are never retried or replaced; the remaining schedule may finish, but that
+cohort stays failed with unresolved-game bounds. Offline `--report-only` works
+without training or network access. Run exports, checkpoint bytes and compressed
+Command traces are digest-checked. Root owns cross-study time accounting; the
+runner cannot infer other processes or the campaign's external ledger. No
+parallel scientific training is authorized.
