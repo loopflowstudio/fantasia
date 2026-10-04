@@ -69,6 +69,12 @@ def test_self_play_records_costs_and_reloads_distinct_raw_ema(
         load_checkpoint_agent(run.stages[index].artifacts[variant]["path"])[0]
         for index, variant in [(0, "raw"), (0, "ema"), (1, "raw"), (1, "ema")]
     ]
+    for agent in (raw0, ema0, raw1, ema1):
+        assert agent.hypers.semantic_pack == "ur-lessons-vs-gw-allies"
+        assert {"semantic_cards", "known_hand"} <= agent.world_binding[
+            "input_schema"
+        ].keys()
+        assert all(setup["sideboard"] for setup in agent.world_binding["setups"])
     assert any(
         not torch.equal(a, b) for a, b in zip(raw0.parameters(), ema0.parameters())
     )

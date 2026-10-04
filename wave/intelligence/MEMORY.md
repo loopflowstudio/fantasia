@@ -359,10 +359,14 @@ continuation: learner weights stay fixed while the evaluation average advances.
 Collector match metadata passes through the Trainer env shim for ordinary
 checkpoint admission.
 
-ETU-90's retained two-stage CPU run completed 14 games and 1,024 learner
-transitions with phase costs, distinct raw/EMA outputs and ordinary reload.
-The focused boundary/treatment checks passed, but this is inherited-ABI
-workflow evidence. The parent integration record above supplies the semantic-ABI
-proof; ETU-90 has not independently rerun that contract. Final ETU-90 admission
-and ETU-91 study reruns remain outstanding; no strength or human-play result
-follows from these runs.
+ETU-90 independently validated the integrated semantic ABI on 2026-10-04 after
+syncing published parent `9a1b90df`. The retained normal and empty-filter runs
+in `.runs/etu90-semantic-final` each completed 14 games and 1,024 learner
+transitions across two stages. All eight raw/EMA artifacts passed the ordinary
+loader with semantic inputs and authored sideboards. Empty-filter continuation
+retained learner weights with zero optimizer exposures while EMA advanced;
+collection, learning and export costs remained recorded. The affected Python
+suite passed 65 tests (one notebook dependency skip), and six native debug
+vector tests passed after rebuilding the extension. These are current-ABI
+workflow and treatment-correctness proofs, not strength or human-play results.
+ETU-91 retains ownership of final replayed study/notebook evidence.
