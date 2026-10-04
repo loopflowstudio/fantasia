@@ -14,7 +14,12 @@ from manabot.model.compound import CompoundDecoder
 from manabot.sim.compound import CompoundPolicy, sample_compound
 from manabot.sim.flat_mc import load_checkpoint_agent, make_player
 from manabot.sim.structured_policy import StructuredPolicyError, flatten_projection
-from manabot.training.compound import collect_game, episode_credit, optimize_games, replay_game
+from manabot.training.compound import (
+    collect_game,
+    episode_credit,
+    optimize_games,
+    replay_game,
+)
 from manabot.training.execution import execute_regime
 from manabot.training.models import Learning, TrainingRegime
 from manabot.verify.store import VerifyStore

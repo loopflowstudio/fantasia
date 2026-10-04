@@ -182,3 +182,15 @@ blocks. Scientific comparison requires a separately authorized, calibrated plan
 with independent training seeds, fresh deals, equal wall budgets and measured
 inference cost. The ETU-91 scientific-plan generator explicitly rejects borrowing
 its campaign allocation for compound work.
+
+Bounded evidence (2026-10-04): the retained one-thread ETU-94 workflow attempts
+`.runs/etu94-compound-smoke-1` and `.runs/etu94-compound-smoke-final` completed
+in 268 and 224 seconds respectively. The latter ran after integrating main's
+Ataraxos and belief-sampler stages: four arms, one seed, eight training games,
+eight ordinary admitted checkpoints, and 56 complete arena games in 14 cells.
+Every arena cell replayed exactly with zero failed games. Offline regeneration
+preserved `cost-comparison.json`, `uncertainty.json`, and `report.md` byte for
+byte. The attempts retain source identities, individual costs, underlying
+microchoices, grouped decisions, and latency in their manifests and reports.
+These ignored local receipts are workflow evidence, not a committed benchmark
+or a multi-seed strength result. No ETU-91 run or allocation was changed.

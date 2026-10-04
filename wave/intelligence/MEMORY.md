@@ -438,6 +438,14 @@ for canonical execution consuming its observation-event queue; comparing an
 undrained raw atomic bridge to a drained Command stream compares different
 ownership points. No physics change or frozen evidence rewrite was needed.
 
+Two retained one-thread workflow executions completed in 268 and 224 seconds;
+the latter followed integration with ETU-92 and ETU-96. Each trained four arms
+for two games apiece, exported eight admitted checkpoints, and exact-replayed
+56 arena games with no failed cells. Offline reports/metrics regenerated
+unchanged. These one-seed receipts are retained under this Task checkout's
+ignored `.runs/etu94-compound-smoke-{1,final}`; they are not method uncertainty
+or authorization for further scoring.
+
 Scientific outcome-versus-bootstrap and sequential-versus-grouped improvement
 remain unmeasured. Multi-seed, held-out, equal-cost complete-game scoring needs
 its own frozen protocol and budget. Candidate runtime-object representation in
