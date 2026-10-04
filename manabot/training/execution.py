@@ -51,7 +51,9 @@ def export_training_run(run_id, store, out):
 
 
 def validate_regime(regime):
-    regime = TrainingRegime.model_validate(regime)
+    regime = TrainingRegime.model_validate(
+        regime.model_dump() if isinstance(regime, TrainingRegime) else regime
+    )
     if regime.world != managym.WORLD_VERSION:
         raise ValueError("regime world differs from native runtime")
     if regime.agent.belief_count_buckets:
@@ -64,7 +66,6 @@ def execute_regime(regime, seed, out, store):
     out = Path(out).resolve()
     out.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
-    space = ObservationSpace(regime.observation)
     seeds = {
         name: seed + offset
         for name, offset in (
@@ -74,36 +75,16 @@ def execute_regime(regime, seed, out, store):
             ("evaluation", 30000),
         )
     }
-    identities = runtime_fingerprints(
-        seed, match_hypers=regime.match, observation_space=space
-    )
-    identities.update(
-        hardware={
-            "platform": platform.platform(),
-            "processor": platform.processor(),
-            "cpu_count": os.cpu_count(),
-            "memory_bytes": psutil.virtual_memory().total,
-        },
-        training_source_sha256=source_bundle_sha256(
-            sorted(Path(__file__).resolve().parents[1].rglob("*.py"))
-        ),
-        torch=torch.__version__,
-        source_commit=subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], text=True
-        ).strip(),
-    )
     run = TrainingRun(
         id=uuid.uuid4().hex,
         regime=regime,
         regime_digest=canonical_sha256(regime.model_dump(mode="json")),
         seed=seed,
         seed_streams=seeds,
-        identities=identities,
+        identities={},
         status="running",
     )
     store.save_training_run(run)
-    export_training_run(run.id, store, out)
-    run.setup_seconds = time.perf_counter()-start
     outputs, sessions = {}, {}
     game_index = 0
 
@@ -120,10 +101,33 @@ def execute_regime(regime, seed, out, store):
         }
 
     try:
+        space = ObservationSpace(regime.observation)
+        identities = runtime_fingerprints(
+            seed, match_hypers=regime.match, observation_space=space
+        )
+        identities.update(
+            hardware={
+                "platform": platform.platform(),
+                "processor": platform.processor(),
+                "cpu_count": os.cpu_count(),
+                "memory_bytes": psutil.virtual_memory().total,
+            },
+            training_source_sha256=source_bundle_sha256(
+                sorted(Path(__file__).resolve().parents[1].rglob("*.py"))
+            ),
+            torch=torch.__version__,
+            source_commit=subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], text=True
+            ).strip(),
+        )
+        run.identities = identities
+        run.setup_seconds = time.perf_counter() - start
+        persist()
         for stage in regime.stages:
             record = StageRecord(id=stage.id)
             run.stages.append(record)
             stage_start = time.perf_counter()
+            cpu_start = time.process_time()
             deadline = min(
                 start + regime.wall_seconds, stage_start + stage.execution.wall_seconds
             )
@@ -139,9 +143,21 @@ def execute_regime(regime, seed, out, store):
                     for p in process.children(recursive=True)
                     if p.is_running()
                 )
+                record.sampled_peak_rss_bytes = max(
+                    record.sampled_peak_rss_bytes, memory
+                )
                 if memory > stage.execution.memory_bytes:
                     raise MemoryError("training process tree memory limit exceeded")
 
+            references = list(getattr(stage, "datasets", []))
+            if getattr(stage, "initial", None):
+                references.append(stage.initial)
+            for reference in references:
+                source = next(item for item in run.stages if item.id == reference)
+                for name, item in source.artifacts.items():
+                    if file_sha256(item["path"]) != item["sha256"]:
+                        raise ValueError(f"input artifact changed: {reference}/{name}")
+                    record.inputs[f"{reference}/{name}"] = dict(item)
             persist()
             check()
             if isinstance(stage, CollectSearch):
@@ -171,9 +187,12 @@ def execute_regime(regime, seed, out, store):
                         deadline_monotonic=deadline,
                     )
                     os.replace(temporary, target)
+                    summary["out_path"] = str(target)
                     record.artifacts[f"game-{game_index}"] = artifact(target)
                     record.diagnostics.append(summary)
-                    record.games += int(all(summary["terminated"]) and not any(summary["truncated"]))
+                    record.games += int(
+                        all(summary["terminated"]) and not any(summary["truncated"])
+                    )
                     record.environment_decisions += summary["decisions"]
                     record.collection_seconds = time.perf_counter() - stage_start
                     persist()
@@ -234,8 +253,7 @@ def execute_regime(regime, seed, out, store):
                         trainer,
                         batch,
                         stage.learning,
-                        (time.perf_counter() - stage_start)
-                        / stage.execution.wall_seconds,
+                        (time.perf_counter() - start) / regime.wall_seconds,
                         rng,
                     )
                     iteration += 1
@@ -286,6 +304,7 @@ def execute_regime(regime, seed, out, store):
                     batch_size=stage.batch_size,
                     lr=stage.learning_rate,
                     seed=seeds["initialization"],
+                    minibatch_seed=seeds["minibatches"],
                     validation_games=validation,
                     initial_agent_state=previous["agent"].state_dict()
                     if previous
@@ -330,8 +349,13 @@ def execute_regime(regime, seed, out, store):
                         },
                     )
                     os.replace(temporary, target)
-                    load_checkpoint_agent(str(target))
-                    record.artifacts[name] = artifact(target)
+                    candidate = artifact(target)
+                    try:
+                        load_checkpoint_agent(str(target))
+                    except Exception:
+                        record.rejected_artifacts[name] = candidate
+                        raise
+                    record.artifacts[name] = candidate
                 optimizer_path = out / f"{stage.id}-optimizer.pt"
                 torch.save(
                     outputs[stage.id]["optimizer_state"],
@@ -342,8 +366,13 @@ def execute_regime(regime, seed, out, store):
                 record.export_seconds = time.perf_counter() - tick
             check()
             record.seconds = time.perf_counter() - stage_start
+            record.cpu_seconds = time.process_time() - cpu_start
             record.status = "completed"
             persist()
+        completed_models = [
+            item.artifacts["raw"] for item in run.stages if "raw" in item.artifacts
+        ]
+        run.selected_artifact = completed_models[-1] if completed_models else None
         run.status = "completed"
         persist()
     except BaseException as error:
@@ -358,6 +387,7 @@ def execute_regime(regime, seed, out, store):
             run.stages[-1].error = run.error
             run.stages[-1].seconds = time.perf_counter() - stage_start
             record = run.stages[-1]
+            record.cpu_seconds = time.process_time() - cpu_start
             unaccounted = max(
                 0.0,
                 record.seconds
@@ -374,6 +404,7 @@ def execute_regime(regime, seed, out, store):
             pass
         raise
     finally:
-        for trainer, _, _ in sessions.values():
+        trainers = {id(trainer): trainer for trainer, _, _ in sessions.values()}
+        for trainer in trainers.values():
             trainer.experiment.close()
     return run

@@ -32,8 +32,9 @@ final Nature supplement.
 ## Implementation choices (2026-10-04)
 
 Jack Heart split delivery into regime/run infrastructure (ETU-89), RL
-correctness/treatments (ETU-90), and study/arena/report (ETU-91). One implementation
-writer continues all three; one shared PR is explicitly authorized. Preserve their separate
+correctness/treatments (ETU-90), and study/arena/report (ETU-91). Three dedicated
+workers now own these Tasks in separate stacked checkouts; the boundaries are
+in worker-handoff.md. ETU-91 must integrate ETU-90 before final acceptance. Preserve their separate
 acceptance evidence. The smoke uses one fixed random anchor and one four-leg
 block per checkpoint, alongside paired recipe comparisons; the expensive
 three-anchor scientific cohort remains proposed. CPU only is certified.

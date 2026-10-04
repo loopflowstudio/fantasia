@@ -135,3 +135,121 @@ def test_named_treatments_execute_real_optimizer_batches():
         )
         assert result["optimizer_exposures"] > 0
         assert np.isfinite(result["loss"])
+
+
+def test_runtime_failure_is_a_retained_run(tmp_path, monkeypatch):
+    from manabot.training import execution
+
+    def unavailable(*args, **kwargs):
+        raise RuntimeError("runtime fingerprint unavailable")
+
+    monkeypatch.setattr(execution, "runtime_fingerprints", unavailable)
+    with VerifyStore(tmp_path / "store.sqlite") as store:
+        with pytest.raises(RuntimeError, match="fingerprint"):
+            execute_regime(recipe(), 197, tmp_path / "run", store)
+        saved = json.loads((tmp_path / "run/run.json").read_text())
+        assert saved["status"] == "failed"
+        assert "fingerprint unavailable" in saved["error"]
+        assert saved["stages"] == []
+        assert store.training_run(saved["id"]).status == "failed"
+
+
+def test_manifest_export_failure_is_retained_in_canonical_store(tmp_path, monkeypatch):
+    from manabot.training import execution
+
+    def no_space(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(execution, "export_training_run", no_space)
+    with VerifyStore(tmp_path / "store.sqlite") as store:
+        with pytest.raises(OSError, match="disk full"):
+            execute_regime(recipe(), 197, tmp_path / "run", store)
+        row = store.con.execute("SELECT id FROM training_runs").fetchone()
+        saved = store.training_run(row[0])
+        assert saved.status == "failed"
+        assert "disk full" in saved.error
+
+
+def test_modified_models_are_revalidated_before_execution():
+    value = recipe()
+    value.stages[0].transitions = 0
+    with pytest.raises(ValueError):
+        validate_regime(value)
+
+
+def test_cli_rejects_ambiguous_regimes_and_keeps_presets(monkeypatch):
+    from typer.testing import CliRunner
+
+    from manabot import cli
+
+    runner = CliRunner()
+    for flags in (["--preset", "local"], ["--set", "train.num_steps=2"]):
+        result = runner.invoke(
+            cli.app, ["train", "--regime", "unused.json", "--out", "unused", *flags]
+        )
+        assert result.exit_code != 0
+        assert "cannot be combined" in result.output
+    assert runner.invoke(cli.app, ["train", "--seed", "2"]).exit_code != 0
+    calls = []
+    monkeypatch.setattr(
+        cli, "_run_train", lambda preset, overrides: calls.append((preset, overrides))
+    )
+    assert runner.invoke(cli.app, ["train"]).exit_code == 0
+    assert calls == [(cli.DEFAULT_TRAIN_PRESET, [])]
+
+
+def test_failed_stage_keeps_artifacts_and_exported_config(tmp_path, monkeypatch):
+    from manabot.training import execution
+
+    value = recipe()
+    value.agent.hidden_dim = 8
+    value.agent.num_attention_heads = 2
+    value.stages = value.stages[:1]
+    value.stages[0].transitions = 4
+    value.stages[0].updates = 1
+    value.stages[0].learning.epochs = 1
+
+    def reject_checkpoint(*args, **kwargs):
+        raise ValueError("checkpoint admission failed")
+
+    monkeypatch.setattr(execution, "load_checkpoint_agent", reject_checkpoint)
+    with VerifyStore(tmp_path / "store.sqlite") as store:
+        with pytest.raises(ValueError, match="admission"):
+            execute_regime(value, 197, tmp_path / "run", store)
+        saved = json.loads((tmp_path / "run/run.json").read_text())
+        assert saved["stages"][0]["status"] == "failed"
+        assert saved["stages"][0]["seconds"] > 0
+        assert saved["regime"]["agent"]["hidden_dim"] == 8
+        assert (tmp_path / "run/policy-0-raw.pt").exists()
+        # Rejected bytes remain on disk, never advertised as an admitted artifact.
+        assert "raw" not in saved["stages"][0]["artifacts"]
+        assert saved["stages"][0]["rejected_artifacts"]["raw"]["sha256"]
+
+
+def test_continuation_rejects_mutated_artifact_bytes(tmp_path, monkeypatch):
+    from manabot.training import execution
+
+    value = recipe()
+    value.agent.hidden_dim = 8
+    value.agent.num_attention_heads = 2
+    for stage in value.stages:
+        stage.transitions = 4
+        stage.updates = 1
+        stage.learning.epochs = 1
+    export = execution.export_training_run
+
+    def corrupt_completed_input(run_id, store, out):
+        run = export(run_id, store, out)
+        if len(run.stages) == 1 and run.stages[0].status == "completed":
+            artifact = Path(run.stages[0].artifacts["raw"]["path"])
+            artifact.write_bytes(b"changed bytes")
+        return run
+
+    monkeypatch.setattr(execution, "export_training_run", corrupt_completed_input)
+    with VerifyStore(tmp_path / "store.sqlite") as store:
+        with pytest.raises(ValueError, match="input artifact changed"):
+            execute_regime(value, 197, tmp_path / "run", store)
+        saved = json.loads((tmp_path / "run/run.json").read_text())
+        assert saved["stages"][0]["status"] == "completed"
+        assert saved["stages"][1]["status"] == "failed"
+        assert saved["selected_artifact"] is None

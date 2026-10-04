@@ -106,3 +106,25 @@ Before handoff, all edited Python files compiled. No expensive run, paid compute
 external task mutation or additional worker was launched here. The remaining
 validation is Task-specific, then integration/queue checks once on the final
 stack. Preserve failed attempts and describe unavailable measurements honestly.
+
+
+## ETU-89 infrastructure follow-up
+
+ETU-89 retained startup/export failures, input artifact digest checks, rejected
+checkpoint identities, explicit resolved trainer/policy/precision settings,
+whole-run elapsed-budget schedules across continuation, sampled memory/CPU
+receipts, and a selected raw artifact. Run payloads now derive their stage list
+from the stage table, avoiding duplicate writable stage state. Supervised Adam
+continuation uses the newly declared LR and a separately named minibatch seed.
+Generated `.lf/tmp/context` accidentally published by the coordinator is removed
+from the index and `.lf/tmp/` is ignored; the local file remains available.
+
+ETU-90 requested a tested `update_ema(averaged, learner, rate)` helper; its
+commit is pending. ETU-89 will replace only the executor interpolation when
+that helper is available. ETU-75 has not published its ordinary checkpoint
+contract on current main; final integration/acceptance and landing remain
+pending that shared owner. No child-owned files were edited after handoff.
+
+Check result: 2026-10-04 infrastructure-only tests passed 11 tests; the preceding
+combined infrastructure/supervised run passed 21 tests. Final-world real execution
+and final gate await ETU-75; ETU-90/91 retain their separate acceptance ownership.
