@@ -2,7 +2,7 @@
   "allocation_seconds": 3600.0,
   "calibration_evidence": "Initial integrated CPU throughput calibration; no strength inference",
   "disk_reserve_bytes": 4294967296,
-  "prior_campaign_seconds": 0.0,
+  "prior_campaign_seconds": 981.24,
   "projected_disk_bytes": 0,
   "protocol": {
     "anchor_deals": [
