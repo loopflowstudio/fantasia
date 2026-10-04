@@ -57,6 +57,11 @@ from the student. The main RL arm is frozen independently of screen results.
   stages. The bounded proof used a tractable two-name pool; selected-matchup
   strength, learned-sampler consumption and full-game exact histories are not
   established. Its advice projection is not a registered live advice provider.
+- [PR #213](https://github.com/loopflowstudio/etude/pull/213) adds a bounded CPU
+  full-loop calibration command using existing study/TrainingRun records,
+  separate replay accounting and measured device/thread evidence. Eight complete
+  games replayed in its workflow proof. Concurrent timing does not establish
+  uncontended throughput; MPS/CUDA calibration remains unsupported.
 
 These are delivery receipts, not Task completion claims. ETU-95 owns the
 remaining post-training search integration.
