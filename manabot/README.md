@@ -141,3 +141,8 @@ from manabot.env import ObservationSpace
 # Local imports
 from .sibling import Thing
 ```
+
+Frozen-policy local search and same-root distillation run through
+[`collect_local_update` regimes](../docs/local-policy-search.md). The bounded
+compatible-prior recipe completes games; exact-history search rejects unsupported
+Rules likelihood events. Target receipts and arena replay retain this distinction.
