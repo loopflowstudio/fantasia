@@ -1,0 +1,165 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PR 199 — Readable consequences</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f4f1e9;color:#242a2b;font:18px/1.6 Georgia,serif}main{max-width:1080px;margin:auto;padding:48px 28px 90px}header{border-top:6px solid #17665e;padding-top:24px}h1{font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.08;max-width:850px}h2{font-size:1.7rem;line-height:1.25}a{color:#075d59;text-underline-offset:3px}nav{display:flex;flex-wrap:wrap;gap:12px 24px;padding:20px 0;border-block:1px solid #bcbdb4}section{padding:32px 0;border-bottom:1px solid #bcbdb4;scroll-margin-top:20px}p{max-width:850px}figure{margin:24px 0;background:#fffdf8;border:1px solid #caccc3;min-width:0}figcaption{padding:12px 16px;font:14px/1.5 system-ui,sans-serif;overflow-wrap:anywhere}pre{margin:0;background:#172a2d;color:#eff6f2;padding:18px;overflow:auto;font:13px/1.6 ui-monospace,monospace;tab-size:2}small{font-size:12px}code{overflow-wrap:anywhere}pre code{overflow-wrap:normal}summary{cursor:pointer;font-weight:bold}details{padding:16px;border:1px solid #bcbdb4}:focus-visible{outline:3px solid #a45918;outline-offset:4px}.meta{font:14px/1.7 system-ui,sans-serif;overflow-wrap:anywhere}.eyebrow{font:700 14px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#17665e}@media(max-width:600px){main{padding:24px 16px}pre{font-size:12px}h2{font-size:1.45rem}}@media print{body{background:white;font-size:11pt}main{padding:0;max-width:none}nav{display:none}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f2f2;color:black;font-size:9pt}figure{break-inside:avoid}a{color:inherit}details{display:block}}</style></head><body><main><header><p class="eyebrow">Etude Fantasia · implementation walkthrough</p><h1>Keep consequences readable.<br>Name the next decision.</h1><p>A bounded repair to the existing live and replay presentation consumer. Read from the player’s Finish click through retained text, pause behavior, motion timing and current-decision status.</p><p class="meta"><a href="https://github.com/loopflowstudio/etude/pull/199">PR #199</a> · ETU-76 · inspected 2026-10-04<br>Published base: 1116937986ee87231d73a559e81815df23283cb6<br>Published head: c301f820bf5f30b666ccbb38ec84dedb69ba6fbe<br>Local HEAD matches published head. Unpublished runtime metrics, flow configuration and scratch notes are outside this review. This walkthrough is local-only.</p></header><nav aria-label="Reading route"><a href="#finish">Finish</a><a href="#pause">Pause</a><a href="#motion">Reduced motion</a><a href="#decision">Next decision</a><a href="#evidence">Evidence &amp; limits</a></nav><section id="finish"><h2>1. Finish leaves the consequences readable</h2><p>In the authored combat fixture, damage and deaths have already committed when their narration appears. Click <b>Finish</b>: the floating beat disappears, but Recent consequences still names the damage, deaths and new turn. This is a fixture scenario, not a recording of the reported confusion.</p><p>The existing button moves the narration cursor to the end. It never clears the event array. The new history reads the latest 12 events directly, independently of that cursor.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/components/PresentationStage.svelte#L80-L86">frontend/src/lib/components/PresentationStage.svelte · Finish button (existing) · L80–86</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>          &lt;button
+            type=&quot;button&quot;
+            class=&quot;btn btn-secondary btn-sm&quot;
+            onclick={() =&gt; player.finishSequence()}
+          &gt;
+            Finish
+          &lt;/button&gt;</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/presentation.svelte.ts#L117-L121">frontend/src/lib/presentation.svelte.ts · finishSequence (existing) · L117–121</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  finishSequence(): void {
+    this.currentIndex = this.events.length;
+    this.playing = false;
+    this.speed = NORMAL_SPEED;
+  }</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/components/PresentationHistory.svelte#L5-L8">frontend/src/lib/components/PresentationHistory.svelte · recent (new) · L5–8</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  let { player }: { player: PresentationPlayer } = $props();
+  const recent = $derived(
+    player.events.slice(-12).map(event =&gt; presentationBeat(event, player.labels)),
+  );</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/components/PresentationHistory.svelte#L11-L26">frontend/src/lib/components/PresentationHistory.svelte · Recent consequences (new) · L11–26</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>&lt;section aria-label=&quot;Recent consequences&quot; class=&quot;my-3 border-y border-line py-2&quot; data-testid=&quot;presentation-history&quot;&gt;
+  &lt;details open&gt;
+    &lt;summary class=&quot;type-rubric cursor-pointer text-ink-2&quot;&gt;Recent consequences (up to 12 events)&lt;/summary&gt;
+    &lt;p class=&quot;type-caption mt-1 text-ink-2&quot;&gt;The board shows the current position. Narration describes events that already happened.&lt;/p&gt;
+    {#if recent.length &gt; 0}
+      &lt;!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard access to scrollable history) --&gt;
+      &lt;ol class=&quot;mt-2 max-h-40 overflow-y-auto pl-5 text-sm text-ink&quot; tabindex=&quot;0&quot; aria-label=&quot;Recent game events&quot;&gt;
+        {#each recent as row (row.seq)}
+          &lt;li data-presentation-seq={row.seq} class=&quot;py-0.5&quot;&gt;{row.detail}&lt;/li&gt;
+        {/each}
+      &lt;/ol&gt;
+    {:else}
+      &lt;p class=&quot;type-caption mt-1 text-ink-2&quot;&gt;No narrated events are available for this position.&lt;/p&gt;
+    {/if}
+  &lt;/details&gt;
+&lt;/section&gt;</code></pre></figure><p>The existing stage renders only while a current event exists; that is why Finish removes the overlay. History is mounted separately in both routes. The list includes committed events whose narration has not played yet; it is a view of current consequences, not a reconstruction of earlier board positions.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/components/PresentationStage.svelte#L31-L37">frontend/src/lib/components/PresentationStage.svelte · stage visibility (existing) · L31–37</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>{#if beat &amp;&amp; event}
+  &lt;aside
+    data-testid=&quot;presentation-stage&quot;
+    data-presentation-seq={beat.seq}
+    data-presentation-kind={event.kind.kind}
+    data-reduced-motion={player.reducedMotion}
+    class={`pointer-events-none absolute inset-x-4 top-16 z-10 flex justify-center ${player.reducedMotion ? &#x27;&#x27; : &#x27;motion-move&#x27;}`}</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/routes/+page.svelte#L416-L416">frontend/src/routes/+page.svelte · live history mount (new) · L416–416</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>        &lt;PresentationHistory player={presentationPlayer} /&gt;</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/routes/replay/+page.svelte#L659-L659">frontend/src/routes/replay/+page.svelte · replay history mount (new) · L659–659</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>            &lt;PresentationHistory player={presentationPlayer} /&gt;</code></pre></figure></section><section id="pause"><h2>2. Pause holds the beat as new updates arrive</h2><p>The new Pause narration button toggles playback. The existing timer effect cancels its timer while paused. A later live batch appends events but starts playback only if there was no current event, so a paused beat stays paused. The authoritative board can continue changing.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/components/PresentationStage.svelte#L57-L64">frontend/src/lib/components/PresentationStage.svelte · Pause / Resume (new) · L57–64</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>          &lt;button
+            type=&quot;button&quot;
+            class=&quot;btn btn-secondary btn-sm&quot;
+            aria-pressed={!player.playing}
+            onclick={() =&gt; player.togglePlayback()}
+          &gt;
+            {player.playing ? &#x27;Pause narration&#x27; : &#x27;Resume narration&#x27;}
+          &lt;/button&gt;</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/presentation.svelte.ts#L109-L111">frontend/src/lib/presentation.svelte.ts · togglePlayback (new) · L109–111</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  togglePlayback(): void {
+    if (this.currentEvent) this.playing = !this.playing;
+  }</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/components/PresentationStage.svelte#L22-L28">frontend/src/lib/components/PresentationStage.svelte · timer effect (existing) · L22–28</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  $effect(() =&gt; {
+    if (!player.playing || !event) {
+      return;
+    }
+    const timer = window.setTimeout(() =&gt; player.advance(), player.effectiveDurationMs);
+    return () =&gt; window.clearTimeout(timer);
+  });</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/presentation.svelte.ts#L80-L86">frontend/src/lib/presentation.svelte.ts · enqueue idle guard (changed) · L80–86</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>    const wasIdle = this.currentEvent === null;
+    this.events = [...this.events, ...incoming];
+    this.labels = mergePresentationLabels(this.labels, labels);
+    if (incoming.length &gt; 0 &amp;&amp; wasIdle) {
+      this.playing = true;
+    }
+  }</code></pre></figure><p>Boundary: recovery or a replay seek replaces the sequence and starts it from its first event; pause is not a persistent preference across recovery. The existing replay timer waits for the current event to disappear, so pausing narration also holds automatic replay advancement.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/routes/replay/+page.svelte#L87-L99">frontend/src/routes/replay/+page.svelte · replay timer (existing) · L87–99</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  $effect(() =&gt; {
+    if (!replayStore.playing) {
+      return;
+    }
+    const timer = setInterval(() =&gt; {
+      // A replay frame owns all of its ordered semantic beats. Do not replace
+      // them with the next authoritative frame mid-sequence.
+      if (!presentationPlayer.currentEvent) {
+        replayStore.tick();
+      }
+    }, Math.max(1000 / replayStore.speed, 100));
+    return () =&gt; clearInterval(timer);
+  });</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/presentation.svelte.ts#L62-L67">frontend/src/lib/presentation.svelte.ts · loadEvents (existing) · L62–67</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>    this.events = copyPresentationEvents($state.snapshot(events));
+    this.labels = structuredClone($state.snapshot(labels));
+    this.currentIndex = 0;
+    this.speed = NORMAL_SPEED;
+    this.playing = this.events.length &gt; 0;
+  }</code></pre></figure></section><section id="motion"><h2>3. Reduced motion preserves reading time</h2><p>Before this change, enabling reduced motion forced each beat to 100 ms. Now its reading duration follows the event’s suggested time, with explicit Fast-forward still dividing it by four. The existing motion class remains conditional on the accessibility preference.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/1116937986ee87231d73a559e81815df23283cb6/frontend/src/lib/presentation.svelte.ts#L44-L55">frontend/src/lib/presentation.svelte.ts · effectiveDurationMs — before · L44–55</a><br><small>1116937986ee87231d73a559e81815df23283cb6</small></figcaption><pre tabindex="0"><code>
+  get effectiveDurationMs(): number {
+    const event = this.currentEvent;
+    if (!event) {
+      return 0;
+    }
+    if (this.reducedMotion) {
+      return REDUCED_MOTION_BEAT_MS;
+    }
+    return Math.max(80, Math.round(event.suggested_ms / this.speed));
+  }
+</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/presentation.svelte.ts#L44-L50">frontend/src/lib/presentation.svelte.ts · effectiveDurationMs — after · L44–50</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  get effectiveDurationMs(): number {
+    const event = this.currentEvent;
+    if (!event) {
+      return 0;
+    }
+    return Math.max(80, Math.round(event.suggested_ms / this.speed));
+  }</code></pre></figure><p>The movement condition is shown in stop 1. This removes a timing override; it does not establish that every authored duration is comfortable to read. Pause and the retained list provide additional control.</p></section><section id="decision"><h2>4. The current prompt names who can act next</h2><p>For example, choosing a Bolt target during the opponent’s turn still says “Your decision.” The status compares the authoritative prompt actor with the viewer’s player index, independently of active turn or the narration cursor. A watcher sees “Pilot’s decision.”</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/game.svelte.ts#L94-L106">frontend/src/lib/game.svelte.ts · decisionStatus (new) · L94–106</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  get decisionStatus(): string {
+    if (this.restoredDecision) return &#x27;Study position — return to live to play.&#x27;;
+    if (this.gameOver) return &#x27;Game over — no next decision.&#x27;;
+    if (this.connection !== &#x27;connected&#x27;) return &#x27;Waiting for connection — play is unavailable.&#x27;;
+    if (this.commandPending || this.fastForwarding) return &#x27;Waiting for the table — your action is being processed.&#x27;;
+    const prompt = this.protocolFrame?.prompt;
+    if (!prompt) return &#x27;Waiting for the next decision.&#x27;;
+    const hero = prompt.actor === this.observation?.agent.player_index;
+    const actor = hero
+      ? (this.hasCapability(&#x27;submit_live_command&#x27;) ? &#x27;Your decision&#x27; : &quot;Pilot&#x27;s decision&quot;)
+      : &quot;Opponent&#x27;s decision&quot;;
+    return `${actor} — ${prompt.instruction || prompt.title}`;
+  }</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/routes/+page.svelte#L390-L392">frontend/src/routes/+page.svelte · current-decision live region (new) · L390–392</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>        &lt;p data-testid=&quot;current-decision&quot; role=&quot;status&quot; aria-live=&quot;polite&quot; aria-atomic=&quot;true&quot; class=&quot;text-ink&quot;&gt;
+          {gameStore.decisionStatus}
+        &lt;/p&gt;</code></pre></figure><p>The earlier guards take precedence: Study, game over, connection loss and a pending action do not invite another live decision. This status describes the existing Command authority; it does not grant permission or alter legal offers.</p></section><section id="evidence"><h2>5. What the evidence supports—and what remains open</h2><p><b>Accepted intent:</b> make consequences and the next decision legible through the existing semantic presentation path. <b>Implementation choice:</b> a 12-row readable window, pause control and separate current-decision text. The engine’s event projection, Command authority and replay storage are existing dependencies.</p><p>The display window is bounded to 12; the underlying player still retains its full event array until reset. Seeking replay replaces history with that position’s events. Missing events show an explicit empty state rather than inferred board-diff narration.</p><p><b>Inspected tests:</b> pause survives an appended batch; Finish retains semantic rows; prompt actor is independent of active turn. These tests explain intended behavior, not observed human comprehension.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/src/lib/presentation.test.ts#L206-L214">frontend/src/lib/presentation.test.ts · incoming update while paused regression · L206–214</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>  it(&#x27;keeps narration paused when another committed update arrives&#x27;, () =&gt; {
+    const player = createPresentationPlayer();
+    player.enqueue(LIGHTNING_BOLT_PRESENTATION.events.slice(0, 2), LIGHTNING_BOLT_PRESENTATION.labels);
+    player.togglePlayback();
+    player.enqueue(LIGHTNING_BOLT_PRESENTATION.events.slice(2), LIGHTNING_BOLT_PRESENTATION.labels);
+    expect(player.playing).toBe(false);
+    expect(player.currentEvent?.seq).toBe(900);
+    expect(player.events).toHaveLength(5);
+  });</code></pre></figure><details><summary>Browser scenario authored for both motion preferences</summary><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/frontend/e2e/combat-presentation.spec.ts#L289-L323">frontend/e2e/combat-presentation.spec.ts · mock-authority browser regression · L289–323</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>for (const reducedMotion of [&#x27;no-preference&#x27;, &#x27;reduce&#x27;] as const) {
+  test(`consequences survive playback and Finish with ${reducedMotion}`, async ({ page }) =&gt; {
+    await page.emulateMedia({ reducedMotion });
+    await installCombatAuthority(page, [], combatSequence.events as PresentationEvent[]);
+    await page.goto(&#x27;/&#x27;);
+    await expect(page.getByTestId(&#x27;connection-badge&#x27;)).toHaveText(&#x27;connected&#x27;);
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(100);
+    await page.getByRole(&#x27;button&#x27;, { name: &#x27;New Game&#x27; }).first().click();
+    const history = page.getByTestId(&#x27;presentation-history&#x27;);
+    const stage = page.getByTestId(&#x27;presentation-stage&#x27;);
+    await expect(history.getByRole(&#x27;listitem&#x27;)).toHaveCount(6);
+    await expect(history).toContainText(&#x27;Otter-Penguin deals 2 damage to Badgermole Cub.&#x27;);
+    await expect(page.getByTestId(&#x27;current-decision&#x27;)).toHaveText(&#x27;Your decision — Choose a combat action&#x27;);
+    await page.getByRole(&#x27;button&#x27;, { name: &#x27;Pause narration&#x27; }).click();
+    await page.clock.runFor(5000);
+    await expect(stage).toHaveAttribute(&#x27;data-presentation-kind&#x27;, &#x27;attack_group&#x27;);
+    await page.getByRole(&#x27;button&#x27;, { name: &#x27;Resume narration&#x27; }).click();
+    await page.clock.runFor(10000);
+    await expect(stage).toBeHidden();
+    await expect(history).toContainText(&#x27;Otter-Penguin, Badgermole Cub die.&#x27;);
+    await expect(history).toContainText(&quot;Hero&#x27;s turn begins.&quot;);
+
+    await page.getByRole(&#x27;button&#x27;, { name: &#x27;New Game&#x27; }).first().click();
+    await expect(stage).toBeVisible();
+    await page.getByRole(&#x27;button&#x27;, { name: &#x27;Skip beat&#x27; }).click();
+    await page.getByRole(&#x27;button&#x27;, { name: &#x27;Fast-forward&#x27; }).click();
+    await page.getByRole(&#x27;button&#x27;, { name: &#x27;Finish&#x27;, exact: true }).click();
+    await expect(stage).toBeHidden();
+    await expect(history.getByRole(&#x27;listitem&#x27;)).toHaveCount(6);
+    await expect(history).toContainText(&#x27;Otter-Penguin, Badgermole Cub die.&#x27;);
+    await expect(page.getByTestId(&#x27;action-option&#x27;).first()).toBeEnabled();
+  });
+}</code></pre></figure></details><p><b>Recorded checks, reused at unchanged head:</b> 49 focused tests, Svelte check and production build passed, as recorded in the architecture document. Browser regressions were authored but not run. No application tests were rerun for this local walkthrough.</p><p><b>Unverified:</b> desktop/narrow rendering of this HTML, browser behavior, actual reported match/Command, human confirmation and full-game recurrence. This run explicitly has no rendering environment. Spell-event projection remains Bolt-specific alongside combat/death/turn events. The fixture repair does not close ETU-76 or its chapter outcomes.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/c301f820bf5f30b666ccbb38ec84dedb69ba6fbe/docs/architecture/presentation-runtime.md#L116-L136">docs/architecture/presentation-runtime.md · fixture provenance and evidence limits · L116–136</a><br><small>c301f820bf5f30b666ccbb38ec84dedb69ba6fbe</small></figcaption><pre tabindex="0"><code>At base `3f2975334e6fa2f1a36683d3686a7ecc2d68ffe9`, finishing either
+`bolt-kills-ally-v1` (revisions 42–43, sequences 900–904) or
+`ur-lessons-vs-gw-allies-combat-v1` (the checked-in
+`frontend/src/lib/fixtures/curated-combat-to-turn.json`) removed all visible
+semantic beat text; reduced motion allotted just 100 ms per beat. These are
+reproducible fixture positions, not identified recordings of Jack Heart&#x27;s report.
+The regression tests retain Bolt casting/targeting/resolution/damage/death and
+Allies/Lessons attack/block/damage/death/turn text after cursor movement. The
+browser scenarios use a mocked authority and do not certify full-game behavior.
+
+Coverage remains bounded. The authority projector still specializes spell facts
+to Lightning Bolt, alongside combat/death/turn facts. Other spell families,
+the original reported match/Command, human confirmation and full-game recurrence
+remain open under ETU-76. A readable list cannot repair absent authority events.
+Human acceptance is not inferred from fixture tests. No rules, world identity,
+persisted trace format, or hidden-information boundary changed.
+
+Validation on 2026-10-04: 49 focused presentation/store/socket/replay/protocol
+tests pass, Svelte check has zero errors/warnings, and the production build
+passes. Browser regressions were authored but not executed; the supplied run
+had no rendering environment. Visual and browser acceptance remain unverified.</code></pre></figure><p><b>Delivery state:</b> GitHub read-only inspection on 2026-10-04 reports PR #199 OPEN with the revisions below. A prior single Loopflow reconciliation failed with <code>sqlite error: Conversion error from type Text at index: 13, invalid PR landing: invalid stored landing placement: home</code>. It was not repeated here; merge remains unverified.</p></section></main></body></html>
