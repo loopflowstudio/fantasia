@@ -128,3 +128,16 @@ return remain unconfirmed. ETU-75 owns the missing Lesson-pool world; ETU-77 own
 its usable interaction and ETU-76 transition clarity. Preserve exact reported
 positions; automated play and an Ask session's existence do not prove those
 outcomes. All three chapter KRs remain false in the current status.
+
+
+## Consequence readability (ETU-76, 2026-10-04)
+
+The existing live/replay presentation consumer now retains a bounded readable
+semantic-event list after playback and skip, supports pause, and preserves
+reading time under reduced motion. Current prompt actor/instruction is separate
+from past-event narration. The board always shows the committed current frame.
+See [presentation runtime](../../docs/architecture/presentation-runtime.md) for
+fixture positions and scope. The original reported position is still unknown;
+Bolt-only spell projection remains a known coverage gap. Fixture regressions and
+automated checks do not close human-play or full-game recurrence acceptance.
+Keep ETU-76 open for those outcomes.

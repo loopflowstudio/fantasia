@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
+import combatSequence from '../src/lib/fixtures/curated-combat-to-turn.json' with { type: 'json' };
 import boltFixtureJson from '../../protocol/fixtures/bolt-target.json' with { type: 'json' };
 import type {
   Command,
@@ -7,6 +8,7 @@ import type {
   FrameUpdate,
   InteractionOffer,
   Observation,
+  PresentationEvent,
   RecoveryEnvelope,
 } from '../src/lib/types';
 
@@ -138,7 +140,11 @@ function acceptedUpdate(command: Command, frame: ExperienceFrame): FrameUpdate {
   };
 }
 
-async function installCombatAuthority(page: Page, commands: Command[]): Promise<void> {
+async function installCombatAuthority(
+  page: Page,
+  commands: Command[],
+  events: PresentationEvent[] = [],
+): Promise<void> {
   await page.routeWebSocket('**/ws/play', (socket) => {
     socket.onMessage((raw) => {
       const message = JSON.parse(String(raw)) as {
@@ -157,7 +163,8 @@ async function installCombatAuthority(page: Page, commands: Command[]): Promise<
             ...structuredClone(boltFixture.recovery),
             reason: 'initial_connect',
             frame,
-            presentation_tail: [],
+            presentation_tail: events,
+            presentation_cursor: events[0]?.seq ?? 0,
             accepted_commands: [],
             replay_cursor: frame.revision,
           },
@@ -278,3 +285,38 @@ test('combat prompts submit only current offers by pointer and keyboard', async 
   expect(pointerThenKeyboard.commands.map((command) => command.offer_id)).toEqual([101, 201]);
   expect(keyboardThenPointer.commands.map((command) => command.offer_id)).toEqual([101, 201]);
 });
+
+for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+  test(`consequences survive playback and Finish with ${reducedMotion}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
+    await installCombatAuthority(page, [], combatSequence.events as PresentationEvent[]);
+    await page.goto('/');
+    await expect(page.getByTestId('connection-badge')).toHaveText('connected');
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(100);
+    await page.getByRole('button', { name: 'New Game' }).first().click();
+    const history = page.getByTestId('presentation-history');
+    const stage = page.getByTestId('presentation-stage');
+    await expect(history.getByRole('listitem')).toHaveCount(6);
+    await expect(history).toContainText('Otter-Penguin deals 2 damage to Badgermole Cub.');
+    await expect(page.getByTestId('current-decision')).toHaveText('Your decision — Choose a combat action');
+    await page.getByRole('button', { name: 'Pause narration' }).click();
+    await page.clock.runFor(5000);
+    await expect(stage).toHaveAttribute('data-presentation-kind', 'attack_group');
+    await page.getByRole('button', { name: 'Resume narration' }).click();
+    await page.clock.runFor(10000);
+    await expect(stage).toBeHidden();
+    await expect(history).toContainText('Otter-Penguin, Badgermole Cub die.');
+    await expect(history).toContainText("Hero's turn begins.");
+
+    await page.getByRole('button', { name: 'New Game' }).first().click();
+    await expect(stage).toBeVisible();
+    await page.getByRole('button', { name: 'Skip beat' }).click();
+    await page.getByRole('button', { name: 'Fast-forward' }).click();
+    await page.getByRole('button', { name: 'Finish', exact: true }).click();
+    await expect(stage).toBeHidden();
+    await expect(history.getByRole('listitem')).toHaveCount(6);
+    await expect(history).toContainText('Otter-Penguin, Badgermole Cub die.');
+    await expect(page.getByTestId('action-option').first()).toBeEnabled();
+  });
+}

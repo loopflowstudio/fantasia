@@ -96,3 +96,41 @@ not a durable cross-process checkpoint.
 Upgrading the viewer projection to exact render identities is separate.
 Converting that concern, recovery, or any combat fact into arbitrary
 snapshot-diff text would break the contract.
+
+## Readable consequences and current decision (ETU-76, 2026-10-04)
+
+The shared live/replay Recent consequences component retains the latest 12 available semantic events in
+an expandable, keyboard-scrollable Recent consequences list. Completion, Skip,
+Fast-forward and Finish move the narration cursor without erasing this text.
+Pause holds the current beat, including when another live update arrives.
+Reduced motion removes movement without shortening reading time; explicit
+Fast-forward still changes speed. The board remains at the authoritative current
+position, as the history explains. Replay replaces the list when seeking to another
+frame; a frame without semantic events says that narration is unavailable.
+
+The live action panel names the current prompt actor and instruction separately
+from narration and active turn. Waiting for a Command, disconnection, spectator
+access, isolated Study and game-over have distinct status text. No presentation
+control changes an offer, Command or authoritative frame.
+
+At base `3f2975334e6fa2f1a36683d3686a7ecc2d68ffe9`, finishing either
+`bolt-kills-ally-v1` (revisions 42–43, sequences 900–904) or
+`ur-lessons-vs-gw-allies-combat-v1` (the checked-in
+`frontend/src/lib/fixtures/curated-combat-to-turn.json`) removed all visible
+semantic beat text; reduced motion allotted just 100 ms per beat. These are
+reproducible fixture positions, not identified recordings of Jack Heart's report.
+The regression tests retain Bolt casting/targeting/resolution/damage/death and
+Allies/Lessons attack/block/damage/death/turn text after cursor movement. The
+browser scenarios use a mocked authority and do not certify full-game behavior.
+
+Coverage remains bounded. The authority projector still specializes spell facts
+to Lightning Bolt, alongside combat/death/turn facts. Other spell families,
+the original reported match/Command, human confirmation and full-game recurrence
+remain open under ETU-76. A readable list cannot repair absent authority events.
+Human acceptance is not inferred from fixture tests. No rules, world identity,
+persisted trace format, or hidden-information boundary changed.
+
+Validation on 2026-10-04: 49 focused presentation/store/socket/replay/protocol
+tests pass, Svelte check has zero errors/warnings, and the production build
+passes. Browser regressions were authored but not executed; the supplied run
+had no rendering environment. Visual and browser acceptance remain unverified.
