@@ -333,15 +333,7 @@ class TrainingRegime(Strict):
                     raise ValueError(
                         "local distillation requires an earlier signed-value policy"
                     )
-            if (
-                initial
-                and type(parent) is not type(stage)
-                and not (
-                    isinstance(stage, TrainSupervised)
-                    and stage.target.startswith("local_")
-                    and isinstance(parent, TrainSelfPlay)
-                )
-            ):
+            elif initial and type(parent) is not type(stage):
                 raise ValueError(
                     "continuation requires an earlier stage of the same operation"
                 )

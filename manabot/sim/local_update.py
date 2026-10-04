@@ -382,14 +382,16 @@ class LocalUpdateTeacher:
                 counts[action] += 1
                 receipts.append(
                     RolloutReceipt(
-                        index,
-                        world_seed,
-                        action,
-                        rollout_seed,
-                        value,
-                        terminal,
-                        tuple(hashes),
-                        json.dumps(session.snapshot(), sort_keys=True),
+                        world_index=index,
+                        world_seed=world_seed,
+                        action_index=action,
+                        rollout_seed=rollout_seed,
+                        signed_value=value,
+                        terminal=terminal,
+                        actor_observation_hashes=tuple(hashes),
+                        branch_audit_json=json.dumps(
+                            session.snapshot(), sort_keys=True
+                        ),
                     )
                 )
         check()
@@ -398,29 +400,29 @@ class LocalUpdateTeacher:
             base, values, reference, alpha=self.config.alpha, beta=self.config.beta
         )
         receipt = LocalUpdateReceipt(
-            "regularized-local-update/v1",
-            self.likelihood.checkpoint_sha256,
-            self.runtime_sha256,
-            self.source_sha256,
-            belief.space.identity,
-            belief.digest,
-            belief.model_id,
-            tuple(float(p) for p in belief.probabilities),
-            json.dumps(selected_query.to_dict(), sort_keys=True),
-            mass,
-            viewer,
-            observation.revision,
-            observation.viewer_state_hash,
-            tuple(int(offer["id"]) for offer in frame.offers),
-            tuple(base),
-            tuple(values),
-            tuple(reference),
-            tuple(target),
-            tuple(int(n) for n in counts),
-            self.config.model_dump_json(),
-            seed,
-            time.perf_counter() - started,
-            tuple(receipts),
+            schema="regularized-local-update/v1",
+            policy_sha256=self.likelihood.checkpoint_sha256,
+            runtime_sha256=self.runtime_sha256,
+            teacher_source_sha256=self.source_sha256,
+            world_identity=belief.space.identity,
+            belief_digest=belief.digest,
+            belief_model=belief.model_id,
+            sampling_probabilities=tuple(float(p) for p in belief.probabilities),
+            query_json=json.dumps(selected_query.to_dict(), sort_keys=True),
+            condition_mass=mass,
+            viewer=viewer,
+            revision=observation.revision,
+            viewer_state_hash=observation.viewer_state_hash,
+            offer_ids=tuple(int(offer["id"]) for offer in frame.offers),
+            base=tuple(base),
+            values=tuple(values),
+            reference=tuple(reference),
+            target=tuple(target),
+            allocation_counts=tuple(int(n) for n in counts),
+            config_json=self.config.model_dump_json(),
+            seed=seed,
+            seconds=time.perf_counter() - started,
+            rollouts=tuple(receipts),
         )
         check()
         return receipt

@@ -98,6 +98,25 @@ def test_complete_games_and_three_distillation_controls(tmp_path: Path) -> None:
     for row in dataset[LOCAL_RECEIPT_KEY]:
         receipt = json.loads(str(row))
         assert receipt["policy_sha256"] == run.stages[0].artifacts["raw"]["sha256"]
+    original_targets = dataset[LOCAL_TARGET_KEY].copy()
+    for kind in ("local_soft", "local_argmax", "local_allocation"):
+        targets = _validate_dataset(
+            dataset, policy_target_kind=kind, value_target_kind="terminal_outcome"
+        )
+        assert targets is not None
+        np.testing.assert_allclose(targets.sum(axis=1), 1, atol=1e-7)
+        for index, encoded in enumerate(dataset[LOCAL_RECEIPT_KEY]):
+            receipt = json.loads(str(encoded))
+            count = len(receipt["target"])
+            if kind == "local_soft":
+                expected = receipt["target"]
+            elif kind == "local_argmax":
+                expected = np.eye(count)[np.argmax(receipt["values"])]
+            else:
+                counts = np.asarray(receipt["allocation_counts"])
+                expected = counts / counts.sum()
+            np.testing.assert_allclose(targets[index, :count], expected)
+        np.testing.assert_array_equal(dataset[LOCAL_TARGET_KEY], original_targets)
     for record in run.stages[2:]:
         model, _ = load_checkpoint_agent(record.artifacts["raw"]["path"])
         assert model.world_binding["world"] == managym.WORLD_VERSION
