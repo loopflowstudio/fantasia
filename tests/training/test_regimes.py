@@ -16,9 +16,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def recipe(name="direct-self-play"):
-    return TrainingRegime.model_validate_json(
+    value = TrainingRegime.model_validate_json(
         (ROOT / "experiments/regimes" / f"{name}.json").read_text()
     )
+    value.agent.semantic_pack = "ur-lessons-vs-gw-allies"
+    return value
 
 
 def test_all_recipes_validate_and_reject_future_references():
@@ -83,6 +85,7 @@ def test_deadline_retains_failed_attempt(tmp_path):
         result = json.loads((tmp_path / "run/run.json").read_text())
         assert result["status"] == "interrupted"
         assert result["stages"][0]["status"] == "interrupted"
+        assert result["stages"][0]["cumulative_seconds"] is None
         assert result["seconds"] > 0
 
 
@@ -201,6 +204,14 @@ def test_cli_rejects_ambiguous_regimes_and_keeps_presets(monkeypatch):
 def test_failed_stage_keeps_artifacts_and_exported_config(tmp_path, monkeypatch):
     from manabot.training import execution
 
+    closed = []
+    close = execution.Experiment.close
+
+    def track_close(experiment):
+        closed.append(experiment)
+        close(experiment)
+
+    monkeypatch.setattr(execution.Experiment, "close", track_close)
     value = recipe()
     value.agent.hidden_dim = 8
     value.agent.num_attention_heads = 2
@@ -224,6 +235,7 @@ def test_failed_stage_keeps_artifacts_and_exported_config(tmp_path, monkeypatch)
         # Rejected bytes remain on disk, never advertised as an admitted artifact.
         assert "raw" not in saved["stages"][0]["artifacts"]
         assert saved["stages"][0]["rejected_artifacts"]["raw"]["sha256"]
+        assert len(closed) == 1
 
 
 def test_continuation_rejects_mutated_artifact_bytes(tmp_path, monkeypatch):
@@ -253,3 +265,51 @@ def test_continuation_rejects_mutated_artifact_bytes(tmp_path, monkeypatch):
         assert saved["stages"][0]["status"] == "completed"
         assert saved["stages"][1]["status"] == "failed"
         assert saved["selected_artifact"] is None
+
+
+def test_self_play_continuation_keeps_adam_and_exports_each_stage(
+    tmp_path, monkeypatch
+):
+    from manabot.training import execution
+
+    clock = execution.time.perf_counter
+    offset = 0.0
+    admitted = []
+    export = execution.export_training_run
+
+    def delayed_export(run_id, store, out):
+        nonlocal offset
+        run = export(run_id, store, out)
+        completed = [stage for stage in run.stages if stage.status == "completed"]
+        if len(completed) > len(admitted):
+            admitted.append(completed[-1].cumulative_seconds)
+            # Model slow persistence after admission without sleeping or training more.
+            offset += 5.0
+        return run
+
+    monkeypatch.setattr(execution.time, "perf_counter", lambda: clock() + offset)
+    monkeypatch.setattr(execution, "export_training_run", delayed_export)
+    value = recipe()
+    value.agent.hidden_dim = 8
+    value.agent.num_attention_heads = 2
+    for stage in value.stages:
+        stage.transitions = 4
+        stage.updates = 1
+        stage.learning.epochs = 1
+    with VerifyStore(tmp_path / "store.sqlite") as store:
+        run = execute_regime(value, 197, tmp_path / "run", store)
+        assert run.status == "completed"
+        assert run.selected_artifact == run.stages[-1].artifacts["raw"]
+        steps = []
+        for stage in run.stages:
+            state = torch.load(stage.artifacts["optimizer"]["path"], weights_only=True)
+            steps.append(max(int(item["step"]) for item in state["state"].values()))
+            assert stage.learner_transitions == 16
+        assert steps[0] > 0
+        assert steps[1] == 2 * steps[0]
+        assert [stage.cumulative_seconds for stage in run.stages] == admitted
+        assert admitted[0] >= run.setup_seconds + run.stages[0].seconds
+        assert admitted[1] >= admitted[0] + 5.0 + run.stages[1].seconds
+        assert run.seconds >= admitted[1] + 5.0
+        saved = store.training_run(run.id)
+        assert [stage.cumulative_seconds for stage in saved.stages] == admitted

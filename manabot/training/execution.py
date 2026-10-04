@@ -1,6 +1,8 @@
 """Bounded regime execution; VerifyStore owns state, manifests are exports."""
 
+from contextlib import ExitStack
 from copy import deepcopy
+from dataclasses import asdict
 import json
 import os
 from pathlib import Path
@@ -32,7 +34,7 @@ from .models import (
     TrainingRun,
     TrainSelfPlay,
 )
-from .objectives import update_iteration
+from .objectives import update_ema, update_iteration
 
 
 def atomic_json(path, value):
@@ -85,7 +87,9 @@ def execute_regime(regime, seed, out, store):
         status="running",
     )
     store.save_training_run(run)
-    outputs, sessions = {}, {}
+    outputs = {}
+    self_play_session = None
+    resources = ExitStack()
     game_index = 0
 
     def persist():
@@ -205,7 +209,8 @@ def execute_regime(regime, seed, out, store):
                 outputs[stage.id] = shards
             elif isinstance(stage, TrainSelfPlay):
                 if stage.initial:
-                    trainer, ema, iteration = sessions[stage.initial]
+                    # Validation permits only the latest live collector to continue.
+                    trainer, ema, iteration = self_play_session
                 else:
                     torch.manual_seed(seeds["initialization"])
                     agent = Agent(space, regime.agent)
@@ -226,6 +231,7 @@ def execute_regime(regime, seed, out, store):
                             log_level="WARNING",
                         )
                     )
+                    resources.callback(experiment.close)
                     trainer = NetOpponentTrainer(
                         agent,
                         experiment,
@@ -258,13 +264,7 @@ def execute_regime(regime, seed, out, store):
                     )
                     iteration += 1
                     if ema is not None:
-                        with torch.no_grad():
-                            for dest, source in zip(
-                                ema.parameters(),
-                                trainer.agent.parameters(),
-                                strict=True,
-                            ):
-                                dest.lerp_(source, 1 - stage.learning.ema)
+                        update_ema(ema, trainer.agent, stage.learning.ema)
                     record.learning_seconds += time.perf_counter() - tick
                     record.diagnostics.append(diagnostic)
                     record.optimizer_exposures += diagnostic["optimizer_exposures"]
@@ -277,12 +277,9 @@ def execute_regime(regime, seed, out, store):
                         - before.learner_transitions
                     )
                     persist()
-                sessions[stage.id] = (trainer, ema, iteration)
+                self_play_session = (trainer, ema, iteration)
                 agent = trainer.agent
-                outputs[stage.id] = {
-                    "agent": agent,
-                    "optimizer_state": deepcopy(trainer.optimizer.state_dict()),
-                }
+                optimizer_state = trainer.optimizer.state_dict()
             else:
                 dataset = load_shards(
                     [p for ref in stage.datasets for p in outputs[ref]]
@@ -294,7 +291,7 @@ def execute_regime(regime, seed, out, store):
                 continuation = {}
                 phase = "learning_seconds"
                 tick = time.perf_counter()
-                agent, _, initial, history = train_search_supervised(
+                agent, _, _, history = train_search_supervised(
                     dataset,
                     policy_target_kind="visit_distribution",
                     value_weight=0,
@@ -317,10 +314,9 @@ def execute_regime(regime, seed, out, store):
                 record.optimizer_exposures = int(
                     (~np.isin(dataset["game_index"], list(validation))).sum()
                 ) * len(history)
-                from dataclasses import asdict
-
                 record.diagnostics = [asdict(item) for item in history]
                 outputs[stage.id] = {"agent": agent, **deepcopy(continuation)}
+                optimizer_state = continuation["optimizer_state"]
             if not isinstance(stage, CollectSearch):
                 phase = "export_seconds"
                 tick = time.perf_counter()
@@ -334,6 +330,7 @@ def execute_regime(regime, seed, out, store):
                         model,
                         space,
                         temporary,
+                        player_configs=Match(regime.match).to_rust(),
                         extra={
                             "run_id": run.id,
                             "stage_id": stage.id,
@@ -358,7 +355,7 @@ def execute_regime(regime, seed, out, store):
                     record.artifacts[name] = candidate
                 optimizer_path = out / f"{stage.id}-optimizer.pt"
                 torch.save(
-                    outputs[stage.id]["optimizer_state"],
+                    optimizer_state,
                     optimizer_path.with_suffix(".tmp"),
                 )
                 os.replace(optimizer_path.with_suffix(".tmp"), optimizer_path)
@@ -368,6 +365,8 @@ def execute_regime(regime, seed, out, store):
             record.seconds = time.perf_counter() - stage_start
             record.cpu_seconds = time.process_time() - cpu_start
             record.status = "completed"
+            # Freeze the admission cost; later persistence belongs to later outputs.
+            record.cumulative_seconds = time.perf_counter() - start
             persist()
         completed_models = [
             item.artifacts["raw"] for item in run.stages if "raw" in item.artifacts
@@ -404,7 +403,5 @@ def execute_regime(regime, seed, out, store):
             pass
         raise
     finally:
-        trainers = {id(trainer): trainer for trainer, _, _ in sessions.values()}
-        for trainer in trainers.values():
-            trainer.experiment.close()
+        resources.close()
     return run

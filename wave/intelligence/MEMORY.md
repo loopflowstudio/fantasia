@@ -273,7 +273,9 @@ gates are in [the live-advice plan](../../docs/plans/live-belief-advice.md).
 
 ## Corrected-world training binding (2026-09-29)
 
-`scripts/train_challenger.py` is the one training-to-demo runner. It builds
+`scripts/train_challenger.py` remains the receipt-bound training-to-demo runner.
+The regime executor described below adds staged training; it does not yet
+replace that demo admission path. It builds
 teacher games with `MatchHypers.authored`, so sideboards are present and Learn
 offers a Lesson; deck constants alone give the old setup. The play server
 rejects a candidate whose content manifest was taken without sideboards. The
@@ -292,28 +294,57 @@ versus 39% uniform) and each run took about 56 optimizer steps. Which of those
 limits learning is untested. Treat these checkpoints as pipeline proof only.
 Details and unreviewed decisions are in the
 [2026-09-29 record](../../docs/evidence/corrected-world-training-2026-09-29.md).
-That record predates the current w4 declaration; do not reuse its artifacts as
-current-world evidence. ETU-75 owns the ordinary semantic checkpoint contract.
+That record predates the current w4 declaration. New runs resolve the native
+world and exact ABI identities; ETU-75 owns the shared checkpoint/setup binding.
 
 
-## Training-study evidence boundaries (2026-10-04)
+## Training regime reconciliation (2026-10-04)
 
 Jack Heart split training work into ETU-89 (regime/run infrastructure), ETU-90
 (RL correctness/treatments), and ETU-91 (studies and analysis), then requested
 three dedicated workers. The study recipes and proposed scientific allocations
 are in [the comparison protocol](../../experiments/training-regimes.md) and
-[the ablation protocol](../../experiments/ataraxos-mtg-ablations.md). Jack Heart subsequently authorized scientific execution after integration and
+[the ablation protocol](../../experiments/ataraxos-mtg-ablations.md).
+Jack Heart subsequently authorized scientific execution after integration and
 landing within 168 active laptop hours total, including calibration and the
 ablation screen. The root session owns the single launch; workers must not
 start competing training. Counts and allocations must be frozen from measured
 integrated CPU calibration before scoring; smoke does not freeze them.
 
-A fixed number of updates or checkpoints is not equal training cost. Compare
-fixed-anchor scores only over overlapping observed cost ranges, with the last
-checkpoint available at each cutoff. Search label generation must remain on
-the cost axis; never credit a later student during earlier data collection.
-No overlap means the equal-cost comparison is unavailable. One seed and one
-four-leg deal block provide workflow evidence, not method-level uncertainty.
+The current chapter remains Trained Challengers; older conditional-teacher
+priorities are research background, not authorization for a new costly cycle.
+Infrastructure workers run only bounded proof; no paid compute is authorized.
+
+`TrainingRegime` and `TrainingRun` now execute the existing search-supervised
+and self-play trainers through `manabot train --regime`. VerifyStore owns status;
+JSON is an export. Same-run supervised rounds retain Adam and immutable
+whole-game split membership. Self-play continuation retains the latest live
+collector at an exact update boundary; it cannot branch from old collector
+state. Checkpoints do not promise process resume or byte-identical training.
+Resolved recipes, source/runtime identities, artifacts and phase costs are the
+reproducibility contract. Schedules use whole-run elapsed budget, not stage age.
+
+The collector defect was a contract mismatch: transition-end flags were passed
+to episode-start GAE, and banked rows made next-state bootstrap stale. Corrected
+end-marker GAE and paused streams address those mechanisms. The trace scale
+`1/(1-gamma*lambda)` is not a hard learning horizon. Historical PPO/search
+comparisons do not settle which repaired recipe wins at matched current cost.
+
+ETU-89 now integrates ETU-75's mandatory checkpoint world/setup contract,
+semantic tensor propagation and ETU-90's complete-state EMA helper. A retained
+two-stage execution completed 13 games and 1,024 learner transitions with four
+ordinary raw/EMA reloads on the semantic ABI. ETU-90 owns EMA complete-state
+correctness; ETU-91 owns final replayed arena/notebook evidence after integration. Study smoke success cannot
+close infrastructure, RL correctness, strength or human-play acceptance for
+another Task. The implementation contract is in
+[training regimes](../../docs/training-regimes.md); scientific proposals and
+limits remain in the [study protocol](../../experiments/training-regimes.md).
+
+Compare study scores only over overlapping observed cost ranges, using the last
+checkpoint available at each cutoff. Search generation remains on the cost axis;
+no overlap means equal-cost comparison is unavailable. One seed and a four-leg
+deal block prove workflow, not method-level uncertainty. ETU-91 owns final
+replayed study and offline-regeneration evidence on the integrated code.
 
 ETU-91's inherited-ABI smoke and report regeneration are preliminary. The two
 retained cohorts contain 24 and 72 exact-replayed games, but neither has

@@ -6,13 +6,19 @@ import torch
 
 
 def reference_distribution(obs, kind):
+    if kind not in {"uniform", "action_type_uniform"}:
+        raise ValueError(f"unknown reference: {kind}")
     valid = obs["actions_valid"] > 0
+    if not valid.any(-1).all():
+        raise ValueError("reference requires at least one legal offer per row")
     if kind == "uniform":
         return valid / valid.sum(-1, keepdim=True)
-    types = obs["actions"][..., :-1].argmax(-1)
-    same = types.unsqueeze(-1) == types.unsqueeze(-2)
-    counts = (same & valid.unsqueeze(-2)).sum(-1).clamp_min(1)
-    weights = valid / counts
+    action_types = obs["actions"][..., :-1]
+    types = action_types.argmax(-1)
+    # Count each type once per row without an offers-by-offers matrix.
+    counts = action_types.new_zeros(*types.shape[:-1], action_types.shape[-1])
+    counts.scatter_add_(-1, types, valid.to(counts.dtype))
+    weights = valid / counts.gather(-1, types).clamp_min(1)
     return weights / weights.sum(-1, keepdim=True)
 
 
@@ -21,6 +27,22 @@ def selected_rows(advantages, fraction, minimum):
     count = max(1, math.ceil(len(magnitude) * fraction))
     indices = torch.argsort(magnitude, descending=True, stable=True)[:count]
     return indices[magnitude[indices] >= minimum]
+
+
+@torch.no_grad()
+def update_ema(averaged, learner, rate):
+    """Advance once per collection/update iteration, including filtered skips.
+
+    Initialize with a deep copy of the learner. Parameters are averaged;
+    buffers describe the current model and are copied exactly. Collection
+    continues to use the learner, never this evaluation-only model.
+    """
+    if not 0 <= rate < 1:
+        raise ValueError("EMA rate must be in [0, 1)")
+    for name, dest in averaged.named_parameters():
+        dest.lerp_(learner.get_parameter(name), 1 - rate)
+    for name, dest in averaged.named_buffers():
+        dest.copy_(learner.get_buffer(name))
 
 
 def update_iteration(trainer, batch, learning, progress, rng):
@@ -58,8 +80,23 @@ def update_iteration(trainer, batch, learning, progress, rng):
         "bootstrapped_tail_fraction": float((~ends[-1]).float().mean()),
         "learning_rate": learning.learning_rate.at(progress),
         "tau": learning.tau.at(progress),
+        "schedule_progress": progress,
+        "schedule_clock": "elapsed-training-budget-fraction",
+        "gamma": learning.gamma,
+        "policy_lambda": learning.policy_lambda,
+        "value_lambda": learning.value_lambda,
+        "reference": learning.reference,
+        "collection_kl_coefficient": learning.collection_kl,
+        "retained_fraction": len(selected) / len(advantages),
+        "return_mean": float(returns.mean()),
+        "value_residual_abs_mean": float((returns - values.flatten()).abs().mean()),
     }
-    chosen_types = obs["actions"][torch.arange(len(actions)), actions, :-1].argmax(-1)
+    chosen_types = obs["actions"][
+        torch.arange(len(actions), device=dev), actions, :-1
+    ].argmax(-1)
+    diagnostics["action_types"] = torch.bincount(
+        chosen_types, minlength=obs["actions"].shape[-1] - 1
+    ).tolist()
     diagnostics["selected_action_types"] = torch.bincount(
         chosen_types[selected], minlength=obs["actions"].shape[-1] - 1
     ).tolist()
