@@ -19,11 +19,8 @@ Design notes, kept simple and honest:
   transition's reward is terminal-only and computed from ``winner_index``:
   +win_reward / +lose_reward when the game ends before the learner's next
   decision, else 0. The Rust reward stream is ignored.
-- Streams are continuous: an env that fills its per-update quota early keeps
-  playing and banks transitions for the next update. The one in-flight
-  ("pending") transition at a cut boundary carries its sample-time logprob
-  into the next update's batch (1/num_steps of a column, bounded by the PPO
-  clip; shared by all arms, so comparisons are internal).
+- Streams pause at the exact next learner observation once their quota is
+  complete. No sampled action or excess transition crosses an update boundary.
 - ``NetOpponentTrainer`` reuses the stock ``Trainer`` PPO update machinery
   (GAE, flatten, minibatch, optimize, save) and replaces only rollout
   collection.
@@ -66,6 +63,7 @@ class _Pending:
     action: int
     logprob: float
     value: float
+    probabilities: np.ndarray
 
 
 @dataclass
@@ -80,6 +78,7 @@ class RolloutBatch:
     values: np.ndarray
     next_obs: Dict[str, np.ndarray]
     next_done: np.ndarray
+    probabilities: np.ndarray
 
 
 @dataclass
@@ -178,7 +177,7 @@ class SeatRoutedCollector:
             )
         else:  # self-play: live learner weights, bound at collect() time
             self._opponent = None
-        self._self_rng = torch.Generator().manual_seed(seed + 1)
+        self._self_rng = torch.Generator(device=self.device).manual_seed(seed + 1)
 
         self._win_reward = float(reward.hypers.win_reward)
         self._lose_reward = float(reward.hypers.lose_reward)
@@ -221,32 +220,49 @@ class SeatRoutedCollector:
 
     # -- collection loop ------------------------------------------------------
 
-    def collect(self, agent: Agent, num_steps: int) -> RolloutBatch:
+    def collect(
+        self, agent: Agent, num_steps: int, *, deadline_monotonic: float | None = None
+    ) -> RolloutBatch:
         """Advance all streams until every env has ``num_steps`` finalized
-        learner transitions plus an in-flight one (its obs is the bootstrap
-        ``next_obs``)."""
+        learner transitions, stopping before the bootstrap action is sampled."""
 
         start = time.perf_counter()
         buffers = self._buffers
         env = self._env
         num_envs = self.num_envs
 
-        def ready() -> bool:
-            return all(
-                len(self._streams[i]) >= num_steps and self._pending[i] is not None
-                for i in range(num_envs)
-            )
-
-        while not ready():
+        if num_steps < 1:
+            raise ValueError("num_steps must be positive")
+        while True:
+            if (
+                deadline_monotonic is not None
+                and time.perf_counter() >= deadline_monotonic
+            ):
+                raise TimeoutError("collector exceeded training deadline")
             acting = np.asarray(env.current_agent_indices(), dtype=np.int64)
+            for row in range(num_envs):
+                if (
+                    acting[row] == self.learner_seat[row]
+                    and self._pending[row] is not None
+                ):
+                    self._finalize(row, reward=0.0, done=False)
+            active = np.array([len(stream) < num_steps for stream in self._streams])
+            if not active.any():
+                break
             actions = np.zeros(num_envs, dtype=np.int64)
-            learner_rows = np.flatnonzero(acting == self.learner_seat)
-            opp_rows = np.flatnonzero(acting != self.learner_seat)
+            learner_rows = np.flatnonzero(active & (acting == self.learner_seat))
+            opp_rows = np.flatnonzero(active & (acting != self.learner_seat))
 
             if len(learner_rows):
                 obs_t = self._slice_obs_tensors(learner_rows)
                 with torch.no_grad():
-                    action_t, logprob_t, _, value_t = agent.get_action_and_value(obs_t)
+                    logits, value_t = agent(obs_t)
+                    distribution = torch.distributions.Categorical(logits=logits)
+                    action_t = torch.multinomial(
+                        distribution.probs, 1, generator=self._self_rng
+                    ).squeeze(-1)
+                    logprob_t = distribution.log_prob(action_t)
+                    probabilities = distribution.probs.cpu().numpy()
                 acts = action_t.cpu().numpy().astype(np.int64)
                 logprobs = logprob_t.cpu().numpy()
                 values = value_t.view(-1).cpu().numpy()
@@ -260,6 +276,7 @@ class SeatRoutedCollector:
                         action=int(acts[j]),
                         logprob=float(logprobs[j]),
                         value=float(values[j]),
+                        probabilities=probabilities[j].copy(),
                     )
                 actions[learner_rows] = acts
                 self._count_action_types(
@@ -274,8 +291,8 @@ class SeatRoutedCollector:
                     self.stats.opponent_action_types, opp_rows, opp_acts
                 )
 
-            env.step_into_buffers(actions.tolist())
-            self.stats.micro_steps += num_envs
+            env.step_into_buffers(actions.tolist(), active.tolist())
+            self.stats.micro_steps += int(active.sum())
 
             done = (buffers["terminated"] > 0) | (buffers["truncated"] > 0)
             if done.any():
@@ -284,8 +301,12 @@ class SeatRoutedCollector:
                     winner = infos[row].get("winner_index")
                     winner = int(winner) if winner is not None else None
                     self.stats.games += 1
-                    if winner is None:
+                    if buffers["truncated"][row]:
                         self.stats.truncations += 1
+                        raise RuntimeError(
+                            "collector game truncated; no terminal target available"
+                        )
+                    if winner is None:
                         reward = 0.0
                     elif winner == int(self.learner_seat[row]):
                         self.stats.learner_wins += 1
@@ -303,7 +324,15 @@ class SeatRoutedCollector:
         pending = self._pending[row]
         assert pending is not None
         self._streams[row].append(
-            (pending.obs, pending.action, pending.logprob, pending.value, reward, done)
+            (
+                pending.obs,
+                pending.action,
+                pending.logprob,
+                pending.value,
+                reward,
+                done,
+                pending.probabilities,
+            )
         )
         self._pending[row] = None
         self.stats.learner_transitions += 1
@@ -325,11 +354,13 @@ class SeatRoutedCollector:
             for key, value in shapes.items()
         }
         next_done = np.zeros((num_envs,), dtype=bool)
+        probabilities = np.zeros_like(obs["actions_valid"])
 
         for env_index in range(num_envs):
             stream = self._streams[env_index]
             for step in range(num_steps):
-                obs_row, action, logprob, value, reward, done = stream[step]
+                obs_row, action, logprob, value, reward, done, probs = stream[step]
+                probabilities[step, env_index] = probs
                 for key in OBS_KEYS:
                     obs[key][step, env_index] = obs_row[key]
                 actions[step, env_index] = action
@@ -338,10 +369,9 @@ class SeatRoutedCollector:
                 rewards[step, env_index] = reward
                 dones[step, env_index] = done
             del stream[:num_steps]
-            pending = self._pending[env_index]
-            assert pending is not None
+            assert not stream and self._pending[env_index] is None
             for key in OBS_KEYS:
-                next_obs[key][env_index] = pending.obs[key]
+                next_obs[key][env_index] = self._buffers[key][env_index]
             next_done[env_index] = dones[num_steps - 1, env_index]
 
         return RolloutBatch(
@@ -353,12 +383,27 @@ class SeatRoutedCollector:
             values=values,
             next_obs=next_obs,
             next_done=next_done,
+            probabilities=probabilities,
         )
 
 
 # -----------------------------------------------------------------------------
 # Trainer: stock PPO update machinery, seat-routed collection
 # -----------------------------------------------------------------------------
+
+
+def transition_gae(rewards, values, ends, next_value, gamma, lam):
+    """GAE for transition-end flags; terminal rewards credit their own episode."""
+    advantages = torch.zeros_like(rewards)
+    tail = torch.zeros_like(rewards[0])
+    following = next_value.reshape(-1)
+    for step in reversed(range(len(rewards))):
+        live = (~ends[step].bool()).to(rewards.dtype)
+        delta = rewards[step] + gamma * live * following - values[step]
+        tail = delta + gamma * lam * live * tail
+        advantages[step] = tail
+        following = values[step]
+    return advantages, advantages + values
 
 
 class _CollectorEnvShim:
@@ -413,18 +458,16 @@ class NetOpponentTrainer(Trainer):
             dones_buf = torch.as_tensor(batch.dones, device=device)
             values_buf = torch.as_tensor(batch.values, device=device)
             next_obs = self._obs_to_tensors(batch.next_obs, device)
-            next_done = torch.as_tensor(batch.next_done, device=device)
 
             self.global_step += batch_size
 
             with torch.no_grad():
                 next_value = self.agent.get_value(next_obs)
-            advantages, returns = self._compute_gae(
+            advantages, returns = transition_gae(
                 rewards_buf,
                 values_buf,
                 dones_buf,
                 next_value,
-                next_done,
                 hypers.gamma,
                 hypers.gae_lambda,
             )

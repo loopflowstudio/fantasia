@@ -155,12 +155,34 @@ impl PyVectorEnv {
         })
     }
 
-    fn step_into_buffers(&mut self, py: Python<'_>, actions: Vec<i64>) -> PyResult<()> {
+    #[pyo3(signature = (actions, active=None))]
+    fn step_into_buffers(
+        &mut self,
+        py: Python<'_>,
+        actions: Vec<i64>,
+        active: Option<Vec<bool>>,
+    ) -> PyResult<()> {
         self.run_into_buffers(py, move |inner, write_buffers, config| {
-            inner.step_into(&actions, |env_index, obs, reward, terminated, truncated| {
-                write_buffers
-                    .write_encoded_row(env_index, obs, reward, terminated, truncated, &config)
-            })
+            if let Some(mask) = &active {
+                if mask.len() != inner.len() {
+                    return Err(AgentError(
+                        "active mask length must match environments".into(),
+                    ));
+                }
+                for (index, enabled) in mask.iter().enumerate() {
+                    if !enabled {
+                        write_buffers.write_step_state(index, 0.0, false, false)?;
+                    }
+                }
+            }
+            inner.step_into(
+                &actions,
+                active.as_deref(),
+                |env_index, obs, reward, terminated, truncated| {
+                    write_buffers
+                        .write_encoded_row(env_index, obs, reward, terminated, truncated, &config)
+                },
+            )
         })
     }
 
