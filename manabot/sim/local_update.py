@@ -198,8 +198,10 @@ class LocalUpdateTeacher:
     ) -> None:
         self.likelihood = FrozenPolicyLikelihood(checkpoint, expected_sha256=sha256)
         self.agent = self.likelihood.agent
-        if self.agent.belief_count_buckets:
-            raise ValueError("local search requires an observation-only policy")
+        if self.agent.belief_count_buckets or self.agent.hypers.compound_decisions:
+            raise ValueError(
+                "local search requires an observation-only sequential policy"
+            )
         metadata = torch.load(checkpoint, map_location="cpu", weights_only=False)
         if (
             self.agent.hypers.value_kind != "categorical_wdl"

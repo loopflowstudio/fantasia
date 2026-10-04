@@ -764,7 +764,7 @@ def _execute_regime(
                             else None,
                             "regime_digest": run.regime_digest,
                             "value_semantic": "signed_outcome"
-                            if isinstance(stage, TrainSelfPlay)
+                            if isinstance(stage, (TrainSelfPlay, TrainCompound))
                             or stage.target.startswith("local_")
                             else "win_logit",
                         },

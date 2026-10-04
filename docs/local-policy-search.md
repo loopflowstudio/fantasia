@@ -128,7 +128,7 @@ materializer cannot refresh. The existing tracker only supplies supported
 hand-multiset/chance transport; it is not an exact posterior over every history
 or hidden library order. This discovered Rules dependency prevents the requested
 full-game exact-versus-prior acceptance today. Reference tracker behavior elsewhere
-is unchanged. Belief-enabled policy rollout memory, learned ETU-96 sampler
+is unchanged. Compound-policy checkpoints and belief-enabled policy rollout memory, learned ETU-96 sampler
 consumption, arbitrary archived-root relabeling and new arena suites are also
 unsupported. No automatic fallback or unmeasured replacement is provided.
 
@@ -138,7 +138,8 @@ beats new games require the separately frozen protocol in
 [training follow-ups](../experiments/training-regime-followups.md). ETU-95 remains
 open for these scientific outcomes. ETU-91 and its allocations remain unchanged.
 
-Validation on 2026-10-04: the affected Python gate passed 73 tests, with the seven
-local teacher/stage tests passing again after the final sampling/deadline fixes.
-Ruff and 21 native debug possible-world/branch-contract tests passed. The tests include two complete tiny-pool arena games with exact
-Command replay and retained failure on unsupported exact history.
+Validation on 2026-10-04: 73 affected Python tests and 21 native debug world/branch
+tests passed before upstream sync. After rebuilding the merged native extension,
+eight local-search/compound integration tests and nine native debug world tests
+passed. Ruff passed. Evidence includes complete tiny-pool arena Command replay
+and retained failure on unsupported exact history.
