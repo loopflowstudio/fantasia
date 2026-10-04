@@ -203,3 +203,20 @@ native support constructions, full pipeline execution with enumeration disabled,
 receipt replay and two-seat complete arena games with exact actual-Command replay.
 These are mechanism proofs, not posterior calibration, stronger play, exact-history
 completion or authorization for scientific scoring.
+
+Integrated proof after PR 212 on 2026-10-04: the recipe completed in 31.43 s,
+with three sampler-data games, eight label games (753 search decisions), 32
+sampler optimizer exposures and 661 student exposures. The exported student
+passed ordinary checkpoint admission. The exact trained policy/sampler pair
+then played both arena seats against a random fixture: two complete games,
+183 actual Commands, zero replay mismatches. Private evidence is retained under
+`.runs/etu95-learned-search-integrated`. The first arena export failed after
+successful replay because the proof script treated a dataclass as a Pydantic
+model; its failure marker is retained beside the successful second export.
+The earlier split failure remains in `.runs/etu95-learned-search-proof`.
+The custom arena registrations are workflow fixtures, not production admission.
+
+Checks: 57 affected Python tests passed before final upstream integration;
+11 native debug world/materializer tests and Clippy passed. The integrated CLI
+proof and 12 passing PR 212 sampler collection/regime checks cover the subsequent
+merge.

@@ -4,7 +4,7 @@ Jack Heart requested complete frozen-policy → learned joint-hand sampler → l
 search → distillation wiring without enumerating support. Preserve the prior and
 incomplete exact modes, the compression follow-up, and ETU-91's frozen campaign.
 
-Native HiddenHandConstraints will validate direct count hypotheses against the
+Native HiddenHandConstraints validates direct count hypotheses against the
 source observation, pool, known minima and hand size, sharing the existing
 materialization implementation. It must preserve root viewer information and
 semantic offers. No sampled-count-to-enumerated-index adapter is acceptable.
@@ -23,6 +23,4 @@ hidden-swap invariance, and no enumeration in the learned execution path.
 No new scientific allocation or strength claim. Full exact-history semantics
 and calibrated conditional learned queries remain outside this slice.
 
-Validation: pending.
-
-Sync validation: retained both independent memory additions from main and this branch; `uv run pytest tests/training/test_local_update_stages.py::test_learned_pipeline_never_enumerates -q` — 1 passed in 33.62 s after `lf task sync --continue`.
+Validation: 57 affected Python tests, 11 native debug world/materializer tests, Ruff and Clippy passed; integrated recipe completed in 31.43 s, followed by two complete arena games / 183 exactly replayed Commands.
