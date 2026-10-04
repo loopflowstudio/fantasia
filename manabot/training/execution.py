@@ -18,6 +18,16 @@ import psutil
 import torch
 
 from manabot.arena.models import canonical_sha256, file_sha256
+from manabot.belief.sampling_data import (
+    collect_frozen_policy,
+    read_dataset,
+    save_dataset,
+)
+from manabot.belief.sampling_fit import (
+    fit_belief_sampler,
+    load_belief_sampler,
+    save_belief_sampler,
+)
 from manabot.env import Match, ObservationSpace, Reward
 from manabot.infra import Experiment
 from manabot.infra.hypers import ExperimentHypers, RewardHypers, TrainHypers
@@ -31,12 +41,15 @@ import managym
 
 from .compound import CompoundStatistics, collect_game, optimize_games, replay_game
 from .models import (
+    CollectBelief,
     CollectSearch,
     StageRecord,
     TrainCompound,
+    TrainBelief,
     TrainingRegime,
     TrainingRun,
     TrainSelfPlay,
+    TrainSupervised,
 )
 from .objectives import update_ema, update_iteration
 
@@ -50,7 +63,7 @@ class ArtifactReceipt(TypedDict):
     bytes: int
 
 
-def atomic_json(path, value):
+def atomic_json(path: Path | str, value: object) -> None:
     path = Path(path)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(
@@ -59,7 +72,9 @@ def atomic_json(path, value):
     os.replace(temporary, path)
 
 
-def export_training_run(run_id, store, out):
+def export_training_run(
+    run_id: str, store: "VerifyStore", out: Path | str
+) -> TrainingRun:
     run = store.training_run(run_id)
     atomic_json(Path(out) / "run.json", run.model_dump(mode="json"))
     return run
@@ -93,6 +108,8 @@ def execute_regime(
             ("collection", 10000),
             ("minibatches", 20000),
             ("evaluation", 30000),
+            ("belief_collection", 40000),
+            ("belief_initialization", 50000),
         )
     }
     run = TrainingRun(
@@ -172,6 +189,10 @@ def execute_regime(
                     raise MemoryError("training process tree memory limit exceeded")
 
             references = list(getattr(stage, "datasets", []))
+            if isinstance(stage, CollectBelief):
+                references.append(stage.policy)
+            if isinstance(stage, TrainBelief):
+                references.append(stage.dataset)
             if getattr(stage, "initial", None):
                 references.append(stage.initial)
             for reference in references:
@@ -335,6 +356,67 @@ def execute_regime(
                     persist()
                 outputs[stage.id] = (agent, optimizer)
                 optimizer_state = optimizer.state_dict()
+            elif isinstance(stage, CollectBelief):
+                source = next(item for item in run.stages if item.id == stage.policy)
+                policy_artifact = source.artifacts[stage.weights]
+                dataset = collect_frozen_policy(
+                    checkpoint=Path(policy_artifact["path"]),
+                    match_hypers=regime.match,
+                    games=stage.games,
+                    seed=seeds["belief_collection"] + game_index,
+                    max_steps=stage.max_steps,
+                    check=check,
+                )
+                record.collection_seconds = time.perf_counter() - stage_start
+                record.games = len(dataset.games)
+                record.environment_decisions = sum(
+                    len(game.examples) // 2 for game in dataset.games
+                )
+                game_index += len(dataset.games)
+                phase = "export_seconds"
+                tick = time.perf_counter()
+                target = out / f"{stage.id}-dataset.json"
+                save_dataset(dataset, target)
+                record.artifacts["dataset"] = artifact(target)
+                record.export_seconds = time.perf_counter() - tick
+            elif isinstance(stage, TrainBelief):
+                source = next(item for item in run.stages if item.id == stage.dataset)
+                dataset = read_dataset(Path(source.artifacts["dataset"]["path"]))
+                phase = "learning_seconds"
+                tick = time.perf_counter()
+                result = fit_belief_sampler(
+                    dataset,
+                    steps=stage.steps,
+                    batch_size=stage.batch_size,
+                    hidden_size=stage.hidden_size,
+                    learning_rate=stage.learning_rate,
+                    history_dropout=stage.history_dropout,
+                    evaluation_samples=stage.evaluation_samples,
+                    seed=seeds["belief_initialization"],
+                    check=check,
+                )
+                record.learning_seconds = time.perf_counter() - tick
+                record.optimizer_exposures = result.optimizer_exposures
+                record.diagnostics = [asdict(result.metrics)]
+                phase = "export_seconds"
+                tick = time.perf_counter()
+                target = out / f"{stage.id}-sampler.pt"
+                checkpoint_identity = save_belief_sampler(target, result, dataset)
+                candidate = artifact(target)
+                try:
+                    load_belief_sampler(
+                        target,
+                        expected_dataset_identity=dataset.identity,
+                        expected_policy_identity=dataset.policy_identity,
+                        expected_schema_identity=dataset.schema.identity,
+                        expected_world_identity=dataset.world_identity,
+                        expected_checkpoint_identity=checkpoint_identity,
+                    )
+                except Exception:
+                    record.rejected_artifacts["sampler"] = candidate
+                    raise
+                record.artifacts["sampler"] = candidate
+                record.export_seconds = time.perf_counter() - tick
             elif isinstance(stage, TrainSelfPlay):
                 if stage.initial:
                     # Validation permits only the latest live collector to continue.
@@ -389,6 +471,7 @@ def execute_regime(
                         stage.learning,
                         (time.perf_counter() - start) / regime.wall_seconds,
                         rng,
+                        iteration=iteration + 1,
                     )
                     iteration += 1
                     if ema is not None:
@@ -445,7 +528,7 @@ def execute_regime(
                 record.diagnostics = [asdict(item) for item in history]
                 outputs[stage.id] = {"agent": agent, **deepcopy(continuation)}
                 optimizer_state = continuation["optimizer_state"]
-            if not isinstance(stage, CollectSearch):
+            if isinstance(stage, (TrainSelfPlay, TrainSupervised, TrainCompound)):
                 phase = "export_seconds"
                 tick = time.perf_counter()
                 variants = {"raw": agent}

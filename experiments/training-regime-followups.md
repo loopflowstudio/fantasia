@@ -3,8 +3,11 @@
 2026-10-04. These proposals belong to ETU-91's experiment design; no execution
 or expensive allocation is authorized by their presence. Each requires frozen
 inputs and predictions, a separately approved cost cap, fresh evaluation deals,
-and retained failed attempts before scoring. Compound training is now runnable
-(ETU-94, below); the other proposed stages remain future work.
+and retained failed attempts before scoring. Compound training (ETU-94, below)
+and the frozen-policy collection and belief fitting stages in item 4 now have
+bounded implementations. See [the sampler guide](../docs/belief-sampler.md) for
+the latter; scientific allocations and acceptance comparisons remain unexecuted
+proposals.
 
 ## Following the learned policy into search and belief experiments
 
