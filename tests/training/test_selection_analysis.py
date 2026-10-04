@@ -234,6 +234,10 @@ def test_changed_source_policy_is_retained_as_failed_attempt(tmp_path: Path) -> 
     recipe.stages = recipe.stages[:1]
     with VerifyStore(tmp_path / "training.sqlite") as store:
         source = execute_regime(recipe, 693, tmp_path / "source", store)
+        mismatch = diagnostic_recipe(recipe, source_run=source.id)
+        mismatch.agent.hidden_dim = 16
+        with pytest.raises(ValueError, match="configuration differs"):
+            execute_regime(mismatch, 693, tmp_path / "mismatch", store)
         frozen = Path(source.stages[0].artifacts["raw"]["path"])
         frozen.write_bytes(b"changed checkpoint")
         followup = diagnostic_recipe(recipe, source_run=source.id)

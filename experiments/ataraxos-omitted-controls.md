@@ -233,3 +233,22 @@ uncertainty. Both groups must occur in at least two games and at least 95% of
 bootstrap draws must contain both groups; otherwise the interval is unavailable.
 Sparse intervals in a four-game smoke are descriptive only. Multiple strata are
 not multiplicity-adjusted hypothesis tests. Every technique remains unresolved.
+
+### Bounded complete-game evidence
+
+At commit `152d11eb`, the documented command retained TrainingRun
+`1ccbcc75b3d047d5a1400b56bb3b6084` at `.runs/etu93-selection`. Its frozen policy
+SHA-256 is `ab930b248d0ab8dbebda822a9bfb4aced191651942a1e9b6024311493e408868`.
+The four-game population completed 1,073 decisions with exact replay in 17.72
+seconds total (14.91 collection, 1.75 analysis/replay). Report-only regeneration
+produced byte-identical JSON and Markdown. This one-checkpoint smoke proves the
+workflow; it is not uncontended calibration or independent-seed inference.
+No standalone diagnostic execution failed. Failure-injection tests retain capped
+game journals and source-artifact mismatch attempts in VerifyStore.
+
+Reproduction means reusing exact policy bytes, resolved population/action seeds,
+runtime and estimator settings. Retraining the example policy does not promise
+identical checkpoint bytes: its training schedule has an elapsed-budget clock.
+The dataset and receipt journals contain both seats' evidence and are private
+audit artifacts, not viewer-facing Study exports. All costs belong to the run;
+scientific allocation remains zero.

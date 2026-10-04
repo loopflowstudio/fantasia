@@ -537,6 +537,13 @@ def _execute_regime(
                 if file_sha256(frozen["path"]) != frozen["sha256"]:
                     raise ValueError("selection policy artifact changed")
                 agent, policy_space = load_checkpoint_agent(frozen["path"])
+                if (
+                    agent.hypers != regime.agent
+                    or policy_space.encoder.hypers != regime.observation
+                ):
+                    raise ValueError(
+                        "selection policy configuration differs from regime"
+                    )
                 if file_sha256(frozen["path"]) != frozen["sha256"]:
                     raise ValueError("selection policy artifact changed while loading")
                 population = [game.model_dump(mode="json") for game in stage.population]
