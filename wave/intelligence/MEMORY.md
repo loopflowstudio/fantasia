@@ -292,4 +292,44 @@ versus 39% uniform) and each run took about 56 optimizer steps. Which of those
 limits learning is untested. Treat these checkpoints as pipeline proof only.
 Details and unreviewed decisions are in the
 [2026-09-29 record](../../docs/evidence/corrected-world-training-2026-09-29.md).
-WORLDS.md has not registered w3; that stays with ETU-75.
+That record predates the current w4 declaration in WORLDS.md. Its measurements
+remain frozen historical evidence; ETU-75 owns current checkpoint setup/semantic
+admission, which is not yet integrated into this ETU-90 checkout.
+
+
+## Direct self-play treatment contracts (2026-10-04)
+
+The Trained Challengers objective in GOAL.md governs current work; historical
+conditional-belief proofs above remain research evidence, not a prerequisite
+for this training comparison. Jack Heart split the training-regime delivery
+into ETU-89 infrastructure, ETU-90 RL correctness/treatments and ETU-91 studies,
+with three dedicated workers. No expensive comparison or paid compute is
+approved by this implementation work.
+
+Self-play transitions use end-of-transition terminal flags. Stock PPO's
+start-of-episode GAE convention cannot consume them unchanged. Collection must
+pause fast streams at their exact next learner observation, preserve every
+observation tensor and recompute actions under the next collection policy;
+banking surplus transitions across updates breaks that contract. Collection
+KL uses the saved full legal behavior distribution, not reconstructed updated
+weights. Independent policy/value estimators, filtering, reference choices and
+schedules are runnable treatments, not exact Ataraxos reproduction.
+
+EMA is an evaluation artifact with a collect/update-iteration clock, including
+empty-filter skips. Its helper averages parameters and copies buffers without
+changing learner/behavior weights. ETU-89 reports that its integrated parent
+9a1b90df wires this helper and preserves the whole-run schedule clock. Local
+ETU-90 proofs also exercise an empty-filter continuation: learner weights stay
+fixed while the evaluation average advances. Collector match metadata passes
+through the Trainer env shim for ordinary checkpoint admission.
+
+ETU-90's retained two-stage CPU run completed 14 games and 1,024 learner
+transitions with phase costs, distinct raw/EMA outputs and ordinary reload.
+The focused boundary/treatment checks passed, but this is inherited-ABI
+workflow evidence. ETU-89 reports a semantic 14-game/1,024-transition run with
+four raw/EMA reloads at integrated parent 9a1b90df; ETU-90 has not independently
+rerun that contract. Its stacked sync only consumes the published parent, and
+parent publication is blocked on Loopflow recorded-base reconciliation. Final
+ETU-90 admission and ETU-91 study reruns remain outstanding; no strength or
+human-play result follows from these runs.
+No child Wave memories exist under Intelligence in this checkout.
