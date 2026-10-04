@@ -54,3 +54,5 @@ Focused check: `OMP_NUM_THREADS=1 uv run pytest` over compound/structured/regime
 objective/study checks passed after the registration fixture compatibility fix;
 new incomplete-attempt check passed; debug compound lowering passed all 64
 attacker subsets. Four-arm, one-threaded workflow smoke is running separately.
+
+Sync check (2026-10-04): merged main locally; compound reload, categorical values, belief dependencies and all three belief reload variants passed after rebuilding the stale native extension.

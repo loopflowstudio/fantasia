@@ -14,7 +14,7 @@ from manabot.model.compound import CompoundDecoder
 from manabot.sim.compound import CompoundPolicy, sample_compound
 from manabot.sim.flat_mc import load_checkpoint_agent, make_player
 from manabot.sim.structured_policy import StructuredPolicyError, flatten_projection
-from manabot.training.compound import collect_game, episode_credit, replay_game
+from manabot.training.compound import collect_game, episode_credit, optimize_games, replay_game
 from manabot.training.execution import execute_regime
 from manabot.training.models import Learning, TrainingRegime
 from manabot.verify.store import VerifyStore
@@ -504,11 +504,9 @@ def test_optionless_auto_resolution_has_separate_accounting(tmp_path: Path) -> N
 def test_terminal_game_without_choices_does_not_invent_optimizer_rows(
     tmp_path: Path,
 ) -> None:
-    from manabot.training.compound import optimize_games
-
     agent = _agent()
     match = Match(
-        MatchHypers(hero_deck={"Craw Wurm": 8}, villain_deck={"Craw Wurm": 8})
+        MatchHypers(hero_deck={"Craw Wurm": 7}, villain_deck={"Craw Wurm": 7})
     )
     game = collect_game(
         agent,
