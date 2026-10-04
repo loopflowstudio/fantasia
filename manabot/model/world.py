@@ -38,9 +38,7 @@ def _setups(player_configs) -> list[dict]:
 def validate_agent_setup(agent: Any, player_configs) -> None:
     """Check an admitted policy against the actual match at execution time."""
     binding = getattr(agent, "world_binding", None)
-    if binding is not None and _digest(binding["setups"]) != _digest(
-        _setups(player_configs)
-    ):
+    if binding is not None and binding["setups"] != _setups(player_configs):
         raise ValueError("checkpoint setup differs from the execution match")
 
 

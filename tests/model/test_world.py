@@ -85,7 +85,7 @@ def test_same_shapes_do_not_admit_another_matchup():
         validate_checkpoint_world(payload, ObservationSpace(), changed.to_rust())
 
 
-@pytest.mark.parametrize("consumer", ["policy", "puct", "rollout", "value"])
+@pytest.mark.parametrize("consumer", ["policy", "puct", "rollout", "value", "play"])
 def test_loaded_consumers_reject_another_actual_setup(tmp_path, consumer):
     from manabot.env import Env, Reward
     from manabot.sim.flat_mc import AgentMatchupPlayer
@@ -95,6 +95,10 @@ def test_loaded_consumers_reject_another_actual_setup(tmp_path, consumer):
 
     path = tmp_path / "policy.pt"
     torch.save(checkpoint(), path)
+    if consumer == "play":
+        with pytest.raises(ValueError, match="setup differs"):
+            CheckpointVillain(str(path), player_configs=Match().to_rust())
+        return
     agent, space = load_checkpoint_agent(str(path))
     players = {
         "policy": lambda: AgentMatchupPlayer(agent),

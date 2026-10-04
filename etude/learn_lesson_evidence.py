@@ -25,6 +25,8 @@ from .replay_index import CanonicalReplayV1, project_replay
 from .server import GameSession
 from .trace import GameConfig
 
+MAX_COMMANDS = 10_000
+
 
 def source_identity():
     files = {row["path"]: row for row in _source_manifest()["files"]}
@@ -75,7 +77,7 @@ def registration():
         "manifest": engine.content_pack_manifest(),
         "setups": [{"deck": p.decklist, "sideboard": p.sideboard} for p in configs],
         "policy": "DeterministicServerOfferPolicy; independent per-seat Random(deal_seed)",
-        "max_commands": 10000,
+        "max_commands": MAX_COMMANDS,
         "attempts": [
             {"seed": seed, "reverse": reverse}
             for seed in range(8)
@@ -102,7 +104,7 @@ def verify_attempt(result):
         [(p.decklist, p.sideboard) for p in config.to_rust()],
     )
     tape = result["tape"]
-    if not 0 < len(tape) <= 10000:
+    if not 0 < len(tape) <= MAX_COMMANDS:
         raise ValueError("attempt violates registered Command cap")
     replay = CanonicalReplayV1.model_validate(result["replay"])
     _equal(
@@ -138,7 +140,7 @@ def attempt(seed, reverse):
         )
         try:
             session, _ = play_fixed_authored_match(
-                seed=seed, reverse=reverse, max_commands=10000, session=session
+                seed=seed, reverse=reverse, max_commands=MAX_COMMANDS, session=session
             )
             tape, _ = _ledger(session, {})
             result["tape"] = tape
@@ -216,13 +218,13 @@ def main():
         "registration_sha256": _sha256(path.read_bytes()),
         "attempts": results,
         "passed": sum(row["status"] == "passed" for row in results),
-        "total": 16,
+        "total": len(registered["attempts"]),
     }
     if args.operation == "run":
         (directory / "summary.json").write_text(
             json.dumps(summary, indent=2, sort_keys=True) + "\n"
         )
-    if summary["passed"] != 16:
+    if summary["passed"] != summary["total"]:
         raise SystemExit(1)
 
 

@@ -18,18 +18,6 @@ from manabot.sim.distill import (
 from manabot.sim.flat_mc import load_checkpoint_agent
 
 
-def _checkpoint_configs():
-    from manabot.env import Match
-    from manabot.infra.hypers import MatchHypers
-    from manabot.verify.util import INTERACTIVE_DECK
-
-    return Match(
-        MatchHypers(
-            hero_deck=dict(INTERACTIVE_DECK), villain_deck=dict(INTERACTIVE_DECK)
-        )
-    ).to_rust()
-
-
 def _tiny_dataset(tmp_path: Path, num_games: int = 3) -> dict[str, np.ndarray]:
     shard = tmp_path / "shard_00.npz"
     summary = generate_selfplay_shard(
@@ -82,7 +70,9 @@ def test_split_by_game_has_no_leakage(tmp_path):
     assert train_games.isdisjoint(val_games)
 
 
-def test_train_bc_learns_and_checkpoint_roundtrips(tmp_path):
+def test_train_bc_learns_and_checkpoint_roundtrips(
+    tmp_path, interactive_player_configs
+):
     dataset = _tiny_dataset(tmp_path, num_games=4)
     agent, obs_space, history = train_bc(
         dataset,
@@ -98,7 +88,11 @@ def test_train_bc_learns_and_checkpoint_roundtrips(tmp_path):
 
     path = tmp_path / "bc_policy.pt"
     save_bc_checkpoint(
-        agent, obs_space, path, player_configs=_checkpoint_configs(), extra={"lr": 1e-3}
+        agent,
+        obs_space,
+        path,
+        player_configs=interactive_player_configs,
+        extra={"lr": 1e-3},
     )
     loaded, loaded_space = load_checkpoint_agent(str(path))
     assert loaded_space == obs_space

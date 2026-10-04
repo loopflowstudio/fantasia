@@ -57,7 +57,6 @@ class SemanticCardEncoder(nn.Module):
         # definitions come from the checked catalog. Nothing is truncated.
         rows = [definition_tokens(row) for row in range(len(pack.ir.definitions))]
         width = max(map(len, rows))
-        self.semantic_pack_hash = pack.semantic_pack_hash
         self.token_embedding = nn.Embedding(len(vocabulary) + 1, hidden_dim)
         self.encoder = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
         self.register_buffer(

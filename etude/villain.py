@@ -125,18 +125,14 @@ class CheckpointVillain:
     """
 
     def __init__(self, path: str, *, deterministic: bool = False, player_configs=None):
-        from manabot.model.world import validate_checkpoint_world
+        from manabot.model.world import validate_agent_setup
         from manabot.sim.flat_mc import load_checkpoint_agent
         from manabot.verify.util import _select_agent_action
 
         self._select_action = _select_agent_action
         self.agent, self.obs_space = load_checkpoint_agent(path)
         if player_configs is not None:
-            validate_checkpoint_world(
-                {"world_binding": self.agent.world_binding},
-                self.obs_space,
-                player_configs,
-            )
+            validate_agent_setup(self.agent, player_configs)
         self.deterministic = deterministic
 
     def __call__(self, env: managym.Env, obs: managym.Observation) -> int:

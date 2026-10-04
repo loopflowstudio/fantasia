@@ -30,18 +30,6 @@ from manabot.sim.search_supervised import (
 from manabot.verify.util import INTERACTIVE_DECK
 
 
-def _checkpoint_configs():
-    from manabot.env import Match
-    from manabot.infra.hypers import MatchHypers
-    from manabot.verify.util import INTERACTIVE_DECK
-
-    return Match(
-        MatchHypers(
-            hero_deck=dict(INTERACTIVE_DECK), villain_deck=dict(INTERACTIVE_DECK)
-        )
-    ).to_rust()
-
-
 def _dataset(seed: int = 7) -> dict[str, np.ndarray]:
     obs_space = ObservationSpace()
     match = Match(
@@ -147,7 +135,9 @@ def test_policy_only_and_joint_arms_isolate_value_gradient() -> None:
     )
 
 
-def test_joint_checkpoint_round_trips(tmp_path: Path) -> None:
+def test_joint_checkpoint_round_trips(
+    tmp_path: Path, interactive_player_configs
+) -> None:
     dataset = _dataset(seed=19)
     agent, obs_space, _, history = train_search_supervised(
         dataset, epochs=1, batch_size=32, val_fraction=0.25, seed=3
@@ -157,7 +147,7 @@ def test_joint_checkpoint_round_trips(tmp_path: Path) -> None:
         agent,
         obs_space,
         path,
-        player_configs=_checkpoint_configs(),
+        player_configs=interactive_player_configs,
         extra={
             "search_supervised": True,
             "value_brier": history[-1].validation.value_brier,
