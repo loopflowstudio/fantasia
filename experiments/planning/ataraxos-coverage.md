@@ -80,6 +80,7 @@ Linear remains authoritative for their live execution state.
 | Selective search effort, replay/cumulative reuse and relabeling economics | ETU-95 | KataGo-inspired hypotheses; charge all searches and retain target versions |
 | Frozen-policy self-play with hidden truth as labels; belief model trained afterward | [ETU-96](https://linear.app/loopflow/issue/ETU-96) | Policy→dataset→belief stages landed; broad calibration and search comparisons remain open |
 | Constrained autoregressive joint beliefs versus exact enumeration | ETU-96 | Measure legality, calibration, joint likelihood, latency and search strength |
+| Learned hand samples actually drive policy rollouts without enumerating support | ETU-95 / ETU-96 | Sampler and local-search components exist separately; native count-to-world materialization and identity-bound consumption remain required |
 | Foreign-policy histories, opponent adaptation and belief-training dropout | ETU-96 | Self-play calibration is not immunity to baiting or distribution shift |
 | Stronger exploiters, historical opponents and weak control play | [ETU-97](https://linear.app/loopflow/issue/ETU-97) | Independent attack seeds and increasing budgets; failed attack is not a certificate |
 | INT-6 arena and S1–S5 as judges; deck/seat and world identity | ETU-91 / ETU-97 | Revalidate scenario premises and historical ratings before reuse |
@@ -102,3 +103,24 @@ better bluffing, equilibrium, or immunity to exploitation.
 
 The future Tasks require standalone acceptance and full-game evidence. Their
 capture does not expand the current 168-hour campaign or change its active plans.
+
+## Search integration acceptance
+
+The next ETU-95 integration must connect the frozen-policy belief sampler to
+rollouts, not merely produce its offline calibration report. Current native
+search materialization accepts indexes into an enumerated possible-world space;
+mapping learned count samples back through that enumeration would defeat the
+larger-pool objective. A direct count-to-world path must validate public pool
+counts, known minima, hand size and source observation identity, preserve the
+root viewer's information, and retain reproducible world/rollout seeds. Pin the
+belief artifact to its generating policy and feature schema; compare it with
+the compatible physical-deal prior under the same realized compute accounting.
+These are implementation requirements, not authorization for another long run.
+
+The separate exact-history reference has a different gap: opponent combat and
+targeting commitments are not represented by the current public likelihood
+schema, and ordinary discard prompts cannot be refreshed by the materializer.
+Only publicly committed information may condition that reference. Private
+subchoices cannot be exposed to make posterior updates convenient. Full-game
+exact acceptance remains open until those contracts and history transport are
+proved; a learned approximate posterior must never be labeled exact.
