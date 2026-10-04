@@ -32,6 +32,7 @@ from manabot.verify.store import VerifyStore
 
 ROOT = Path(__file__).resolve().parents[2]
 STUDIES = {
+    "omitted-controls": [],
     "learning-speed": ["search-distillation", "direct-self-play"],
     "ataraxos-ablations": [
         "rl-control",
@@ -141,6 +142,10 @@ def run_study(study, out, plan=None, resume=False):
             raise RuntimeError(
                 "insufficient free disk for frozen study and evidence reserve"
             )
+    if study == "omitted-controls" and plan is None:
+        raise ValueError(
+            "omitted controls require an explicit separately resolved plan"
+        )
     retained = None
     resumed_runs = []
     if resume:
@@ -173,7 +178,7 @@ def run_study(study, out, plan=None, resume=False):
     else:
         protocol = plan.protocol
         recipes = [TrainingRegime.model_validate(r) for r in plan.recipes]
-        if [r.id for r in recipes] != STUDIES[study]:
+        if study != "omitted-controls" and [r.id for r in recipes] != STUDIES[study]:
             raise ValueError("resolved recipes must preserve the study arm order")
         if not resume:
             atomic_json(out / "resolved-plan.json", plan.model_dump(mode="json"))
@@ -359,16 +364,21 @@ def run_study(study, out, plan=None, resume=False):
             evaluation_compute_envelope_id="policy-cpu-one-thread-one-pass",
         )
 
-        def compare(
-            a_run,
-            a_stage,
-            b_run,
-            b_stage,
-            cutoff,
+        def compare_variant(
+            a_run: TrainingRun,
+            a_stage: StageRecord,
+            b_run: TrainingRun | None,
+            b_stage: StageRecord | None,
+            cutoff: int,
             *,
-            baseline=None,
-            phase="development",
-        ):
+            baseline: PlayerRegistration | None = None,
+            phase: str = "development",
+            variant: str = "raw",
+        ) -> None:
+            if b_run is None:
+                assert baseline is not None
+            else:
+                assert b_stage is not None
             identity = (
                 a_run.regime.id,
                 a_run.seed,
@@ -376,6 +386,7 @@ def run_study(study, out, plan=None, resume=False):
                 b_run.seed if b_run else None,
                 cutoff,
                 phase,
+                variant,
             )
             if any(
                 (
@@ -385,13 +396,14 @@ def run_study(study, out, plan=None, resume=False):
                     c.get("b_training_seed"),
                     c["cutoff"],
                     c.get("phase", "development"),
+                    c.get("variant", "raw"),
                 )
                 == identity
                 for c in result["comparisons"]
             ):
                 return
-            a = registration(a_run, a_stage)
-            b = registration(b_run, b_stage) if b_run else baseline
+            a = registration(a_run, a_stage, variant)
+            b = registration(b_run, b_stage, variant) if b_run else baseline
             deals = (
                 (protocol.paired_deals if b_run else protocol.anchor_deals)
                 if phase == "development"
@@ -403,9 +415,9 @@ def run_study(study, out, plan=None, resume=False):
             )
             arena_out = out / f"arena-{len(result['comparisons'])}"
             arena_out.mkdir()
-            paths = {a.player_id: a_stage.artifacts["raw"]["path"]}
+            paths = {a.player_id: a_stage.artifacts[variant]["path"]}
             if b_run:
-                paths[b.player_id] = b_stage.artifacts["raw"]["path"]
+                paths[b.player_id] = b_stage.artifacts[variant]["path"]
             atomic_json(
                 arena_out / "registrations.json", [a.model_dump(), b.model_dump()]
             )
@@ -415,6 +427,7 @@ def run_study(study, out, plan=None, resume=False):
                 training_seed=a_run.seed,
                 b_training_seed=b_run.seed if b_run else None,
                 phase=phase,
+                variant=variant,
                 b=b_run.regime.id if b_run else b.player_id,
                 rows=[],
                 scheduled_games=4 * len(deals),
@@ -459,9 +472,9 @@ def run_study(study, out, plan=None, resume=False):
                     dict(
                         regime=run.regime.id,
                         seed=run.seed,
-                        variant="raw",
+                        variant=variant,
                         phase=phase,
-                        checkpoint=stage.artifacts["raw"],
+                        checkpoint=stage.artifacts[variant],
                         cutoff=cutoff,
                         opponent=comparison["b"] if is_a else comparison["a"],
                         training_seconds=stage.cumulative_seconds,
@@ -482,6 +495,28 @@ def run_study(study, out, plan=None, resume=False):
                     )
                 )
             save()
+
+        def compare(
+            a_run: TrainingRun,
+            a_stage: StageRecord,
+            b_run: TrainingRun | None,
+            b_stage: StageRecord | None,
+            cutoff: int,
+            *,
+            baseline: PlayerRegistration | None = None,
+            phase: str = "development",
+        ) -> None:
+            for variant in protocol.evaluation_variants:
+                compare_variant(
+                    a_run,
+                    a_stage,
+                    b_run,
+                    b_stage,
+                    cutoff,
+                    baseline=baseline,
+                    phase=phase,
+                    variant=variant,
+                )
 
         if any(
             len(stages) != protocol.checkpoint_count for stages in checkpoints.values()
@@ -638,7 +673,13 @@ def main():
         if plan.protocol.purpose != args.profile or plan.protocol.study != args.study:
             parser.error("profile/study differs from frozen plan")
     elif args.plan is not None:
-        parser.error("smoke does not accept a scientific plan")
+        plan = ResolvedStudy.model_validate_json(args.plan.read_text())
+        if (
+            args.study != "omitted-controls"
+            or plan.protocol.study != args.study
+            or plan.protocol.purpose != "workflow-smoke"
+        ):
+            parser.error("smoke accepts only an omitted-controls workflow plan")
     torch.set_num_threads(1)
     out = args.out.resolve()
     run_study(args.study, out, plan, resume=args.resume)

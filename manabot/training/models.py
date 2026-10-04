@@ -36,6 +36,8 @@ class Learning(Strict):
     gamma: float = Field(default=1, ge=0, le=1)
     policy_lambda: float = Field(default=0.95, ge=0, le=1)
     value_lambda: float = Field(default=1, ge=0, le=1)
+    filter_kind: Literal["top_count", "quantile"] = "top_count"
+    filter_scope: Literal["actor_critic", "actor"] = "actor_critic"
     retained_fraction: float = Field(default=0.5, gt=0, le=1)
     min_advantage: float = Field(default=0, ge=0)
     reference: Literal["uniform", "action_type_uniform"] = "uniform"
@@ -60,6 +62,8 @@ class AtaraxosMoveLearning(Strict):
     gradient: Literal["ataraxos_move"]
     policy_lambda: float = Field(default=0.5, ge=0, le=1)
     value_lambda: float = Field(default=0.8, ge=0, le=1)
+    filter_kind: Literal["quantile", "top_count"] = "quantile"
+    filter_scope: Literal["actor_critic", "actor"] = "actor_critic"
     advantage_quantile: float = Field(default=0.75, ge=0, le=1)
     min_advantage: float = Field(default=0.01, ge=0)
     reference: Literal["uniform", "action_type_uniform"] = "action_type_uniform"
@@ -135,12 +139,18 @@ class TrainSelfPlay(Stage):
     trainer: Literal["net_opponent"] = "net_opponent"
     optimizer: Literal["adam"] = "adam"
     trainable: Literal["policy_value"] = "policy_value"
-    behavior: Literal["current-self"] = "current-self"
+    behavior: Literal["current-self", "ema-self"] = "current-self"
     initial: str | None = None
     updates: int = Field(default=2, ge=1)
     streams: int = Field(default=4, ge=2)
     transitions: int = Field(default=256, ge=1)
     learning: Learning | AtaraxosMoveLearning = Learning()
+
+    @model_validator(mode="after")
+    def valid_behavior(self) -> "TrainSelfPlay":
+        if self.behavior == "ema-self" and self.learning.ema is None:
+            raise ValueError("ema-self behavior requires an EMA rate")
+        return self
 
 
 class CollectBelief(Stage):
@@ -240,7 +250,8 @@ class TrainingRegime(Strict):
                         "live self-play continuation cannot branch from an older collector"
                     )
                 if (
-                    parent.streams != stage.streams
+                    parent.behavior != stage.behavior
+                    or parent.streams != stage.streams
                     or parent.learning.ema != stage.learning.ema
                     or parent.learning.gradient != stage.learning.gradient
                 ):

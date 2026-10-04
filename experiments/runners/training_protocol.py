@@ -8,8 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class EvaluationProtocol(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
     schema_version: Literal[2] = 2
-    study: Literal["learning-speed", "ataraxos-ablations"]
+    study: Literal["learning-speed", "ataraxos-ablations", "omitted-controls"]
     purpose: Literal["workflow-smoke", "calibration", "scientific"] = "workflow-smoke"
+    evaluation_variants: tuple[Literal["raw", "ema"], ...] = ("raw",)
     regime_digests: tuple[str, ...]
     training_seeds: tuple[int, ...] = (197,)
     paired_deals: tuple[int, ...] = (910001,)
@@ -35,6 +36,12 @@ class EvaluationProtocol(BaseModel):
 
     @model_validator(mode="after")
     def disjoint(self):
+        if not self.evaluation_variants or len(set(self.evaluation_variants)) != len(
+            self.evaluation_variants
+        ):
+            raise ValueError("evaluation variants must be nonempty and unique")
+        if self.study != "omitted-controls" and self.evaluation_variants != ("raw",):
+            raise ValueError("existing frozen studies evaluate raw only")
         if (
             any(c <= 0 for c in self.cost_cutoffs_seconds)
             or tuple(sorted(set(self.cost_cutoffs_seconds)))
@@ -93,8 +100,12 @@ class EvaluationProtocol(BaseModel):
             )
         if any(s < 900000 for s in flat):
             raise ValueError("evaluation deals must use reserved family >=900000")
-        expected = 2 if self.study == "learning-speed" else 5
-        if len(self.regime_digests) != expected or any(
+        expected = 5 if self.study == "ataraxos-ablations" else 2
+        if (
+            len(self.regime_digests) not in {1, 2}
+            if self.study == "omitted-controls"
+            else len(self.regime_digests) != expected
+        ) or any(
             len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest)
             for digest in self.regime_digests
         ):
@@ -131,7 +142,7 @@ class ResolvedStudy(BaseModel):
     @model_validator(mode="after")
     def allocation(self):
         from manabot.arena.models import canonical_sha256
-        from manabot.training.models import TrainingRegime
+        from manabot.training.models import TrainingRegime, TrainSelfPlay
 
         recipes = [TrainingRegime.model_validate(r) for r in self.recipes]
         if (
@@ -139,6 +150,12 @@ class ResolvedStudy(BaseModel):
             != self.protocol.regime_digests
         ):
             raise ValueError("resolved plan recipe digests do not match")
+        if "ema" in self.protocol.evaluation_variants and any(
+            not isinstance(s, TrainSelfPlay) or s.learning.ema is None
+            for r in recipes
+            for s in r.stages
+        ):
+            raise ValueError("EMA evaluation requires EMA at every checkpoint")
         if len({r.id for r in recipes}) != len(recipes):
             raise ValueError("recipe IDs must be unique")
         if any(
