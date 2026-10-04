@@ -129,16 +129,6 @@ def run_study(study, out):
                     sha256=hashlib.sha256(Path(entry["path"]).read_bytes()).hexdigest(),
                 )
                 save()
-        key = ArenaKey(
-            world=runs[0].regime.world,
-            content_suite=SELECTED_SUITE,
-            viewer_boundary="acting-viewer",
-            arena_version="training-regime-smoke-v1",
-            rating_model_version="unrated",
-            rating_prior_sha256=canonical_sha256({}),
-            anchor_cohort_sha256=canonical_sha256([]),
-            evaluation_compute_envelope_id="policy-cpu-one-thread-one-pass",
-        )
         checkpoints = {
             run.id: [s for s in run.stages if "raw" in s.artifacts] for run in runs
         }
@@ -149,7 +139,12 @@ def run_study(study, out):
             role="anchor",
             runner_kind="code",
             player_spec={"kind": "random"},
-            source_sha256=identity["engine_source_sha256"],
+            source_sha256=canonical_sha256(
+                {
+                    "engine": identity["engine_source_sha256"],
+                    "manabot": identity["training_source_sha256"],
+                }
+            ),
             compute_class_id="random-cpu",
             information_boundary="acting-viewer",
             world=runs[0].regime.world,
@@ -158,6 +153,17 @@ def run_study(study, out):
             action_abi_sha256=identity["action_abi_sha256"],
             matchup_sha256=identity["matchup_sha256"],
             player_seed_derivation_id="arena-pair-deal-player-v1",
+        )
+
+        key = ArenaKey(
+            world=runs[0].regime.world,
+            content_suite=SELECTED_SUITE,
+            viewer_boundary="acting-viewer",
+            arena_version="training-regime-smoke-v1",
+            rating_model_version="unrated",
+            rating_prior_sha256=canonical_sha256({}),
+            anchor_cohort_sha256=canonical_sha256([anchor.model_dump(mode="json")]),
+            evaluation_compute_envelope_id="policy-cpu-one-thread-one-pass",
         )
 
         def compare(a_run, a_stage, b_run, b_stage, cutoff):

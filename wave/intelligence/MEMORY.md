@@ -292,4 +292,28 @@ versus 39% uniform) and each run took about 56 optimizer steps. Which of those
 limits learning is untested. Treat these checkpoints as pipeline proof only.
 Details and unreviewed decisions are in the
 [2026-09-29 record](../../docs/evidence/corrected-world-training-2026-09-29.md).
-WORLDS.md has not registered w3; that stays with ETU-75.
+That record predates the current w4 declaration; do not reuse its artifacts as
+current-world evidence. ETU-75 owns the ordinary semantic checkpoint contract.
+
+
+## Training-study evidence boundaries (2026-10-04)
+
+Jack Heart split training work into ETU-89 (regime/run infrastructure), ETU-90
+(RL correctness/treatments), and ETU-91 (studies and analysis), then requested
+three dedicated workers. The study recipes and proposed scientific allocations
+are in [the comparison protocol](../../experiments/training-regimes.md) and
+[the ablation protocol](../../experiments/ataraxos-mtg-ablations.md). Expensive
+runs remain unfunded; bounded smoke execution does not freeze their constants.
+
+A fixed number of updates or checkpoints is not equal training cost. Compare
+fixed-anchor scores only over overlapping observed cost ranges, with the last
+checkpoint available at each cutoff. Search label generation must remain on
+the cost axis; never credit a later student during earlier data collection.
+No overlap means the equal-cost comparison is unavailable. One seed and one
+four-leg deal block provide workflow evidence, not method-level uncertainty.
+
+ETU-91's inherited-ABI smoke and report regeneration are preliminary. Final
+study acceptance still requires the integrated ETU-89/ETU-90 implementation
+and ETU-75 semantic checkpoint admission. Study arena evidence does not satisfy
+ETU-82's demo-run contract, ETU-85's improvement comparison, S1–S5 competence,
+or the chapter's human-challenger outcome.

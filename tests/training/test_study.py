@@ -95,6 +95,7 @@ def test_offline_reporting_rejects_changed_recipe(tmp_path):
 
 
 def test_report_regeneration_preserves_metrics_without_training(tmp_path):
+    pytest.importorskip("nbclient")
     from manabot.training.analysis import report
 
     study = dict(
