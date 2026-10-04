@@ -13,7 +13,7 @@ Design notes, kept simple and honest:
 - ``SeatRoutedCollector`` drives K env streams at the micro-step level.
   Stream ``s`` seats the learner at ``s % 2`` for its whole life, so the
   collected data is seat-balanced by construction. Each micro-step routes
-  learner rows through the learner's ``get_action_and_value`` (one batched
+  learner rows through the learner's policy/value forward (one batched
   forward) and opponent rows through the opponent controller.
 - Only the learner's transitions enter the PPO buffers. A learner
   transition's reward is terminal-only and computed from ``winner_index``:
@@ -22,8 +22,8 @@ Design notes, kept simple and honest:
 - Streams pause at the exact next learner observation once their quota is
   complete. No sampled action or excess transition crosses an update boundary.
 - ``NetOpponentTrainer`` reuses the stock ``Trainer`` PPO update machinery
-  (GAE, flatten, minibatch, optimize, save) and replaces only rollout
-  collection.
+  (flatten, minibatch, optimize, save), with transition-end GAE for this
+  collector's boundary convention.
 """
 
 from __future__ import annotations
@@ -146,8 +146,8 @@ class SeatRoutedCollector:
             raise ValueError("opponent_mode='frozen' requires opponent_agent")
 
         self.observation_space = observation_space
-        self.reward = reward
         self.match = match
+        self.reward = reward
         self.num_envs = num_envs
         self.opponent_mode = opponent_mode
         self.device = torch.device(device)
@@ -161,7 +161,6 @@ class SeatRoutedCollector:
         )
         self._buffers = _allocate_buffers(observation_space, num_envs)
         self._env.set_buffers(self._buffers)
-        self.match = match
         self._env.reset_all_into_buffers(match.to_rust())
 
         #: Learner seat per stream: stream s seats the learner at s % 2, so
@@ -271,8 +270,6 @@ class SeatRoutedCollector:
                 # One copied slice per key; per-row dicts view into it.
                 obs_rows = {key: buffers[key][learner_rows].copy() for key in OBS_KEYS}
                 for j, row in enumerate(learner_rows):
-                    if self._pending[row] is not None:
-                        self._finalize(int(row), reward=0.0, done=False)
                     self._pending[row] = _Pending(
                         obs={key: obs_rows[key][j] for key in OBS_KEYS},
                         action=int(acts[j]),
@@ -423,7 +420,7 @@ class _CollectorEnvShim:
 class NetOpponentTrainer(Trainer):
     """PPO trainer whose rollouts come from a SeatRoutedCollector.
 
-    Reuses the stock Trainer's GAE, flatten, minibatch plan, optimize step,
+    Reuses the stock Trainer's flatten, minibatch plan, optimize step,
     periodic eval (vs the scripted ``hypers.opponent_policy``, so learning
     curves stay comparable across arms) and checkpointing.
     """
@@ -435,7 +432,9 @@ class NetOpponentTrainer(Trainer):
         collector: SeatRoutedCollector,
         hypers=None,
     ):
-        shim = _CollectorEnvShim(collector.observation_space, collector.reward, collector.match)
+        shim = _CollectorEnvShim(
+            collector.observation_space, collector.reward, collector.match
+        )
         super().__init__(agent, experiment, shim, hypers)  # type: ignore[arg-type]
         self.collector = collector
 
