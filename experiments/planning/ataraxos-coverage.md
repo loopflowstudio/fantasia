@@ -52,6 +52,11 @@ from the student. The main RL arm is frozen independently of screen results.
   and raw/EMA evaluation without double-counting training seeds. Its 48-game
   replayed workflow and focused checks prove execution, not treatment benefit.
   Independent full-episode terminal-return residual analysis remains open.
+- [PR #211](https://github.com/loopflowstudio/etude/pull/211) adds frozen-policy
+  local rollout updates, retained regularized targets and repeated distillation
+  stages. The bounded proof used a tractable two-name pool; selected-matchup
+  strength, learned-sampler consumption and full-game exact histories are not
+  established. Its advice projection is not a registered live advice provider.
 
 These are delivery receipts, not Task completion claims. ETU-95 owns the
 remaining post-training search integration.
