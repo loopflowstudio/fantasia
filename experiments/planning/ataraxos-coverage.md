@@ -13,19 +13,50 @@ stages and TrainingRun records. [ETU-90](https://linear.app/loopflow/issue/ETU-9
 owns collector correctness and the implemented PPO-based controls.
 [ETU-91](https://linear.app/loopflow/issue/ETU-91) owns planned runs plus an
 EvaluationProtocol, notebooks, reports and the active scientific comparisons.
-These are distinct from a paper-faithful damped-gradient implementation.
+The active campaign retains its original PPO-control recipes. Later implementations
+do not retroactively change that cohort or turn its results into a test of the
+complete paper method.
 
 The current screen compares control, separate value estimators, filtering,
 coordinated decay and their combination. It is not the complete method inventory.
 The current teacher is fixed uniform-prior determinized PUCT; it does not improve
 from the student. The main RL arm is frozen independently of screen results.
 
+## Landed mechanisms and evidence
+
+- [PR #206](https://github.com/loopflowstudio/etude/pull/206) adds the source-verified
+  Ataraxos move recipe: categorical outcomes, inclusive filtering, iteration
+  schedules and evaluation EMA. The paper itself uses clipped per-action ratios
+  and two reverse-KL terms; clipping is not evidence of a different algorithm.
+  MTG adaptations and unresolved source details are explicit in `docs/ataraxos.md`.
+  Gradient/runtime checks and raw/EMA-to-belief integration passed; matched-cost
+  scientific strength remains unmeasured.
+- [PR #205](https://github.com/loopflowstudio/etude/pull/205) adds frozen-policy
+  collection and constrained belief fitting. A bounded three-game pilot proves
+  execution, not calibration under foreign policies or wider card pools.
+- [PR #208](https://github.com/loopflowstudio/etude/pull/208) adds compound attacker
+  declarations and supported targeted casts, four credit-assignment treatments,
+  and a 56-game replayed workflow. Blockers, payments and intervening information
+  remain separate; this does not establish faster learning.
+- [PR #207](https://github.com/loopflowstudio/etude/pull/207) adds bounded single-stage
+  CPU recovery, including abrupt process death and Ataraxos state equivalence.
+  Full-loop hardware calibration and multi-stage recovery remain open.
+- [PR #209](https://github.com/loopflowstudio/etude/pull/209) is published, pending CI
+  and merge as of this snapshot. Its attack runner passed a 24-game replayed
+  workflow and a real-PPO toy positive control. It has not attacked the main
+  scientific policies. Historical S1–S5 contrasts resolve, but their custom decks
+  are explicitly unsupported for selected-match checkpoint scoring.
+
+These are delivery receipts, not Task completion claims. ETU-93 and ETU-95 are
+implementing the remaining controls and post-training search respectively.
+Linear remains authoritative for their live execution state.
+
 ## Coverage
 
 | Lesson or open question | Explicit owner | Current boundary |
 | --- | --- | --- |
-| Paper's actual damped policy gradient; on-policy assumptions versus PPO ratios and clipping | [ETU-92](https://linear.app/loopflow/issue/ETU-92) | New selectable algorithm, equation-level paper/supplement audit and analytic gradient checks required |
-| Exact paper schedules, estimators and categorical win/loss/draw critic | ETU-92 | Verify final supplement; distinguish scalar MTG adaptations |
+| Paper's damped move gradient, per-action ratios and on-policy assumptions | [ETU-92](https://linear.app/loopflow/issue/ETU-92) | Landed move recipe and equation/gradient checks; scientific comparison remains open |
+| Exact paper schedules, estimators and categorical win/loss/draw critic | ETU-92 | Final supplement audited; categorical and scalar recipes landed with explicit MTG adaptations |
 | Gamma, policy trace and value trace address different horizons | [ETU-93](https://linear.app/loopflow/issue/ETU-93) | Gamma=1 and separate critic traces exist; higher policy trace is outside active screen |
 | Structured-uniform reference rather than mass proportional to offer count | ETU-93 | Implemented option; current scientific arms use offer-uniform |
 | Coordinated LR/reference decay, collection-policy KL, separate schedule effects | ETU-93 | Controls exist; screen does not isolate every coefficient or interaction |
@@ -33,7 +64,7 @@ from the student. The main RL arm is frozen independently of screen results.
 | Actor-only filtering versus filtering the critic too; critic-error and terminal-proximity selection bias | ETU-93 | Current implementation filters all losses; benefit is a hypothesis |
 | Raw versus averaged weights; averaging for evaluation versus actual behavior | ETU-93 | EMA export exists; active studies use raw weights and learner-driven collection |
 | Auxiliary predictions and value representation as learning accelerators | ETU-92 / ETU-93 | Explicit architecture hypotheses; do not silently bundle with gradient changes |
-| Compound attacks/blocks/targets/payments and joint log probability | [ETU-94](https://linear.app/loopflow/issue/ETU-94) | Trainable joint action and credit boundaries still required |
+| Compound attacks/blocks/targets/payments and joint log probability | [ETU-94](https://linear.app/loopflow/issue/ETU-94) | Attacker declarations and supported targeted casts landed; blockers/payments remain separate |
 | Forced/optionless steps and honest underlying-decision accounting | ETU-94 | Audit existing auto-resolution; collapsing prompts is not a strength result |
 | Setup-style outcome-only versus bootstrapped compound-decision credit | ETU-94 | Transfer hypothesis, not assumed equivalent to Stratego setup |
 | Freeze a strong policy before belief-conditioned search; consistent beliefs, rollouts and value | [ETU-95](https://linear.app/loopflow/issue/ETU-95) | Compare policy-only, uniform and same-policy exact beliefs at equal decision time |
@@ -41,7 +72,7 @@ from the student. The main RL arm is frozen independently of screen results.
 | Hard targets, visits and regularized soft targets; mixed strategy and bluffing | ETU-95 | Measure behavior and strength; soft targets do not guarantee sound mixing |
 | Improving search teacher versus the current fixed teacher | ETU-95 | Test compounding only after a useful policy/value model exists |
 | Selective search effort, replay/cumulative reuse and relabeling economics | ETU-95 | KataGo-inspired hypotheses; charge all searches and retain target versions |
-| Frozen-policy self-play with hidden truth as labels; belief model trained afterward | [ETU-96](https://linear.app/loopflow/issue/ETU-96) | Explicit policy→dataset→belief artifacts and stages required |
+| Frozen-policy self-play with hidden truth as labels; belief model trained afterward | [ETU-96](https://linear.app/loopflow/issue/ETU-96) | Policy→dataset→belief stages landed; broad calibration and search comparisons remain open |
 | Constrained autoregressive joint beliefs versus exact enumeration | ETU-96 | Measure legality, calibration, joint likelihood, latency and search strength |
 | Foreign-policy histories, opponent adaptation and belief-training dropout | ETU-96 | Self-play calibration is not immunity to baiting or distribution shift |
 | Stronger exploiters, historical opponents and weak control play | [ETU-97](https://linear.app/loopflow/issue/ETU-97) | Independent attack seeds and increasing budgets; failed attack is not a certificate |
