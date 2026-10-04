@@ -73,6 +73,11 @@ source-bound aggregate verifier rebuilt the extension and passed its 57
 focused checks before scoring. This does not resolve the historical gate
 blockers or supply the missing human Command tapes.
 
+Subsequent compression shares the admitted-policy setup check between live
+play and search and removes redundant setup hashing. The retained v3 source
+binding predates that edit; gate must register and score a new cohort after
+the source settles. Existing receipts remain unchanged.
+
 ## Accepted setup and interaction
 
 The September reviewer (name not retained in the source) chose formal

@@ -60,8 +60,18 @@ No rendering environment is available in this run; unavailable visual judgment
 remains explicit. No expensive training, strength/runtime-budget claim,
 unrelated content, generic authority rewrite, or Task-worker plumbing repair.
 
-Delete the ordinary loader's shape-only acceptance and outside-row meaning
-omission; retain one model/encoder path and existing replay authority. Complete
+## Delete — do not maintain
+
+The ordinary loader's shape-only acceptance and outside-row meaning omission
+are removed. Live play now reuses `validate_agent_setup` after ordinary loader
+admission, eliminating its second full world reconstruction. Compare admitted
+setup dictionaries directly; keep canonical hashing at the checkpoint boundary
+and for stable seat ordering. Four duplicate `_checkpoint_configs` test helpers
+are replaced by the shared `interactive_player_configs` fixture. The program
+encoder drops an unused hash attribute; checkpoint binding remains authoritative.
+The cohort verifier shares one Command cap across registration, execution and
+verification, and derives its total from registered attempts. No remaining
+deletion target is planned; retain one model/encoder path and replay authority. Complete
 semantic programs may not be prefix-truncated, public knowledge may not reveal
 physical copies, and missing evidence may not become a successful receipt.
 
@@ -84,3 +94,9 @@ merged without changing w4. Frozen advice evidence is a required
 gate blocker under `.lf/steps/gate.md`; do not regenerate it for this change.
 
 Sync check: merged main w4; debug cleanup (2) and Learn (12) tests pass; rebuilt cp312 extension and checkpoint/demo checks pass (12). Broader gate remains separate.
+
+Compression changes the registered source closure: v3 remains evidence for
+`dc0f04b8`, not this source. Gate owns a new prospective 16-case registration
+and scoring after source edits settle; never update retained v1–v3 receipts.
+
+Compression check: prior world/simulation checks remain applicable (47 passed, final value-fixture rerun 13 passed); `uv run --extra dev --extra play pytest tests/model/test_semantic_cards.py tests/etude/test_learn_evidence.py -q` — 9 passed after the final reductions. Aggregate re-registration remains with gate.

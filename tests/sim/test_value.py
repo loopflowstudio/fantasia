@@ -7,6 +7,7 @@ validity.
 """
 
 import numpy as np
+import pytest
 import torch
 
 from manabot.env import Env, Match, ObservationSpace, Reward
@@ -25,18 +26,6 @@ from manabot.sim.value import (
     train_value,
 )
 from manabot.verify.util import INTERACTIVE_DECK
-
-
-def _checkpoint_configs():
-    from manabot.env import Match
-    from manabot.infra.hypers import MatchHypers
-    from manabot.verify.util import INTERACTIVE_DECK
-
-    return Match(
-        MatchHypers(
-            hero_deck=dict(INTERACTIVE_DECK), villain_deck=dict(INTERACTIVE_DECK)
-        )
-    ).to_rust()
 
 
 def make_env(seed: int = 3) -> tuple[Env, dict]:
@@ -140,12 +129,12 @@ class TestTrainValue:
             same = torch.equal(param.detach().cpu(), init_state[name])
             assert same != name.startswith("value_head"), name
 
-    def test_checkpoint_roundtrip(self, tmp_path):
+    def test_checkpoint_roundtrip(self, tmp_path, interactive_player_configs):
         dataset = tiny_dataset()
         agent, obs_space, _ = train_value(dataset, epochs=1, batch_size=32)
         path = tmp_path / "value.pt"
         save_value_checkpoint(
-            agent, obs_space, path, player_configs=_checkpoint_configs()
+            agent, obs_space, path, player_configs=interactive_player_configs
         )
         loaded, _ = load_checkpoint_agent(str(path))
         for (name, a), (_, b) in zip(
@@ -193,19 +182,23 @@ class TestPoolPerspective:
 
 
 class TestPlayers:
-    def _value_checkpoint(self, tmp_path) -> str:
+    @pytest.fixture
+    def value_checkpoint(self, tmp_path, interactive_player_configs) -> str:
         obs_space = ObservationSpace()
         agent = Agent(obs_space, AgentHypers())
         path = tmp_path / "value.pt"
         save_value_checkpoint(
-            agent, obs_space, path, player_configs=_checkpoint_configs()
+            agent, obs_space, path, player_configs=interactive_player_configs
         )
         return str(path)
 
-    def test_vgreedy_plays_valid_actions(self, tmp_path):
+    def test_vgreedy_plays_valid_actions(self, value_checkpoint):
         env, obs = make_env(seed=7)
         player, _ = make_player(
-            {"kind": "value_greedy", "checkpoint": self._value_checkpoint(tmp_path)},
+            {
+                "kind": "value_greedy",
+                "checkpoint": value_checkpoint,
+            },
             seed=1,
         )
         assert isinstance(player, VGreedyPlayer)
@@ -219,14 +212,14 @@ class TestPlayers:
                 break
         assert player.stats.decisions > 0
 
-    def test_value_search_scores_stay_in_range(self, tmp_path):
+    def test_value_search_scores_stay_in_range(self, value_checkpoint):
         env, obs = make_env(seed=9)
         player, _ = make_player(
             {
                 "kind": "value_search",
                 "sims": 8,
                 "depth": 2,
-                "checkpoint": self._value_checkpoint(tmp_path),
+                "checkpoint": value_checkpoint,
             },
             seed=2,
         )
