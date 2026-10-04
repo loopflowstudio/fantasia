@@ -1,0 +1,738 @@
+{
+  "allocation_seconds": 475200.0,
+  "calibration_evidence": "/Users/jack/src/etude.agent-9039d61b/.runs/ataraxos-20261004/learning-calibration-1; study SHA256 62e0781f0f17b4befef975420373b742abe52300fab9536fb11ef48c9fc83fa2; projected evaluation including 25% margin and report allowance 83475.3s; count extrapolation, not a guaranteed runtime; measured storage bytes {'shards': 455516, 'checkpoints': 7060968, 'training_records': 258249, 'arena_report': 2330683}; projected bytes with 25% margin 1103052935; Companion ablation allowance amended to 23h; prior reservation is 4h calibration +23h screen; 132h main +9h recovery keeps campaign within168h. Campaign reservation amended for retained failed ablation attempt and 30.5-hour recovery study; learning recipes and evaluation unchanged. Prior-campaign accounting includes the interrupted recovery cohort charged conservatively through next boot; learning recipes and protocol unchanged.",
+  "disk_reserve_bytes": 4294967296,
+  "prior_campaign_seconds": 121448.25846281965,
+  "projected_disk_bytes": 1103052935,
+  "protocol": {
+    "anchor_deals": [
+      1300000,
+      1300001,
+      1300002,
+      1300003,
+      1300004,
+      1300005,
+      1300006,
+      1300007,
+      1300008,
+      1300009,
+      1300010,
+      1300011
+    ],
+    "anchors": [
+      "random",
+      "scripted-greedy",
+      "puct-64"
+    ],
+    "checkpoint_count": 4,
+    "cost_cutoffs_seconds": [
+      13363.348444014942,
+      23074.693973142057,
+      32786.039502269174,
+      42497.38503139629
+    ],
+    "endpoint_anchor_deals": [
+      1700000,
+      1700001,
+      1700002,
+      1700003,
+      1700004,
+      1700005,
+      1700006,
+      1700007,
+      1700008,
+      1700009,
+      1700010,
+      1700011,
+      1700012,
+      1700013,
+      1700014,
+      1700015,
+      1700016,
+      1700017,
+      1700018,
+      1700019,
+      1700020,
+      1700021,
+      1700022,
+      1700023
+    ],
+    "endpoint_paired_deals": [
+      1600000,
+      1600001,
+      1600002,
+      1600003,
+      1600004,
+      1600005,
+      1600006,
+      1600007,
+      1600008,
+      1600009,
+      1600010,
+      1600011,
+      1600012,
+      1600013,
+      1600014,
+      1600015,
+      1600016,
+      1600017,
+      1600018,
+      1600019,
+      1600020,
+      1600021,
+      1600022,
+      1600023,
+      1600024,
+      1600025,
+      1600026,
+      1600027,
+      1600028,
+      1600029,
+      1600030,
+      1600031,
+      1600032,
+      1600033,
+      1600034,
+      1600035,
+      1600036,
+      1600037,
+      1600038,
+      1600039,
+      1600040,
+      1600041,
+      1600042,
+      1600043,
+      1600044,
+      1600045,
+      1600046,
+      1600047,
+      1600048,
+      1600049,
+      1600050,
+      1600051,
+      1600052,
+      1600053,
+      1600054,
+      1600055,
+      1600056,
+      1600057,
+      1600058,
+      1600059,
+      1600060,
+      1600061,
+      1600062,
+      1600063,
+      1600064,
+      1600065,
+      1600066,
+      1600067,
+      1600068,
+      1600069,
+      1600070,
+      1600071,
+      1600072,
+      1600073,
+      1600074,
+      1600075,
+      1600076,
+      1600077,
+      1600078,
+      1600079,
+      1600080,
+      1600081,
+      1600082,
+      1600083,
+      1600084,
+      1600085,
+      1600086,
+      1600087,
+      1600088,
+      1600089,
+      1600090,
+      1600091,
+      1600092,
+      1600093,
+      1600094,
+      1600095
+    ],
+    "endpoint_seed_pairs": [
+      [
+        5601,
+        5601
+      ],
+      [
+        5601,
+        6601
+      ],
+      [
+        5601,
+        7601
+      ],
+      [
+        6601,
+        5601
+      ],
+      [
+        6601,
+        6601
+      ],
+      [
+        6601,
+        7601
+      ],
+      [
+        7601,
+        5601
+      ],
+      [
+        7601,
+        6601
+      ],
+      [
+        7601,
+        7601
+      ]
+    ],
+    "game_seconds": 120.0,
+    "incomplete": "fail-retain-all-attempts",
+    "inference": "stochastic-policy-cpu-one-thread",
+    "max_commands": 10000,
+    "paired_deals": [
+      1200000,
+      1200001,
+      1200002,
+      1200003,
+      1200004,
+      1200005,
+      1200006,
+      1200007,
+      1200008,
+      1200009,
+      1200010,
+      1200011
+    ],
+    "process_seconds": 475200.0,
+    "purpose": "scientific",
+    "regime_digests": [
+      "f240152e81e77ffe17568ecd3438dc4fb1e451dc56b6b66429ed2c31b9c08e42",
+      "8da1f9f8b4ee1cee8a620e49c1d773f774eb136766df8ece876aafbf9bc3317d"
+    ],
+    "schema_version": 2,
+    "seat_deck_legs": 4,
+    "selection": "all-completed-cutoffs-raw",
+    "study": "learning-speed",
+    "training_seeds": [
+      5601,
+      6601,
+      7601
+    ],
+    "uncertainty": "paired-seed-descriptive"
+  },
+  "recipes": [
+    {
+      "agent": {
+        "attention_on": true,
+        "belief_card_vocab_size": 0,
+        "belief_count_buckets": 0,
+        "belief_hidden_zone_vocab_size": 7,
+        "belief_owner_role_vocab_size": 2,
+        "hidden_dim": 64,
+        "num_attention_heads": 4,
+        "semantic_pack": "ur-lessons-vs-gw-allies"
+      },
+      "id": "search-distillation",
+      "match": {
+        "hero": "arena-seat-0",
+        "hero_deck": {
+          "Accumulate Wisdom": 2,
+          "Divide by Zero": 2,
+          "Dragonfly Swarm": 1,
+          "Fire Nation Cadets": 2,
+          "Firebending Lesson": 4,
+          "First-Time Flyer": 2,
+          "Forecasting Fortune Teller": 1,
+          "Igneous Inspiration": 2,
+          "Island": 9,
+          "It'll Quench Ya!": 2,
+          "Mountain": 8,
+          "Otter-Penguin": 2,
+          "Pop Quiz": 2,
+          "Tiger-Seal": 2
+        },
+        "hero_sideboard": {
+          "Accumulate Wisdom": 1,
+          "Firebending Lesson": 1,
+          "It'll Quench Ya!": 1
+        },
+        "villain": "arena-seat-1",
+        "villain_deck": {
+          "Allies at Last": 2,
+          "Badgermole Cub": 2,
+          "Compassionate Healer": 2,
+          "Earth King's Lieutenant": 2,
+          "Earth Kingdom Jailer": 2,
+          "Fancy Footwork": 2,
+          "Forest": 8,
+          "Invasion Reinforcements": 2,
+          "Kyoshi Warriors": 2,
+          "Plains": 9,
+          "South Pole Voyager": 1,
+          "Suki, Kyoshi Warrior": 1,
+          "Water Tribe Rallier": 2,
+          "White Lotus Reinforcements": 2,
+          "Yip Yip!": 1
+        },
+        "villain_sideboard": {
+          "Fancy Footwork": 1,
+          "Yip Yip!": 1
+        }
+      },
+      "observation": {
+        "max_actions": 64,
+        "max_cards_per_player": 60,
+        "max_events": 32,
+        "max_focus_objects": 2,
+        "max_permanents_per_player": 40
+      },
+      "schedule_clock": "run_elapsed_budget",
+      "schema_version": 1,
+      "selection": "last-complete-raw",
+      "stages": [
+        {
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 15695.388407548311,
+            "workers": 1
+          },
+          "games": 161,
+          "id": "collect-0",
+          "max_steps": 2000,
+          "operation": "collect_search",
+          "policy": "uniform-prior-determinized-puct",
+          "simulations": 64,
+          "target": "visit_distribution",
+          "worlds": 4
+        },
+        {
+          "batch_size": 128,
+          "datasets": [
+            "collect-0"
+          ],
+          "epochs": 2,
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 504.6115924516889,
+            "workers": 1
+          },
+          "id": "policy-0",
+          "initial": null,
+          "learning_rate": 0.001,
+          "operation": "train_supervised",
+          "optimizer": "adam",
+          "target": "visit_distribution",
+          "trainable": "policy",
+          "trainer": "search_supervised"
+        },
+        {
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 15695.388407548311,
+            "workers": 1
+          },
+          "games": 161,
+          "id": "collect-1",
+          "max_steps": 2000,
+          "operation": "collect_search",
+          "policy": "uniform-prior-determinized-puct",
+          "simulations": 64,
+          "target": "visit_distribution",
+          "worlds": 4
+        },
+        {
+          "batch_size": 128,
+          "datasets": [
+            "collect-0",
+            "collect-1"
+          ],
+          "epochs": 2,
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 504.6115924516889,
+            "workers": 1
+          },
+          "id": "policy-1",
+          "initial": "policy-0",
+          "learning_rate": 0.001,
+          "operation": "train_supervised",
+          "optimizer": "adam",
+          "target": "visit_distribution",
+          "trainable": "policy",
+          "trainer": "search_supervised"
+        },
+        {
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 15695.388407548311,
+            "workers": 1
+          },
+          "games": 161,
+          "id": "collect-2",
+          "max_steps": 2000,
+          "operation": "collect_search",
+          "policy": "uniform-prior-determinized-puct",
+          "simulations": 64,
+          "target": "visit_distribution",
+          "worlds": 4
+        },
+        {
+          "batch_size": 128,
+          "datasets": [
+            "collect-0",
+            "collect-1",
+            "collect-2"
+          ],
+          "epochs": 2,
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 504.6115924516889,
+            "workers": 1
+          },
+          "id": "policy-2",
+          "initial": "policy-1",
+          "learning_rate": 0.001,
+          "operation": "train_supervised",
+          "optimizer": "adam",
+          "target": "visit_distribution",
+          "trainable": "policy",
+          "trainer": "search_supervised"
+        },
+        {
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 15695.388407548311,
+            "workers": 1
+          },
+          "games": 161,
+          "id": "collect-3",
+          "max_steps": 2000,
+          "operation": "collect_search",
+          "policy": "uniform-prior-determinized-puct",
+          "simulations": 64,
+          "target": "visit_distribution",
+          "worlds": 4
+        },
+        {
+          "batch_size": 128,
+          "datasets": [
+            "collect-0",
+            "collect-1",
+            "collect-2",
+            "collect-3"
+          ],
+          "epochs": 2,
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 504.6115924516889,
+            "workers": 1
+          },
+          "id": "policy-3",
+          "initial": "policy-2",
+          "learning_rate": 0.001,
+          "operation": "train_supervised",
+          "optimizer": "adam",
+          "target": "visit_distribution",
+          "trainable": "policy",
+          "trainer": "search_supervised"
+        }
+      ],
+      "wall_seconds": 64800.0,
+      "world": "w4"
+    },
+    {
+      "agent": {
+        "attention_on": true,
+        "belief_card_vocab_size": 0,
+        "belief_count_buckets": 0,
+        "belief_hidden_zone_vocab_size": 7,
+        "belief_owner_role_vocab_size": 2,
+        "hidden_dim": 64,
+        "num_attention_heads": 4,
+        "semantic_pack": "ur-lessons-vs-gw-allies"
+      },
+      "id": "direct-self-play",
+      "match": {
+        "hero": "arena-seat-0",
+        "hero_deck": {
+          "Accumulate Wisdom": 2,
+          "Divide by Zero": 2,
+          "Dragonfly Swarm": 1,
+          "Fire Nation Cadets": 2,
+          "Firebending Lesson": 4,
+          "First-Time Flyer": 2,
+          "Forecasting Fortune Teller": 1,
+          "Igneous Inspiration": 2,
+          "Island": 9,
+          "It'll Quench Ya!": 2,
+          "Mountain": 8,
+          "Otter-Penguin": 2,
+          "Pop Quiz": 2,
+          "Tiger-Seal": 2
+        },
+        "hero_sideboard": {
+          "Accumulate Wisdom": 1,
+          "Firebending Lesson": 1,
+          "It'll Quench Ya!": 1
+        },
+        "villain": "arena-seat-1",
+        "villain_deck": {
+          "Allies at Last": 2,
+          "Badgermole Cub": 2,
+          "Compassionate Healer": 2,
+          "Earth King's Lieutenant": 2,
+          "Earth Kingdom Jailer": 2,
+          "Fancy Footwork": 2,
+          "Forest": 8,
+          "Invasion Reinforcements": 2,
+          "Kyoshi Warriors": 2,
+          "Plains": 9,
+          "South Pole Voyager": 1,
+          "Suki, Kyoshi Warrior": 1,
+          "Water Tribe Rallier": 2,
+          "White Lotus Reinforcements": 2,
+          "Yip Yip!": 1
+        },
+        "villain_sideboard": {
+          "Fancy Footwork": 1,
+          "Yip Yip!": 1
+        }
+      },
+      "observation": {
+        "max_actions": 64,
+        "max_cards_per_player": 60,
+        "max_events": 32,
+        "max_focus_objects": 2,
+        "max_permanents_per_player": 40
+      },
+      "schedule_clock": "run_elapsed_budget",
+      "schema_version": 1,
+      "selection": "last-complete-raw",
+      "stages": [
+        {
+          "behavior": "current-self",
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 16200.0,
+            "workers": 1
+          },
+          "id": "policy-0",
+          "initial": null,
+          "learning": {
+            "clip": 0.1,
+            "collection_kl": 0.1,
+            "ema": null,
+            "epochs": 4,
+            "gamma": 1.0,
+            "learning_rate": {
+              "decay": 9.0,
+              "initial": 0.00025,
+              "power": 1.0
+            },
+            "max_grad_norm": 0.5,
+            "min_advantage": 0.0,
+            "minibatches": 4,
+            "policy_lambda": 0.95,
+            "reference": "uniform",
+            "retained_fraction": 0.5,
+            "tau": {
+              "decay": 9.0,
+              "initial": 0.01,
+              "power": 1.0
+            },
+            "value_lambda": 1.0,
+            "value_weight": 0.5
+          },
+          "operation": "train_self_play",
+          "optimizer": "adam",
+          "streams": 4,
+          "trainable": "policy_value",
+          "trainer": "net_opponent",
+          "transitions": 256,
+          "updates": 1789
+        },
+        {
+          "behavior": "current-self",
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 16200.0,
+            "workers": 1
+          },
+          "id": "policy-1",
+          "initial": "policy-0",
+          "learning": {
+            "clip": 0.1,
+            "collection_kl": 0.1,
+            "ema": null,
+            "epochs": 4,
+            "gamma": 1.0,
+            "learning_rate": {
+              "decay": 9.0,
+              "initial": 0.00025,
+              "power": 1.0
+            },
+            "max_grad_norm": 0.5,
+            "min_advantage": 0.0,
+            "minibatches": 4,
+            "policy_lambda": 0.95,
+            "reference": "uniform",
+            "retained_fraction": 0.5,
+            "tau": {
+              "decay": 9.0,
+              "initial": 0.01,
+              "power": 1.0
+            },
+            "value_lambda": 1.0,
+            "value_weight": 0.5
+          },
+          "operation": "train_self_play",
+          "optimizer": "adam",
+          "streams": 4,
+          "trainable": "policy_value",
+          "trainer": "net_opponent",
+          "transitions": 256,
+          "updates": 1789
+        },
+        {
+          "behavior": "current-self",
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 16200.0,
+            "workers": 1
+          },
+          "id": "policy-2",
+          "initial": "policy-1",
+          "learning": {
+            "clip": 0.1,
+            "collection_kl": 0.1,
+            "ema": null,
+            "epochs": 4,
+            "gamma": 1.0,
+            "learning_rate": {
+              "decay": 9.0,
+              "initial": 0.00025,
+              "power": 1.0
+            },
+            "max_grad_norm": 0.5,
+            "min_advantage": 0.0,
+            "minibatches": 4,
+            "policy_lambda": 0.95,
+            "reference": "uniform",
+            "retained_fraction": 0.5,
+            "tau": {
+              "decay": 9.0,
+              "initial": 0.01,
+              "power": 1.0
+            },
+            "value_lambda": 1.0,
+            "value_weight": 0.5
+          },
+          "operation": "train_self_play",
+          "optimizer": "adam",
+          "streams": 4,
+          "trainable": "policy_value",
+          "trainer": "net_opponent",
+          "transitions": 256,
+          "updates": 1789
+        },
+        {
+          "behavior": "current-self",
+          "execution": {
+            "device": "cpu",
+            "memory_bytes": 34359738368,
+            "precision": "float32",
+            "threads": 1,
+            "wall_seconds": 16200.0,
+            "workers": 1
+          },
+          "id": "policy-3",
+          "initial": "policy-2",
+          "learning": {
+            "clip": 0.1,
+            "collection_kl": 0.1,
+            "ema": null,
+            "epochs": 4,
+            "gamma": 1.0,
+            "learning_rate": {
+              "decay": 9.0,
+              "initial": 0.00025,
+              "power": 1.0
+            },
+            "max_grad_norm": 0.5,
+            "min_advantage": 0.0,
+            "minibatches": 4,
+            "policy_lambda": 0.95,
+            "reference": "uniform",
+            "retained_fraction": 0.5,
+            "tau": {
+              "decay": 9.0,
+              "initial": 0.01,
+              "power": 1.0
+            },
+            "value_lambda": 1.0,
+            "value_weight": 0.5
+          },
+          "operation": "train_self_play",
+          "optimizer": "adam",
+          "streams": 4,
+          "trainable": "policy_value",
+          "trainer": "net_opponent",
+          "transitions": 256,
+          "updates": 1789
+        }
+      ],
+      "wall_seconds": 64800.0,
+      "world": "w4"
+    }
+  ],
+  "runtime_identities": {
+    "action_abi_sha256": "388cad683f617fae7c39bd515be1f28c2966c7414b47877559093ab2e7eacddf",
+    "content_manifest_sha256": "6c62803124bde313acdceb673e19129614c539424aeacea96cbb044a5e609c32",
+    "engine_extension_sha256": "af900a66cab1f65d7116f74a38b58740b6eaba7e745d52caf51907171eec4e3f",
+    "engine_source_sha256": "b10ebd5ceef859e6798c4d72d2d8fd51ff0fba480f72eecce01075ced75ad5a6",
+    "matchup_sha256": "5b46db09a613880980ac8fbd5d0942fe24d5465ff0789984cc75709adf7be343",
+    "observation_abi_sha256": "b28c5dd6144d2b847fce54de773ffb08f514f8142498905b67f3833ff0e40d47",
+    "training_source_sha256": "f9461ae5a09f026e8891daac616f1f60854cc24b2c0b4f6a5e0c6a0a238703d1"
+  }
+}
