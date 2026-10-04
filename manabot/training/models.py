@@ -112,7 +112,8 @@ class TrainingRegime(Strict):
 
     @model_validator(mode="after")
     def references(self):
-        previous = {}
+        previous: dict[str, Stage] = {}
+        latest_self_play = None
         for stage in self.stages:
             if stage.id in previous:
                 raise ValueError("stage IDs must be unique")
@@ -120,24 +121,21 @@ class TrainingRegime(Strict):
                 if len(stage.datasets) != len(set(stage.datasets)):
                     raise ValueError("dataset references must be unique")
                 for ref in stage.datasets:
-                    if previous.get(ref) != "collect_search":
+                    if not isinstance(previous.get(ref), CollectSearch):
                         raise ValueError(
                             f"dataset {ref} must refer to an earlier collection"
                         )
             initial = getattr(stage, "initial", None)
-            if initial and previous.get(initial) != stage.operation:
+            parent = previous.get(initial)
+            if initial and type(parent) is not type(stage):
                 raise ValueError(
                     "continuation requires an earlier stage of the same operation"
                 )
             if isinstance(stage, TrainSelfPlay) and initial:
-                latest = [
-                    key for key, kind in previous.items() if kind == "train_self_play"
-                ][-1]
-                if initial != latest:
+                if parent is not latest_self_play:
                     raise ValueError(
                         "live self-play continuation cannot branch from an older collector"
                     )
-                parent = next(item for item in self.stages if item.id == initial)
                 if (
                     parent.streams != stage.streams
                     or parent.learning.ema != stage.learning.ema
@@ -145,7 +143,9 @@ class TrainingRegime(Strict):
                     raise ValueError(
                         "live self-play continuation must preserve streams and EMA clock"
                     )
-            previous[stage.id] = stage.operation
+            previous[stage.id] = stage
+            if isinstance(stage, TrainSelfPlay):
+                latest_self_play = stage
         return self
 
 
@@ -153,6 +153,7 @@ class StageRecord(Strict):
     id: str
     status: Literal["running", "completed", "failed", "interrupted"] = "running"
     seconds: float = 0
+    cumulative_seconds: float | None = Field(default=None, ge=0)
     collection_seconds: float = 0
     learning_seconds: float = 0
     export_seconds: float = 0

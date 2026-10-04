@@ -44,12 +44,19 @@ named evaluation output with its iteration clock, never a hidden behavior swap.
 `VerifyStore` is the canonical SQLite owner for runs and stages. `run.json` is
 an export of committed state. Files are atomically published before their
 SHA-256 identities enter stage records. Each checkpoint uses the ordinary
-writer and reload path; the ETU-75 world/setup contract owns compatibility.
+writer and reload path. ETU-75 owns the shared world/setup compatibility
+contract; its integration is still pending in this branch. Existing smoke
+reloads do not certify that forthcoming input schema.
 A failed or interrupted stage retains its error, elapsed cost and previously
 published artifacts. The final selection rule is the last complete raw output,
 not the best seed or best observed evaluation score.
 
 Collection, optimization and export time are separate from evaluation time.
+Completed stages freeze `cumulative_seconds` from run start after artifact
+admission and before persisting completion. This includes setup and all prior
+persistence overhead. Use this observed cost for checkpoint cutoffs; later
+overhead never changes an earlier checkpoint's cost. Stages without completed
+artifact admission and older records retain `null`, not an estimated cost.
 Records distinguish complete games, environment decisions, learner transitions,
 and optimizer exposures. Runtime/source/content/tensor identities and hardware
 are saved at creation. The reproducibility contract is resolved settings and

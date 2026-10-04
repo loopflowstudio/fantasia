@@ -2,35 +2,25 @@
 
 2026-10-04. Implementation-plan draft from Jack Heart's direction; the domain
 names and experimental intent are accepted, the numerical protocol below is
-proposed. No training launch or strength result is implied. Selected ownership
+proposed. Bounded implementation smokes have run; no expensive launch or
+strength result is implied. Selected ownership
 is Intelligence, matching its current reproducible-training and full-game
 comparison outcomes. This checkout is bound to ETU-89.
 
-## Execution decision
+## Accepted delivery boundary (2026-10-04)
 
-Jack Heart requested autonomous execution across Game, Intelligence and Rules
-on 2026-10-04, with kickoff -> implement -> compress and no interactive
-Sessions or human-review steps. The authored `auto-code` Flow runs kickoff
-then `code` (implement -> compress). Publication and landing were subsequently authorized in
-`scratch/autonomous-execution.md`; paid compute and expensive training remain
-outside this implementation.
+Jack Heart split the implementation into ETU-89 infrastructure, ETU-90 RL
+correctness/treatments, and ETU-91 study/arena/report delivery, then assigned
+three dedicated workers. The integrated scientific design below remains the
+shared intent; acceptance is separate for each Task. File/API ownership and
+preserved evidence are in `worker-handoff.md`.
 
-ETU-89 owns this training-regime implementation. Its prepared checkout is
-`/Users/jack/src/etude.compare-training-regimes-through-reproducible`.
-This staged file is the working design in that checkout. Keep the core single-threaded: corrected collection,
-TrainingRegime/TrainingRun execution, both recipes, selectable Ataraxos
-treatments, arena checkpoints and executed notebooks/reports for both studies.
-Continue the supplied design without treating proposed budgets as approved.
-
-Defer separate implementation Tasks for compound combat, post-RL search,
-distilling search updates, amortized belief sampling and scaled exploiters.
-Their concrete protocols belong in this delivery; implementation depends on
-the core's measured policies and stable contracts. Existing historical
-training and deck-balance Tasks are not repurposed.
-
-Bounded headless checks can proceed. Expensive experiment budget choices
-remain in questions.md. Actual human-play evidence remains unmet wherever
-required; automated work cannot manufacture it.
+ETU-89 owns the regime/run models, executor, CLI, store, supervised continuation
+and ordinary artifact integration. ETU-90 owns collector and objective changes;
+ETU-91 owns recipes, protocols, runners, notebooks and study evidence. Existing
+child-owned code in the parent checkpoint is preserved. ETU-75 owns ordinary
+checkpoint compatibility. Publication and landing are authorized; paid compute
+and expensive experiments are not. Numerical scientific budgets remain draft.
 
 ## Outcome and demo
 
@@ -48,7 +38,7 @@ Accepted concepts:
   analysis notebooks and report. Initially a document and runner, not another
   general-purpose database entity or orchestration framework.
 
-Proposed demo commands, to be implemented:
+Implemented entry points (bounded pilot recipes; final-world acceptance pending):
 
 ```bash
 uv run manabot train --regime experiments/regimes/direct-self-play.json --seed 197 --out .runs/regime-demo
@@ -71,39 +61,22 @@ authored match to PUCT visit distillation and captures source/world identities.
 with four-leg paired blocks, bounded subprocesses and retained Commands. Older
 planning documents describing that arena binding as absent are stale.
 
-Concrete correctness findings:
+Implemented corrections and remaining limits:
 
-1. The self-play collector stores transition-end flags. The shared PPO GAE
-   function expects episode-start flags (`dones[t+1]`). A direct probe of the
-   existing function with rewards `[0,1,-1]`, zero values, gamma=lambda=1 and
-   end flags `[false,true,true]` returns `[0,1,-1]`; correct returns are
-   `[1,1,-1]`. Fix the boundary contract before comparison.
-2. The collector banks excess transitions but bootstraps from the latest
-   pending observation, which can be later than the first unconsumed row.
-   Fast streams can also accumulate stale samples across updates. Pause each
-   completed stream at its exact rollout boundary. Inspection of
-   `agent/vector_env.rs` and `python/vector_env_bindings.rs` confirms all rows
-   currently advance: add an optional active mask to the existing buffered
-   step API, with all-active behavior preserved for existing callers. Inactive
-   rows preserve state/observation and clear transient done/reward outputs.
-   Never silently bootstrap across banked rows. Recompute
-   boundary actions after updates; do not carry sampled actions into a new batch.
-3. Self-play sampling constructs a CPU generator regardless of inference
-   device. Use device-compatible sampling and test it; CPU is the initial
-   certified execution profile. MPS acceleration requires its own parity and
-   complete-loop throughput evidence before the experiment freeze.
-4. Checkpoints lack full collector/environment/RNG continuation. A checkpoint
-   is a model artifact, not an exact process-resume promise. Failed training
-   attempts remain failed; completed stages can be reused only by a new run
-   with explicit input references and inherited cost accounting.
-5. Belief learning exists over exact possible-world supports with frozen
-   behavior-population provenance. It is not an implemented Ataraxos-style
-   generative posterior/search pipeline. That integration is a subsequent
-   experimental build, not a renamed existing demo.
-
-Machine inspection: Apple M4 Max, 128 GiB, 16 CPU cores. There is no measured
-complete-loop throughput for these proposed recipes in this checkout. Hardware
-capacity is not a prediction of games, convergence, or week-long reliability.
+1. The original collector supplied transition-end flags to episode-start GAE,
+   losing terminal credit. `transition_gae` and paused native vector stepping
+   now implement the corrected boundary. No surplus row or sampled action
+   crosses an update boundary. ETU-90 owns final correctness acceptance.
+2. CPU float32 is the supported execution profile. MPS requires separate
+   parity and complete-loop timing evidence; historical throughput does not
+   certify these recipes.
+3. Same-run self-play continuation keeps the latest live collector and Adam.
+   Supervised continuation retains Adam and fixed whole-game membership as the
+   corpus grows. Checkpoints remain model artifacts, not process-resume files;
+   external resume and inherited-cost admission are unimplemented.
+4. The belief-learning demo is not a generative posterior/search pipeline.
+   Compound combat, post-RL search, distillation of local updates, belief
+   sampling and exploiters remain ETU-91 follow-up protocols.
 
 ## Data model and authority
 
@@ -157,59 +130,39 @@ It specifies LR `clip(.5 / iteration^1.1, 5e-6, 1e-4)` and magnet strength
 supplement settings or automatically suitable MTG constants. Preserve that
 version distinction in the method inventory.
 
-### Models and persisted records
+### Implemented models and persisted records
 
-Add strict, versioned Pydantic models under `manabot/training/`. Reuse existing
-architecture, observation and match models; do not copy their fields into a
-second hyperparameter hierarchy.
+`manabot/training/models.py` supplies strict version-1 models. One regime binds
+an Agent, observation space and authored match, ordered typed stages, a total
+wall budget and last-complete-raw selection. Stage IDs name earlier outputs;
+validation rejects forward/wrong-kind/duplicate dataset references, unsupported
+operations and branching from an older self-play collector. Named multiple
+models and external artifact inputs from the original broader schema are not
+implemented; the two initial recipes use one model and same-run references.
 
-`TrainingRegime` contains an ID, world/match/observation binding, named model
-specifications, ordered stages, total resource budget and checkpoint-output
-selection rule. A stage has an ID, typed operation, inputs referring only to
-earlier outputs or immutable external artifacts, target model and trainable
-parameters, learning/data configuration, execution profile, stop conditions
-and named outputs. Validate references and ABI compatibility before work starts.
+The three operations are `collect_search`, `train_supervised`, and
+`train_self_play`. Existing trainers own the work. The CLI rejects regime plus
+preset/override combinations and preserves ordinary presets. Execution is CPU,
+float32, one worker with declared thread/memory/wall limits. Self-play schedules
+use elapsed whole-run budget, including setup, collection, updates and exports;
+continuation does not reset the clock. Raw weights collect; EMA is an optional
+named evaluation artifact. Final EMA helper integration remains below.
 
-Initially implement three operations: `collect_search`, `train_supervised`,
-and `train_self_play`. Self-play includes online collection and optimization;
-it must not be decomposed into an offline corpus that silently changes the
-algorithm. Unsupported operations fail validation. Belief stages can be added
-when their real producer and consumer are implemented.
+`VerifyStore` owns run and stage records; `run.json` is derived from SQLite.
+Artifacts are published atomically and hashed, checked again at use, and normal
+checkpoint loading is required before admission. Failed/rejected artifacts,
+startup/export errors and deadline interruptions retain records. Source/native/
+content/tensor/hardware identities, named seeds, setup and phase wall times,
+CPU time, sampled process-tree RSS, games, decisions, learner transitions and
+optimizer exposures are recorded. Memory is sampled, not an exact peak or an
+OS-enforced hard ceiling.
 
-Learning configuration distinguishes objective, advantage estimator, value
-target estimator, regularization reference and coefficient schedule, update
-constraints, optimizer, and sample selection. Data configuration specifies
-behavior/opponents, chance seeds, replay/whole-game splits and information
-boundary. Stage-specific validation rejects irrelevant settings instead of
-ignoring them. Execution specifies device, worker/thread counts, precision,
-memory limit and wall-time budget separately from algorithm hyperparameters.
-Also distinguish `learner_weights`, `behavior_weights` and
-`evaluation_weights`. Averaged checkpoints are named outputs with averaging
-clock/rate and source checkpoint identities. Dataset artifacts name their
-generating behavior policy and target kind; search scores, visit targets and
-regularized policy-improvement targets are not interchangeable.
-
-`TrainingRun` contains run ID, regime digest and resolved recipe, seed streams,
-source/runtime/hardware identities, stage records, artifact references,
-actual resource use, and status (`pending`, `running`, `completed`, `failed`,
-`interrupted`). A stage records collection, learning and export time, games,
-environment decisions, learner transitions, optimizer exposures, and failures.
-Name those units; do not collapse them into an ambiguous step counter.
-
-Extend the existing `VerifyStore` SQLite owner with training-run/stage tables
-in one migration. Do not stuff multi-stage records into its old PPO-specific
-columns. Existing historical rows remain historical; new regime executions
-have one canonical writer. Run-directory JSON manifests are derived exports
-for portability, not a second writable status authority. Publish artifact
-files atomically before committing their digests and references. Arena traces
-and receipts retain their existing authority; the run only references them.
-`infra.Experiment` remains the existing logging/runtime helper, not this
-scientific experiment model.
-
-Core interfaces: `validate_regime(regime)`,
-`execute_regime(regime, seed, out, store) -> TrainingRun`, and
-`export_training_run(run_id)`. A small explicit dispatcher calls the existing
-trainers. No arbitrary Python plugin loader or generic workflow engine.
+Source games have run-local immutable indexes; indexes divisible by ten retain
+validation membership across collection rounds. Both whole-game partitions
+must be nonempty. Supervised stages retain independent Adam snapshots and use
+the newly declared LR. No fresh split or optimizer reset is hidden in a round.
+The shared interfaces are `validate_regime`, `execute_regime` and
+`export_training_run`; `infra.Experiment` remains the existing runtime helper.
 
 ## First experiment: proposed executable recipes
 
@@ -482,139 +435,71 @@ Training, validation, development and final deal families are disjoint.
 The strongest confound is recipe maturity: a negative result may reflect
 untuned self-play treatments, not a limit of direct RL.
 
-## Implementation sequence and exclusions
+## Implementation status and remaining acceptance (2026-10-04)
 
-One coherent delivery makes both regime definitions executable and comparable.
+ETU-89 infrastructure and trainer adapters exist. The retained
+`.runs/regime-smoke-1` completed both recipes with two checkpoint measurements,
+including cumulative supervised rounds and ordinary reload. Those artifacts
+predate ETU-75 and later provenance refinements. The focused suite subsequently
+passed 23 tests, including real two-stage self-play Adam continuation and
+checkpoint exports. This is infrastructure evidence, not strength or final ABI
+acceptance. Earlier design details remain at `40b3871c:scratch/agent-9039d61b.md`.
 
-1. **This slice:** repair/test self-play boundary semantics and rollout
-   freshness, then add regime/run models, persistence and bounded execution.
-   Focused fixtures include terminal credit, adjacent episodes, uneven stream
-   rates and exact next-state bootstrap. Preserve ordinary PPO behavior.
-2. Bind existing supervised and self-play trainers to stage execution;
-   implement separate estimators, filtering, KL penalties and schedules as
-   selectable treatments. Count all generation/training/export cost. Add
-   `--regime`, `--seed`, `--out` to `manabot train`; preset use stays supported
-   but combining a regime with preset/override flags is an error.
-3. Add the two main recipes, five core ablation variants, named additional
-   contrasts and experiment-specific runner; reuse arena
-   registrations, replay and world identities. Calibration and final scoring
-   are distinct explicit modes; smoke cannot accidentally launch a week.
-   `--study learning-speed` and `--study ataraxos-ablations` select the
-   two documented uses. Notebook/report generation supports both studies.
-4. Add `experiments/study/training-regimes.ipynb` and a report template.
-   Analysis functions consume saved run/arena records; the notebook displays
-   cost, selected-example diagnostics, scores, uncertainty and trace examples.
-   Headless report generation executes it without training or network access.
-   Include raw/EMA pairing, reference/horizon contrasts, S1-S5 outcomes and
-   explicit not-run panels for unfunded studies. Deliver the compound-action,
-   post-RL search, improved-target distillation, belief-sampler and exploiter
-   protocols with the experiment documents, not placeholders claiming support.
+Remaining work is explicit:
 
-Delete — do not maintain: the incorrect direct use of stock GAE with
-collector-end flags and unbounded excess-transition banking in
-`NetOpponentTrainer`/`SeatRoutedCollector`. Update their existing tests.
-No wholesale trainer replacement or deletion of historical experiment runners.
-Do not add another CLI-local recipe dictionary for these two regimes.
+1. **ETU-75 integration in ETU-89:** `manabot/model/world.py` is absent here.
+   Consume its ordinary `checkpoint_world`/`validate_checkpoint_world` contract,
+   pass actual deck/sideboard `player_configs` to `save_bc_checkpoint`, and bind
+   selected recipes to `semantic_pack="ur-lessons-vs-gw-allies"`. Preserve
+   `semantic_cards` and `known_hand` through collection/training. Native w4 alone
+   does not establish tensor or checkpoint compatibility. No parallel format.
+2. **ETU-90 integration:** checkpoint `8076e877` supplies the tested
+   `update_ema` helper (average parameters, copy buffers, once per iteration,
+   including empty-filter skips). This checkout still interpolates parameters
+   inline. ETU-90 may replace the call after parent sync. Its trainer env shim
+   must retain collector match for ordinary `Trainer.save` admission. The
+   reported 14-game/1024-transition raw/EMA proof predates ETU-75.
+3. **ETU-89 acceptance:** after integration, repeat a bounded real multi-stage
+   execution, reload immutable outputs with the ordinary loader, and validate
+   world rejection, CLI ambiguity, fixed splits, optimizer continuation,
+   interruption and failed-stage retention. Earlier checks remain evidence;
+   final gate owns the integrated check. Actual demo games are separate chapter
+   evidence and are not established by arena reload alone.
+4. **ETU-91 acceptance:** Jack Heart's latest steer reports checkpoint
+   `52d222df`, resolved protocols, common-cost analysis, retained failed attempts
+   and offline integrity checks. Its preliminary learning smoke completed 24
+   replayed games in 104 seconds with unchanged metrics across two offline
+   regenerations. This report is not independently rerun here. The final two
+   studies require ETU-75 and ETU-90 integration. Stacked `lf task sync` selects
+   its parent automatically and refuses an explicit sibling target; ETU-90 must
+   reach ETU-91 through the parent or land before final study acceptance.
 
-Excluded: launching the expensive experiment during implementation, a generic
-Experiment service/model, distributed training, arbitrary architecture search,
-automatic best-seed selection, public-belief solving, compound-action redesign,
-and an unimplemented belief operation masquerading as a runnable stage.
+ETU-91's final smoke requirements remain two real checkpoint measurements,
+complete four-leg paired comparisons plus a fixed random anchor, exact replay,
+executed notebooks and unchanged metrics on offline regeneration. Both studies
+have 15-minute smoke caps; the ablation smoke covers five arms and at least two
+updates. Named extra contrasts retain bounded optimizer fixtures. Unsupported
+competencies and unfunded studies remain explicit not-run evidence. The
+three-anchor scientific cohort and expensive profiles remain proposals.
 
-Success means a new treatment is a validated recipe edit whose cost and
-outcome appear in the same analysis. Failure would be a generic orchestration
-layer over inconsistent trainers, or two week-long runs whose data/reward
-semantics differ unnoticed. The boundary tests and complete smoke target that
-failure directly.
+The retained smoke training seed family begins at 10197 (teacher 10197–10200;
+conservative self-play bound 10268), disjoint from study seeds 910001/920001.
+This bound applies to those saved executions only. Longer runs need an explicit
+seed-family check before scoring. No scientific improvement, exploitation
+resistance or human-challenger result has been measured by these smokes.
 
-## Done when
+Open budget/scope decisions remain in `questions.md`; none blocks bounded
+infrastructure work. Frozen expensive studies still require an accepted budget,
+protocol and measured timing allowance. No expensive training is authorized.
 
-Proposed gate commands:
+Check result: prior `uv run pytest tests/training/test_regimes.py tests/sim/test_search_supervised.py -q` — 23 passed (6.62 s); realign inspected code and retained records without rerunning tests; integrated gate deferred until ETU-75/90 integration.
 
-```bash
-uv run pytest tests/training tests/sim/test_net_opponent.py tests/model/test_train.py tests/arena -q
-uv run experiments/runners/run_training_regimes.py --study learning-speed --profile smoke --out .runs/regime-gate
-uv run experiments/runners/run_training_regimes.py --study ataraxos-ablations --profile smoke --out .runs/ablation-gate
-uv run experiments/runners/run_training_regimes.py --report-only .runs/regime-gate
-uv run experiments/runners/run_training_regimes.py --report-only .runs/ablation-gate
-```
+Gate (2026-10-04): `uv run pytest tests/training/test_regimes.py tests/sim/test_search_supervised.py tests/sim/test_net_opponent.py -q` — 30 passed; after cumulative-cost change, `uv run pytest tests/training/test_regimes.py -q` — 12 passed; `uv run pytest tests/sim/test_distill.py tests/sim/test_distill_datagen.py -q` — 5 passed; `cargo test --manifest-path managym/Cargo.toml --lib agent::vector_env::tests` — 6 debug tests passed; scoped Ruff lint/format and `git diff --check` passed. Full CI matrix remains CI-owned. ETU-75's absent `manabot/model/world.py` and ETU-90 EMA integration still block final integrated acceptance; ETU-91 final study smokes remain with their owner.
 
-Each smoke caps its process at 15 minutes. The learning-speed smoke trains
-both arms through two checkpoints including a collect/train handoff; the
-ablation smoke executes all five variants through at least two updates.
-Each reloads immutable outputs, completes a four-leg block for every required
-comparison, replays it and executes the notebook. Reports show cost curves
-with at least two real measurements and explain the deliberately inadequate
-statistical power. Failure to fit is a failed smoke, never
-synthetic result substitution. Tests cover invalid/forward artifact references,
-world mismatch, budget interruption, stage failure retention, private-label
-exclusion from model inputs, reference distribution normalization/permutation
-invariance, EMA clock/identity, empty-filter behavior, and report regeneration
-with unchanged metrics. Named additional contrasts must validate and execute
-bounded optimizer fixtures; the five-arm smoke is not expanded into an
-unbudgeted training sweep.
-Empty or incomplete evidence renders explicitly as such. No runtime change
-is required for planning. The masked-step implementation requires debug
-`cargo test --manifest-path managym/Cargo.toml` and the root uv/maturin rebuild
-specified by AGENTS.md before Python integration checks.
-
-Check result: 2026-10-04 isolated execution of the existing GAE function
-confirmed the collector-mask mismatch; source inspection confirmed current
-selected-suite arena support. No training or final evaluation was run.
-
-
-## Bounded kickoff reconciliation (2026-10-04)
-
-Source inspection confirms the collector boundary defects and the existing
-selected-match four-leg arena path. The design above remains the implementation
-contract, with these concrete refinements:
-
-- **World binding:** the current repository declares w4. Resolve the native
-  version and freeze its exact runtime/content/ABI identities at run creation;
-  never inherit w2/w3 from historical evidence. `runtime_fingerprints` already
-  accepts `match_hypers` and `observation_space`; pass the authored selected
-  match explicitly because its default is still an Interactive mirror.
-- **Supervised continuation:** `train_search_supervised` accepts initial model
-  weights but creates a fresh Adam and calls `split_by_game` on every invocation.
-  A fixed split seed does not keep assignments stable when the corpus grows.
-  Extend this existing trainer to accept/return optimizer state and accept
-  explicit whole-game assignments. Assign immutable source-game identities at
-  collection, namespace them across shards, and persist each assignment once.
-  Require nonempty training and validation partitions before fitting. Smoke
-  collection must supply both; no row-level fallback. Test two-round optimizer
-  continuation and unchanged membership of old games after adding a shard.
-- **Persistence:** `VerifyStore._create_schema` is the existing SQLite owner.
-  Add the run/stage schema there; export JSON from committed records. An export
-  failure must remain recorded even if checkpoint bytes already exist. Do not
-  advertise model checkpoints as exact collector/process continuation.
-- **Play integration:** `configured_opponent` verifies a completed receipt,
-  recipe digest, native binary digest and checkpoint digest. Export candidate
-  bundles compatible with that owner when demonstrating playable checkpoints;
-  do not add a second loader or weaken its checks. Arena registration/reload is
-  the study acceptance path; demo completion remains separate evidence.
-- **Replay and protocol:** `GameSession` already owns canonical decisions and
-  persists attempts through `AttemptStore`; `Trace` is a projection/read model.
-  Protocol-v1 models derive from the engine-owned schema. Automatic actions
-  enter execution events but are excluded from canonical deliberate-decision
-  rows. Reuse arena Command traces and their replay checks for study evidence;
-  do not infer complete execution or crash durability from decision rows alone.
-
-The chosen approach extends the existing trainers and store. Independent
-training implementations would duplicate optimizer and evidence semantics;
-merely chaining current trainer calls would silently reset Adam and move the
-validation split. Neither alternative satisfies the cumulative recipe.
-
-The bounded smoke profiles may reduce teacher budget, network size and batch
-sizes explicitly in their resolved recipes; those settings prove workflow only.
-They must preserve complete games, both checkpoint measurements, four-leg
-comparisons and exact replay. A deadline failure stays a failed attempt. CPU is
-the initial certified profile; MPS and all expensive profiles remain unfrozen.
-
-This delivery serves repeatable training and supplies the instrument for
-full-game improvement. Its small smoke cohorts cannot satisfy the chapter's
-strength or human-challenger outcomes. Wave memory reconciliation belongs to
-the later realign step after implementation evidence exists.
-
-Check result: 2026-10-04 read-only inspection confirmed w4, selected four-leg
-arena support, existing play/trace authorities and the supervised continuation
-and split gaps; no training, implementation or scored evaluation ran at kickoff.
+Jack Heart requested exact checkpoint cost cutoffs during gate. Completed stages
+now freeze `StageRecord.cumulative_seconds` at admission from run start,
+including prior persistence. A real two-stage continuation test injects delayed
+persistence and verifies the later checkpoint includes it without changing the
+earlier cost. Older records retain null. ETU-91 should consume this field rather
+than reconstructing cost from setup plus stage durations. The public contract
+is documented in `docs/training-regimes.md`.

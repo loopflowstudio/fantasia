@@ -128,3 +128,24 @@ pending that shared owner. No child-owned files were edited after handoff.
 Check result: 2026-10-04 infrastructure-only tests passed 11 tests; the preceding
 combined infrastructure/supervised run passed 21 tests. Final-world real execution
 and final gate await ETU-75; ETU-90/91 retain their separate acceptance ownership.
+
+Compression keeps stage objects in the reference index, removes redundant
+self-play optimizer snapshots and historical session aliases, and registers
+experiment cleanup at creation. Only the latest live collector may continue;
+supervised continuation still retains independent Adam snapshots. A real
+two-stage test verifies continued Adam steps and both ordinary checkpoint
+exports. Check: `uv run pytest tests/training/test_regimes.py
+tests/sim/test_search_supervised.py -q` — 23 passed (6.62 s).
+ETU-75 checkpoint integration and ETU-90's EMA helper from `8076e877` remain
+deferred to sync; ETU-90 may replace the executor call after parent sync.
+
+The retained smoke records use collection seed 10197. Teacher games use
+10197–10200; four-stream self-play increments each stream by four and completed
+17 games, giving conservative maximum seed 10268 including resets. These runs
+are disjoint from ETU-91 evaluation seeds 910001/920001; arbitrary longer runs
+need their own check. ETU-91 owns final study smoke/report acceptance.
+
+Context check: scratch and Wave memory fit their limits. The assembled goal
+exceeds 16000 tokens by 2058 because it includes stored external steers and the
+duplicated design. Editing local scratch cannot remove that goal overage;
+preserve those directives and let the context owner compact their assembly.
