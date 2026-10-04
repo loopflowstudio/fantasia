@@ -24,3 +24,5 @@ No new scientific allocation or strength claim. Full exact-history semantics
 and calibrated conditional learned queries remain outside this slice.
 
 Validation: pending.
+
+Sync validation: retained both independent memory additions from main and this branch; `uv run pytest tests/training/test_local_update_stages.py::test_learned_pipeline_never_enumerates -q` — 1 passed in 33.62 s after `lf task sync --continue`.
