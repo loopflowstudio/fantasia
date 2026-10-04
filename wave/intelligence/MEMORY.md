@@ -273,7 +273,9 @@ gates are in [the live-advice plan](../../docs/plans/live-belief-advice.md).
 
 ## Corrected-world training binding (2026-09-29)
 
-`scripts/train_challenger.py` is the one training-to-demo runner. It builds
+`scripts/train_challenger.py` remains the receipt-bound training-to-demo runner.
+The regime executor described below adds staged training; it does not yet
+replace that demo admission path. It builds
 teacher games with `MatchHypers.authored`, so sideboards are present and Learn
 offers a Lesson; deck constants alone give the old setup. The play server
 rejects a candidate whose content manifest was taken without sideboards. The
@@ -292,19 +294,54 @@ versus 39% uniform) and each run took about 56 optimizer steps. Which of those
 limits learning is untested. Treat these checkpoints as pipeline proof only.
 Details and unreviewed decisions are in the
 [2026-09-29 record](../../docs/evidence/corrected-world-training-2026-09-29.md).
-That record predates the current w4 declaration in WORLDS.md. Its measurements
-remain frozen historical evidence; ETU-75 owns current checkpoint setup/semantic
-admission, which is not yet integrated into this ETU-90 checkout.
+That record predates the current w4 declaration. New runs resolve the native
+world and exact ABI identities; ETU-75 owns the shared checkpoint/setup binding.
 
+
+## Training regime reconciliation (2026-10-04)
+
+Jack Heart approved separate ownership for ETU-89 training infrastructure,
+ETU-90 RL correctness/treatments and ETU-91 comparison/ablation studies, followed
+by three dedicated workers. The current chapter remains Trained Challengers;
+older conditional-teacher priorities are research background, not authorization
+for a new costly cycle. The proposed 168-hour comparison and separate 15-hour
+screen remain unfrozen. Jack Heart subsequently authorized a scientific pilot
+after landing; ETU-91 coordinates its bounded allocation with the root. This
+infrastructure worker runs only bounded proof; no paid compute is authorized.
+
+`TrainingRegime` and `TrainingRun` now execute the existing search-supervised
+and self-play trainers through `manabot train --regime`. VerifyStore owns status;
+JSON is an export. Same-run supervised rounds retain Adam and immutable
+whole-game split membership. Self-play continuation retains the latest live
+collector at an exact update boundary; it cannot branch from old collector
+state. Checkpoints do not promise process resume or byte-identical training.
+Resolved recipes, source/runtime identities, artifacts and phase costs are the
+reproducibility contract. Schedules use whole-run elapsed budget, not stage age.
+
+The collector defect was a contract mismatch: transition-end flags were passed
+to episode-start GAE, and banked rows made next-state bootstrap stale. Corrected
+end-marker GAE and paused streams address those mechanisms. The trace scale
+`1/(1-gamma*lambda)` is not a hard learning horizon. Historical PPO/search
+comparisons do not settle which repaired recipe wins at matched current cost.
+
+ETU-89 now integrates ETU-75's mandatory checkpoint world/setup contract,
+semantic tensor propagation and ETU-90's complete-state EMA helper. A retained
+two-stage execution completed 13 games and 1,024 learner transitions with four
+ordinary raw/EMA reloads on the semantic ABI. ETU-90 owns EMA complete-state
+correctness; ETU-91 owns final
+replayed arena/notebook evidence after integration. Study smoke success cannot
+close infrastructure, RL correctness, strength or human-play acceptance for
+another Task. The implementation contract is in
+[training regimes](../../docs/training-regimes.md); scientific proposals and
+limits remain in the [study protocol](../../experiments/training-regimes.md).
+
+Compare study scores only over overlapping observed cost ranges, using the last
+checkpoint available at each cutoff. Search generation remains on the cost axis;
+no overlap means equal-cost comparison is unavailable. One seed and a four-leg
+deal block prove workflow, not method-level uncertainty. ETU-91 owns final
+replayed study and offline-regeneration evidence on the integrated code.
 
 ## Direct self-play treatment contracts (2026-10-04)
-
-The Trained Challengers objective in GOAL.md governs current work; historical
-conditional-belief proofs above remain research evidence, not a prerequisite
-for this training comparison. Jack Heart split the training-regime delivery
-into ETU-89 infrastructure, ETU-90 RL correctness/treatments and ETU-91 studies,
-with three dedicated workers. No expensive comparison or paid compute is
-approved by this implementation work.
 
 Self-play transitions use end-of-transition terminal flags. Stock PPO's
 start-of-episode GAE convention cannot consume them unchanged. Collection must
@@ -317,19 +354,15 @@ schedules are runnable treatments, not exact Ataraxos reproduction.
 
 EMA is an evaluation artifact with a collect/update-iteration clock, including
 empty-filter skips. Its helper averages parameters and copies buffers without
-changing learner/behavior weights. ETU-89 reports that its integrated parent
-9a1b90df wires this helper and preserves the whole-run schedule clock. Local
-ETU-90 proofs also exercise an empty-filter continuation: learner weights stay
-fixed while the evaluation average advances. Collector match metadata passes
-through the Trainer env shim for ordinary checkpoint admission.
+changing learner/behavior weights. Local ETU-90 proofs exercise an empty-filter
+continuation: learner weights stay fixed while the evaluation average advances.
+Collector match metadata passes through the Trainer env shim for ordinary
+checkpoint admission.
 
 ETU-90's retained two-stage CPU run completed 14 games and 1,024 learner
 transitions with phase costs, distinct raw/EMA outputs and ordinary reload.
 The focused boundary/treatment checks passed, but this is inherited-ABI
-workflow evidence. ETU-89 reports a semantic 14-game/1,024-transition run with
-four raw/EMA reloads at integrated parent 9a1b90df; ETU-90 has not independently
-rerun that contract. Its stacked sync only consumes the published parent, and
-parent publication is blocked on Loopflow recorded-base reconciliation. Final
-ETU-90 admission and ETU-91 study reruns remain outstanding; no strength or
-human-play result follows from these runs.
-No child Wave memories exist under Intelligence in this checkout.
+workflow evidence. The parent integration record above supplies the semantic-ABI
+proof; ETU-90 has not independently rerun that contract. Final ETU-90 admission
+and ETU-91 study reruns remain outstanding; no strength or human-play result
+follows from these runs.

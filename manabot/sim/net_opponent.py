@@ -408,7 +408,9 @@ def transition_gae(rewards, values, ends, next_value, gamma, lam):
 class _CollectorEnvShim:
     """Just enough env surface for Trainer.__init__ / periodic eval."""
 
-    def __init__(self, observation_space: ObservationSpace, reward: Reward, match: Match):
+    def __init__(
+        self, observation_space: ObservationSpace, reward: Reward, match: Match
+    ):
         self.observation_space = observation_space
         self.reward = reward
         self.match = match

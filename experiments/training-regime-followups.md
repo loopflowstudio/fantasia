@@ -57,3 +57,40 @@ Training, validation, development and final deal families are disjoint.
 The strongest confound is recipe maturity: a negative result may reflect
 untuned self-play treatments, not a limit of direct RL.
 
+## Proposed run matrix and stopping rules
+
+These are draft allocations to review after the policy-only studies, not an
+extension of either smoke. For each study, freeze the exact world, raw or EMA
+checkpoint digests, runtime digest, recipe, reference distributions and cost
+receipts before generating its first label. Use whole-episode partitions;
+positions from one trajectory never cross partitions. All training attempts,
+including invalid runs, count against the cap. A missing prerequisite stops
+that study rather than substituting a different mechanism.
+
+| Study | Required executable prerequisite | Planned comparison | Proposed cap |
+| --- | --- | --- | --- |
+| Compound combat | Trainable joint decoder with semantic Command parity and joint log probabilities | Sequential versus grouped, seeds 401–403; two hours per arm/seed | 12 training hours + 4 evaluation hours |
+| Post-RL search | Same-policy exact posterior, viewer-safe rollouts and regularized local update | Policy alone, uniform-belief search, exact-belief search; decision budgets 50/200 ms | 8 evaluation hours; no new policy training |
+| Update distillation | Receipts with the exact local-update target and its generating policy | Hard versus soft targets on the same roots, seeds 411–413; one hour per fit | 4 label hours + 6 fitting hours + 4 evaluation hours |
+| Belief sampler | Constrained autoregressive sampler and exact tractable-pool reference | Exact versus learned joint samples; three sampler seeds 421–423 | 4 label hours + 6 fitting hours + 4 evaluation hours |
+| Frozen exploiters | Ordinary frozen-opponent trainer with verified learner-only credit | Both main arms attacked by seeds 431–433 at 15/30/60 minutes | 6 training hours + 4 evaluation hours per attacked checkpoint pair |
+
+Reserve deal families 940000–949999 for follow-up development and
+950000–959999 for final scoring, with distinct nonoverlapping subranges per
+study fixed in its launch manifest. These families must also be checked against
+actual producer seeds before launch. Use 32 untouched four-leg blocks per
+matched comparison as the initial proposed final cohort, then calibrate the
+complete schedule before freezing it. If the proposed time allowance cannot
+fit the full cohort with a 25% margin, revise the protocol before any scoring.
+Do not stop on a favorable result or trim the cohort after observing outcomes.
+
+All studies stop on illegal Commands, hidden-truth input leakage, world/setup
+mismatch, or unreplayable evidence. Compound-action timing counts underlying
+choices as well as grouped decisions. Search reports deadline misses and
+realized simulations, with equal elapsed inference envelopes. Distillation
+reports target entropy, held-out KL and full-game scores separately. Belief
+sampling reports support violations, query calibration, joint log loss where
+computable and search quality; a low marginal error cannot certify the joint.
+Exploiters report every seed's attack curve and failed attempts; their maximum
+observed win rate is a bounded attack result, never an exact exploitability
+number. No mechanism is retained solely because a single seed improved.

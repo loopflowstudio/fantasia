@@ -62,7 +62,8 @@
     "belief_count_buckets": 0,
     "belief_card_vocab_size": 0,
     "belief_owner_role_vocab_size": 2,
-    "belief_hidden_zone_vocab_size": 7
+    "belief_hidden_zone_vocab_size": 7,
+    "semantic_pack": "ur-lessons-vs-gw-allies"
   },
   "stages": [
     {

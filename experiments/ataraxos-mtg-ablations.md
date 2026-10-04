@@ -112,3 +112,28 @@ mapping each paper technique to implemented treatment, existing behavior,
 separate build or omitted mechanism and its reason. This keeps the entire
 Ataraxos learning agenda visible without conflating it with the first screen.
 
+
+## Proposed additional allocations
+
+Each contrast below uses three fresh paired initialization seeds and the same
+15/30/60-minute checkpoints as the core screen. Each named arm receives one
+training hour per seed. Its corresponding control is rerun with those seeds;
+previous core runs are not silently reused as independent evidence. Evaluation
+allowances remain unfrozen until calibration; none of these allocations is
+authorized by the implementation task.
+
+| Contrast | Recipe versus control | Proposed training hours |
+| --- | --- | ---: |
+| Discount | horizon-discount versus rl-control | 6 |
+| Policy trace | horizon-trace versus rl-control | 6 |
+| Paper estimators | paper-estimators versus rl-control | 6 |
+| Reference | structured-reference versus rl-control | 6 |
+| Step constraint | no-collection-kl versus rl-control | 6 |
+| Filter | paper-filter versus advantage-filtering | 6 |
+| Averaging | averaging versus rl-control; raw/EMA paired within averaging | 6 |
+
+The equal-cost effect plot uses the common observed cost horizon and displays
+every measured seed. If the arms have no overlapping cost range, the effect
+is explicitly unavailable. One seed and one deal block cannot support treatment
+selection: the smoke's decision is always to collect more evidence under a
+separately frozen and funded protocol.
