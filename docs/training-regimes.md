@@ -44,9 +44,11 @@ named evaluation output with its iteration clock, never a hidden behavior swap.
 `VerifyStore` is the canonical SQLite owner for runs and stages. `run.json` is
 an export of committed state. Files are atomically published before their
 SHA-256 identities enter stage records. Each checkpoint uses the ordinary
-writer and reload path. ETU-75 owns the shared world/setup compatibility
-contract; its integration is still pending in this branch. Existing smoke
-reloads do not certify that forthcoming input schema.
+writer and reload path, including ETU-75's mandatory world/setup binding.
+Selected-match recipes explicitly select `semantic_pack="ur-lessons-vs-gw-allies"`;
+complete `semantic_cards` and `known_hand` tensors survive collection and training.
+EMA uses ETU-90's complete-state helper once per iteration, including filtered
+skips, and preserves its clock across continuation.
 A failed or interrupted stage retains its error, elapsed cost and previously
 published artifacts. The final selection rule is the last complete raw output,
 not the best seed or best observed evaluation score.
@@ -66,3 +68,20 @@ continuation. A fresh execution owns fresh costs; no pre-existing corpus is free
 [Learning-speed protocol](../experiments/training-regimes.md) and
 [ablation protocol](../experiments/ataraxos-mtg-ablations.md) describe the bounded
 smokes and the separately proposed scientific studies.
+
+## Integrated bounded proof — 2026-10-04
+
+ETU-89 integrates ETU-75 provider head `aba61859`, ETU-90 complete-state EMA
+and collector match binding, and ETU-91 semantic-pack recipes. Two retained
+executions in `.runs/etu89-integrated-world-{1,2}` completed two self-play
+stages each, with 1,024 learner transitions each and ordinary reloads of both
+raw and EMA outputs at both stages. The second execution used the rebuilt
+native extension and completed 14 games in 4.63 seconds. These are pipeline
+proofs, not strength or comparative-learning results. The local SQLite and
+run manifests retain exact artifact digests and source/runtime identities.
+
+The integrated gate passed 66 tests with one study test skipped; six native
+vector tests passed in debug, and scoped Ruff and diff checks passed. ETU-90
+owns final RL acceptance and ETU-91 owns final replayed study/notebook evidence.
+ETU-75 remains open for its unmet empirical evidence; shared delivery does not
+close those claims. No scientific experiment ran in this infrastructure pass.

@@ -1,4 +1,18 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ETU-89 · Training regimes code walkthrough</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:#202d34;background:#f6f3ed;font:17px/1.65 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:44px 30px 90px}header{border-top:7px solid #20675e;padding-top:24px}h1{font:600 clamp(2.1rem,5vw,3.6rem)/1.1 Georgia,serif;max-width:850px}h2{font:600 1.85rem/1.25 Georgia,serif;margin-top:0}p{max-width:850px}a{color:#145f78;text-underline-offset:3px}nav{display:flex;flex-wrap:wrap;gap:12px 22px;border-block:1px solid #b6c4bf;padding:18px 0;margin:28px 0}section{padding:34px 0;border-bottom:1px solid #bdc9c2;scroll-margin-top:20px}.eyebrow,.badge{text-transform:uppercase;font-size:.78rem;letter-spacing:.09em;color:#385c53}.badge{background:#e8dfc9;display:inline-block;padding:4px 10px}figure{margin:22px 0;background:#fff;border:1px solid #c1ccc7;border-radius:6px;overflow:hidden}figcaption{font-size:.83rem;padding:12px 16px;background:#e8eee9;overflow-wrap:anywhere}small{display:block;font-size:.72rem}pre{margin:0;padding:18px;overflow-x:auto;font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:4}p code{overflow-wrap:anywhere;font-size:.88em}details{padding:18px;border:1px solid #b6c4bf;background:#eeeee5}summary{cursor:pointer;font-weight:600}a:focus-visible,summary:focus-visible,pre:focus-visible{outline:3px solid #aa510c;outline-offset:3px}.scope{padding:18px 22px;border-left:4px solid #b77b34;background:#eee5d3;overflow-wrap:anywhere}.example{padding-left:18px;border-left:3px solid #20675e}@media(max-width:600px){main{padding:24px 16px}h2{font-size:1.5rem}pre{font-size:12px}nav{gap:10px}figure{margin-inline:0}}@media print{body{background:white;font-size:11pt}main{max-width:none;padding:0}nav{display:none}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:9pt}figure{break-inside:avoid}details{display:block}section{padding:20px 0}}</style></head><body><main><header><p class="eyebrow">Etude Fantasia / manabot · ETU-89 · 4 October 2026</p><h1>From a training recipe to a reloadable, recorded run</h1><p>A code walkthrough for <a href="https://github.com/loopflowstudio/etude/pull/200">PR #200: Add reproducible training regimes and run records</a>. Follow one caller’s route through validation, continued training, checkpoint admission and retained failures.</p><div class="scope"><strong>Published comparison:</strong> main <code>1116937986ee87231d73a559e81815df23283cb6</code> → head <code>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</code>.<br>GitHub’s head matches local HEAD. The local working tree also contains unpublished continuation cleanup, resource cleanup, cumulative checkpoint costs, tests and documentation. Those excerpts are labeled LOCAL and fingerprinted; they are not presented as published code.</div><p>The base already supplies trainers, ordinary checkpoint loading and an arena. This change supplies the ordered execution and records around those owners. Accepted infrastructure intent is distinct from the proposed expensive studies.</p></header><nav aria-label="Reading route"><a href="#entry">Start</a><a href="#references">Inputs</a><a href="#rounds">Continuation</a><a href="#outputs">Outputs</a><a href="#limits">Failures & costs</a><a href="#dependencies">Integration</a><a href="#evidence">Evidence</a></nav><section id="entry"><h2>1. One command starts a recorded attempt</h2><p>Jack Heart’s accepted goal is to vary ordered training recipes without rebuilding orchestration. A caller supplies a recipe, seed and fresh output directory. The new CLI path validates JSON and creates the SQLite owner beside that directory. Mixing a recipe with preset overrides fails before execution; ordinary preset training still takes its existing path.</p><p class="example">Example invocation: <code>uv run manabot train --regime experiments/regimes/direct-self-play.json --seed 197 --out .runs/review-example</code>. This is illustrative; this review did not launch it.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/cli.py#L40-L62">manabot/cli.py:40–62</a> · train_command<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>        if preset is not None or set_values:
+<!doctype html><meta charset="utf-8"><title>Training regime integration review</title><style>body{max-width:1000px;margin:3rem auto;padding:0 1rem;font:18px/1.5 system-ui;color:#172832;background:#faf9f5}pre{overflow:auto;background:#e9edef;padding:1rem;font:13px/1.5 monospace}h2{margin-top:3rem}@media print{pre{white-space:pre-wrap}}</style><h1>Training regimes through ordinary checkpoint admission</h1>
+<p>Local integrated source at 46006bb37653a84e05640c7ac47b48e168787062; docs and this walkthrough include unpublished updates. PR #200 original base: 1116937986ee87231d73a559e81815df23283cb6.</p><p>A regime trains in ordered stages, retains costs and failures in VerifyStore, and admits immutable checkpoints through the ordinary loader. ETU-75 supplies semantic inputs and mandatory world/setup validation; ETU-90 supplies collector correctness and complete-state EMA.</p>
+<h2>Recipes enter the ordinary training CLI</h2><p>manabot/cli.py:28–82, local source at 46006bb37653a84e05640c7ac47b48e168787062.</p><pre>def train_command(
+    preset: Optional[str] = typer.Option(None, help=&quot;Training preset name&quot;),
+    regime: Optional[str] = typer.Option(None, help=&quot;TrainingRegime JSON file&quot;),
+    seed: Optional[int] = typer.Option(None, help=&quot;Regime execution seed&quot;),
+    out: Optional[str] = typer.Option(None, help=&quot;New run directory&quot;),
+    set_values: Optional[list[str]] = typer.Option(
+        None,
+        &quot;--set&quot;,
+        help=&quot;Override config values with key.path=value (repeatable)&quot;,
+    ),
+) -&gt; None:
+    if regime:
+        if preset is not None or set_values:
             raise typer.BadParameter(
                 &quot;--regime cannot be combined with --preset or --set&quot;
             )
@@ -20,192 +34,64 @@
 
 
 @app.command(&quot;sim&quot;)
-def sim_command(</code></pre></figure><p>The executor creates a unique run, records the resolved recipe digest and named seed streams, then changes stage state as work proceeds. The visible result is checkpoint files plus <code>run.json</code>; SQLite remains the status authority.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L64-L87">manabot/training/execution.py:64–87</a> · execute_regime<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>def execute_regime(regime, seed, out, store):
-    regime = validate_regime(regime)
-    out = Path(out).resolve()
-    out.mkdir(parents=True, exist_ok=False)
-    start = time.perf_counter()
-    seeds = {
-        name: seed + offset
-        for name, offset in (
-            (&quot;initialization&quot;, 0),
-            (&quot;collection&quot;, 10000),
-            (&quot;minibatches&quot;, 20000),
-            (&quot;evaluation&quot;, 30000),
-        )
-    }
-    run = TrainingRun(
-        id=uuid.uuid4().hex,
-        regime=regime,
-        regime_digest=canonical_sha256(regime.model_dump(mode=&quot;json&quot;)),
-        seed=seed,
-        seed_streams=seeds,
-        identities={},
-        status=&quot;running&quot;,
-    )
-    store.save_training_run(run)</code></pre></figure></section><section id="references"><h2>2. A later stage can consume only compatible earlier work</h2><p>Collection, supervised fitting and self-play are the three implemented operations. Dataset names must refer backward to collections; continuation must name an earlier stage of the same kind. Self-play has only one live collector to continue, so branching from an older collector is rejected. Architecture and match are shared across the recipe; external artifacts and multiple named models from the original design are not implemented.</p><p class="badge">Local refinement shown below; not yet in PR #200</p><figure><figcaption><a href="/Users/jack/src/etude.compare-training-regimes-through-reproducible/manabot/training/models.py">manabot/training/models.py:113–142</a> · TrainingRegime.references<small>LOCAL snapshot · SHA-256 533c0f70e7c3c297a7408fb2f99792b344d6f3ca592ef95eccd8305332cb02df</small></figcaption><pre tabindex="0"><code>    @model_validator(mode=&quot;after&quot;)
-    def references(self):
-        previous: dict[str, Stage] = {}
-        latest_self_play = None
-        for stage in self.stages:
-            if stage.id in previous:
-                raise ValueError(&quot;stage IDs must be unique&quot;)
-            if isinstance(stage, TrainSupervised):
-                if len(stage.datasets) != len(set(stage.datasets)):
-                    raise ValueError(&quot;dataset references must be unique&quot;)
-                for ref in stage.datasets:
-                    if not isinstance(previous.get(ref), CollectSearch):
-                        raise ValueError(
-                            f&quot;dataset {ref} must refer to an earlier collection&quot;
-                        )
-            initial = getattr(stage, &quot;initial&quot;, None)
-            parent = previous.get(initial)
-            if initial and type(parent) is not type(stage):
-                raise ValueError(
-                    &quot;continuation requires an earlier stage of the same operation&quot;
-                )
-            if isinstance(stage, TrainSelfPlay) and initial:
-                if parent is not latest_self_play:
-                    raise ValueError(
-                        &quot;live self-play continuation cannot branch from an older collector&quot;
-                    )
-                if (
-                    parent.streams != stage.streams
-                    or parent.learning.ema != stage.learning.ema
-                ):</code></pre></figure><p>The published implementation already rejects those reference categories; the local refinement keeps stage objects and the latest collector directly. Before consuming an output, the executor rehashes its bytes. “Immutable” here means a unique run directory and digest-checked artifacts, not filesystem write protection.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L152-L161">manabot/training/execution.py:152–161</a> · execute_regime input admission<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>            references = list(getattr(stage, &quot;datasets&quot;, []))
-            if getattr(stage, &quot;initial&quot;, None):
-                references.append(stage.initial)
-            for reference in references:
-                source = next(item for item in run.stages if item.id == reference)
-                for name, item in source.artifacts.items():
-                    if file_sha256(item[&quot;path&quot;]) != item[&quot;sha256&quot;]:
-                        raise ValueError(f&quot;input artifact changed: {reference}/{name}&quot;)
-                    record.inputs[f&quot;{reference}/{name}&quot;] = dict(item)
-            persist()</code></pre></figure></section><section id="rounds"><h2>3. A second fitting round keeps what the first learned</h2><p>Trace a cumulative teacher recipe: the collection stage produces complete-game shards with run-local game IDs. Fitting consumes named shards; IDs divisible by ten remain validation games even when more data arrives. The next fitting stage receives both learner weights and Adam state. This prevents a fresh validation split or optimizer reset from masquerading as continued training.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L290-L314">manabot/training/execution.py:290–314</a> · execute_regime supervised continuation<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>                validation = {
-                    int(g) for g in np.unique(dataset[&quot;game_index&quot;]) if int(g) % 10 == 0
-                }
-                previous = outputs.get(stage.initial, {})
-                continuation = {}
-                phase = &quot;learning_seconds&quot;
-                tick = time.perf_counter()
-                agent, _, initial, history = train_search_supervised(
-                    dataset,
-                    policy_target_kind=&quot;visit_distribution&quot;,
-                    value_weight=0,
-                    agent_hypers=regime.agent,
-                    observation_hypers=regime.observation,
-                    epochs=stage.epochs,
-                    batch_size=stage.batch_size,
-                    lr=stage.learning_rate,
-                    seed=seeds[&quot;initialization&quot;],
-                    minibatch_seed=seeds[&quot;minibatches&quot;],
-                    validation_games=validation,
-                    initial_agent_state=previous[&quot;agent&quot;].state_dict()
-                    if previous
-                    else None,
-                    optimizer_state=previous.get(&quot;optimizer_state&quot;),
-                    continuation=continuation,
-                    deadline_monotonic=deadline,</code></pre></figure><p>The existing supervised trainer gains two important branches: restoring Adam still honors the new stage’s declared learning rate, and explicit whole-game partitions must both contain data. Existing callers that omit the new arguments retain the previous split behavior.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/sim/search_supervised.py#L367-L385">manabot/sim/search_supervised.py:367–385</a> · train_search_supervised<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>    if optimizer_state is not None:
-        optimizer.load_state_dict(optimizer_state)
-        for group in optimizer.param_groups:
-            group[&quot;lr&quot;] = lr
-    if validation_games is None:
-        train_idx, val_idx = split_by_game(
-            dataset,
-            val_fraction=val_fraction,
-            seed=seed if split_seed is None else split_seed,
-        )
-    else:
-        validation = np.isin(dataset[&quot;game_index&quot;], list(validation_games))
-        train_idx, val_idx = np.flatnonzero(~validation), np.flatnonzero(validation)
-        if not len(train_idx) or not len(val_idx):
-            raise ValueError(
-                &quot;whole-game training and validation partitions must be nonempty&quot;
-            )
-    value_usable, value_targets = value_targets_from_dataset(dataset, value_target_kind)
-    initial_validation = evaluate_search_supervised(</code></pre></figure><details><summary>How self-play continuation differs</summary><p>Self-play retains the live trainer, collector and EMA clock within this process. The local cleanup removes redundant optimizer snapshots and closes experiments through ExitStack. A saved model is still not an exact process-resume file.</p><figure><figcaption><a href="/Users/jack/src/etude.compare-training-regimes-through-reproducible/manabot/training/execution.py">manabot/training/execution.py:210–216</a> · execute_regime<small>LOCAL snapshot · SHA-256 15b183c68b9474319ccf487999a580310da3c66c40dfc08dc2d0bfb71684c8ac</small></figcaption><pre tabindex="0"><code>            elif isinstance(stage, TrainSelfPlay):
+def sim_command(
+    preset: str = typer.Option(DEFAULT_SIM_PRESET, help=&quot;Simulation preset name&quot;),
+    set_values: Optional[list[str]] = typer.Option(
+        None,
+        &quot;--set&quot;,
+        help=&quot;Override config values with key.path=value (repeatable)&quot;,
+    ),
+) -&gt; None:
+    _run_sim(preset, set_values or [])
+
+
+@app.command(&quot;belief-demo&quot;)
+def belief_demo_command() -&gt; None:
+    &quot;&quot;&quot;Prove generated and supplied beliefs use one decision core.&quot;&quot;&quot;
+
+    from manabot.belief.demo import main as run_belief_demo
+
+    run_belief_demo()
+
+
+@app.command(&quot;belief-learn-demo&quot;)</pre>
+<h2>Continuing a stage preserves the live learner</h2><p>manabot/training/execution.py:210–241, local source at 46006bb37653a84e05640c7ac47b48e168787062.</p><pre>            elif isinstance(stage, TrainSelfPlay):
                 if stage.initial:
                     # Validation permits only the latest live collector to continue.
                     trainer, ema, iteration = self_play_session
                 else:
                     torch.manual_seed(seeds[&quot;initialization&quot;])
-                    agent = Agent(space, regime.agent)</code></pre></figure><figure><figcaption><a href="/Users/jack/src/etude.compare-training-regimes-through-reproducible/manabot/training/execution.py">manabot/training/execution.py:286–288</a> · execute_regime<small>LOCAL snapshot · SHA-256 15b183c68b9474319ccf487999a580310da3c66c40dfc08dc2d0bfb71684c8ac</small></figcaption><pre tabindex="0"><code>                self_play_session = (trainer, ema, iteration)
-                agent = trainer.agent
-                optimizer_state = trainer.optimizer.state_dict()</code></pre></figure></details></section><section id="outputs"><h2>4. A saved checkpoint must reload before it is admitted</h2><p>After fitting, the ordinary checkpoint writer saves temporary bytes. The executor renames the file, hashes it, and invokes the ordinary loader. A rejected checkpoint remains on disk with a rejected-artifact record; it is not advertised as an admitted raw output. Successful completion selects the last raw output, without comparing playing scores.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L351-L358">manabot/training/execution.py:351–358</a> · execute_regime checkpoint admission<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>                    os.replace(temporary, target)
-                    candidate = artifact(target)
-                    try:
-                        load_checkpoint_agent(str(target))
-                    except Exception:
-                        record.rejected_artifacts[name] = candidate
-                        raise
-                    record.artifacts[name] = candidate</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L372-L377">manabot/training/execution.py:372–377</a> · execute_regime output selection<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>        completed_models = [
-            item.artifacts[&quot;raw&quot;] for item in run.stages if &quot;raw&quot; in item.artifacts
-        ]
-        run.selected_artifact = completed_models[-1] if completed_models else None
-        run.status = &quot;completed&quot;
-        persist()</code></pre></figure><p>Run and stage updates share one SQLite transaction. JSON export reads that canonical record back. The base already had VerifyStore and checkpoint writers/loaders; this diff adds execution records and admission around them.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/verify/store.py#L129-L140">manabot/verify/store.py:129–140</a> · VerifyStore.save_training_run<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>    def save_training_run(self, run) -&gt; None:
-        &quot;&quot;&quot;Commit one canonical regime execution and its stage records atomically.&quot;&quot;&quot;
-        with self.con:
-            self.con.execute(
-                &quot;INSERT INTO training_runs VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload&quot;,
-                (run.id, run.model_dump_json(exclude={&quot;stages&quot;})),
-            )
-            for stage in run.stages:
-                self.con.execute(
-                    &quot;INSERT INTO training_stages VALUES (?, ?, ?) ON CONFLICT(run_id, stage_id) DO UPDATE SET payload=excluded.payload&quot;,
-                    (run.id, stage.id, stage.model_dump_json()),
-                )</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L47-L50">manabot/training/execution.py:47–50</a> · export_training_run<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>def export_training_run(run_id, store, out):
-    run = store.training_run(run_id)
-    atomic_json(Path(out) / &quot;run.json&quot;, run.model_dump(mode=&quot;json&quot;))
-    return run</code></pre></figure></section><section id="limits"><h2>5. An interrupted attempt stays visible</h2><p>A stage receives the earlier of its own deadline and the total run deadline. Resource checks sample process-tree RSS; they do not impose an OS memory ceiling. Teacher collection and fitting also check deadlines internally. A timeout or keyboard interrupt marks the attempt interrupted; other exceptions mark it failed. Costs and already recorded artifacts are retained before the error returns to the caller.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L131-L139">manabot/training/execution.py:131–139</a> · execute_regime deadline<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>            deadline = min(
-                start + regime.wall_seconds, stage_start + stage.execution.wall_seconds
-            )
-            phase = &quot;collection_seconds&quot;
-            torch.set_num_threads(stage.execution.threads)
-
-            def check():
-                if time.perf_counter() &gt;= deadline:
-                    raise TimeoutError(&quot;training resource wall deadline exceeded&quot;)</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L378-L388">manabot/training/execution.py:378–388</a> · execute_regime failure branch<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>    except BaseException as error:
-        run.status = (
-            &quot;interrupted&quot;
-            if isinstance(error, (KeyboardInterrupt, TimeoutError))
-            else &quot;failed&quot;
-        )
-        run.error = f&quot;{type(error).__name__}: {error}&quot;
-        if run.stages:
-            run.stages[-1].status = run.status
-            run.stages[-1].error = run.error
-            run.stages[-1].seconds = time.perf_counter() - stage_start</code></pre></figure><p>A teacher game that reaches a step limit is retained as evidence but rejected as training input unless it has an authoritative terminal outcome. Truncation cannot silently become a draw.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L191-L204">manabot/training/execution.py:191–204</a> · execute_regime teacher admission<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>                    record.artifacts[f&quot;game-{game_index}&quot;] = artifact(target)
-                    record.diagnostics.append(summary)
-                    record.games += int(
-                        all(summary[&quot;terminated&quot;]) and not any(summary[&quot;truncated&quot;])
+                    agent = Agent(space, regime.agent)
+                    collector = SeatRoutedCollector(
+                        space,
+                        Match(regime.match),
+                        Reward(RewardHypers()),
+                        num_envs=stage.streams,
+                        seed=seeds[&quot;collection&quot;],
+                        opponent_mode=&quot;self&quot;,
                     )
-                    record.environment_decisions += summary[&quot;decisions&quot;]
-                    record.collection_seconds = time.perf_counter() - stage_start
-                    persist()
-                    if not all(summary[&quot;terminated&quot;]) or any(summary[&quot;truncated&quot;]):
-                        raise RuntimeError(
-                            &quot;teacher game lacks authoritative terminal outcome&quot;
+                    experiment = Experiment(
+                        ExperimentHypers(
+                            wandb=False,
+                            seed=seed,
+                            runs_dir=out,
+                            exp_name=stage.id,
+                            log_level=&quot;WARNING&quot;,
                         )
-                    shards.append(target)
-                    game_index += 1</code></pre></figure><p class="badge">Local checkpoint-cost addition; not yet published</p><p>Per-phase timings already exist. The local change freezes each completed stage’s elapsed cost from run start, including earlier persistence overhead. The next checkpoint pays for intervening persistence; an earlier checkpoint’s cost never grows retroactively. ETU-91 still needs to consume this field.</p><figure><figcaption><a href="/Users/jack/src/etude.compare-training-regimes-through-reproducible/manabot/training/execution.py">manabot/training/execution.py:369–375</a> · execute_regime completion<small>LOCAL snapshot · SHA-256 15b183c68b9474319ccf487999a580310da3c66c40dfc08dc2d0bfb71684c8ac</small></figcaption><pre tabindex="0"><code>            check()
-            record.seconds = time.perf_counter() - stage_start
-            record.cpu_seconds = time.process_time() - cpu_start
-            record.status = &quot;completed&quot;
-            # Freeze the admission cost; later persistence belongs to later outputs.
-            record.cumulative_seconds = time.perf_counter() - start
-            persist()</code></pre></figure><p>Unfinished and older records leave <code>cumulative_seconds</code> null. These are cooperative budgets: a long operation between checks can overshoot before interruption is recorded.</p></section><section id="dependencies"><h2>6. Checkpoint integration remains unfinished</h2><p><strong>ETU-75 is a required acceptance dependency.</strong> This checkout has no <code>manabot/model/world.py</code>. Current validation only compares the regime’s world label with the native runtime and rejects unsupported belief inputs. This is narrower than ETU-75’s promised world/setup and semantic-input binding.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L53-L61">manabot/training/execution.py:53–61</a> · validate_regime<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>def validate_regime(regime):
-    regime = TrainingRegime.model_validate(
-        regime.model_dump() if isinstance(regime, TrainingRegime) else regime
-    )
-    if regime.world != managym.WORLD_VERSION:
-        raise ValueError(&quot;regime world differs from native runtime&quot;)
-    if regime.agent.belief_count_buckets:
-        raise ValueError(&quot;regime stages do not produce belief inputs&quot;)
-    return regime</code></pre></figure><p>The checkpoint call shown here does not pass actual deck/sideboard <code>player_configs</code>. Integration must use ETU-75’s ordinary writer/loader contract, configure the selected semantic pack, and propagate <code>semantic_cards</code> and <code>known_hand</code>. Existing smoke reloads cannot certify those future tensors.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L333-L350">manabot/training/execution.py:333–350</a> · execute_regime checkpoint writer<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>                    save_bc_checkpoint(
+                    )
+                    resources.callback(experiment.close)
+                    trainer = NetOpponentTrainer(
+                        agent,
+                        experiment,
+                        collector,
+                        TrainHypers(
+                            num_envs=stage.streams, num_steps=stage.transitions
+                        ),</pre>
+<h2>Raw and averaged models use the shared world contract</h2><p>manabot/training/execution.py:329–358, local source at 46006bb37653a84e05640c7ac47b48e168787062.</p><pre>                    save_bc_checkpoint(
                         model,
                         space,
                         temporary,
+                        player_configs=Match(regime.match).to_rust(),
                         extra={
                             &quot;run_id&quot;: run.id,
                             &quot;stage_id&quot;: stage.id,
@@ -219,29 +105,26 @@ def sim_command(</code></pre></figure><p>The executor creates a unique run, reco
                             else None,
                             &quot;regime_digest&quot;: run.regime_digest,
                         },
-                    )</code></pre></figure><p><strong>ETU-90 still owns complete EMA state handling.</strong> The current loop interpolates parameters only. Its supplied helper copies buffers as well, and is not integrated at this head. Raw learner weights remain the collection policy; EMA is a separately named evaluation output.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/40b3871cb99a5eaded1fe4942d8b039be4e1b0ae/manabot/training/execution.py#L258-L267">manabot/training/execution.py:258–267</a> · execute_regime EMA update<small>40b3871cb99a5eaded1fe4942d8b039be4e1b0ae</small></figcaption><pre tabindex="0"><code>                    )
-                    iteration += 1
-                    if ema is not None:
-                        with torch.no_grad():
-                            for dest, source in zip(
-                                ema.parameters(),
-                                trainer.agent.parameters(),
-                                strict=True,
-                            ):
-                                dest.lerp_(source, 1 - stage.learning.ema)</code></pre></figure><p>The published diff preserves the initial RL collector/native pause changes and study recipes/runners from before the ownership split. ETU-90’s final correctness evidence and ETU-91’s final replayed studies remain separate deliverables. Their reported child checkpoints are not part of this PR’s head.</p></section><section id="evidence"><h2>7. What the available checks actually establish</h2><p><strong>Recorded passes, not rerun during this review:</strong> the supplied gate notes report 30 focused infrastructure/supervised/collector tests, a later 12-test infrastructure run after the cost change, five distillation tests, and six native vector tests in debug. They also report scoped Ruff and diff checks. Those notes describe the local working state; they are not a CI result for the published head.</p><p><strong>Inspected tests:</strong> reference/world rejection, CLI ambiguity, persistence failures, mutated input digests, fixed splits and Adam continuation. The local two-stage test performs real self-play updates and checks that Adam steps continue while delayed persistence is charged only to subsequent outputs.</p><figure><figcaption><a href="/Users/jack/src/etude.compare-training-regimes-through-reproducible/tests/training/test_regimes.py">tests/training/test_regimes.py:297–313</a> · test_self_play_continuation_keeps_adam_and_exports_each_stage<small>LOCAL snapshot · SHA-256 07cc8171d16effafdaf2b52505e913e2f849445ad2ef10bd9b30b9ad8d00883d</small></figcaption><pre tabindex="0"><code>    with VerifyStore(tmp_path / &quot;store.sqlite&quot;) as store:
-        run = execute_regime(value, 197, tmp_path / &quot;run&quot;, store)
-        assert run.status == &quot;completed&quot;
-        assert run.selected_artifact == run.stages[-1].artifacts[&quot;raw&quot;]
-        steps = []
-        for stage in run.stages:
-            state = torch.load(stage.artifacts[&quot;optimizer&quot;][&quot;path&quot;], weights_only=True)
-            steps.append(max(int(item[&quot;step&quot;]) for item in state[&quot;state&quot;].values()))
-            assert stage.learner_transitions == 16
-        assert steps[0] &gt; 0
-        assert steps[1] == 2 * steps[0]
-        assert [stage.cumulative_seconds for stage in run.stages] == admitted
-        assert admitted[0] &gt;= run.setup_seconds + run.stages[0].seconds
-        assert admitted[1] &gt;= admitted[0] + 5.0 + run.stages[1].seconds
-        assert run.seconds &gt;= admitted[1] + 5.0
-        saved = store.training_run(run.id)
-        assert [stage.cumulative_seconds for stage in saved.stages] == admitted</code></pre></figure><p><strong>Retained execution evidence:</strong> <a href="../.runs/regime-smoke-1/report.md">the local smoke report</a> records two checkpoint measurements for both recipes and a completed bounded study. It explicitly labels this execution proof, not learning-speed superiority. These older artifacts predate ETU-75 and later provenance changes; no new training, arena run or test suite was launched for this walkthrough.</p><p><strong>Review decisions:</strong> assess the deliberately narrow one-model, CPU float32, same-process continuation contract; integrate the shared checkpoint/semantic inputs and EMA helper; then obtain final owner-specific evidence. No current result establishes full-game improvement or repeatable human-challenger strength. The expensive comparison budgets remain proposals.</p><p><strong>Artifact verification:</strong> snippets are extracted verbatim from the pinned head or labeled local snapshots. HTML structure, links and excerpt integrity were checked mechanically. Desktop and narrow-screen rendering remain unverified because this headless run provides no rendering environment.</p></section></main></body></html>
+                    )
+                    os.replace(temporary, target)
+                    candidate = artifact(target)
+                    try:
+                        load_checkpoint_agent(str(target))
+                    except Exception:
+                        record.rejected_artifacts[name] = candidate
+                        raise
+                    record.artifacts[name] = candidate
+                optimizer_path = out / f&quot;{stage.id}-optimizer.pt&quot;
+                torch.save(
+                    optimizer_state,</pre>
+<h2>Missing semantic inputs fail checkpoint admission</h2><p>manabot/model/world.py:45–54, local source at 46006bb37653a84e05640c7ac47b48e168787062.</p><pre>def validate_policy_input(agent: Any, binding: dict) -&gt; None:
+    compiled = binding[&quot;content_manifest&quot;].get(&quot;compiled_semantics&quot;)
+    if compiled is not None and agent.hypers.semantic_pack != compiled[&quot;pack_key&quot;]:
+        raise ValueError(
+            &quot;compiled matchup checkpoint requires its complete semantic program input&quot;
+        )
+
+
+def checkpoint_world(player_configs: Sequence[Any], observation_space: Any) -&gt; dict:
+    &quot;&quot;&quot;Bind the actual configured match, never a default-deck surrogate.</pre>
+<h2>Evidence and remaining boundaries</h2><p>66 tests passed, one study test skipped; six debug vector tests passed. Rebuilt-native two-stage execution completed 14 games and 1024 transitions, with raw and EMA reloads at both stages. Incompatible bindings fail explicitly; failures remain charged and retained. These checks do not establish strength, final study acceptance or human-play success.</p><p>Rendering unavailable in this headless environment. Loopflow sibling-sync lineage postconditions have rejected delivery after successful local merges; no raw-git recovery was attempted.</p>

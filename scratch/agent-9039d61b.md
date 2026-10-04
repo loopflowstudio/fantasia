@@ -445,34 +445,14 @@ passed 23 tests, including real two-stage self-play Adam continuation and
 checkpoint exports. This is infrastructure evidence, not strength or final ABI
 acceptance. Earlier design details remain at `40b3871c:scratch/agent-9039d61b.md`.
 
-Remaining work is explicit:
-
-1. **ETU-75 integration in ETU-89:** `manabot/model/world.py` is absent here.
-   Consume its ordinary `checkpoint_world`/`validate_checkpoint_world` contract,
-   pass actual deck/sideboard `player_configs` to `save_bc_checkpoint`, and bind
-   selected recipes to `semantic_pack="ur-lessons-vs-gw-allies"`. Preserve
-   `semantic_cards` and `known_hand` through collection/training. Native w4 alone
-   does not establish tensor or checkpoint compatibility. No parallel format.
-2. **ETU-90 integration:** checkpoint `8076e877` supplies the tested
-   `update_ema` helper (average parameters, copy buffers, once per iteration,
-   including empty-filter skips). This checkout still interpolates parameters
-   inline. ETU-90 may replace the call after parent sync. Its trainer env shim
-   must retain collector match for ordinary `Trainer.save` admission. The
-   reported 14-game/1024-transition raw/EMA proof predates ETU-75.
-3. **ETU-89 acceptance:** after integration, repeat a bounded real multi-stage
-   execution, reload immutable outputs with the ordinary loader, and validate
-   world rejection, CLI ambiguity, fixed splits, optimizer continuation,
-   interruption and failed-stage retention. Earlier checks remain evidence;
-   final gate owns the integrated check. Actual demo games are separate chapter
-   evidence and are not established by arena reload alone.
-4. **ETU-91 acceptance:** Jack Heart's latest steer reports checkpoint
-   `52d222df`, resolved protocols, common-cost analysis, retained failed attempts
-   and offline integrity checks. Its preliminary learning smoke completed 24
-   replayed games in 104 seconds with unchanged metrics across two offline
-   regenerations. This report is not independently rerun here. The final two
-   studies require ETU-75 and ETU-90 integration. Stacked `lf task sync` selects
-   its parent automatically and refuses an explicit sibling target; ETU-90 must
-   reach ETU-91 through the parent or land before final study acceptance.
+Integration update (2026-10-04): ETU-75 aba61859 and the latest ETU-90
+collector/EMA APIs are integrated locally. ETU-91 semantic recipes are integrated.
+World-bound exports, semantic tensor propagation, live match retention and
+once-per-iteration complete-state EMA now pass the integrated focused gate.
+Remaining work: publish/land the shared dependency through PR #200, then let
+ETU-90 and ETU-91 record their separate final acceptance. ETU-75 remains open.
+`lf task sync` merges sibling code locally but rejects the postcondition when
+its recorded base has moved to the ETU-75 head; no raw rebase was attempted.
 
 ETU-91's final smoke requirements remain two real checkpoint measurements,
 complete four-leg paired comparisons plus a fixed random anchor, exact replay,
@@ -503,3 +483,5 @@ persistence and verifies the later checkpoint includes it without changing the
 earlier cost. Older records retain null. ETU-91 should consume this field rather
 than reconstructing cost from setup plus stage durations. The public contract
 is documented in `docs/training-regimes.md`.
+
+Check: integrated gate 66 passed, 1 skipped; six debug vector tests passed; rebuilt-native retained run completed 14 games/1024 transitions with four ordinary raw/EMA reloads. Scoped Ruff and diff checks passed.
