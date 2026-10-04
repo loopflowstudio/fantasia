@@ -261,6 +261,7 @@ def execute_regime(regime, seed, out, store):
                         stage.learning,
                         (time.perf_counter() - start) / regime.wall_seconds,
                         rng,
+                        iteration=iteration + 1,
                     )
                     iteration += 1
                     if ema is not None:
