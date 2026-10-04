@@ -41,8 +41,8 @@ from the student. The main RL arm is frozen independently of screen results.
 - [PR #207](https://github.com/loopflowstudio/etude/pull/207) adds bounded single-stage
   CPU recovery, including abrupt process death and Ataraxos state equivalence.
   Full-loop hardware calibration and multi-stage recovery remain open.
-- [PR #209](https://github.com/loopflowstudio/etude/pull/209) is published, pending CI
-  and merge as of this snapshot. Its attack runner passed a 24-game replayed
+- [PR #209](https://github.com/loopflowstudio/etude/pull/209) landed with all CI
+  checks passing. Its attack runner passed a 24-game replayed
   workflow and a real-PPO toy positive control. It has not attacked the main
   scientific policies. Historical S1–S5 contrasts resolve, but their custom decks
   are explicitly unsupported for selected-match checkpoint scoring.
