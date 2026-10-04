@@ -100,8 +100,10 @@ on its own.
 Candidates: [`study/w4-combined-2026-10-04.json`](study/w4-combined-2026-10-04.json),
 150 deals from seed 96000, the same deals as the two rows above.
 
-**Prediction**, committed after the run was launched and before any result
-was read:
+**Not yet run.** The first attempt (2026-09-30) crashed at startup on a card
+name containing a comma, fixed since. The second (2026-10-04) was stopped on a
+contended machine before any candidate finished. The prediction below was
+committed before any result existed and stands for the rerun:
 
 | Lists | Predicted UR Lessons wins |
 |---|---|
@@ -115,7 +117,11 @@ from the cut on a 28% baseline. If revised Lessons against the lord-and-Suki
 cut lands below 45%, the levers are not complementary and the additive
 reading is wrong.
 
-W4_COMBINED_RESULT
+```bash
+uv run python -m manabot.study.allies_lessons.balance \
+    --candidates experiments/study/w4-combined-2026-10-04.json \
+    --deals 150 --seed 96000 --out .runs/study/w4-combined.jsonl
+```
 
 ## Reading
 
@@ -124,7 +130,7 @@ W4_COMBINED_RESULT
   (White Lotus Reinforcements) together with Suki. Allies at Last and Fancy
   Footwork add nothing once the creatures are gone.
 - The two levers found are an Allies cut (lords and Suki) and a stronger
-  Lessons list (the three w4 cards).
+  Lessons list (the three w4 cards). Whether they add is unmeasured.
 
 ## What could make this wrong
 
