@@ -28,6 +28,8 @@ Design notes, kept simple and honest:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import dataclass, field
 import time
 from typing import Any, Dict
@@ -64,6 +66,16 @@ class _Pending:
     logprob: float
     value: float
     probabilities: np.ndarray
+    outcome_probabilities: np.ndarray | None = None
+
+
+@dataclass
+class _Transition:
+    """Finalized learner row with its collection-time outcome distribution."""
+
+    pending: _Pending
+    reward: float
+    done: bool
 
 
 @dataclass
@@ -79,6 +91,8 @@ class RolloutBatch:
     next_obs: Dict[str, np.ndarray]
     next_done: np.ndarray
     probabilities: np.ndarray
+    # Collection-time loss/draw/win probabilities [T,E,3], absent for scalar.
+    outcome_probabilities: np.ndarray | None = None
 
 
 @dataclass
@@ -110,6 +124,21 @@ class CollectorStats:
         }
 
 
+@dataclass
+class CollectorSnapshot:
+    """Private training state. Replay is native execution, not policy inference.
+
+    Journal rows contain [action per stream] and [active per stream]. The
+    native constructor seed plus every vector step also restores auto-reset RNG.
+    Only empty transition buffers at update boundaries may be snapshotted.
+    """
+
+    journal: list[tuple[list[int], list[bool]]]
+    buffers: dict[str, np.ndarray]
+    sampling_rng: torch.Tensor
+    stats: CollectorStats
+
+
 _ACTION_TYPE_NAMES = {int(member): member.name.lower() for member in ActionEnum}
 
 
@@ -137,7 +166,8 @@ class SeatRoutedCollector:
         opponent_mode: str = "random",
         opponent_agent: Agent | None = None,
         device: str = "cpu",
-    ):
+        recovery_max_microsteps: int | None = None,
+    ) -> None:
         if opponent_mode not in OPPONENT_MODES:
             raise ValueError(
                 f"opponent_mode must be one of {OPPONENT_MODES}, got {opponent_mode!r}"
@@ -152,6 +182,10 @@ class SeatRoutedCollector:
         self.opponent_mode = opponent_mode
         self.device = torch.device(device)
         self.stats = CollectorStats()
+        if recovery_max_microsteps is not None and opponent_mode != "self":
+            raise ValueError("recovery supports current-self opponents only")
+        self._recovery_limit = recovery_max_microsteps
+        self._journal: list[tuple[list[int], list[bool]]] = []
 
         self._env = managym.VectorEnv(
             num_envs=num_envs,
@@ -167,7 +201,7 @@ class SeatRoutedCollector:
         #: half the streams have the learner on the play — seat-balanced.
         self.learner_seat = np.arange(num_envs, dtype=np.int64) % 2
 
-        self._streams: list[list[tuple]] = [[] for _ in range(num_envs)]
+        self._streams: list[list[_Transition]] = [[] for _ in range(num_envs)]
         self._pending: list[_Pending | None] = [None] * num_envs
 
         if opponent_mode == "random":
@@ -182,6 +216,35 @@ class SeatRoutedCollector:
 
         self._win_reward = float(reward.hypers.win_reward)
         self._lose_reward = float(reward.hypers.lose_reward)
+
+    def snapshot(self) -> CollectorSnapshot:
+        """Capture a completed update boundary, including native RNG replay."""
+        if self._recovery_limit is None:
+            raise ValueError("collector recovery is disabled")
+        if any(self._streams) or any(p is not None for p in self._pending):
+            raise ValueError("collector snapshot requires an update boundary")
+        return CollectorSnapshot(
+            deepcopy(self._journal),
+            {key: value.copy() for key, value in self._buffers.items()},
+            self._self_rng.get_state().clone(),
+            deepcopy(self.stats),
+        )
+
+    def restore(self, state: CollectorSnapshot, check: Callable[[], None]) -> None:
+        """Replay into a fresh collector; reject divergence before any learning."""
+        if self.stats.micro_steps or self._journal:
+            raise ValueError("restore requires a fresh collector")
+        if self._recovery_limit is None or state.stats.micro_steps > self._recovery_limit:
+            raise ValueError("collector replay exceeds recovery bound")
+        for actions, active in state.journal:
+            check()
+            self._env.step_into_buffers(actions, active)
+        for key, expected in state.buffers.items():
+            if not np.array_equal(self._buffers[key], expected):
+                raise ValueError(f"collector replay diverged: {key}")
+        self._journal = deepcopy(state.journal)
+        self._self_rng.set_state(state.sampling_rng)
+        self.stats = deepcopy(state.stats)
 
     # -- opponent routing -----------------------------------------------------
 
@@ -222,7 +285,8 @@ class SeatRoutedCollector:
     # -- collection loop ------------------------------------------------------
 
     def collect(
-        self, agent: Agent, num_steps: int, *, deadline_monotonic: float | None = None
+        self, agent: Agent, num_steps: int, *, deadline_monotonic: float | None = None,
+        check: Callable[[], None] | None = None
     ) -> RolloutBatch:
         """Advance all streams until every env has ``num_steps`` finalized
         learner transitions, stopping before the bootstrap action is sampled."""
@@ -235,6 +299,8 @@ class SeatRoutedCollector:
         if num_steps < 1:
             raise ValueError("num_steps must be positive")
         while True:
+            if check is not None:
+                check()
             if (
                 deadline_monotonic is not None
                 and time.perf_counter() >= deadline_monotonic
@@ -257,7 +323,14 @@ class SeatRoutedCollector:
             if len(learner_rows):
                 obs_t = self._slice_obs_tensors(learner_rows)
                 with torch.no_grad():
-                    logits, value_t = agent(obs_t)
+                    outcomes: np.ndarray | None = None
+                    if agent.hypers.value_kind == "categorical_wdl":
+                        logits, outcome_logits = agent.forward_distribution(obs_t)
+                        outcome_t = outcome_logits.softmax(dim=-1)
+                        value_t = outcome_t[:, 2] - outcome_t[:, 0]
+                        outcomes = outcome_t.cpu().numpy()
+                    else:
+                        logits, value_t = agent(obs_t)
                     distribution = torch.distributions.Categorical(logits=logits)
                     action_t = torch.multinomial(
                         distribution.probs, 1, generator=self._self_rng
@@ -276,6 +349,9 @@ class SeatRoutedCollector:
                         logprob=float(logprobs[j]),
                         value=float(values[j]),
                         probabilities=probabilities[j].copy(),
+                        outcome_probabilities=(
+                            None if outcomes is None else outcomes[j].copy()
+                        ),
                     )
                 actions[learner_rows] = acts
                 self._count_action_types(
@@ -290,6 +366,10 @@ class SeatRoutedCollector:
                     self.stats.opponent_action_types, opp_rows, opp_acts
                 )
 
+            if self._recovery_limit is not None:
+                if self.stats.micro_steps + int(active.sum()) > self._recovery_limit:
+                    raise RuntimeError("collector recovery journal limit exceeded")
+                self._journal.append((actions.tolist(), active.tolist()))
             env.step_into_buffers(actions.tolist(), active.tolist())
             self.stats.micro_steps += int(active.sum())
 
@@ -322,17 +402,7 @@ class SeatRoutedCollector:
     def _finalize(self, row: int, *, reward: float, done: bool) -> None:
         pending = self._pending[row]
         assert pending is not None
-        self._streams[row].append(
-            (
-                pending.obs,
-                pending.action,
-                pending.logprob,
-                pending.value,
-                reward,
-                done,
-                pending.probabilities,
-            )
-        )
+        self._streams[row].append(_Transition(pending, reward, done))
         self._pending[row] = None
         self.stats.learner_transitions += 1
 
@@ -354,19 +424,30 @@ class SeatRoutedCollector:
         }
         next_done = np.zeros((num_envs,), dtype=bool)
         probabilities = np.zeros_like(obs["actions_valid"])
+        outcome_probabilities = (
+            np.zeros((num_steps, num_envs, 3), dtype=np.float32)
+            if self._streams[0][0].pending.outcome_probabilities is not None
+            else None
+        )
 
         for env_index in range(num_envs):
             stream = self._streams[env_index]
             for step in range(num_steps):
-                obs_row, action, logprob, value, reward, done, probs = stream[step]
-                probabilities[step, env_index] = probs
+                transition = stream[step]
+                pending = transition.pending
+                probabilities[step, env_index] = pending.probabilities
+                if outcome_probabilities is not None:
+                    assert pending.outcome_probabilities is not None
+                    outcome_probabilities[step, env_index] = (
+                        pending.outcome_probabilities
+                    )
                 for key in OBS_KEYS:
-                    obs[key][step, env_index] = obs_row[key]
-                actions[step, env_index] = action
-                logprobs[step, env_index] = logprob
-                values[step, env_index] = value
-                rewards[step, env_index] = reward
-                dones[step, env_index] = done
+                    obs[key][step, env_index] = pending.obs[key]
+                actions[step, env_index] = pending.action
+                logprobs[step, env_index] = pending.logprob
+                values[step, env_index] = pending.value
+                rewards[step, env_index] = transition.reward
+                dones[step, env_index] = transition.done
             del stream[:num_steps]
             assert not stream and self._pending[env_index] is None
             for key in OBS_KEYS:
@@ -383,6 +464,7 @@ class SeatRoutedCollector:
             next_obs=next_obs,
             next_done=next_done,
             probabilities=probabilities,
+            outcome_probabilities=outcome_probabilities,
         )
 
 

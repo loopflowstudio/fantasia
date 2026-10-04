@@ -1,10 +1,18 @@
 """Validated training recipes and durable execution records."""
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from manabot.infra.hypers import AgentHypers, MatchHypers, ObservationSpaceHypers
+
+
+class ArtifactReference(TypedDict):
+    """Immutable local bytes admitted by content digest."""
+
+    path: str
+    sha256: str
+    bytes: int
 
 
 class Strict(BaseModel):
@@ -24,6 +32,7 @@ class Schedule(Strict):
 
 
 class Learning(Strict):
+    gradient: Literal["ppo"] = "ppo"
     gamma: float = Field(default=1, ge=0, le=1)
     policy_lambda: float = Field(default=0.95, ge=0, le=1)
     value_lambda: float = Field(default=1, ge=0, le=1)
@@ -39,6 +48,47 @@ class Learning(Strict):
     epochs: int = Field(default=4, ge=1)
     minibatches: int = Field(default=4, ge=1)
     ema: float | None = Field(default=None, ge=0, lt=1)
+
+
+class AtaraxosMoveLearning(Strict):
+    """Supplement S3.4 move update; MTG reference and batch sizes are adaptations.
+
+    Iteration schedules, one epoch and no advantage normalization belong to
+    this method, rather than inheriting the PPO control's elapsed-time recipe.
+    """
+
+    gradient: Literal["ataraxos_move"]
+    policy_lambda: float = Field(default=0.5, ge=0, le=1)
+    value_lambda: float = Field(default=0.8, ge=0, le=1)
+    advantage_quantile: float = Field(default=0.75, ge=0, le=1)
+    min_advantage: float = Field(default=0.01, ge=0)
+    reference: Literal["uniform", "action_type_uniform"] = "action_type_uniform"
+    clip: float = Field(default=0.2, gt=0, lt=1)
+    collection_kl: float = Field(default=0.1, ge=0)
+    learning_rate_scale: float = Field(default=0.5, gt=0)
+    learning_rate_power: float = Field(default=1.1, ge=0)
+    learning_rate_min: float = Field(default=5e-6, gt=0)
+    learning_rate_max: float = Field(default=1e-4, gt=0)
+    tau_scale: float = Field(default=0.05, ge=0)
+    tau_power: float = Field(default=0.3, ge=0)
+    max_grad_norm: float = Field(default=0.267, gt=0)
+    ema: float | None = Field(default=0.999, ge=0, lt=1)
+
+    @model_validator(mode="after")
+    def valid_learning_rate_bounds(self) -> "AtaraxosMoveLearning":
+        if self.learning_rate_min > self.learning_rate_max:
+            raise ValueError("learning rate minimum exceeds maximum")
+        return self
+
+    def rates(self, iteration: int) -> tuple[float, float]:
+        """One-based completed collection/update iteration, including skips."""
+        if iteration < 1:
+            raise ValueError("Ataraxos iteration must be positive")
+        rate = self.learning_rate_scale / iteration**self.learning_rate_power
+        return (
+            min(self.learning_rate_max, max(self.learning_rate_min, rate)),
+            self.tau_scale / iteration**self.tau_power,
+        )
 
 
 class Execution(Strict):
@@ -99,7 +149,7 @@ class TrainSelfPlay(Stage):
     updates: int = Field(default=2, ge=1)
     streams: int = Field(default=4, ge=2)
     transitions: int = Field(default=256, ge=1)
-    learning: Learning = Learning()
+    learning: Learning | AtaraxosMoveLearning = Learning()
 
     @model_validator(mode="after")
     def frozen_opponent(self) -> "TrainSelfPlay":
@@ -150,11 +200,22 @@ class TrainingRegime(Strict):
     agent: AgentHypers = AgentHypers()
     stages: list[Operation] = Field(min_length=1)
     wall_seconds: float = Field(default=900, gt=0)
-    schedule_clock: Literal["run_elapsed_budget"] = "run_elapsed_budget"
+    schedule_clock: Literal["run_elapsed_budget", "iteration_fraction"] = (
+        "run_elapsed_budget"
+    )
+    recovery_max_microsteps: int | None = Field(default=None, ge=1, le=1_000_000)
     selection: Literal["last-complete-raw"] = "last-complete-raw"
 
     @model_validator(mode="after")
     def references(self) -> "TrainingRegime":
+        if self.recovery_max_microsteps is not None and (
+            len(self.stages) != 1
+            or not isinstance(self.stages[0], TrainSelfPlay)
+            or self.schedule_clock != "iteration_fraction"
+        ):
+            raise ValueError(
+                "recovery requires one self-play stage and iteration_fraction schedule"
+            )
         previous: dict[str, Stage] = {}
         latest_self_play = None
         for stage in self.stages:
@@ -202,10 +263,17 @@ class TrainingRegime(Strict):
                     or parent.learning.ema != stage.learning.ema
                     or parent.behavior != stage.behavior
                     or parent.opponent != stage.opponent
+                    or parent.learning.gradient != stage.learning.gradient
                 ):
                     raise ValueError(
-                        "live self-play continuation must preserve streams, EMA clock and opponent"
+                        "live self-play continuation must preserve streams, gradient, EMA clock and opponent"
                     )
+            if self.agent.value_kind == "categorical_wdl" and (
+                isinstance(stage, TrainSupervised)
+                or isinstance(stage, TrainSelfPlay)
+                and not isinstance(stage.learning, AtaraxosMoveLearning)
+            ):
+                raise ValueError("categorical outcome training requires ataraxos_move")
             previous[stage.id] = stage
             if isinstance(stage, TrainSelfPlay):
                 latest_self_play = stage
@@ -247,5 +315,15 @@ class TrainingRun(Strict):
     stages: list[StageRecord] = []
     seconds: float = 0
     setup_seconds: float = 0
+    parent_run_id: str | None = None
+    recovery_artifact: ArtifactReference | None = None
+    recovery_lock_path: str | None = None
+    recovery_host: str | None = None
+    last_recorded_wall_seconds: float | None = None
+    unobserved_seconds: float = 0
+    recovery_seconds: float = 0
+    prior_seconds: float = 0
+    watchdog_seconds: float = 0
+    prior_watchdog_seconds: float = 0
     selected_artifact: dict | None = None
     error: str | None = None
