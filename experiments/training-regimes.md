@@ -166,3 +166,29 @@ curves is a useful result: one recipe can learn faster early and lose late.
 
 For treatments see [Ataraxos-inspired ablations](ataraxos-mtg-ablations.md).
 For later mechanisms see [follow-up protocols](training-regime-followups.md).
+
+## Saved smoke evidence and cost analysis
+
+The resolved small recipes are saved before execution in `recipes.json` and
+bound by digest in `protocol.json`. Run exports bind source/runtime identities,
+seed streams and stage artifacts. Each attempted run and arena cell enters
+`study.json` before execution, so failure is retained even before a run export
+or completed cell exists. Partial arena traces remain in that cell's directory.
+The 900-second deadline includes notebook execution. An interrupted notebook
+can be regenerated with `--report-only`; that does not complete a failed smoke.
+
+`metrics.json` retains every paired and fixed-anchor measurement and separates
+collection, optimization and export time. Total training cost also includes
+setup and other measured stage overhead. `cost-comparison.json` uses the
+intersection of observed cost ranges across recipes and the last checkpoint
+available at each cost. It neither interpolates weights nor credits a later
+checkpoint during earlier label generation. When ranges do not overlap, an
+equal-cost comparison is unavailable. Smoke checkpoint counts are fixed; their
+elapsed costs need not match. Their step plots describe those measurements,
+not a statistically established learning curve.
+
+Offline regeneration checks protocol, resolved recipe, run-export and measured
+checkpoint digests. Preserve the complete output directory and its referenced
+artifact paths. Notebook/report generation reads saved evidence only; it does
+not contact a service or invoke a trainer. The original inherited smoke folders
+remain preliminary evidence from before final contract integration.

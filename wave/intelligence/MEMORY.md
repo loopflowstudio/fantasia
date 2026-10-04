@@ -305,7 +305,9 @@ ETU-90 RL correctness/treatments and ETU-91 comparison/ablation studies, followe
 by three dedicated workers. The current chapter remains Trained Challengers;
 older conditional-teacher priorities are research background, not authorization
 for a new costly cycle. The proposed 168-hour comparison and separate 15-hour
-screen are unfrozen and unapproved. No paid compute or expensive run is authorized.
+screen remain unfrozen. Jack Heart subsequently authorized a scientific pilot
+after landing; ETU-91 coordinates its bounded allocation with the root. This
+infrastructure worker runs only bounded proof; no paid compute is authorized.
 
 `TrainingRegime` and `TrainingRun` now execute the existing search-supervised
 and self-play trainers through `manabot train --regime`. VerifyStore owns status;
@@ -322,12 +324,18 @@ end-marker GAE and paused streams address those mechanisms. The trace scale
 `1/(1-gamma*lambda)` is not a hard learning horizon. Historical PPO/search
 comparisons do not settle which repaired recipe wins at matched current cost.
 
-Retained bounded executions demonstrate staged training and ordinary reload on
-the inherited ABI. Final acceptance still requires ETU-75's shared checkpoint
-contract and semantic tensor propagation; native w4 equality alone is
-insufficient. ETU-90 owns EMA complete-state correctness; ETU-91 owns final
+ETU-89 now integrates ETU-75's mandatory checkpoint world/setup contract,
+semantic tensor propagation and ETU-90's complete-state EMA helper. A retained
+two-stage execution completed 13 games and 1,024 learner transitions with four
+ordinary raw/EMA reloads on the semantic ABI. ETU-90 owns EMA complete-state correctness; ETU-91 owns final
 replayed arena/notebook evidence after integration. Study smoke success cannot
 close infrastructure, RL correctness, strength or human-play acceptance for
 another Task. The implementation contract is in
 [training regimes](../../docs/training-regimes.md); scientific proposals and
 limits remain in the [study protocol](../../experiments/training-regimes.md).
+
+Compare study scores only over overlapping observed cost ranges, using the last
+checkpoint available at each cutoff. Search generation remains on the cost axis;
+no overlap means equal-cost comparison is unavailable. One seed and a four-leg
+deal block prove workflow, not method-level uncertainty. ETU-91 owns final
+replayed study and offline-regeneration evidence on the integrated code.
