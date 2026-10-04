@@ -400,3 +400,56 @@ suite passed 65 tests (one notebook dependency skip), and six native debug
 vector tests passed after rebuilding the extension. These are current-ABI
 workflow and treatment-correctness proofs, not strength or human-play results.
 ETU-91 retains ownership of final replayed study/notebook evidence.
+
+## Ataraxos source correction and move recipe (2026-10-04)
+
+ETU-92 checked the final Nature paper and actual supplement S3.4, equations
+(5)–(6), Table S7. The move-learning loss explicitly uses clipped per-action
+importance ratios plus reverse KL to collection and magnet policies. A claim
+that PPO clipping disqualifies this mechanism is incorrect; scheduled entropy
+alone still does not establish fidelity. This is not DeepNash R-NaD.
+
+The selectable `ataraxos_move` recipe adds categorical outcome lambda targets,
+unnormalized advantages, inclusive quantile filtering, timestep-grouped updates
+and iteration schedules. Scalar MSE remains a separate representation ablation;
+ordinary PPO controls retain their elapsed-budget schedules. Checkpoint metadata
+binds scalar versus categorical heads; serving still returns signed expected
+value. Behavior likelihoods and outcome distributions are recorded at collection,
+not reconstructed after updates. MTG same-viewer transitions and action-type
+magnet, CPU architecture and boundary conventions are declared adaptations in
+[the fidelity table](../../docs/ataraxos.md).
+
+A bounded one-thread categorical execution completed five games and 512 learner
+transitions with 46 optimizer exposures in 2.15 seconds, exporting four admitted
+raw/EMA artifacts. Analytic mixed-policy gradients, categorical terminal/reset
+boundaries and real reload checks establish mechanism/wiring evidence only.
+No matched-cost multi-seed comparison or challenger strength is established;
+scientific scoring needs its separate protocol and budget. ETU-91's frozen
+campaign and retained checkout were not altered or restarted.
+
+## Frozen-policy sampler mechanism (ETU-96, 2026-10-04)
+
+`collect_belief` and `train_belief` extend TrainingRegime with explicit frozen
+raw/EMA policy → whole-game private dataset → sampler dependencies. They do not
+mutate ETU-91 or feed a belief loss back into the behavior policy. VerifyStore
+retains attempts/costs; sampler admission binds exact bytes, policy, dataset,
+schema and world. Ordinary last-complete-raw policy selection is unchanged.
+
+managym now exposes hand constraints without enumerating the support, using the
+same pool/minima source as exact possible worlds. Autoregressive count masks
+preserve hand size, known minima and residual card capacity. The physical-deal
+baseline removes known cards before dealing unknown slots. Joint NLL uses truth
+only as a label; inference sees public constraints and a lossy, order-invariant
+commitment summary, not full board/ordered history. Out-of-roster generated
+cards fail explicitly. This is a bounded mechanism, not a calibrated posterior
+on every viewer information set.
+
+Exact-tracker comparison and foreign/adversarial cohort measurement are exposed
+as instruments. Synthetic checks do not replace independent-seed calibration,
+real foreign-policy histories, history-dropout comparisons or matched-time
+complete-game search evidence. These scientific comparisons remain open and
+require their own frozen protocol/budget; no new costly run or paid compute was
+started. Coordinate sampled-hand consumption with the post-RL search Task and
+preserve the exact tracker as a tractable reference. Wider pools still require
+new world-bound complete-loop measurements. See the
+[sampler guide](../../docs/belief-sampler.md).

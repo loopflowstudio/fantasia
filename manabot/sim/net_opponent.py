@@ -66,6 +66,16 @@ class _Pending:
     logprob: float
     value: float
     probabilities: np.ndarray
+    outcome_probabilities: np.ndarray | None = None
+
+
+@dataclass
+class _Transition:
+    """Finalized learner row with its collection-time outcome distribution."""
+
+    pending: _Pending
+    reward: float
+    done: bool
 
 
 @dataclass
@@ -81,6 +91,8 @@ class RolloutBatch:
     next_obs: Dict[str, np.ndarray]
     next_done: np.ndarray
     probabilities: np.ndarray
+    # Collection-time loss/draw/win probabilities [T,E,3], absent for scalar.
+    outcome_probabilities: np.ndarray | None = None
 
 
 @dataclass
@@ -189,7 +201,7 @@ class SeatRoutedCollector:
         #: half the streams have the learner on the play — seat-balanced.
         self.learner_seat = np.arange(num_envs, dtype=np.int64) % 2
 
-        self._streams: list[list[tuple]] = [[] for _ in range(num_envs)]
+        self._streams: list[list[_Transition]] = [[] for _ in range(num_envs)]
         self._pending: list[_Pending | None] = [None] * num_envs
 
         if opponent_mode == "random":
@@ -311,7 +323,14 @@ class SeatRoutedCollector:
             if len(learner_rows):
                 obs_t = self._slice_obs_tensors(learner_rows)
                 with torch.no_grad():
-                    logits, value_t = agent(obs_t)
+                    outcomes: np.ndarray | None = None
+                    if agent.hypers.value_kind == "categorical_wdl":
+                        logits, outcome_logits = agent.forward_distribution(obs_t)
+                        outcome_t = outcome_logits.softmax(dim=-1)
+                        value_t = outcome_t[:, 2] - outcome_t[:, 0]
+                        outcomes = outcome_t.cpu().numpy()
+                    else:
+                        logits, value_t = agent(obs_t)
                     distribution = torch.distributions.Categorical(logits=logits)
                     action_t = torch.multinomial(
                         distribution.probs, 1, generator=self._self_rng
@@ -330,6 +349,9 @@ class SeatRoutedCollector:
                         logprob=float(logprobs[j]),
                         value=float(values[j]),
                         probabilities=probabilities[j].copy(),
+                        outcome_probabilities=(
+                            None if outcomes is None else outcomes[j].copy()
+                        ),
                     )
                 actions[learner_rows] = acts
                 self._count_action_types(
@@ -380,17 +402,7 @@ class SeatRoutedCollector:
     def _finalize(self, row: int, *, reward: float, done: bool) -> None:
         pending = self._pending[row]
         assert pending is not None
-        self._streams[row].append(
-            (
-                pending.obs,
-                pending.action,
-                pending.logprob,
-                pending.value,
-                reward,
-                done,
-                pending.probabilities,
-            )
-        )
+        self._streams[row].append(_Transition(pending, reward, done))
         self._pending[row] = None
         self.stats.learner_transitions += 1
 
@@ -412,19 +424,30 @@ class SeatRoutedCollector:
         }
         next_done = np.zeros((num_envs,), dtype=bool)
         probabilities = np.zeros_like(obs["actions_valid"])
+        outcome_probabilities = (
+            np.zeros((num_steps, num_envs, 3), dtype=np.float32)
+            if self._streams[0][0].pending.outcome_probabilities is not None
+            else None
+        )
 
         for env_index in range(num_envs):
             stream = self._streams[env_index]
             for step in range(num_steps):
-                obs_row, action, logprob, value, reward, done, probs = stream[step]
-                probabilities[step, env_index] = probs
+                transition = stream[step]
+                pending = transition.pending
+                probabilities[step, env_index] = pending.probabilities
+                if outcome_probabilities is not None:
+                    assert pending.outcome_probabilities is not None
+                    outcome_probabilities[step, env_index] = (
+                        pending.outcome_probabilities
+                    )
                 for key in OBS_KEYS:
-                    obs[key][step, env_index] = obs_row[key]
-                actions[step, env_index] = action
-                logprobs[step, env_index] = logprob
-                values[step, env_index] = value
-                rewards[step, env_index] = reward
-                dones[step, env_index] = done
+                    obs[key][step, env_index] = pending.obs[key]
+                actions[step, env_index] = pending.action
+                logprobs[step, env_index] = pending.logprob
+                values[step, env_index] = pending.value
+                rewards[step, env_index] = transition.reward
+                dones[step, env_index] = transition.done
             del stream[:num_steps]
             assert not stream and self._pending[env_index] is None
             for key in OBS_KEYS:
@@ -441,6 +464,7 @@ class SeatRoutedCollector:
             next_obs=next_obs,
             next_done=next_done,
             probabilities=probabilities,
+            outcome_probabilities=outcome_probabilities,
         )
 
 

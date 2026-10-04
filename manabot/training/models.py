@@ -32,6 +32,7 @@ class Schedule(Strict):
 
 
 class Learning(Strict):
+    gradient: Literal["ppo"] = "ppo"
     gamma: float = Field(default=1, ge=0, le=1)
     policy_lambda: float = Field(default=0.95, ge=0, le=1)
     value_lambda: float = Field(default=1, ge=0, le=1)
@@ -47,6 +48,47 @@ class Learning(Strict):
     epochs: int = Field(default=4, ge=1)
     minibatches: int = Field(default=4, ge=1)
     ema: float | None = Field(default=None, ge=0, lt=1)
+
+
+class AtaraxosMoveLearning(Strict):
+    """Supplement S3.4 move update; MTG reference and batch sizes are adaptations.
+
+    Iteration schedules, one epoch and no advantage normalization belong to
+    this method, rather than inheriting the PPO control's elapsed-time recipe.
+    """
+
+    gradient: Literal["ataraxos_move"]
+    policy_lambda: float = Field(default=0.5, ge=0, le=1)
+    value_lambda: float = Field(default=0.8, ge=0, le=1)
+    advantage_quantile: float = Field(default=0.75, ge=0, le=1)
+    min_advantage: float = Field(default=0.01, ge=0)
+    reference: Literal["uniform", "action_type_uniform"] = "action_type_uniform"
+    clip: float = Field(default=0.2, gt=0, lt=1)
+    collection_kl: float = Field(default=0.1, ge=0)
+    learning_rate_scale: float = Field(default=0.5, gt=0)
+    learning_rate_power: float = Field(default=1.1, ge=0)
+    learning_rate_min: float = Field(default=5e-6, gt=0)
+    learning_rate_max: float = Field(default=1e-4, gt=0)
+    tau_scale: float = Field(default=0.05, ge=0)
+    tau_power: float = Field(default=0.3, ge=0)
+    max_grad_norm: float = Field(default=0.267, gt=0)
+    ema: float | None = Field(default=0.999, ge=0, lt=1)
+
+    @model_validator(mode="after")
+    def valid_learning_rate_bounds(self) -> "AtaraxosMoveLearning":
+        if self.learning_rate_min > self.learning_rate_max:
+            raise ValueError("learning rate minimum exceeds maximum")
+        return self
+
+    def rates(self, iteration: int) -> tuple[float, float]:
+        """One-based completed collection/update iteration, including skips."""
+        if iteration < 1:
+            raise ValueError("Ataraxos iteration must be positive")
+        rate = self.learning_rate_scale / iteration**self.learning_rate_power
+        return (
+            min(self.learning_rate_max, max(self.learning_rate_min, rate)),
+            self.tau_scale / iteration**self.tau_power,
+        )
 
 
 class Execution(Strict):
@@ -98,11 +140,35 @@ class TrainSelfPlay(Stage):
     updates: int = Field(default=2, ge=1)
     streams: int = Field(default=4, ge=2)
     transitions: int = Field(default=256, ge=1)
-    learning: Learning = Learning()
+    learning: Learning | AtaraxosMoveLearning = Learning()
+
+
+class CollectBelief(Stage):
+    """Freeze one admitted policy artifact before collecting private labels."""
+
+    operation: Literal["collect_belief"]
+    policy: str
+    weights: Literal["raw", "ema"] = "raw"
+    games: int = Field(ge=3)
+    max_steps: int = Field(default=2000, ge=1)
+
+
+class TrainBelief(Stage):
+    """Fit only the sampler; policy weights are never updated by belief NLL."""
+
+    operation: Literal["train_belief"]
+    dataset: str
+    steps: int = Field(default=32, ge=1)
+    batch_size: int = Field(default=32, ge=1)
+    hidden_size: int = Field(default=32, ge=2)
+    learning_rate: float = Field(default=0.001, gt=0)
+    history_dropout: float = Field(default=0, ge=0, le=1)
+    evaluation_samples: int = Field(default=32, ge=1)
 
 
 Operation = Annotated[
-    CollectSearch | TrainSupervised | TrainSelfPlay, Field(discriminator="operation")
+    CollectSearch | TrainSupervised | TrainSelfPlay | CollectBelief | TrainBelief,
+    Field(discriminator="operation"),
 ]
 
 
@@ -136,6 +202,24 @@ class TrainingRegime(Strict):
         for stage in self.stages:
             if stage.id in previous:
                 raise ValueError("stage IDs must be unique")
+            if isinstance(stage, CollectBelief):
+                policy = previous.get(stage.policy)
+                if not isinstance(policy, (TrainSupervised, TrainSelfPlay)):
+                    raise ValueError(
+                        "belief policy must refer to an earlier policy stage"
+                    )
+                if stage.weights == "ema" and (
+                    not isinstance(policy, TrainSelfPlay) or policy.learning.ema is None
+                ):
+                    raise ValueError(
+                        "belief EMA dependency requires an EMA policy artifact"
+                    )
+            if isinstance(stage, TrainBelief) and not isinstance(
+                previous.get(stage.dataset), CollectBelief
+            ):
+                raise ValueError(
+                    "belief dataset must refer to an earlier belief collection"
+                )
             if isinstance(stage, TrainSupervised):
                 if len(stage.datasets) != len(set(stage.datasets)):
                     raise ValueError("dataset references must be unique")
@@ -158,10 +242,17 @@ class TrainingRegime(Strict):
                 if (
                     parent.streams != stage.streams
                     or parent.learning.ema != stage.learning.ema
+                    or parent.learning.gradient != stage.learning.gradient
                 ):
                     raise ValueError(
-                        "live self-play continuation must preserve streams and EMA clock"
+                        "live self-play continuation must preserve streams, gradient and EMA clock"
                     )
+            if self.agent.value_kind == "categorical_wdl" and (
+                isinstance(stage, TrainSupervised)
+                or isinstance(stage, TrainSelfPlay)
+                and not isinstance(stage.learning, AtaraxosMoveLearning)
+            ):
+                raise ValueError("categorical outcome training requires ataraxos_move")
             previous[stage.id] = stage
             if isinstance(stage, TrainSelfPlay):
                 latest_self_play = stage
