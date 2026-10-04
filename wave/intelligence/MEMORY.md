@@ -370,3 +370,33 @@ Jack Heart requested keeping ETU-91 and its checkout open to preserve ignored
 [study protocol](../../experiments/training-regimes.md). This evidence does not
 satisfy ETU-82's demo-run contract, ETU-85's improvement comparison, S1–S5
 competence, or the chapter's human-challenger outcome.
+
+## Direct self-play treatment contracts (2026-10-04)
+
+Self-play transitions use end-of-transition terminal flags. Stock PPO's
+start-of-episode GAE convention cannot consume them unchanged. Collection must
+pause fast streams at their exact next learner observation, preserve every
+observation tensor and recompute actions under the next collection policy;
+banking surplus transitions across updates breaks that contract. Collection
+KL uses the saved full legal behavior distribution, not reconstructed updated
+weights. Independent policy/value estimators, filtering, reference choices and
+schedules are runnable treatments, not exact Ataraxos reproduction.
+
+EMA is an evaluation artifact with a collect/update-iteration clock, including
+empty-filter skips. Its helper averages parameters and copies buffers without
+changing learner/behavior weights. Local ETU-90 proofs exercise an empty-filter
+continuation: learner weights stay fixed while the evaluation average advances.
+Collector match metadata passes through the Trainer env shim for ordinary
+checkpoint admission.
+
+ETU-90 independently validated the integrated semantic ABI on 2026-10-04 after
+syncing published parent `9a1b90df`. The retained normal and empty-filter runs
+in `.runs/etu90-semantic-final` each completed 14 games and 1,024 learner
+transitions across two stages. All eight raw/EMA artifacts passed the ordinary
+loader with semantic inputs and authored sideboards. Empty-filter continuation
+retained learner weights with zero optimizer exposures while EMA advanced;
+collection, learning and export costs remained recorded. The affected Python
+suite passed 65 tests (one notebook dependency skip), and six native debug
+vector tests passed after rebuilding the extension. These are current-ABI
+workflow and treatment-correctness proofs, not strength or human-play results.
+ETU-91 retains ownership of final replayed study/notebook evidence.
