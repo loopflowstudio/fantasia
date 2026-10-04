@@ -24,6 +24,7 @@ from manabot.training.execution import atomic_json, execute_regime
 from manabot.training.models import (
     CollectSearch,
     StageRecord,
+    TrainCompound,
     TrainingRegime,
     TrainingRun,
     TrainSelfPlay,
@@ -33,6 +34,12 @@ from manabot.verify.store import VerifyStore
 ROOT = Path(__file__).resolve().parents[2]
 STUDIES = {
     "omitted-controls": [],
+    "compound-decisions": [
+        "compound-sequential-bootstrap",
+        "compound-grouped-bootstrap",
+        "compound-sequential-outcome",
+        "compound-grouped-outcome",
+    ],
     "learning-speed": ["search-distillation", "direct-self-play"],
     "ataraxos-ablations": [
         "rl-control",
@@ -44,7 +51,9 @@ STUDIES = {
 }
 
 
-def registration(run, stage, variant="raw"):
+def registration(
+    run: TrainingRun, stage: StageRecord, variant: str = "raw"
+) -> PlayerRegistration:
     artifact = stage.artifacts[variant]
     agent, _ = load_checkpoint_agent(artifact["path"])
     identity = run.identities
@@ -59,7 +68,9 @@ def registration(run, stage, variant="raw"):
             "device": "cpu",
             "batch_size": 1,
         },
-        compute_class_id="policy-cpu-one-thread-one-pass",
+        compute_class_id="compound-cpu-one-thread-autoregressive"
+        if run.regime.agent.compound_decisions
+        else "policy-cpu-one-thread-one-pass",
         information_boundary="acting-viewer",
         world=run.regime.world,
         content_suite=SELECTED_SUITE,
@@ -75,7 +86,7 @@ def registration(run, stage, variant="raw"):
     )
 
 
-def smoke_recipe(name):
+def smoke_recipe(name: str) -> TrainingRegime:
     recipe = TrainingRegime.model_validate_json(
         (ROOT / "experiments/regimes" / f"{name}.json").read_text()
     )
@@ -85,6 +96,10 @@ def smoke_recipe(name):
         if isinstance(stage, CollectSearch):
             stage.simulations = 4
             stage.worlds = 1
+        elif isinstance(stage, TrainCompound):
+            stage.games_per_update = 1
+            stage.updates = 1
+            stage.learning.epochs = 1
         elif isinstance(stage, TrainSelfPlay):
             stage.transitions = 64
             stage.updates = 2
@@ -94,8 +109,12 @@ def smoke_recipe(name):
     return TrainingRegime.model_validate(recipe.model_dump())
 
 
-def calibration_plan(study):
+def calibration_plan(study: str) -> ResolvedStudy:
     """Resolve a bounded CPU timing cohort without starting training."""
+    if study == "compound-decisions":
+        raise ValueError(
+            "compound scoring needs its own measured protocol and authorized allocation"
+        )
     recipes = []
     for name in STUDIES[study]:
         recipe = TrainingRegime.model_validate_json(
@@ -131,7 +150,9 @@ def calibration_plan(study):
     )
 
 
-def run_study(study, out, plan=None, resume=False):
+def run_study(
+    study: str, out: Path, plan: ResolvedStudy | None = None, resume: bool = False
+) -> None:
     if "cumulative_seconds" not in StageRecord.model_fields:
         raise RuntimeError(
             "ETU-89 cumulative checkpoint clock must be integrated before study execution"
@@ -256,11 +277,11 @@ def run_study(study, out, plan=None, resume=False):
     if remaining <= 0:
         raise TimeoutError("frozen study allocation is exhausted; cannot resume")
 
-    def save():
+    def save() -> None:
         result["seconds"] = time.perf_counter() - start
         atomic_json(out / "study.json", result)
 
-    def deadline(*_):
+    def deadline(*_: object) -> None:
         raise TimeoutError("study exceeded its frozen process deadline")
 
     signal.signal(signal.SIGALRM, deadline)
@@ -361,7 +382,9 @@ def run_study(study, out, plan=None, resume=False):
             anchor_cohort_sha256=canonical_sha256(
                 [a.model_dump(mode="json") for a in anchors]
             ),
-            evaluation_compute_envelope_id="policy-cpu-one-thread-one-pass",
+            evaluation_compute_envelope_id="compound-cpu-one-thread-autoregressive"
+            if study == "compound-decisions"
+            else "policy-cpu-one-thread-one-pass",
         )
 
         def compare_variant(
@@ -485,6 +508,11 @@ def run_study(study, out, plan=None, resume=False):
                         export_seconds=sum(s.export_seconds for s in cumulative),
                         decisions=sum(s.environment_decisions for s in cumulative),
                         games=sum(s.games for s in cumulative),
+                        **(
+                            {"compound_accounting": [s.diagnostics for s in cumulative]}
+                            if run.regime.agent.compound_decisions
+                            else {}
+                        ),
                         score=sum(
                             r["score_a"] if is_a else 1 - r["score_a"] for r in rows
                         )
