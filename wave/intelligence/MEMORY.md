@@ -302,8 +302,11 @@ Jack Heart split training work into ETU-89 (regime/run infrastructure), ETU-90
 (RL correctness/treatments), and ETU-91 (studies and analysis), then requested
 three dedicated workers. The study recipes and proposed scientific allocations
 are in [the comparison protocol](../../experiments/training-regimes.md) and
-[the ablation protocol](../../experiments/ataraxos-mtg-ablations.md). Expensive
-runs remain unfunded; bounded smoke execution does not freeze their constants.
+[the ablation protocol](../../experiments/ataraxos-mtg-ablations.md). Jack Heart subsequently authorized scientific execution after integration and
+landing within 168 active laptop hours total, including calibration and the
+ablation screen. The root session owns the single launch; workers must not
+start competing training. Counts and allocations must be frozen from measured
+integrated CPU calibration before scoring; smoke does not freeze them.
 
 A fixed number of updates or checkpoints is not equal training cost. Compare
 fixed-anchor scores only over overlapping observed cost ranges, with the last
@@ -312,7 +315,11 @@ the cost axis; never credit a later student during earlier data collection.
 No overlap means the equal-cost comparison is unavailable. One seed and one
 four-leg deal block provide workflow evidence, not method-level uncertainty.
 
-ETU-91's inherited-ABI smoke and report regeneration are preliminary. Final
+ETU-91's inherited-ABI smoke and report regeneration are preliminary. The two
+retained cohorts contain 24 and 72 exact-replayed games, but neither has
+overlapping observed cost ranges across all arms; equal-cost results remain
+unavailable. Summing setup and stage durations omits inter-stage persistence;
+final study accounting needs the executor's cumulative checkpoint clock. Final
 study acceptance still requires the integrated ETU-89/ETU-90 implementation
 and ETU-75 semantic checkpoint admission. Study arena evidence does not satisfy
 ETU-82's demo-run contract, ETU-85's improvement comparison, S1–S5 competence,
