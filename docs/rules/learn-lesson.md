@@ -67,12 +67,16 @@ synchronization, and PUCT import isolation. Twenty checks still depend on
 historical authority/advice/Study or experiment identities, old checkpoint
 bindings or old tensor shards. Those positive historical replay/admission
 claims remain unproven; no full-suite green or delivery readiness is claimed.
-The final-source v3 cohort result remains pending.
+The final-source v3 cohort also passed all 16 games and 3,843 Commands, with
+zero mismatches. Every tape SHA-256 equals its retained v2 counterpart. The
+source-bound aggregate verifier rebuilt the extension and passed its 57
+focused checks before scoring. This does not resolve the historical gate
+blockers or supply the missing human Command tapes.
 
 ## Accepted setup and interaction
 
-The September reviewer (name not retained in the source) chose formal sideboards: “We just need to give decks formal
-sideboards.” The proposed lists were “totally fine for now,” and “Sideboards
+The September reviewer (name not retained in the source) chose formal
+sideboards: “We just need to give decks formal sideboards.” The proposed lists were “totally fine for now,” and “Sideboards
 should be open-decklist, as are the matches.” Keep the shipped main decks:
 UR has 41 cards and GW has 40.
 
@@ -88,7 +92,7 @@ sideboarding, hidden custom sideboards and a general format framework are out
 of scope. Supported non-Lessons may be admitted to a sideboard but cannot be
 retrieved by Learn. Invalid names, tokens and counts fail admission.
 
-The human preferred “Probably first choice then select a card” and approved the
+The September reviewer preferred “Probably first choice then select a card” and approved the
 design with “approve design.” Present Take a Lesson, Discard and draw, or
 Decline Learn, then a card selector with previews and Back for the first two.
 The engine offers every complete atomic choice. Local navigation commits
@@ -143,7 +147,7 @@ navigation atomicity and reconnect reset. This does not prove the proposed
 Pop Quiz or reversed-seat Search demo.
 
 In the existing live human session, after receiving the URL and walkthrough,
-the human replied **“works. approved”**. This accepts the working interaction
+the September reviewer replied **“works. approved”**. This accepts the working interaction
 and requests no control or sideboard changes. It is not an itemized report of
 every outcome: that session collected no per-attempt Command tape or match
 identity. Do not infer them, reopen the accepted interaction gate, or create a

@@ -39,10 +39,22 @@ preserves accepted decisions, dated proof limits and source history.
   On 2026-09-25 that reviewer said “works. approved.” This accepts the demonstrated
   working interaction; it supplies no missing per-attempt tapes and does not
   authorize publication or completion. Do not request duplicate acceptance.
-- Native/raw projection and bounded Learn kind/focus tests pass, but complete
-  policy semantics/knowledge, w3 ordinary checkpoints, configured Search,
-  reversed-seat demo and registered same-tape parity remain open. Full gates
-  are not green. All remain in ETU-75; no new substrate Tasks are needed.
+- On 2026-10-04 complete policy programs/knowledge, ordinary w4 bindings and
+  configured Search in both seats gained focused execution proof. The
+  prospectively registered v2 cohort passed all 16 games and 3,843 Commands
+  with 19 retrievals, 25 discard/draws and 14 declines. Final-source v3 also
+  passed all 16 cases after import-isolation and diagnostic repairs; its tapes
+  are byte-identical to v2, with zero state/consequence/viewer mismatches.
+  All receipts and the earlier unscored v1 registration remain retained.
+- Full gates are not green: the broad Python run had 813 passes and 30
+  failures; ten current-test/import failures were repaired with focused proof.
+  Twenty historical authority/advice and experiment checks remain incompatible.
+  In particular, frozen advice binds action ABI 3 / possible-world ABI 1,
+  versus current 6 / 2, and its retained checkpoint lacks the ordinary w4
+  binding. The repo gate explicitly preserves frozen advice failures as
+  delivery blockers; do not rewrite them to make the branch green.
+  ETU-75 stays open. No trained-challenger admission, missing human tapes,
+  strength or runtime-budget result is supplied by synthetic checkpoint tests.
 - Changed rules invalidate compatible-looking old evidence. Preserve frozen
   receipts and register all 16 seed/seat attempts before scoring the corrected
   world. Human interaction acceptance and consumer conformance are separate

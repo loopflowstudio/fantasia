@@ -1,0 +1,128 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Learn through ordinary policies — ETU-75 review</title><style>body{max-width:960px;margin:auto;padding:32px 24px;background:#faf8f3;color:#20252b;font:18px/1.65 system-ui}h1{font-size:40px;line-height:1.15}h2{font-size:27px;line-height:1.3}a{color:#174a88}nav{display:flex;flex-wrap:wrap;gap:16px;border-block:1px solid #b7b5ad;padding:16px 0}section{margin:48px 0}pre{background:#17212b;color:#f5f7fa;padding:20px;overflow:auto;font:14px/1.6 ui-monospace,monospace;border-radius:5px}.caption{font-size:14px;color:#4c535c}.limit{border-left:5px solid #955018;padding:12px 22px;background:#fff0db}@media(max-width:600px){body{padding:20px 16px}h1{font-size:31px}pre{font-size:12px}}@media print{body{background:white;padding:0}pre{white-space:pre-wrap;overflow-wrap:anywhere}nav{display:none}section{break-inside:avoid}}</style><h1>Learn through ordinary policies</h1><p>ETU-75 local review. Compare synced main <code>11169379</code> with local implementation checkpoint <code>dc0f04b8</code>. This walkthrough covers the continuation after the accepted Learn controls; it is not a published PR or a merge recommendation.</p><nav><a href="#choice">Taking a Lesson still uses one owned copy</a><a href="#programs">The policy can distinguish the offered Lessons</a><a href="#knowledge">A revealed Lesson changes what both policies can know</a><a href="#admission">An old or differently configured checkpoint cannot start play</a><a href="#load">Ordinary play and search use that same checkpoint contract</a><a href="#replay">The same Commands must reproduce every revision</a></nav><section id="choice"><h2>Taking a Lesson still uses one owned copy</h2><p>The accepted browser controls and native Learn rules already exist in the synced base. Taking a Lesson checks ownership and availability, reveals its definition, moves the ordinary card into hand, records public knowledge and resumes resolution. This continuation brings that meaning into the ordinary model and checkpoint path.</p><p class="caption">Local checkpoint dc0f04b8 · managym/src/flow/decision.rs:543–565. Revision link resolves after publication: <a href="https://github.com/loopflowstudio/etude/blob/dc0f04b8/managym/src/flow/decision.rs#L543-L565">source</a>.</p><pre><code>543:             (Decision::Learn { player }, Action::LearnTakeLesson { card, .. }) =&gt; {
+544:                 if !self.eligible_lesson(*player, *card) {
+545:                     self.state.suspended_decision = Some(suspended);
+546:                     return Err(AgentError(
+547:                         &quot;card is not an available owned sideboard Lesson&quot;.to_string(),
+548:                     ));
+549:                 }
+550:                 let definition = self.state.cards[*card].definition_id;
+551:                 self.emit(crate::flow::event::GameEvent::CardRevealed {
+552:                     owner: *player,
+553:                     definition,
+554:                 });
+555:                 self.move_card(*card, ZoneType::Hand);
+556:                 if self.state.zones.contains(*card, ZoneType::Hand, *player) {
+557:                     let count = self.state.players[player.0]
+558:                         .known_hand
+559:                         .get(&amp;definition)
+560:                         .copied()
+561:                         .unwrap_or(0);
+562:                     self.set_known_hand_count(*player, definition, count + 1);
+563:                 }
+564:                 self.run_frame(suspended.frame);
+565:                 Ok(())</code></pre></section><section id="programs"><h2>The policy can distinguish the offered Lessons</h2><p>Every admitted definition uses the complete checked semantic catalog, including referenced definitions and program boundaries. The GRU receives all tokens; there is no fixed prefix budget. The selected-pack option is explicit and required when writing or loading its ordinary checkpoint. This is an exact-pack input implementation, not evidence of transfer or playing strength.</p><p class="caption">Local checkpoint dc0f04b8 · manabot/model/semantic_cards.py:39–61. Revision link resolves after publication: <a href="https://github.com/loopflowstudio/etude/blob/dc0f04b8/manabot/model/semantic_cards.py#L39-L61">source</a>.</p><pre><code>39:             if row in ancestors:
+40:                 raise ValueError(&quot;cyclic semantic definition reference is not admitted&quot;)
+41:             start, stop = catalog.definition_offsets[row : row + 2]
+42:             spans = [(int(start), int(stop))]
+43:             for program in pack.program_rows(row):
+44:                 start, stop = catalog.program_offsets[program : program + 2]
+45:                 spans.append((int(start), int(stop)))
+46:             tokens = []
+47:             for start, stop in spans:
+48:                 for offset in range(start, stop):
+49:                     tokens.append(vocabulary[pairs[offset]])
+50:                     if offset in references:
+51:                         tokens.extend(
+52:                             definition_tokens(references[offset], (*ancestors, row))
+53:                         )
+54:             return tokens
+55: 
+56:         # Structure, execution order, program boundaries and referenced token
+57:         # definitions come from the checked catalog. Nothing is truncated.
+58:         rows = [definition_tokens(row) for row in range(len(pack.ir.definitions))]
+59:         width = max(map(len, rows))
+60:         self.semantic_pack_hash = pack.semantic_pack_hash
+61:         self.token_embedding = nn.Embedding(len(vocabulary) + 1, hidden_dim)</code></pre></section><section id="knowledge"><h2>A revealed Lesson changes what both policies can know</h2><p>Public known-definition counts enter player embeddings separately from visible card programs. The opponent hand remains hidden. The actual policy test observes different retrieval scores and a changed value after removing public knowledge, and checks identical new input channels across hidden-world samples.</p><p class="caption">Local checkpoint dc0f04b8 · manabot/model/agent.py:205–220. Revision link resolves after publication: <a href="https://github.com/loopflowstudio/etude/blob/dc0f04b8/manabot/model/agent.py#L205-L220">source</a>.</p><pre><code>205:     ) -&gt; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+206:         enc_agent_player = self.player_embedding(obs[&quot;agent_player&quot;])
+207:         enc_opp_player = self.player_embedding(obs[&quot;opponent_player&quot;])
+208:         enc_agent_cards = self.card_embedding(obs[&quot;agent_cards&quot;])
+209:         enc_opp_cards = self.card_embedding(obs[&quot;opponent_cards&quot;])
+210:         if self.semantic_cards is not None:
+211:             cards, known = self.semantic_cards(obs)
+212:             enc_agent_cards = enc_agent_cards + cards[:, 0]
+213:             enc_opp_cards = enc_opp_cards + cards[:, 1]
+214:             enc_agent_player = enc_agent_player + known[:, 0, None]
+215:             enc_opp_player = enc_opp_player + known[:, 1, None]
+216:         enc_agent_perms = self.perm_embedding(obs[&quot;agent_permanents&quot;])
+217:         enc_opp_perms = self.perm_embedding(obs[&quot;opponent_permanents&quot;])
+218:         object_parts = [
+219:             enc_agent_player,
+220:             enc_opp_player,</code></pre></section><section id="admission"><h2>An old or differently configured checkpoint cannot start play</h2><p>Admission recomputes the full world, paired main-deck/sideboard setup, content manifest and input schema before loading weights. Seat reversal is compatible; missing bindings and altered setups fail. The w4 native rules identity from main is preserved.</p><p class="caption">Local checkpoint dc0f04b8 · manabot/model/world.py:85–109. Revision link resolves after publication: <a href="https://github.com/loopflowstudio/etude/blob/dc0f04b8/manabot/model/world.py#L85-L109">source</a>.</p><pre><code>85: 
+86: 
+87: def validate_checkpoint_world(
+88:     checkpoint: Mapping[str, Any], observation_space: Any, player_configs=None
+89: ) -&gt; dict:
+90:     binding = checkpoint.get(&quot;world_binding&quot;)
+91:     if not isinstance(binding, dict) or binding.get(&quot;world&quot;) != WORLD:
+92:         raise ValueError(
+93:             f&quot;checkpoint requires an explicit compatible {WORLD} world binding&quot;
+94:         )
+95:     try:
+96:         configs = player_configs
+97:         if configs is None:
+98:             configs = [
+99:                 managym.PlayerConfig(str(index), setup[&quot;deck&quot;], setup[&quot;sideboard&quot;])
+100:                 for index, setup in enumerate(binding[&quot;setups&quot;])
+101:             ]
+102:         expected = checkpoint_world(configs, observation_space)
+103:     except (KeyError, TypeError, ValueError) as error:
+104:         raise ValueError(&quot;checkpoint world binding has invalid setup&quot;) from error
+105:     if _digest(binding) != _digest(expected):
+106:         raise ValueError(
+107:             &quot;checkpoint world/setup/input binding differs from this runtime&quot;
+108:         )
+109:     return binding</code></pre></section><section id="load"><h2>Ordinary play and search use that same checkpoint contract</h2><p>The ordinary loader validates the binding and required semantic input before loading weights. The admitted Agent carries its setup binding; live play and policy, rollout, PUCT and value wrappers reject another actual matchup before executing it. ETU-89 owns training regimes and consumes these same APIs.</p><p class="caption">Local checkpoint dc0f04b8 · manabot/sim/flat_mc.py:198–214. Revision link resolves after publication: <a href="https://github.com/loopflowstudio/etude/blob/dc0f04b8/manabot/sim/flat_mc.py#L198-L214">source</a>.</p><pre><code>198:     checkpoint = torch.load(path, map_location=&quot;cpu&quot;, weights_only=False)
+199:     hypers = checkpoint[&quot;hypers&quot;]
+200:     obs_space = ObservationSpace(ObservationSpaceHypers(**hypers[&quot;observation_hypers&quot;]))
+201:     from manabot.model.world import validate_checkpoint_world, validate_policy_input
+202: 
+203:     world_binding = validate_checkpoint_world(checkpoint, obs_space)
+204:     agent = Agent(obs_space, AgentHypers(**hypers[&quot;agent_hypers&quot;]))
+205:     validate_policy_input(agent, world_binding)
+206:     agent.world_binding = world_binding
+207:     binding = None
+208:     if agent.belief_count_buckets &gt; 0:
+209:         binding = BeliefCheckpointBinding.from_checkpoint(checkpoint)
+210:     agent.load_state_dict(checkpoint[&quot;model_state_dict&quot;])
+211:     agent.eval()
+212:     if include_belief_binding:
+213:         return agent, obs_space, binding
+214:     return agent, obs_space</code></pre></section><section id="replay"><h2>The same Commands must reproduce every revision</h2><p>The registered cohort reuses the existing GameSession tape and headless replay runner. It compares full state witnesses, ordered consequences and both canonical viewer observations. All 16 seed/seat attempts are registered with a 10,000-Command cap. Automated evidence does not supply missing historical human tapes.</p><p class="caption">Local checkpoint dc0f04b8 · etude/learn_lesson_evidence.py:114–142. Revision link resolves after publication: <a href="https://github.com/loopflowstudio/etude/blob/dc0f04b8/etude/learn_lesson_evidence.py#L114-L142">source</a>.</p><pre><code>114:     )
+115:     for viewer in (0, 1):
+116:         projection = project_replay(replay, viewer)
+117:         for row in projection.decisions:
+118:             if row.frame.projection.opponent.hand:
+119:                 raise ValueError(&quot;persisted replay exposed the opponent hand&quot;)
+120:     replay_tape = [
+121:         {**row, &quot;command&quot;: saved.command.model_dump(mode=&quot;json&quot;)}
+122:         for row, saved in zip(tape, replay.decisions, strict=True)
+123:     ]
+124:     for surface, commands in ((&quot;headless&quot;, tape), (&quot;replay&quot;, replay_tape)):
+125:         actual, _ = _run_engine(surface, commands, config=config)
+126:         _equal(
+127:             surface, 0, &quot;all_checkpoints&quot;, result[&quot;checkpoints&quot;], actual[&quot;checkpoints&quot;]
+128:         )
+129: 
+130: 
+131: def attempt(seed, reverse):
+132:     result = {&quot;seed&quot;: seed, &quot;reverse&quot;: reverse, &quot;status&quot;: &quot;failed&quot;, &quot;tape&quot;: []}
+133:     with TemporaryDirectory() as temporary:
+134:         session = GameSession(
+135:             Path(temporary),
+136:             capture_authority_evidence=True,
+137:             id_factory=lambda kind: f&quot;learn-{seed}-{int(reverse)}-{kind}&quot;,
+138:         )
+139:         try:
+140:             session, _ = play_fixed_authored_match(
+141:                 seed=seed, reverse=reverse, max_commands=10000, session=session
+142:             )</code></pre></section><section id="evidence"><h2>Evidence and the delivery boundary</h2><p>Newly run: full debug Rust suite, formatting and clippy; 57 focused checkpoint/Learn checks; frontend type checking and 96 unit tests; all three headless Learn/release-matrix browser scenarios. Screenshots were ignored on macOS; pinned Linux visual references are not certified.</p><p class="limit">The broad Python gate returned 813 passed and 30 failed. Ten failures were repaired and verified in focused checks; twenty historical identity/admission checks remain incompatible. A frozen checkpoint-advice fixture mismatch is confirmed: action ABI 3 versus current 6, possible-world ABI 1 versus current 2, and different content/replay identities. The repository gate explicitly preserves this as a blocker. Historical fixtures have not been regenerated. The first scored 16-game cohort passed all 3,843 Commands. Its receipts remain retained at the original source. The final-source v3 cohort also passed all 16 games and 3,843 Commands, with byte-identical tapes and zero state, consequence or viewer mismatches. The exact-source aggregate rebuilt the extension and passed all 57 focused checks.</p><p>Rendering is unavailable in this headless run. Excerpts are escaped and readable offline. Historical working-interaction approval stands; no new human completion, training strength or runtime-budget evidence is claimed. ETU-75 remains open.</p></section></html>

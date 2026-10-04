@@ -65,7 +65,7 @@ omission; retain one model/encoder path and existing replay authority. Complete
 semantic programs may not be prefix-truncated, public knowledge may not reveal
 physical copies, and missing evidence may not become a successful receipt.
 
-Check result: full debug Rust, fmt, clippy, 57 focused Python checks, frontend type checking/96 unit tests, and all 3 headless release browser scenarios pass; broad Python gate remains running with confirmed frozen checkpoint-advice mismatch.
+Check result: full debug Rust, fmt, clippy, 57 focused Python checks, frontend type checking/96 unit tests, and all 3 headless release browser scenarios pass; broad Python gate: 813 passed/30 failed, ten failures repaired in focused reruns; twenty historical identity/admission checks remain blocking.
 
 ## Main convergence, 2026-10-04
 
@@ -77,8 +77,10 @@ complete semantic policy path have focused execution and rejection evidence.
 ETU-89 received the ordinary Trainer.save/load_checkpoint_agent integration
 boundary through its existing Task; training abstractions remain its owner.
 The registered parity cohort remains a separate requirement; v1 was unscored
-when verifier review added explicit seed/setup/cap checks. v2 registers all
-16 attempts prospectively before scoring. Frozen advice evidence is a required
+when verifier review added explicit seed/setup/cap checks. v2 registered all
+16 attempts prospectively and passed all 3,843 Commands. v3 passed that fixed
+cohort after final gate import/diagnostic repairs with byte-identical tapes; latest main `11169379` is
+merged without changing w4. Frozen advice evidence is a required
 gate blocker under `.lf/steps/gate.md`; do not regenerate it for this change.
 
 Sync check: merged main w4; debug cleanup (2) and Learn (12) tests pass; rebuilt cp312 extension and checkpoint/demo checks pass (12). Broader gate remains separate.
