@@ -142,6 +142,11 @@ def smoke_plan(name: ContrastName) -> ResolvedStudy:
             paired_deals=(963001,),
             anchor_deals=(964001,),
             evaluation_variants=contrast.evaluation_variants,
+            selection=(
+                "all-completed-cutoffs-raw-and-ema"
+                if "ema" in contrast.evaluation_variants
+                else "all-completed-cutoffs-raw"
+            ),
             process_seconds=600,
         ),
         recipes=tuple(r.model_dump(mode="json") for r in recipes),

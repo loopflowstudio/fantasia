@@ -28,14 +28,23 @@ class EvaluationProtocol(BaseModel):
     game_seconds: float = Field(default=120, gt=0, le=120)
     max_commands: int = Field(default=10000, gt=0, le=10000)
     process_seconds: float = Field(default=900, gt=0, le=168 * 3600)
-    selection: Literal["all-completed-cutoffs-raw"] = "all-completed-cutoffs-raw"
+    selection: Literal[
+        "all-completed-cutoffs-raw", "all-completed-cutoffs-raw-and-ema"
+    ] = "all-completed-cutoffs-raw"
     uncertainty: Literal["cross-seed-unavailable", "paired-seed-descriptive"] = (
         "cross-seed-unavailable"
     )
     incomplete: Literal["fail-retain-all-attempts"] = "fail-retain-all-attempts"
 
     @model_validator(mode="after")
-    def disjoint(self):
+    def disjoint(self) -> "EvaluationProtocol":
+        expected_selection = (
+            "all-completed-cutoffs-raw-and-ema"
+            if "ema" in self.evaluation_variants
+            else "all-completed-cutoffs-raw"
+        )
+        if self.selection != expected_selection:
+            raise ValueError("selection label must agree with evaluation variants")
         if not self.evaluation_variants or len(set(self.evaluation_variants)) != len(
             self.evaluation_variants
         ):
@@ -140,7 +149,7 @@ class ResolvedStudy(BaseModel):
     calibration_evidence: str
 
     @model_validator(mode="after")
-    def allocation(self):
+    def allocation(self) -> "ResolvedStudy":
         from manabot.arena.models import canonical_sha256
         from manabot.training.models import TrainingRegime, TrainSelfPlay
 

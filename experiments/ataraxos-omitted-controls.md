@@ -124,3 +124,26 @@ are executable now, but are not automatically selected by the first screen.
 Retain/reject requires a separately frozen criterion and complete cohort;
 workflow smoke always reports unresolved. No result here establishes S1–S5,
 checkpoint-to-demo admission, completed human games or chapter strength.
+
+## Bounded implementation evidence
+
+At implementation commit `a8895883`, one behavior-EMA workflow attempt completed
+in 116.83 seconds at `.runs/etu93-behavior`. Raw-self Run
+`c5bb16b267494d1ab6ce044d7bc90b60` and EMA-self Run
+`9c9a696e725345b48b73999a813aa747` each completed seven training games and 1,024
+learner transitions/exposures, in 7.05 and 6.66 seconds respectively. All eight
+raw/EMA checkpoint exports were admitted. Twelve arena cells produced 48 full
+games with exact replay. Observed cost ranges overlapped. These timings were
+collected alongside tests and are not CPU calibration or learning comparisons.
+No standalone training/arena attempt failed. The first local test invocation
+failed during import because this checkout lacked its native extension; it ran
+no training. The extension was built locally before verification.
+
+Offline regeneration preserved byte-identical cost comparisons, uncertainty,
+selection diagnostics and report. The saved workflow protocol's old generic
+`selection` label said raw, while its explicit variants and receipts included
+both raw and EMA. Final validation now requires that label to agree with the
+variants; the original proof bytes were retained unchanged. The affected suite
+passed 98 tests; 20 focused checks then passed after that metadata correction,
+including variant replicate counting and actual collection values matching the
+previous EMA checkpoint rather than raw weights. No Rust source changed.

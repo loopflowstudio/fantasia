@@ -119,6 +119,14 @@ def test_real_ema_behavior_and_actor_only_empty_filter(
         np.testing.assert_allclose(
             values.numpy().reshape(batch.values.shape), batch.values, atol=1e-6
         )
+        if collected:
+            raw, _ = load_checkpoint_agent(str(tmp_path / "run/policy-0-raw.pt"))
+            averaged, _ = load_checkpoint_agent(str(tmp_path / "run/policy-0-ema.pt"))
+            with torch.no_grad():
+                raw_values = raw.get_value(tensors)
+                averaged_values = averaged.get_value(tensors)
+            torch.testing.assert_close(values, averaged_values, rtol=0, atol=1e-6)
+            assert not torch.allclose(values, raw_values, rtol=0, atol=1e-6)
         collected.append(agent)
         return batch
 
@@ -147,3 +155,42 @@ def test_real_ema_behavior_and_actor_only_empty_filter(
     bad["stages"][0]["learning"]["ema"] = None
     with pytest.raises(ValueError, match="EMA"):
         TrainingRegime.model_validate(bad)
+
+
+def test_variants_never_add_training_replicates() -> None:
+    from manabot.training.analysis import paired_uncertainty
+
+    cells = [
+        dict(
+            a="candidate",
+            b="random",
+            cutoff=0,
+            phase="development",
+            variant=variant,
+            training_seed=seed,
+            b_training_seed=None,
+            scheduled_games=4,
+            replay={"passed": True},
+            rows=[
+                dict(
+                    deal_seed=964001,
+                    score_a=float(variant == "ema"),
+                    failure=None,
+                    terminated=True,
+                    truncated=False,
+                    replay_passed=True,
+                )
+                for _ in range(4)
+            ],
+        )
+        for variant in ("raw", "ema")
+        for seed in (1, 2, 3)
+    ]
+    results = paired_uncertainty(cells)
+    assert len(results) == 2
+    assert {r["variant"]: r["score_a"] for r in results} == {"raw": 0, "ema": 1}
+    assert all(r["training_seeds"] == 3 for r in results)
+    assert all(
+        r["status"] == "unavailable"
+        for r in paired_uncertainty([c for c in cells if c["training_seed"] != 3])
+    )

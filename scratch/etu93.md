@@ -16,3 +16,10 @@ real-game recipe and reload raw/EMA exports. Tests must establish selection ties
 empty actor selection with critic updates, terminal/reset censoring and actual
 EMA collection likelihoods. No architecture auxiliaries or expensive scoring.
 No deletion targets: extend existing owners.
+
+Implemented and reconciled: shared selection diagnostics, explicit actor support,
+EMA behavior and bootstrap, separate recipe generator, variant-aware arena and
+uncertainty. No new scientific allocation. Gate: 98 training tests passed;
+bounded behavior proof completed 48 replayed games in 116.83 s. Final metadata
+validation tests pending. Scientific acceptance and independent terminal-return
+residuals for censored episodes remain open at the durable protocol.
