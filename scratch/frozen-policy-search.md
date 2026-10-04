@@ -18,5 +18,5 @@ registration and scientific strength acceptance remain open and documented.
 
 Bounded recipe: 9.94s, four complete games, 318 labeled decisions; separate exact
 failure retained by VerifyStore. Current-tree tests own correctness after final
-receipt/diagnostic edits. Gate: 73 affected Python tests passed; 7 focused tests passed after final sampling/deadline fixes; Ruff clean. Native debug checks pending. Next: focused gate and lf landing,
+receipt/diagnostic edits. Gate: 73 affected Python tests passed; 7 focused tests passed after final sampling/deadline fixes; Ruff clean. 21 native debug possible-world/branch-contract tests passed. Next: focused gate and lf landing,
 keeping ETU-95 open; no human-review session or new worker.

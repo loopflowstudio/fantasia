@@ -140,5 +140,5 @@ open for these scientific outcomes. ETU-91 and its allocations remain unchanged.
 
 Validation on 2026-10-04: the affected Python gate passed 73 tests, with the seven
 local teacher/stage tests passing again after the final sampling/deadline fixes.
-Ruff passed. The tests include two complete tiny-pool arena games with exact
+Ruff and 21 native debug possible-world/branch-contract tests passed. The tests include two complete tiny-pool arena games with exact
 Command replay and retained failure on unsupported exact history.
