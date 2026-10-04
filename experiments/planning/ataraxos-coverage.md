@@ -46,9 +46,15 @@ from the student. The main RL arm is frozen independently of screen results.
   workflow and a real-PPO toy positive control. It has not attacked the main
   scientific policies. Historical S1–S5 contrasts resolve, but their custom decks
   are explicitly unsupported for selected-match checkpoint scoring.
+- [PR #210](https://github.com/loopflowstudio/etude/pull/210) adds independent
+  executable contrasts for omitted controls, actor-only filtering, inclusive
+  quantiles, EMA collection with matching probabilities and bootstrap values,
+  and raw/EMA evaluation without double-counting training seeds. Its 48-game
+  replayed workflow and focused checks prove execution, not treatment benefit.
+  Independent full-episode terminal-return residual analysis remains open.
 
-These are delivery receipts, not Task completion claims. ETU-93 and ETU-95 are
-implementing the remaining controls and post-training search respectively.
+These are delivery receipts, not Task completion claims. ETU-95 owns the
+remaining post-training search integration.
 Linear remains authoritative for their live execution state.
 
 ## Coverage
@@ -60,9 +66,9 @@ Linear remains authoritative for their live execution state.
 | Gamma, policy trace and value trace address different horizons | [ETU-93](https://linear.app/loopflow/issue/ETU-93) | Gamma=1 and separate critic traces exist; higher policy trace is outside active screen |
 | Structured-uniform reference rather than mass proportional to offer count | ETU-93 | Implemented option; current scientific arms use offer-uniform |
 | Coordinated LR/reference decay, collection-policy KL, separate schedule effects | ETU-93 | Controls exist; screen does not isolate every coefficient or interaction |
-| Advantage filtering by magnitude/quantile and action type | ETU-93 | Current top-half filter needs comparison with verified paper treatment |
-| Actor-only filtering versus filtering the critic too; critic-error and terminal-proximity selection bias | ETU-93 | Current implementation filters all losses; benefit is a hypothesis |
-| Raw versus averaged weights; averaging for evaluation versus actual behavior | ETU-93 | EMA export exists; active studies use raw weights and learner-driven collection |
+| Advantage filtering by magnitude/quantile and action type | ETU-93 | Top-count and inclusive-quantile contrasts plus action-type diagnostics landed; comparative benefit unmeasured |
+| Actor-only filtering versus filtering the critic too; critic-error and terminal-proximity selection bias | ETU-93 | Both loss scopes landed; batch-tail censoring is explicit; independent full-episode critic-error analysis remains open |
+| Raw versus averaged weights; averaging for evaluation versus actual behavior | ETU-93 | Separate evaluation and behavior contrasts landed; frozen active studies still use raw weights and learner-driven collection |
 | Auxiliary predictions and value representation as learning accelerators | ETU-92 / ETU-93 | Explicit architecture hypotheses; do not silently bundle with gradient changes |
 | Compound attacks/blocks/targets/payments and joint log probability | [ETU-94](https://linear.app/loopflow/issue/ETU-94) | Attacker declarations and supported targeted casts landed; blockers/payments remain separate |
 | Forced/optionless steps and honest underlying-decision accounting | ETU-94 | Audit existing auto-resolution; collapsing prompts is not a strength result |
