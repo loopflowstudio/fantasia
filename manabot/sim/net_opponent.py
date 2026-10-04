@@ -147,6 +147,7 @@ class SeatRoutedCollector:
 
         self.observation_space = observation_space
         self.reward = reward
+        self.match = match
         self.num_envs = num_envs
         self.opponent_mode = opponent_mode
         self.device = torch.device(device)
@@ -160,6 +161,7 @@ class SeatRoutedCollector:
         )
         self._buffers = _allocate_buffers(observation_space, num_envs)
         self._env.set_buffers(self._buffers)
+        self.match = match
         self._env.reset_all_into_buffers(match.to_rust())
 
         #: Learner seat per stream: stream s seats the learner at s % 2, so
@@ -409,9 +411,10 @@ def transition_gae(rewards, values, ends, next_value, gamma, lam):
 class _CollectorEnvShim:
     """Just enough env surface for Trainer.__init__ / periodic eval."""
 
-    def __init__(self, observation_space: ObservationSpace, reward: Reward):
+    def __init__(self, observation_space: ObservationSpace, reward: Reward, match: Match):
         self.observation_space = observation_space
         self.reward = reward
+        self.match = match
 
     def close(self) -> None:
         return None
@@ -432,7 +435,7 @@ class NetOpponentTrainer(Trainer):
         collector: SeatRoutedCollector,
         hypers=None,
     ):
-        shim = _CollectorEnvShim(collector.observation_space, collector.reward)
+        shim = _CollectorEnvShim(collector.observation_space, collector.reward, collector.match)
         super().__init__(agent, experiment, shim, hypers)  # type: ignore[arg-type]
         self.collector = collector
 

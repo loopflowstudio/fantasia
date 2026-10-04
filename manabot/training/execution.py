@@ -34,7 +34,7 @@ from .models import (
     TrainingRun,
     TrainSelfPlay,
 )
-from .objectives import update_iteration
+from .objectives import update_ema, update_iteration
 
 
 def atomic_json(path, value):
@@ -264,13 +264,7 @@ def execute_regime(regime, seed, out, store):
                     )
                     iteration += 1
                     if ema is not None:
-                        with torch.no_grad():
-                            for dest, source in zip(
-                                ema.parameters(),
-                                trainer.agent.parameters(),
-                                strict=True,
-                            ):
-                                dest.lerp_(source, 1 - stage.learning.ema)
+                        update_ema(ema, trainer.agent, stage.learning.ema)
                     record.learning_seconds += time.perf_counter() - tick
                     record.diagnostics.append(diagnostic)
                     record.optimizer_exposures += diagnostic["optimizer_exposures"]
@@ -336,6 +330,7 @@ def execute_regime(regime, seed, out, store):
                         model,
                         space,
                         temporary,
+                        player_configs=Match(regime.match).to_rust(),
                         extra={
                             "run_id": run.id,
                             "stage_id": stage.id,

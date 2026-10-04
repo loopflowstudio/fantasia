@@ -16,9 +16,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def recipe(name="direct-self-play"):
-    return TrainingRegime.model_validate_json(
+    value = TrainingRegime.model_validate_json(
         (ROOT / "experiments/regimes" / f"{name}.json").read_text()
     )
+    value.agent.semantic_pack = "ur-lessons-vs-gw-allies"
+    return value
 
 
 def test_all_recipes_validate_and_reject_future_references():
