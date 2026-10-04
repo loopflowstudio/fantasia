@@ -31,6 +31,12 @@ The recipe reuses `AgentHypers`, `ObservationSpaceHypers`, and authored
 once per regime. Every stage declares its CPU device, float32 precision, one
 worker, thread count, wall and memory limits. Learning settings independently
 select estimators, filtering, regularization reference, schedules, and EMA.
+Schedules use `run_elapsed_budget`: elapsed wall time since run creation divided
+by the regime's total `wall_seconds`, including generation, collection, updates
+and export. Continuation stages do not reset that clock. Stage deadlines remain
+independent bounds inside the same total allowance. Evaluation is outside the
+training execution and does not consume this clock.
+
 The policy stays on the acting viewer's tensor inputs; private teacher metadata
 is not a model input. Learner and behavior weights are raw; EMA is a separately
 named evaluation output with its iteration clock, never a hidden behavior swap.

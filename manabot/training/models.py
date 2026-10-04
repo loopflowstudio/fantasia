@@ -57,6 +57,10 @@ class Stage(Strict):
 
 class CollectSearch(Stage):
     operation: Literal["collect_search"]
+    policy: Literal["uniform-prior-determinized-puct"] = (
+        "uniform-prior-determinized-puct"
+    )
+    target: Literal["visit_distribution"] = "visit_distribution"
     games: int = Field(ge=2)
     simulations: int = Field(default=64, ge=1)
     worlds: int = Field(default=4, ge=1)
@@ -65,6 +69,10 @@ class CollectSearch(Stage):
 
 class TrainSupervised(Stage):
     operation: Literal["train_supervised"]
+    trainer: Literal["search_supervised"] = "search_supervised"
+    optimizer: Literal["adam"] = "adam"
+    trainable: Literal["policy"] = "policy"
+    target: Literal["visit_distribution"] = "visit_distribution"
     datasets: list[str] = Field(min_length=1)
     initial: str | None = None
     epochs: int = Field(default=10, ge=1)
@@ -74,6 +82,10 @@ class TrainSupervised(Stage):
 
 class TrainSelfPlay(Stage):
     operation: Literal["train_self_play"]
+    trainer: Literal["net_opponent"] = "net_opponent"
+    optimizer: Literal["adam"] = "adam"
+    trainable: Literal["policy_value"] = "policy_value"
+    behavior: Literal["current-self"] = "current-self"
     initial: str | None = None
     updates: int = Field(default=2, ge=1)
     streams: int = Field(default=4, ge=2)
@@ -95,6 +107,7 @@ class TrainingRegime(Strict):
     agent: AgentHypers = AgentHypers()
     stages: list[Operation] = Field(min_length=1)
     wall_seconds: float = Field(default=900, gt=0)
+    schedule_clock: Literal["run_elapsed_budget"] = "run_elapsed_budget"
     selection: Literal["last-complete-raw"] = "last-complete-raw"
 
     @model_validator(mode="after")
@@ -104,6 +117,8 @@ class TrainingRegime(Strict):
             if stage.id in previous:
                 raise ValueError("stage IDs must be unique")
             if isinstance(stage, TrainSupervised):
+                if len(stage.datasets) != len(set(stage.datasets)):
+                    raise ValueError("dataset references must be unique")
                 for ref in stage.datasets:
                     if previous.get(ref) != "collect_search":
                         raise ValueError(
@@ -115,9 +130,13 @@ class TrainingRegime(Strict):
                     "continuation requires an earlier stage of the same operation"
                 )
             if isinstance(stage, TrainSelfPlay) and initial:
-                latest = [key for key, kind in previous.items() if kind == "train_self_play"][-1]
+                latest = [
+                    key for key, kind in previous.items() if kind == "train_self_play"
+                ][-1]
                 if initial != latest:
-                    raise ValueError("live self-play continuation cannot branch from an older collector")
+                    raise ValueError(
+                        "live self-play continuation cannot branch from an older collector"
+                    )
                 parent = next(item for item in self.stages if item.id == initial)
                 if (
                     parent.streams != stage.streams
@@ -141,7 +160,11 @@ class StageRecord(Strict):
     environment_decisions: int = 0
     learner_transitions: int = 0
     optimizer_exposures: int = 0
+    sampled_peak_rss_bytes: int = 0
+    cpu_seconds: float = 0
+    inputs: dict[str, dict] = {}
     artifacts: dict[str, dict] = {}
+    rejected_artifacts: dict[str, dict] = {}
     diagnostics: list[dict] = []
     error: str | None = None
 
@@ -160,4 +183,5 @@ class TrainingRun(Strict):
     stages: list[StageRecord] = []
     seconds: float = 0
     setup_seconds: float = 0
+    selected_artifact: dict | None = None
     error: str | None = None
