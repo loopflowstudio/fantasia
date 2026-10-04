@@ -131,7 +131,7 @@ class VerifyStore:
         with self.con:
             self.con.execute(
                 "INSERT INTO training_runs VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload",
-                (run.id, run.model_dump_json()),
+                (run.id, run.model_dump_json(exclude={"stages"})),
             )
             for stage in run.stages:
                 self.con.execute(
@@ -147,7 +147,13 @@ class VerifyStore:
         ).fetchone()
         if row is None:
             raise KeyError(run_id)
-        return TrainingRun.model_validate_json(row[0])
+        payload = json.loads(row[0])
+        stage_rows = self.con.execute(
+            "SELECT payload FROM training_stages WHERE run_id=? ORDER BY rowid",
+            (run_id,),
+        ).fetchall()
+        payload["stages"] = [json.loads(stage[0]) for stage in stage_rows]
+        return TrainingRun.model_validate(payload)
 
     def _create_schema(self) -> None:
         self.con.executescript(

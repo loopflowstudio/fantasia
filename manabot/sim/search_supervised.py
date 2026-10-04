@@ -319,6 +319,7 @@ def train_search_supervised(
     val_fraction: float = 0.1,
     seed: int = 0,
     split_seed: int | None = None,
+    minibatch_seed: int | None = None,
     device: str = "cpu",
     agent_hypers: AgentHypers | None = None,
     observation_hypers: ObservationSpaceHypers | None = None,
@@ -365,6 +366,8 @@ def train_search_supervised(
 
     if optimizer_state is not None:
         optimizer.load_state_dict(optimizer_state)
+        for group in optimizer.param_groups:
+            group["lr"] = lr
     if validation_games is None:
         train_idx, val_idx = split_by_game(
             dataset,
@@ -389,7 +392,7 @@ def train_search_supervised(
         batch_size=batch_size,
         device=dev,
     )
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(seed if minibatch_seed is None else minibatch_seed)
     history: list[SearchSupervisedEpochStats] = []
 
     for epoch in range(epochs):
