@@ -507,6 +507,14 @@ preserve the exact tracker as a tractable reference. Wider pools still require
 new world-bound complete-loop measurements. See the
 [sampler guide](../../docs/belief-sampler.md).
 
+The bounded compound follow-up admits `train_compound` raw exports into the
+same belief dependency chain and resets queued Commands at game boundaries.
+Ataraxos raw/EMA already has end-to-end coverage. Compound EMA and mixing flat
+policy training into compound recipes remain rejected. Both collector paths
+enforce the saved observation capacity, even though standalone compound play
+can expand action encoding. This is compatibility evidence, not wider-pool or
+scientific acceptance; ETU-96 remains open for those comparisons.
+
 ## Omitted learning controls (ETU-93, 2026-10-04)
 
 Jack Heart authorized mechanism implementation and landing with bounded proof,
