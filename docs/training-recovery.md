@@ -47,10 +47,12 @@ original watchdog allowance, including prior attempts and reconstruction.
 Scientific schedules instead use completed-update coordinates. A budget too
 small to cover downtime cannot be reset by recovery.
 
-Six focused tests include caught interruption, actual subprocess `os._exit`,
+Seven focused cases include caught interruption, actual subprocess `os._exit`,
 exact final model/optimizer equivalence, complete RNG/collector equivalence,
 corruption, seed mismatch, live-writer rejection and watchdog exhaustion.
-Existing executor and objective regression tests also pass (36 tests total).
+Existing executor and objective regression tests also pass (37 cases total).
+The Ataraxos case verifies categorical critic, optimizer, EMA, collector, RNG
+and iteration-schedule equivalence after interruption.
 These checks establish recovery mechanics, not learning strength or a general
 throughput estimate. CPU/MPS comparisons, multi-seed timing calibration,
 clone/world-sampling costs, multi-stage recovery and complete-cohort projections

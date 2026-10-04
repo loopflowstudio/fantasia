@@ -3,14 +3,19 @@
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pytest
 import torch
 
 from manabot.training import execution
-from manabot.training.models import TrainingRegime, TrainingRun, TrainSelfPlay
+from manabot.training.models import (
+    AtaraxosMoveLearning,
+    TrainingRegime,
+    TrainingRun,
+    TrainSelfPlay,
+)
 from manabot.training.recovery import attempt_lock, load_update
 from manabot.verify.store import VerifyStore
 
@@ -80,11 +85,20 @@ def interrupt(
     return store.training_run(row[0])
 
 
+@pytest.mark.parametrize("gradient", ["ppo", "ataraxos_move"])
 def test_real_interruption_restores_complete_learning_state(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    gradient: Literal["ppo", "ataraxos_move"],
 ) -> None:
     value = recipe()
+    if gradient == "ataraxos_move":
+        stage = value.stages[0]
+        assert isinstance(stage, TrainSelfPlay)
+        value.agent.value_kind = "categorical_wdl"
+        stage.learning = AtaraxosMoveLearning(
+            gradient="ataraxos_move", ema=0.9, min_advantage=0, advantage_quantile=0
+        )
     with VerifyStore(tmp_path / "training.sqlite") as store:
         whole = execution.execute_regime(value, 197, tmp_path / "whole", store)
         failed = interrupt(value, tmp_path / "failed", store, monkeypatch)
