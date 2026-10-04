@@ -206,6 +206,13 @@ class TrainCompound(Stage):
 
     @model_validator(mode="after")
     def supported_learning(self) -> "TrainCompound":
+        if (
+            self.learning.filter_kind != "top_count"
+            or self.learning.filter_scope != "actor_critic"
+        ):
+            raise ValueError(
+                "compound stages support top-count actor-critic filtering only"
+            )
         if self.learning.reference != "uniform" or self.learning.ema is not None:
             raise ValueError(
                 "compound stages require conditional uniform reference and raw weights"
@@ -214,7 +221,12 @@ class TrainCompound(Stage):
 
 
 Operation = Annotated[
-    CollectSearch | TrainSupervised | TrainSelfPlay | TrainCompound | CollectBelief | TrainBelief,
+    CollectSearch
+    | TrainSupervised
+    | TrainSelfPlay
+    | TrainCompound
+    | CollectBelief
+    | TrainBelief,
     Field(discriminator="operation"),
 ]
 

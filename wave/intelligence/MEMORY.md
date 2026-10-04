@@ -533,3 +533,8 @@ unfinished games. Whole-game held-out analysis and multi-seed matched-cost
 scoring remain required. One bounded EMA-behavior comparison completed 48 exact
 replayed games in 117 seconds; this proves the integrated workflow, not strength,
 demo admission, human completion or a technique retention decision.
+
+The main integration preserves frozen-opponent and compound studies. Compound
+training rejects the new quantile/actor-only knobs rather than silently ignoring
+them; ETU-93's executable contrasts target ordinary self-play. The merged
+omitted-control/frozen-opponent/study paths passed 39 focused checks.

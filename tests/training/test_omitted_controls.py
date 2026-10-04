@@ -194,3 +194,15 @@ def test_variants_never_add_training_replicates() -> None:
         r["status"] == "unavailable"
         for r in paired_uncertainty([c for c in cells if c["training_seed"] != 3])
     )
+
+
+@pytest.mark.parametrize(
+    "settings", [{"filter_kind": "quantile"}, {"filter_scope": "actor"}]
+)
+def test_compound_rejects_unsupported_filter_controls(settings: dict[str, str]) -> None:
+    from manabot.training.models import TrainCompound
+
+    with pytest.raises(ValueError, match="top-count actor-critic"):
+        TrainCompound.model_validate(
+            dict(operation="train_compound", id="compound", learning=settings)
+        )

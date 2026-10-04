@@ -147,3 +147,9 @@ variants; the original proof bytes were retained unchanged. The affected suite
 passed 98 tests; 20 focused checks then passed after that metadata correction,
 including variant replicate counting and actual collection values matching the
 previous EMA checkpoint rather than raw weights. No Rust source changed.
+
+Integration with main preserved the compound-study and frozen-opponent APIs.
+Compound training explicitly rejects quantile or actor-only filtering because
+its joint-action optimizer does not implement those controls; the contrasts
+above target ordinary self-play. Post-sync verification passed 39 focused
+omitted-control, frozen-opponent and study tests. CI owns the full merged matrix.
