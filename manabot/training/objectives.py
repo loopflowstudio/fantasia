@@ -13,10 +13,12 @@ def reference_distribution(obs, kind):
         raise ValueError("reference requires at least one legal offer per row")
     if kind == "uniform":
         return valid / valid.sum(-1, keepdim=True)
-    types = obs["actions"][..., :-1].argmax(-1)
-    same = types.unsqueeze(-1) == types.unsqueeze(-2)
-    counts = (same & valid.unsqueeze(-2)).sum(-1).clamp_min(1)
-    weights = valid / counts
+    action_types = obs["actions"][..., :-1]
+    types = action_types.argmax(-1)
+    # Count each type once per row without an offers-by-offers matrix.
+    counts = action_types.new_zeros(*types.shape[:-1], action_types.shape[-1])
+    counts.scatter_add_(-1, types, valid.to(counts.dtype))
+    weights = valid / counts.gather(-1, types).clamp_min(1)
     return weights / weights.sum(-1, keepdim=True)
 
 

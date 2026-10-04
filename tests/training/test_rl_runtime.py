@@ -31,7 +31,17 @@ def bounded_regime():
     return recipe
 
 
-def test_self_play_records_costs_and_reloads_distinct_raw_ema(tmp_path):
+def test_self_play_records_costs_and_reloads_distinct_raw_ema(tmp_path, monkeypatch):
+    from manabot.sim.net_opponent import NetOpponentTrainer
+
+    initialize = NetOpponentTrainer.__init__
+
+    def checked_initialize(self, *args, **kwargs):
+        initialize(self, *args, **kwargs)
+        assert self.env.match is self.collector.match
+        assert self.env.match.hypers == bounded_regime().match
+
+    monkeypatch.setattr(NetOpponentTrainer, "__init__", checked_initialize)
     with VerifyStore(tmp_path / "runs.sqlite") as store:
         run = execute_regime(bounded_regime(), 197, tmp_path / "run", store)
         assert store.training_run(run.id).status == "completed"

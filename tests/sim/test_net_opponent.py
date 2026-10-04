@@ -37,6 +37,11 @@ def _make_agent():
 
 
 def _check_batch(batch, num_steps, num_envs):
+    shapes = ObservationSpace().shapes
+    assert batch.obs.keys() == batch.next_obs.keys() == shapes.keys()
+    for key, shape in shapes.items():
+        assert batch.obs[key].shape == (num_steps, num_envs, *shape)
+        assert batch.next_obs[key].shape == (num_envs, *shape)
     assert batch.actions.shape == (num_steps, num_envs)
     assert batch.logprobs.shape == (num_steps, num_envs)
     assert batch.rewards.shape == (num_steps, num_envs)
