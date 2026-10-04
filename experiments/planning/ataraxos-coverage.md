@@ -51,7 +51,7 @@ from the student. The main RL arm is frozen independently of screen results.
   quantiles, EMA collection with matching probabilities and bootstrap values,
   and raw/EMA evaluation without double-counting training seeds. Its 48-game
   replayed workflow and focused checks prove execution, not treatment benefit.
-  Independent full-episode terminal-return residual analysis remains open.
+  Independent full-episode terminal-return residual analysis is added by PR #215.
 - [PR #211](https://github.com/loopflowstudio/etude/pull/211) adds frozen-policy
   local rollout updates, retained regularized targets and repeated distillation
   stages. The bounded proof used a tractable two-name pool; selected-matchup
@@ -72,6 +72,11 @@ from the student. The main RL arm is frozen independently of screen results.
   trained artifacts played two arena games with 183 exactly replayed commands.
   Learned beliefs remain approximate, queries unconditional, and broader
   calibration and playing strength unmeasured.
+- [PR #215](https://github.com/loopflowstudio/etude/pull/215) adds frozen complete-game
+  filtering diagnostics with separate terminal-outcome and lambda-target
+  residuals, whole-game uncertainty and offline regeneration. Its four-game
+  example replayed 1,073 decisions exactly. Terminal outcomes are noisy samples,
+  not ground-truth expected values; association does not establish causal benefit.
 
 These are delivery receipts, not Task completion claims. ETU-95 owns the
 remaining post-training search integration.
@@ -87,7 +92,7 @@ Linear remains authoritative for their live execution state.
 | Structured-uniform reference rather than mass proportional to offer count | ETU-93 | Implemented option; current scientific arms use offer-uniform |
 | Coordinated LR/reference decay, collection-policy KL, separate schedule effects | ETU-93 | Controls exist; screen does not isolate every coefficient or interaction |
 | Advantage filtering by magnitude/quantile and action type | ETU-93 | Top-count and inclusive-quantile contrasts plus action-type diagnostics landed; comparative benefit unmeasured |
-| Actor-only filtering versus filtering the critic too; critic-error and terminal-proximity selection bias | ETU-93 | Both loss scopes landed; batch-tail censoring is explicit; independent full-episode critic-error analysis remains open |
+| Actor-only filtering versus filtering the critic too; critic-error and terminal-proximity selection bias | ETU-93 | Both loss scopes and held-out complete-game residual diagnostics landed; benefits and true expected-value error remain unestablished |
 | Raw versus averaged weights; averaging for evaluation versus actual behavior | ETU-93 | Separate evaluation and behavior contrasts landed; frozen active studies still use raw weights and learner-driven collection |
 | Auxiliary predictions and value representation as learning accelerators | ETU-92 / ETU-93 | Explicit architecture hypotheses; do not silently bundle with gradient changes |
 | Compound attacks/blocks/targets/payments and joint log probability | [ETU-94](https://linear.app/loopflow/issue/ETU-94) | Attacker declarations and supported targeted casts landed; blockers/payments remain separate |
