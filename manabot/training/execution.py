@@ -540,6 +540,10 @@ def _execute_regime(
                         )
                         if opponent_space.encoder.hypers != space.encoder.hypers:
                             raise ValueError("frozen opponent observation ABI differs")
+                        if opponent_agent.hypers.compound_decisions:
+                            raise ValueError(
+                                "frozen collector does not support compound opponent submissions"
+                            )
                         if opponent_agent.belief_count_buckets:
                             raise ValueError(
                                 "frozen collector does not supply belief inputs"

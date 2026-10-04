@@ -89,3 +89,17 @@ def test_frozen_run_preserves_opponent_and_initial_attacker(tmp_path: Path) -> N
     )
     assert all(stage.learner_transitions == 16 for stage in run.stages)
     assert run.selected_artifact == run.stages[-1].artifacts["raw"]
+
+
+def test_compound_opponent_is_rejected_before_training(tmp_path: Path) -> None:
+    space = ObservationSpace()
+    opponent = Agent(
+        space, AgentHypers(hidden_dim=8, num_attention_heads=2, compound_decisions=True)
+    )
+    path = tmp_path / "compound.pt"
+    save_bc_checkpoint(
+        opponent, space, path, player_configs=Match(MatchHypers()).to_rust()
+    )
+    with VerifyStore(tmp_path / "store.sqlite") as store:
+        with pytest.raises(ValueError, match="compound opponent submissions"):
+            execute_regime(_regime(path), 41, tmp_path / "run", store)

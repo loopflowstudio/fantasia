@@ -30,7 +30,8 @@ recipe as `template`, retaining exactly one initialization stage. Supply:
   evaluation. Each template wall cap applies to the full attacker, not each rung.
 
 The evaluator currently admits only the selected Lessons/Allies matchup and
-ordinary CPU policy checkpoints. Checkpoints must include that matchup's semantic
+ordinary CPU policy checkpoints. Compound-submission and belief-input targets
+are rejected before training because this collector cannot supply their inputs. Checkpoints must include that matchup's semantic
 program input. Target admission checks world/setup, observation ABI and frozen
 bytes. Literal seed reuse across producer/attacker and reserved executor seed
 namespaces is rejected. This does not mathematically prove disjoint PRNG paths;
