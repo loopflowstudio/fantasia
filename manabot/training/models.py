@@ -229,3 +229,188 @@ Operation = Annotated[
     | TrainCompound
     | CollectBelief
     | TrainBelief,
+    Field(discriminator="operation"),
+]
+
+
+class TrainingRegime(Strict):
+    schema_version: Literal[1] = 1
+    id: str
+    world: str
+    match: MatchHypers
+    observation: ObservationSpaceHypers = ObservationSpaceHypers()
+    agent: AgentHypers = AgentHypers()
+    stages: list[Operation] = Field(min_length=1)
+    wall_seconds: float = Field(default=900, gt=0)
+    schedule_clock: Literal["run_elapsed_budget", "iteration_fraction"] = (
+        "run_elapsed_budget"
+    )
+    recovery_max_microsteps: int | None = Field(default=None, ge=1, le=1_000_000)
+    selection: Literal["last-complete-raw"] = "last-complete-raw"
+
+    @model_validator(mode="after")
+    def references(self) -> "TrainingRegime":
+        if self.agent.compound_decisions != any(
+            isinstance(stage, TrainCompound) for stage in self.stages
+        ):
+            raise ValueError(
+                "compound stages and compound Agent must be selected together"
+            )
+        if self.agent.compound_decisions and any(
+            not isinstance(stage, TrainCompound) for stage in self.stages
+        ):
+            raise ValueError(
+                "compound policies require compound stages throughout the run"
+            )
+        if self.recovery_max_microsteps is not None and (
+            len(self.stages) != 1
+            or not isinstance(self.stages[0], TrainSelfPlay)
+            or self.schedule_clock != "iteration_fraction"
+        ):
+            raise ValueError(
+                "recovery requires one self-play stage and iteration_fraction schedule"
+            )
+        previous: dict[str, Stage] = {}
+        latest_self_play = None
+        latest_compound = None
+        for stage in self.stages:
+            if stage.id in previous:
+                raise ValueError("stage IDs must be unique")
+            if isinstance(stage, (CollectBelief, CollectLocalUpdate)):
+                policy = previous.get(stage.policy)
+                if not isinstance(policy, (TrainSupervised, TrainSelfPlay)):
+                    raise ValueError(
+                        "belief policy must refer to an earlier policy stage"
+                    )
+                if stage.weights == "ema" and (
+                    not isinstance(policy, TrainSelfPlay) or policy.learning.ema is None
+                ):
+                    raise ValueError(
+                        "belief EMA dependency requires an EMA policy artifact"
+                    )
+            if isinstance(stage, TrainBelief) and not isinstance(
+                previous.get(stage.dataset), CollectBelief
+            ):
+                raise ValueError(
+                    "belief dataset must refer to an earlier belief collection"
+                )
+            if isinstance(stage, TrainSupervised):
+                if len(stage.datasets) != len(set(stage.datasets)):
+                    raise ValueError("dataset references must be unique")
+                for ref in stage.datasets:
+                    if not isinstance(
+                        previous.get(ref), (CollectSearch, CollectLocalUpdate)
+                    ):
+                        raise ValueError(
+                            f"dataset {ref} must refer to an earlier collection"
+                        )
+                    if stage.target.startswith("local_") != isinstance(
+                        previous[ref], CollectLocalUpdate
+                    ):
+                        raise ValueError(
+                            "supervised target must match collection semantics"
+                        )
+            initial = getattr(stage, "initial", None)
+            parent = previous.get(initial)
+            if isinstance(stage, TrainSupervised) and stage.target.startswith("local_"):
+                if not isinstance(parent, (TrainSelfPlay, TrainSupervised)) or (
+                    isinstance(parent, TrainSupervised)
+                    and not parent.target.startswith("local_")
+                ):
+                    raise ValueError(
+                        "local distillation requires an earlier signed-value policy"
+                    )
+            if (
+                initial
+                and type(parent) is not type(stage)
+                and not (
+                    isinstance(stage, TrainSupervised)
+                    and stage.target.startswith("local_")
+                    and isinstance(parent, TrainSelfPlay)
+                )
+            ):
+                raise ValueError(
+                    "continuation requires an earlier stage of the same operation"
+                )
+            if isinstance(stage, TrainSelfPlay) and initial:
+                if parent is not latest_self_play:
+                    raise ValueError(
+                        "live self-play continuation cannot branch from an older collector"
+                    )
+                if (
+                    parent.streams != stage.streams
+                    or parent.learning.ema != stage.learning.ema
+                    or parent.behavior != stage.behavior
+                    or parent.opponent != stage.opponent
+                    or parent.learning.gradient != stage.learning.gradient
+                ):
+                    raise ValueError(
+                        "live self-play continuation must preserve streams, gradient, EMA clock and opponent"
+                    )
+            if isinstance(stage, TrainCompound):
+                if initial and parent is not latest_compound:
+                    raise ValueError(
+                        "compound continuation cannot branch from older weights"
+                    )
+                latest_compound = stage
+            if self.agent.value_kind == "categorical_wdl" and (
+                isinstance(stage, TrainCompound)
+                or isinstance(stage, TrainSupervised)
+                and not stage.target.startswith("local_")
+                or isinstance(stage, TrainSelfPlay)
+                and not isinstance(stage.learning, AtaraxosMoveLearning)
+            ):
+                raise ValueError("categorical outcome training requires ataraxos_move")
+            previous[stage.id] = stage
+            if isinstance(stage, TrainSelfPlay):
+                latest_self_play = stage
+        return self
+
+
+class StageRecord(Strict):
+    id: str
+    status: Literal["running", "completed", "failed", "interrupted"] = "running"
+    seconds: float = 0
+    cumulative_seconds: float | None = Field(default=None, ge=0)
+    collection_seconds: float = 0
+    learning_seconds: float = 0
+    export_seconds: float = 0
+    games: int = 0
+    environment_decisions: int = 0
+    learner_transitions: int = 0
+    optimizer_exposures: int = 0
+    sampled_peak_rss_bytes: int = 0
+    cpu_seconds: float = 0
+    inputs: dict[str, dict] = {}
+    artifacts: dict[str, dict] = {}
+    rejected_artifacts: dict[str, dict] = {}
+    diagnostics: list[dict] = []
+    error: str | None = None
+
+
+class TrainingRun(Strict):
+    schema_version: Literal[1] = 1
+    id: str
+    regime_digest: str
+    regime: TrainingRegime
+    seed: int
+    seed_streams: dict[str, int]
+    identities: dict
+    status: Literal["pending", "running", "completed", "failed", "interrupted"] = (
+        "pending"
+    )
+    stages: list[StageRecord] = []
+    seconds: float = 0
+    setup_seconds: float = 0
+    parent_run_id: str | None = None
+    recovery_artifact: ArtifactReference | None = None
+    recovery_lock_path: str | None = None
+    recovery_host: str | None = None
+    last_recorded_wall_seconds: float | None = None
+    unobserved_seconds: float = 0
+    recovery_seconds: float = 0
+    prior_seconds: float = 0
+    watchdog_seconds: float = 0
+    prior_watchdog_seconds: float = 0
+    selected_artifact: dict | None = None
+    error: str | None = None
