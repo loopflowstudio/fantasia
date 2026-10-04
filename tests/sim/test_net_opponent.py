@@ -92,6 +92,7 @@ def test_collector_requires_opponent_agent_for_frozen():
 
 def test_terminal_credit_and_bootstrap():
     import torch
+
     from manabot.sim.net_opponent import transition_gae
 
     rewards = torch.tensor([[0.0], [1.0], [-1.0], [0.0]])
@@ -130,3 +131,43 @@ def test_paused_buffer_rows_are_unchanged_and_clear_step_flags():
             assert collector._buffers[key][0] == 0
         else:
             np.testing.assert_array_equal(collector._buffers[key][0], before[key])
+
+
+def test_collection_probabilities_and_bootstrap_survive_weight_change():
+    import torch
+
+    collector = _make_collector("self")
+    agent = _make_agent()
+    first = collector.collect(agent, 7)
+    first_probabilities = first.probabilities.copy()
+    with torch.no_grad():
+        agent.policy_head[-1].weight.mul_(-5)
+        agent.value_head[-1].bias.add_(3.0)
+    second = collector.collect(agent, 7)
+    # Nonterminal streams resume at precisely the bootstrap state, under new
+    # weights. Terminal streams may route the new episode's opponent first.
+    for key in second.obs:
+        np.testing.assert_array_equal(
+            second.obs[key][0, ~first.next_done], first.next_obs[key][~first.next_done]
+        )
+    flat = {
+        k: torch.as_tensor(v.reshape((-1,) + v.shape[2:]))
+        for k, v in second.obs.items()
+    }
+    with torch.no_grad():
+        logits, values = agent(flat)
+    np.testing.assert_allclose(
+        second.values.flatten(), values.numpy().flatten(), atol=1e-5
+    )
+    np.testing.assert_allclose(
+        second.probabilities.reshape(logits.shape),
+        logits.softmax(-1).numpy(),
+        atol=1e-6,
+    )
+    selected = np.take_along_axis(
+        second.probabilities, second.actions[..., None], axis=-1
+    )[..., 0]
+    np.testing.assert_allclose(second.logprobs, np.log(selected), atol=1e-6)
+    assert np.all(second.probabilities[second.obs["actions_valid"] == 0] == 0)
+    np.testing.assert_array_equal(first.probabilities, first_probabilities)
+    assert collector.stats.learner_transitions == 56
