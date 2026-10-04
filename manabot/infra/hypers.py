@@ -104,6 +104,7 @@ class ExperimentHypers(BaseHypersModel):
 
 
 class AgentHypers(BaseHypersModel):
+    compound_decisions: bool = Field(default=False, exclude_if=lambda value: not value)
     semantic_pack: str | None = None
     # Shared embedding space for game objects and actions.
     hidden_dim: int = 64
