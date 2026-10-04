@@ -55,13 +55,23 @@ from the student. The main RL arm is frozen independently of screen results.
 - [PR #211](https://github.com/loopflowstudio/etude/pull/211) adds frozen-policy
   local rollout updates, retained regularized targets and repeated distillation
   stages. The bounded proof used a tractable two-name pool; selected-matchup
-  strength, learned-sampler consumption and full-game exact histories are not
-  established. Its advice projection is not a registered live advice provider.
+  strength and full-game exact histories are not established. Its advice
+  projection is not a registered live advice provider.
+- [PR #212](https://github.com/loopflowstudio/etude/pull/212) admits compound raw
+  policy exports to belief collection and fitting, with per-game policy reset
+  and explicit observation-capacity limits. This does not admit compound policies
+  to local-search rollouts.
 - [PR #213](https://github.com/loopflowstudio/etude/pull/213) adds a bounded CPU
   full-loop calibration command using existing study/TrainingRun records,
   separate replay accounting and measured device/thread evidence. Eight complete
   games replayed in its workflow proof. Concurrent timing does not establish
   uncontended throughput; MPS/CUDA calibration remains unsupported.
+- [PR #214](https://github.com/loopflowstudio/etude/pull/214) connects learned
+  hand-count samples directly to native rollout worlds without enumerating
+  support. The bounded policy→belief→search→student pipeline completed; its
+  trained artifacts played two arena games with 183 exactly replayed commands.
+  Learned beliefs remain approximate, queries unconditional, and broader
+  calibration and playing strength unmeasured.
 
 These are delivery receipts, not Task completion claims. ETU-95 owns the
 remaining post-training search integration.
@@ -90,7 +100,7 @@ Linear remains authoritative for their live execution state.
 | Selective search effort, replay/cumulative reuse and relabeling economics | ETU-95 | KataGo-inspired hypotheses; charge all searches and retain target versions |
 | Frozen-policy self-play with hidden truth as labels; belief model trained afterward | [ETU-96](https://linear.app/loopflow/issue/ETU-96) | Policy→dataset→belief stages landed; broad calibration and search comparisons remain open |
 | Constrained autoregressive joint beliefs versus exact enumeration | ETU-96 | Measure legality, calibration, joint likelihood, latency and search strength |
-| Learned hand samples actually drive policy rollouts without enumerating support | ETU-95 / ETU-96 | Sampler and local-search components exist separately; native count-to-world materialization and identity-bound consumption remain required |
+| Learned hand samples actually drive policy rollouts without enumerating support | ETU-95 / ETU-96 | Direct native materialization and artifact-bound search landed; conditional queries, broader calibration and strength remain open |
 | Foreign-policy histories, opponent adaptation and belief-training dropout | ETU-96 | Self-play calibration is not immunity to baiting or distribution shift |
 | Stronger exploiters, historical opponents and weak control play | [ETU-97](https://linear.app/loopflow/issue/ETU-97) | Independent attack seeds and increasing budgets; failed attack is not a certificate |
 | INT-6 arena and S1–S5 as judges; deck/seat and world identity | ETU-91 / ETU-97 | Revalidate scenario premises and historical ratings before reuse |
@@ -114,18 +124,22 @@ better bluffing, equilibrium, or immunity to exploitation.
 The future Tasks require standalone acceptance and full-game evidence. Their
 capture does not expand the current 168-hour campaign or change its active plans.
 
-## Search integration acceptance
+## Search integration contracts and remaining acceptance
 
-The next ETU-95 integration must connect the frozen-policy belief sampler to
-rollouts, not merely produce its offline calibration report. Current native
-search materialization accepts indexes into an enumerated possible-world space;
-mapping learned count samples back through that enumeration would defeat the
-larger-pool objective. A direct count-to-world path must validate public pool
-counts, known minima, hand size and source observation identity, preserve the
-root viewer's information, and retain reproducible world/rollout seeds. Pin the
-belief artifact to its generating policy and feature schema; compare it with
-the compatible physical-deal prior under the same realized compute accounting.
-These are implementation requirements, not authorization for another long run.
+ETU-95 now connects the frozen-policy belief sampler to rollouts directly.
+The learned path validates public pool counts, known minima, hand size and
+source observation identity, preserves the root viewer's information, and
+retains reproducible world/rollout seeds. Native tests cover direct/indexed
+parity, hidden-hand swaps and stale/impossible inputs. The old indexed path
+remains available for enumerated references; learned samples do not pass
+through that enumeration. Belief artifact, generating policy and feature
+schema identities remain bound in receipts.
+
+Scientific acceptance still requires comparing learned sampling with the
+compatible physical-deal prior under the same realized compute accounting,
+on a separately frozen evaluation population. The bounded pipeline does not
+establish calibration under foreign policies, conditional query mass or a
+strength gain. These remaining requirements allocate no additional long run.
 
 The separate exact-history reference has a different gap: opponent combat and
 targeting commitments are not represented by the current public likelihood
