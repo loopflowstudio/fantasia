@@ -115,11 +115,21 @@ from the student. The main RL arm is frozen independently of screen results.
   complete. Selected-match transfer, belief-history attachment and scientific
   robustness remain unestablished; no attacker was newly trained.
 
+- [PR #220](https://github.com/loopflowstudio/etude/pull/220) connects frozen
+  compound policies to direct prior or learned hand samples, policy rollouts and
+  regularized distillation targets. [PR #221](https://github.com/loopflowstudio/etude/pull/221)
+  extends that path to compound payments while retaining exact zero-probability
+  support, null unvisited values and replayable conditional prefixes. Both passed
+  all CI checks. ETU-95 and its ETU-100 follow-up delivered their software scope;
+  compound EMA, belief-input rollouts and live advice registration remain outside
+  these changes. Neither delivery establishes playing strength.
+
 These receipts establish software behavior, not empirical treatment benefit.
 ETU-92 and ETU-93 completed their revised software acceptance after merged code,
 relevant tests and successful CI were audited. ETU-94 and ETU-96 also completed their revised software acceptance.
 ETU-97 and ETU-98 completed their revised software acceptance as well.
-ETU-95 retains the remaining search-integration delivery scope. ETU-99 owns the comparative
+ETU-95 delivered its search integration, including the ETU-100 payment follow-up.
+ETU-99 owns the comparative
 scientific acceptance described below. Linear owns current execution state.
 
 ## Coverage
