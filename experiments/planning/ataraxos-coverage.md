@@ -3,8 +3,13 @@
 2026-10-04. Jack Heart requested an explicit owner for every lesson identified
 in the Ataraxos discussion, the supplied ledger review, and the technical review.
 This is a coverage map, not a claim that proposed techniques work. Linear owns
-Task execution state. Existing running protocols remain frozen; future studies
-need their own resolved recipes, budgets and fresh evaluation deals.
+Task execution state. Jack Heart separated software delivery from scientific
+acceptance on 2026-10-04. ETU-92–98 own functionality with focused correctness
+and integration acceptance; they do not require new training studies to close.
+[ETU-99](https://linear.app/loopflow/issue/ETU-99) retains the remaining research
+questions and requires separately frozen protocols and budgets. ETU-91 retains
+the active campaign, unchanged. Existing running protocols remain frozen; future
+studies need their own resolved recipes, budgets and fresh evaluation deals.
 
 ## Current foundation
 
@@ -78,11 +83,16 @@ from the student. The main RL arm is frozen independently of screen results.
   example replayed 1,073 decisions exactly. Terminal outcomes are noisy samples,
   not ground-truth expected values; association does not establish causal benefit.
 
-These are delivery receipts, not Task completion claims. ETU-95 owns the
-remaining post-training search integration.
-Linear remains authoritative for their live execution state.
+These receipts establish software behavior, not empirical treatment benefit.
+ETU-92 and ETU-93 completed their revised software acceptance after merged code,
+relevant tests and successful CI were audited. ETU-94–98 retain their remaining
+software scope; ETU-95 owns search integration. ETU-99 owns the comparative
+scientific acceptance described below. Linear owns current execution state.
 
 ## Coverage
+
+The owner column names the software owner. Unmeasured benefits and comparisons
+in the boundary column are retained in ETU-99, except the frozen ETU-91 cohort.
 
 | Lesson or open question | Explicit owner | Current boundary |
 | --- | --- | --- |
@@ -98,7 +108,7 @@ Linear remains authoritative for their live execution state.
 | Compound attacks/blocks/targets/payments and joint log probability | [ETU-94](https://linear.app/loopflow/issue/ETU-94) | Attacker declarations and supported targeted casts landed; blockers/payments remain separate |
 | Forced/optionless steps and honest underlying-decision accounting | ETU-94 | Audit existing auto-resolution; collapsing prompts is not a strength result |
 | Setup-style outcome-only versus bootstrapped compound-decision credit | ETU-94 | Transfer hypothesis, not assumed equivalent to Stratego setup |
-| Freeze a strong policy before belief-conditioned search; consistent beliefs, rollouts and value | [ETU-95](https://linear.app/loopflow/issue/ETU-95) | Compare policy-only, uniform and same-policy exact beliefs at equal decision time |
+| Freeze a strong policy before belief-conditioned search; consistent beliefs, rollouts and value | [ETU-95](https://linear.app/loopflow/issue/ETU-95) | Compare policy-only, constrained-prior and learned sampling at equal realized cost; exact enumeration is a tiny reference only |
 | One regularized local search update and its distillation target | ETU-95 | Retain full generating identities; old per-action scores alone are insufficient |
 | Hard targets, visits and regularized soft targets; mixed strategy and bluffing | ETU-95 | Measure behavior and strength; soft targets do not guarantee sound mixing |
 | Improving search teacher versus the current fixed teacher | ETU-95 | Test compounding only after a useful policy/value model exists |
@@ -126,8 +136,9 @@ search teachers; it makes their policy/belief assumptions and improvement operat
 important. Neither policy-gradient training nor soft labels alone establish
 better bluffing, equilibrium, or immunity to exploitation.
 
-The future Tasks require standalone acceptance and full-game evidence. Their
-capture does not expand the current 168-hour campaign or change its active plans.
+Software Tasks require standalone correctness and integration acceptance;
+full-game comparative research remains in ETU-99. Neither the split nor Task
+completion expands the current 168-hour campaign or changes its active plans.
 
 ## Search integration contracts and remaining acceptance
 
