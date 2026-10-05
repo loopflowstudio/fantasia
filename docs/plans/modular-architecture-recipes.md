@@ -15,9 +15,10 @@ and reports. This decision does not approve the remaining framework design.
 ## 1. Recommendation and the observable win
 
 Author Python experiment files that construct TrainingRegime variants through
-shared typed helpers. Evolve the regime’s agent field into one versioned
-architecture specification and use explicit local builders
-for the policy core and the separate belief sampler. Keep the public `Agent`
+shared typed helpers. Build on `TrainingRegime.agent: AgentHypers`, extending
+its existing fields and validation for the concrete experiments. Reuse current
+Agent construction and checkpoint loading; extract shared helpers only where
+those experiments expose actual duplication. Keep the public `Agent`
 facade and existing player lifecycle. Compose a handful of real modules, with
 validated input and output contracts, rather than adding an Agent subclass for
 each experimental arm. Keep objectives and collection in TrainingRegime stages.
@@ -36,7 +37,7 @@ challenger acceptance still require the chapter's separately frozen cohorts.
 A passing software demo proves the path only.
 
 **Review decisions:** approve or reject the small typed-spec approach; agree the
-scope of the first coherent cutover; choose bounded recent-event input versus
+scope of the first incremental extension; choose bounded recent-event input versus
 adding sequence-training support now; agree explicit transfer rather than
 permissive loading. Recommendation: bounded recent events first, sequence memory
 later, and strict reload plus separately receipted transfer.
@@ -49,8 +50,8 @@ is useful for authority but is not a reliable inventory of today's implementatio
 
 | Surface inspected | What exists | Design consequence |
 | --- | --- | --- |
-| `manabot/infra/hypers.py:AgentHypers` | Width, heads, attention switch, semantic pack, compound flag, scalar/WDL kind and belief dimensions | These choices already form an implicit architecture schema. Replace their ownership coherently; do not build a second independently mutable graph description. |
-| `manabot/model/agent.py:Agent` | Typed object projections, optional semantic programs and belief rows, one post-norm attention block, focus-aware action scoring | Extract along these boundaries while retaining one facade. Attention MLP width currently equals heads × hidden width; heads and feedforward width must become independently explicit. |
+| `manabot/infra/hypers.py:AgentHypers` | Width, heads, attention switch, semantic pack, compound flag, scalar/WDL kind and belief dimensions | AgentHypers already owns model configuration. Extend it in place for the registered experiments; reuse its serialization and validation. Add nested types only where they simplify a concrete group of settings. |
+| `manabot/model/agent.py:Agent` | Typed object projections, optional semantic programs and belief rows, one post-norm attention block, focus-aware action scoring | Preserve these implementations; extract a module only when a concrete variant needs that boundary. Attention MLP width currently equals heads × hidden width; heads and feedforward width must become independently explicit. |
 | `Agent.value_head`, `MeanPoolingLayer` | Flat critic applies Linear/ReLU to object rows and averages every slot; attention masks its output rows first, but the critic projection can introduce nonzero padded rows after training | Historical fixed-slot averaging is a baseline contract. Masked mean must mask after the per-row value projection and normalize by valid count. It is a treatment, not a silent baseline repair. |
 | `Agent.compound`, `model/compound.py` | Masked context; one-root ragged offers; recurrent declaration prefix; differentiable factor log probabilities and scalar prefix values | A game-memory GRU and a compound-prefix GRU are different state owners. Do not force compound output into flat `[B,A]` logits or claim categorical compound training already works. |
 | `model/semantic_cards.py` | GRU encodes complete catalog programs with references; definition IDs route into schema-bound buffers | This is program sequence encoding, not game-history memory. Preserve the complete catalog and semantic binding. |
@@ -139,49 +140,39 @@ the publisher supplement was accessible. No inaccessible page supports a claim.
 
 ## 4. The proposed architecture data model
 
-All names in this section are proposed. Reuse Pydantic's existing strict/frozen
-style; disallow unknown keys and nonfinite numbers. `ArchitectureSpec` describes
-the function family, not training budgets, optimizer, data, target construction,
-device, inference sampling temperature or admission opponents.
+**Direction, Jack Heart, 2026-10-05:** the existing AgentHypers is probably close
+to the needed model configuration; start by refining it. Its exact name, class
+identity and field layout are not requirements. Rename, nest or restructure when
+that materially improves a concrete experiment or API; a substantially different
+design needs a strong reason. Preserve a single model-configuration owner inside
+TrainingRegime and the meanings of existing settings.
+
+Adopt the focused ETU-102/106 additions for depth and aggregation as delivered;
+add only settings required by a registered experiment. For example, explicit
+feedforward width and normalization are incremental AgentHypers fields if the
+current focused implementation does not already provide them. Preserve historical
+defaults, field names and checkpoint construction. The architecture configuration
+still excludes budgets, optimizers, datasets and evaluation policy.
+
+A nested history object is a possible useful addition because its projection,
+window and ordering have joint invariants. It is not a reason to reorganize all
+existing fields. Illustrative proposed extension (existing AgentHypers fields
+are omitted from the sketch, not removed):
 
 ```python
-from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+class HistoryHypers(BaseHypersModel):
+    kind: Literal["none", "recent_events"] = "none"
+    projection: Literal["none", "kind_amount_role_v1"] = "none"
+    window: int = Field(default=0, ge=0)
+    order: Literal["none", "relative_position"] = "none"
 
-class RecipeModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
-
-class EncoderSpec(RecipeModel):
-    kind: Literal["typed_objects"] = "typed_objects"
-    width: int = Field(ge=1)
-    depth: int = Field(ge=0)
-    heads: int = Field(ge=1)
-    ff_width: int = Field(ge=1)
-    norm: Literal["pre", "post"]
-    perspective: Literal["per_block", "once"]
-    semantic_program: Literal["none", "catalog_gru"]
-
-class HistorySpec(RecipeModel):
-    kind: Literal["none", "recent_events"]
-    projection: Literal["none", "kind_amount_role_v1"]
-    window: int = Field(ge=0)
-    order: Literal["none", "relative_position"]
-
-class ValueSpec(RecipeModel):
-    aggregation: Literal["fixed_slots", "masked_mean", "value_token"]
-    output: Literal["scalar", "categorical_wdl"]
-
-class ArchitectureSpec(RecipeModel):
-    schema_version: Literal[1] = 1
-    family: Literal["policy_value"] = "policy_value"
-    encoder: EncoderSpec
-    history: HistorySpec
-    memory: Literal["none"] = "none"
-    decoder: Literal["flat_focus", "compound_gru"]
-    value: ValueSpec
-    belief_input: Literal["none", "canonical_marginals"]
-    initialization: Literal["existing_agent_v1", "component_seeded_v1"]
+# Within the existing AgentHypers, when the history experiment needs it:
+# history: HistoryHypers = Field(default_factory=HistoryHypers)
 ```
+
+Prefer the existing BaseHypersModel and validation methods. Align shared
+validation conventions incrementally when justified, preserving historical
+admission; do not introduce a new base class merely for naming symmetry.
 
 Cross-field validators additionally require width divisible by heads for
 attention, positive depth for a value token, all history-none fields zero/none,
@@ -201,7 +192,7 @@ Additional named records and their authority:
 | Proposed value | Fields / ownership |
 | --- | --- |
 | Recipe constructors | Ordinary typed Python functions returning complete specs. Explicit keyword arguments replace a separate patch language; unknown arguments and invalid combinations fail before execution. |
-| `ResolvedArchitecture` | Complete ArchitectureSpec, architecture digest, required capabilities and parameter/buffer shape manifest. Built before optimizer allocation. |
+| `ResolvedArchitecture` | Resolved AgentHypers snapshot, architecture digest, required capabilities and parameter/buffer shape manifest. Built before optimizer allocation. |
 | `ModelBinding` | Existing checkpoint world binding plus semantic catalog, consumed-field projection, belief-schema identity if enabled, and history-projection identity. Bind actual setup, not a preset name. |
 | `ValueContract` | Actor-relative perspective, scalar units (`signed_return` or existing `win_logit`), WDL class order and expectation mapping. Trainer declares target semantics; builder verifies compatibility. |
 | `ArchitectureReceipt` | Resolved spec/digest, builder ABI version, source digest, initialization scheme/seed receipt, observed parameter count and tensor manifest digest. Appended to existing artifact metadata. |
@@ -220,9 +211,8 @@ preset name while reloading.
 
 **Ownership decision, Jack Heart, 2026-10-05:** architecture configuration lives
 inside TrainingRegime as the model/hyperparameter specification for a TrainingRun.
-Evolve the existing `TrainingRegime.agent: AgentHypers` boundary into the richer
-typed specification. `ArchitectureSpec` is the proposed evolved field type, not
-a separately selected top-level recipe or another source of model settings.
+Start from `TrainingRegime.agent: AgentHypers` and refine it. The ownership
+boundary matters; the exact type name and layout may change with justification.
 TrainingRun retains the resolved regime as it already does. Checkpoint metadata
 projects the exact model specification from that regime for reconstruction.
 Experiment files compose regimes; ResolvedStudy groups them with evaluation and
@@ -231,21 +221,20 @@ belongs to its train-belief stage, not the policy's `agent` field.
 
 Jack Heart requested cross-experiment helpers and investigation of Pydantic as
 the common base during review on 2026-10-05. Python authoring is accepted;
-the following consolidation is proposed. `RecipeModel` above denotes a shared
-specification base, not a new architecture-only validation convention.
+the following consolidation is proposed. Reuse existing base types first; a shared convention is useful only where it
+removes concrete repeated validation or serialization work.
 
 Inspection finds three overlapping conventions: `infra/hypers.py:BaseHypersModel`
 forbids extra fields; `training/models.py:Strict` also rejects nonfinite numbers;
-`EvaluationProtocol` additionally freezes assignment. Consolidate conventions
-incrementally into a shared validated record base and a frozen specification
-subtype. Do not freeze mutable execution records or silently change historical
+`EvaluationProtocol` additionally freezes assignment. Consider sharing these policies where duplication causes maintenance problems;
+a new inheritance hierarchy is not a prerequisite for the experiments. Do not freeze mutable execution records or silently change historical
 parsing/admission. Pydantic's `frozen=True` alone does not freeze nested lists or
 dicts; resolved plans must defensively snapshot nested values, use immutable
 collections where appropriate, and verify canonical digests at execution.
 
 | Existing type | Proposed relationship |
 | --- | --- |
-| `AgentHypers` | Evolve into the architecture specification owned by TrainingRegime.agent; retain a narrow old-schema reader and derive compatibility fields. ArchitectureSpec is its proposed successor, not a parallel editable object. |
+| `AgentHypers` | Start from this type and refine its fields and validation. Names and nesting may change where useful; justify a substantially different abstraction against the existing design. |
 | `MatchHypers`, `ObservationSpaceHypers` | Keep their domain identity and existing validation; include resolved snapshots in the same specification family. Rules/setup and input capacities remain separate from architecture. |
 | `Schedule`, `Learning`, `AtaraxosMoveLearning`, `Execution`, operation types | Reuse as typed experiment components. Their current algorithms, schedules and discriminator semantics remain authoritative; no second objective schema. |
 | `TrainingRegime` | Own the architecture in its existing agent boundary along with match, observation and stages. Shared helpers return complete regime variants. Migrate mutation-dependent authoring before claiming immutable specs. |
@@ -447,7 +436,7 @@ ETU-106's live Task was read on 2026-10-05 (revision
 implementation/testing, retaining historical pooling as control and masked mean
 as an alternative. That selection is accepted scope for ETU-106; it is not
 approval of this framework. Coordinate by adopting its exact final pooling,
-token placement, normalization, state-key and default semantics during cutover.
+token placement, normalization, state-key and default semantics during integration.
 Do not create a second token implementation here. Its initial capacity ×
 history contrast and larger-rung repeat retain a fixed learning rule and action
 domain. Categorical versus scalar remains a separately identifiable contrast.
@@ -495,7 +484,7 @@ class ValueHead(Protocol):
     def __call__(self, encoded: EncodedObjects) -> Tensor: ...
 
 def resolve_architecture(
-    spec: ArchitectureSpec, binding: "ModelBinding"
+    spec: AgentHypers, binding: "ModelBinding"
 ) -> "ResolvedArchitecture": ...
 
 def build_agent(
@@ -643,9 +632,10 @@ copy. A compound switch cannot pretend the flat head was trained as a GRU.
 Proposed checkpoint additions, within the existing checkpoint artifact, are
 `architecture_receipt`, `value_contract`, and a versioned consumed-input binding.
 Retain `model_state_dict`, ordinary world binding, observation hypers and exact
-belief bindings. New schema stores one architectural source of truth; any old
-hypers export is derived and checked, never separately editable. Migrate old
-metadata only at the loader boundary, with narrowly tested mappings. Old missing
+belief bindings. Saved AgentHypers remain the architectural source of truth;
+additional receipts are derived from them, not independently editable. Add
+metadata migration only when an actual schema change requires it, with narrowly
+tested mappings. Old missing
 world binding and removed positional-belief fields must continue to fail. No
 frozen artifact is rewritten in place.
 
@@ -741,7 +731,8 @@ architecture-only and cannot be passed as a current TrainingRegime.
 Alternative A: keep adding AgentHypers switches. This is appropriate for the
 independent capacity ladder and ETU-106's focused change. It becomes fragile as
 history, compound prefix and belief capabilities need validation across exporters
-and trainers. The draft recommends a coherent extraction only after review.
+and trainers. Extending these switches with validation and shared regime helpers is the
+recommended starting point. Extract modules only when a concrete variant needs it.
 
 Alternative B: adopt generic Hydra/torchtune-style component paths. Flexible,
 but it allows configurations the code cannot train/serve and moves semantic
@@ -765,30 +756,28 @@ cannot export a real playable checkpoint. The complete-path gate prevents that.
 explicit unresolved decisions. No production code changes. ETU-104 stays open
 for Jack Heart's review feedback and accepted design or explicit rejection/defer.
 
-**Proposed implementation slice after approval:** make architecture construction
-and checkpoint reconstruction share one owner across existing flat, compound,
-value and sampler paths; incorporate the already landed focused variants; add
-resolved receipt metadata; prove the complete path. A recipe field without the
-trainer/exporter/player cutover is not completion. Sequence within that slice:
+**Proposed implementation slice after approval:** make the registered comparisons
+easy to express as Python-built TrainingRegime objects, using the existing types,
+constructors, exporters and loaders. A broad model or configuration rewrite is not currently justified; propose one
+only with a concrete limitation and benefit. Sequence within that slice:
 
-1. Recover ETU-106 and ladder final semantics, retain golden baseline fixtures,
-   add closed specs/bindings and builders without changing baseline behavior.
-2. Extract existing gather/attention/policy/value boundaries. Move architectural
-   ownership out of independently writable AgentHypers; retain a versioned input
-   migration for existing artifacts/configs only. Remove direct construction in
-   execution, BC, value and reload paths once they all use the same builder.
-3. Route compound and sampler constructors through their own typed contracts;
-   preserve existing methods, output types, legality, gradients and separate
-   artifact families. Do not unify unrelated hidden states.
-4. Update writers and ordinary loaders together; retire duplicated serialization
-   facts. Keep historical-rejection fixtures and all admitted path tests.
-5. Run bounded software acceptance and review reports. Later recurrence, new
-   sampler architecture or scientific comparisons need their own scope/protocol.
+1. Adopt ETU-102/106's actual AgentHypers fields and model implementations; retain
+   baseline behavior, parameter names, initialization and old checkpoint admission.
+2. Add shared baseline and validated regime-variation helpers where existing
+   experiment files repeat this work. Reuse Learning, stages and ResolvedStudy.
+3. Add only missing hyperparameters needed by the chosen contrasts. Introduce a
+   nested type or module boundary only when its concrete use warrants it.
+4. Extend existing resolution/export metadata where necessary to identify each
+   experiment's effective settings. Keep AgentHypers as the model source of truth
+   and ordinary checkpoint loading as the reconstruction path.
+5. Demonstrate the value-model and capacity examples through the existing bounded
+   workflow and arena. Changes to compound or sampler construction are required
+   only if these helpers touch those paths; do not rewrite them for uniformity.
 
-Delete targets are duplicated construction and independently mutable architecture
-fields, not the Agent facade, trainer algorithms, physical-prior sampler,
-VerifyStore, arena, or native legality. Preserve the narrow old-metadata reader
-as a documented compatibility boundary; it is not a second model implementation.
+There is no mandated preservation, deletion or class-renaming target. Remove actual duplicated
+logic when shared helpers replace it, preserving public contracts and evidence.
+Later recurrence, new sampler architectures and scientific comparisons retain
+separate scope and protocol requirements.
 
 Proposed headless acceptance tests (new test names, not runnable today):
 
@@ -827,6 +816,7 @@ training across devices or versions follows from resolved recipes.
 | 2026-10-05, Jack Heart, design review | Selected Python files per experiment; YAML/JSON serve as generated exports/reports. Requested concrete walkthroughs of registered Ataraxos-inspired experiments. |
 | 2026-10-05, Jack Heart, design review | Requested reusable cross-experiment helpers and consideration of Pydantic plus existing object families. The proposed consolidation inventory and helper signatures above await further review. |
 | 2026-10-05, Jack Heart, design review | Confirmed architecture belongs inside TrainingRegime as the model/hyperparameter configuration for TrainingRun. Evolve the existing agent field; do not add a competing top-level recipe owner. |
+| 2026-10-05, Jack Heart, design review | Preferred refining the existing near-fit AgentHypers, without requiring its exact type or name. A substantially different design needs a strong reason; useful restructuring remains available. |
 | Remaining review feedback | Framework scope, history and transfer decisions remain pending; authoring preference is not blanket implementation approval. |
 
 The consequential open decisions are: first-cut framework scope versus continuing
