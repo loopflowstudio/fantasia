@@ -219,10 +219,11 @@ Prefer the existing BaseHypersModel and validation methods. Align shared
 validation conventions incrementally when justified, preserving historical
 admission; do not introduce a new base class merely for naming symmetry.
 
-Cross-field validators additionally require width divisible by heads for
-attention, positive depth for a value token, all history-none fields zero/none,
-and a positive admitted event window for recent events. `depth=0` means no
-attention, not one hidden block. For the initial compatibility cut, reject
+Delivered validation requires width divisible by heads for attention.
+`attention_layers` accepts 1 or 2; disabling attention uses `attention_on=False`
+with the historical default layer count of 1. A value token requires attention.
+The proposed history fields would additionally require consistent none/zero
+settings or a positive admitted event window; those fields are not delivered. For the initial compatibility cut, reject
 compound + WDL and compound + value-token until their distinct prefix-value
 semantics are implemented and tested. Do not advertise a rectangular cartesian
 product of all fields as supported.
@@ -418,10 +419,11 @@ Registered sources: [ETU-102](https://linear.app/loopflow/issue/ETU-102),
 `experiments/value-models.md` snapshot has content revision
 `9aa850d3ea5e28a350ec1eca25b96e16e26ef91c7fa2ee08122cf9e2a90821d1`.
 
-### Generated baseline configuration
+### Proposed architecture-only configuration
 
-The following illustrates the resolver's complete exported baseline, not an
-authored experiment file or a file accepted by today's CLI:
+The following is an unimplemented design sketch for a future architecture-only
+export. The delivered export remains the ordinary TrainingRegime with its flat
+AgentSpec fields, as constructed above. This sketch is not accepted by the CLI:
 
 ```json
 {
@@ -466,9 +468,9 @@ ETU-106's live Task was read on 2026-10-05 (revision
 `2026-10-05T20:48:12.333Z`). Jack Heart selected value-token aggregation for focused
 implementation/testing, retaining historical pooling as control and masked mean
 as an alternative. That selection is accepted scope for ETU-106; it is not
-approval of this framework. Coordinate by adopting its exact final pooling,
-token placement, normalization, state-key and default semantics during integration.
-Do not create a second token implementation here. Its initial capacity ×
+approval of this framework. Jack Heart subsequently approved the incremental
+ETU-104 design separately. Integration now preserves ETU-106's delivered pooling,
+token placement, normalization, state-key and default semantics. Its initial capacity ×
 history contrast and larger-rung repeat retain a fixed learning rule and action
 domain. Categorical versus scalar remains a separately identifiable contrast.
 
@@ -793,7 +795,7 @@ Delivered implementation:
 - The capacity example constructs width/depth 64/1, 64/2 and 128/2 through the
   delivered model fields. No ETU-102 run, alternative encoder or expanded study.
 
-**Delete — do not maintain:** the old AgentHypers Python symbol and imports,
+**Removed in the accepted cut:** the old AgentHypers Python symbol and imports,
 JSON-template authoring of these value comparisons, and their unchecked per-cell
 model/budget mutation loops are removed. Frozen JSON/checkpoint evidence stays
 intact. Existing ordinary construction, learning rules and recovery remain owners.
@@ -810,24 +812,25 @@ remained identical. No retraining, replay replacement or protocol change occurre
 Offline regeneration reproduced report, metrics and cost/uncertainty JSON bytes;
 the report's notebook code cells executed.
 
-Repeat the bounded workflow with its declared reporting dependencies:
+The bounded workflow requires the declared reporting dependencies:
 
 ```bash
 uv run --extra notebook python -m experiments.runners.run_value_models --out .runs/etu104-recipes-smoke-next
 uv run --extra notebook python -m experiments.runners.run_value_models --report-only .runs/etu104-recipes-smoke-next
 ```
 
-Remaining delivery: the supplied Flow's remaining preparation, publication,
-human `pr-review`, CI and landing. The approved software
+Remaining delivery: review preparation, publication, human code review, CI and
+landing. The approved software
 cap is 15 minutes per complete attempt. Scientific contrasts require a separate
 frozen protocol, independent seeds, paired held-out deals and declared costs.
 History, sequence training, new sampler architecture and transfer tooling remain
 outside this first cut. No strength or byte-identical-training claim follows.
 
-Check: recipe/value/omitted-controls checks passed 49 (2 deselected), categorical
-reload/protocol checks passed 23, and infra/model/world/challenger checks passed
-39; focused Ruff/format and HTML links passed. CI owns its remaining matrix.
-These command counts overlap on two protocol tests; they are not 111 unique tests.
+The implementation checks covered recipe composition, categorical reload,
+protocol, model/world admission and challenger consumers. After compression at
+`e0170f5f`, the focused recipe/value/omitted-controls suite passed 31 tests in
+8.56 seconds; all eight recipe digests remained unchanged. Broader verification
+remains with gate/CI; this reconciliation does not rerun training.
 
 ## 12. Review record and remaining decisions
 

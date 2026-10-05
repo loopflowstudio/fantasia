@@ -5,8 +5,9 @@
 Jack Heart authorized historical mean, validity-masked mean, one-layer value
 token and two-layer width-64 value-token software contrasts, crossed independently
 with the existing scalar/WDL heads. Recent-event input follows; learned recurrent
-memory is deferred. ETU-104's general architecture framework still requires its
-separate review. ETU-91's running campaign and frozen checkout remain untouched;
+memory is deferred. Jack Heart separately approved ETU-104's incremental
+recipe design; broader architecture sketches remain proposals. ETU-91's running
+campaign and frozen checkout remain untouched;
 only cheap bounded checks and protocol preparation are authorized here.
 
 Source inspection found that attention masks padded outputs but the ordinary
@@ -47,8 +48,9 @@ review found no concrete architecture/masking defect; direct comparison against
 the base implementation confirmed historical initialization bytes for scalar/WDL
 and attention on/off. This is software acceptance, not human review approval,
 strength, demo admission or chapter acceptance. The protocol and recovery command
-live in experiments/value-models.md; ETU-104's software dependency can clear when
-this PR merges, while its separately approved implementation owns its own scope.
+live in experiments/value-models.md. ETU-106 merged as PR #222 at a371af46
+and is integrated into ETU-104; its separately approved recipe implementation
+owns its own scope.
 
 ## Operating principle
 
@@ -882,7 +884,7 @@ It first failed reporting because the notebook extra was absent; ordinary resume
 retained the failure and completed reporting without retraining or replacing
 arena rows. Offline report/metrics regeneration was byte-identical. This proves
 software composition and reload/evaluation, not strength or chapter acceptance.
-The supplied Flow still owns preparation, publication, human review and landing.
+Review preparation, publication, human code review, CI and landing remain open.
 
 Inspection at `db820056` separates semantic-program GRU, compound prefix GRU,
 explicit viewer/belief memory and the frozen-policy hand sampler. Current Agent
@@ -890,3 +892,13 @@ ignores recent events; new history input is an explicit information treatment.
 History/sequence training and transfer tooling remain later interventions. Equal
 tensor shapes do not establish equal meaning or compatible weights. No architecture
 strength claim or scientific study follows from these software changes.
+
+Recipe composition uses regime IDs as the single cell-label source and rejects
+duplicates before crossing value outputs. Every variation snapshots and validates
+the complete result, so nested edits cannot mutate sibling arms and unsupported
+model/objective combinations fail before execution. Compression preserved all
+eight resolved regime digests and the evaluation protocol; recipe labels do not
+substitute for artifact or model identity. The delivered no-attention switch is
+`attention_on=False`, not a zero-depth model. Broader nested specs and receipts
+remain design sketches; ordinary AgentSpec and checkpoint admission own the
+implemented path.
