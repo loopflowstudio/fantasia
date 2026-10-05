@@ -103,3 +103,29 @@ conclusions remain unresolved; historical defaults stay unchanged.
 Recent-event inputs follow this slice. Recurrent memory and ETU-104's general
 framework remain deferred. Multi-seed strength measurement requires a separately
 frozen budget, cohort and success criterion. No paid compute is authorized here.
+
+
+## Evaluation-only recovery result — 2026-10-05
+
+The recovery at `.runs/etu106-value-recovery` completed all 30 scheduled cells:
+120/120 terminal, valid, exact-replayed games using 16 raw checkpoints across both
+stages, deck assignments and seats. Combined charged time was 382.86 seconds,
+including the original 36.12-second failed attempt; the evaluation/report increment
+was 346.73 seconds. No optimizer or training process ran during recovery. Original
+failed protocol, recipes, plan and run references remained byte-identical, as did
+all 32 raw/EMA checkpoint exports. Report, metrics and cost-comparison outputs
+regenerate byte-identically and every analysis notebook code cell executes.
+
+Delegated technical review inspected architecture, masking, checkpoint compatibility
+and recovery provenance. Its registration and recovery-command blockers were fixed;
+normalization rejects colliding recipe aliases. A direct check against base commit
+`db820056` found identical historical parameter/buffer names and initialization
+bytes across scalar/WDL and attention on/off. This is autonomous technical review,
+not claimed human approval. Focused model checks passed 42 tests; recovery and
+study checks passed 16 tests. The earlier 108-test integrated gate remains evidence
+for the unchanged model/training implementation.
+
+Software acceptance is complete. Historical defaults remain unchanged and every
+scientific architecture comparison remains unresolved. The focused delivery does
+not certify selected-world demo admission, human-play completion, stronger policy,
+EMA arena performance or ETU-104's general framework. ETU-91 was not modified.

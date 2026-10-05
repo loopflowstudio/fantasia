@@ -35,8 +35,20 @@ completed and 32 raw/EMA checkpoints passed export admission. Hyphenated IDs
 and a validator regression fix the cause (15 affected checks pass). The failed
 cohort and all artifacts remain in `.runs/etu106-value-smoke`; its incomplete
 report regenerates identically. No arena games or strength evidence exist.
-The one-attempt protocol requires separate bounded-rerun authorization before
-publication; no retry was launched. The protocol lives in experiments/value-models.md.
+Jack Heart subsequently authorized necessary local checks and landing, preferring
+recovery from those exports. Evaluation-only recovery preserved the failed
+attempt and all training/checkpoint identities; arena aliases alone replace
+underscores with hyphens and reject collisions. It completed 120 exact-replayed
+games across 30 cells and both deck/seat assignments in 382.86 cumulative seconds
+(including the original failure), within the original 900-second ceiling. No
+retraining occurred. Report, metrics and cost comparison regenerate identically;
+all 16 raw checkpoints entered play, with no EMA arena claim. Delegated technical
+review found no concrete architecture/masking defect; direct comparison against
+the base implementation confirmed historical initialization bytes for scalar/WDL
+and attention on/off. This is software acceptance, not human review approval,
+strength, demo admission or chapter acceptance. The protocol and recovery command
+live in experiments/value-models.md; ETU-104's software dependency can clear when
+this PR merges, while its separately approved implementation owns its own scope.
 
 ## Operating principle
 

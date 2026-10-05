@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-import pytest
 from pydantic import TypeAdapter
+import pytest
 
 from experiments.runners.run_value_models import smoke_plan
 from experiments.runners.training_protocol import ResolvedStudy
