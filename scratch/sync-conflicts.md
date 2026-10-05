@@ -1,1 +1,0 @@
-Sync resolution verification: `uv run pytest tests/verify/test_checkpoint_scenarios.py tests/training/test_scenario_validation.py tests/belief/test_sampling_report.py -q` — 18 passed; both CI additions and both software-boundary memory sections retained.
