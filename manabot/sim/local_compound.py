@@ -348,7 +348,11 @@ def sample_suffix(
 
 
 class CompoundRollout:
-    """Independent per-seat continuations for one sampled-world branch."""
+    """Drain one declaration before admitting the next actor's policy root.
+
+    Only one cursor can be live: changing actors inside a retained declaration
+    is an interruption, checked by project_compound against its original viewer.
+    """
 
     def __init__(
         self,
@@ -358,32 +362,26 @@ class CompoundRollout:
         check: Callable[[], None],
     ) -> None:
         self.agent = agent
-        viewer = Observation.from_json(root.cursor.root.observation_json).viewer
-        self.cursors: dict[int, CompoundCursor] = {viewer: root.cursor}
-        self.pending: dict[int, deque[Command]] = {}
+        self.cursor: CompoundCursor | None = root.cursor
+        self.pending: deque[Command] | None = None
         self.generator = torch.Generator().manual_seed(seed)
         self.check = check
         self.factors = 0
 
     def project(self, engine: managym.Env) -> CompoundProjection:
-        actor = int(engine.current_agent_index())
-        if any(seat != actor for seat in self.cursors):
-            raise ValueError("compound rollout interrupted before its suffix ended")
-        return project_compound(self.agent, engine, self.cursors.get(actor), self.check)
+        return project_compound(self.agent, engine, self.cursor, self.check)
 
     def choose(self, projection: CompoundProjection) -> int:
-        actor = Observation.from_json(projection.cursor.root.observation_json).viewer
-        if actor not in self.pending:
-            self.pending[actor] = deque(
+        if self.pending is None:
+            self.pending = deque(
                 sample_suffix(self.agent, projection.cursor, self.generator, self.check)
             )
-        if not self.pending[actor]:
+        if not self.pending:
             raise ValueError("compound rollout has an empty pending suffix")
-        command = self.pending[actor].popleft()
+        command = self.pending.popleft()
         return projection.action_index(command)
 
     def advance(self, projection: CompoundProjection, action: int) -> None:
-        actor = Observation.from_json(projection.cursor.root.observation_json).viewer
         next_cursor = advance_compound(self.agent, projection, action, self.check)
         if next_cursor is None:
             output = _decode(
@@ -393,16 +391,15 @@ class CompoundRollout:
                 self.check,
             )
             self.factors += len(output.tokens) - len(projection.cursor.tokens)
-            if self.pending.get(actor):
+            if self.pending:
                 raise ValueError("compound suffix crosses its native boundary")
-            self.pending.pop(actor, None)
-            self.cursors.pop(actor, None)
+            self.pending = None
         else:
             self.factors += len(next_cursor.tokens) - len(projection.cursor.tokens)
-            self.cursors[actor] = next_cursor
             # A forced root action has no pre-sampled tape. Draw its conditional
             # suffix exactly once; later canonical decisions only drain it.
-            if actor not in self.pending:
-                self.pending[actor] = deque(
+            if self.pending is None:
+                self.pending = deque(
                     sample_suffix(self.agent, next_cursor, self.generator, self.check)
                 )
+        self.cursor = next_cursor

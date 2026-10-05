@@ -335,11 +335,7 @@ class LocalUpdateReceipt:
             validate_hand(hand, constraints_json)
             rows = receipt.rollouts[ordinal * count : (ordinal + 1) * count]
             if any(
-                row.world_index is not None
-                or row.sampled_hand is None
-                or row.sampled_hand.counts != hand.counts
-                or row.sampled_hand.log_probability != hand.log_probability
-                for row in rows
+                row.world_index is not None or row.sampled_hand != hand for row in rows
             ):
                 raise ValueError("local receipt rollout sampled hand differs")
         return receipt
@@ -600,7 +596,6 @@ class LocalUpdateTeacher:
                 raise ValueError(
                     "belief likelihood and rollout policy identities differ"
                 )
-            selected_query = query or WorldQuery.true()
             mass = min(1.0, query_mass(belief, selected_query))
             conditioned = condition_belief(belief, selected_query)
             if isinstance(conditioned, EmptyBeliefSupport):
