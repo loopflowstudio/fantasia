@@ -1,0 +1,110 @@
+"""Compose independent training regimes without executing them.
+
+Recipes are ordinary Python functions returning existing specification values.
+Variation revalidates the whole regime, including model/objective compatibility,
+and snapshots nested values so editing one arm cannot change its baseline.
+TrainingRegime remains the serialized owner; no recipe registry is involved.
+"""
+
+from collections.abc import Mapping
+from typing import Literal
+
+from manabot.infra.hypers import AgentHypers, MatchHypers, ObservationSpaceHypers
+from manabot.training.models import (
+    AtaraxosMoveLearning,
+    Execution,
+    TrainingRegime,
+    TrainSelfPlay,
+)
+
+ValueOutput = Literal["scalar", "categorical_wdl"]
+
+
+def with_agent(
+    regime: TrainingRegime, *, id: str, agent: AgentHypers
+) -> TrainingRegime:
+    """Replace only model settings and label; reject incompatible stage targets."""
+    return TrainingRegime.model_validate(
+        {**regime.model_dump(), "id": id, "agent": agent.model_dump()}
+    )
+
+
+def with_value_output(
+    regime: TrainingRegime, *, id: str, output: ValueOutput
+) -> TrainingRegime:
+    """Use the trainer's existing scalar/WDL target and loss dispatch.
+
+    The learning rule is preserved. In particular, converting ordinary PPO to WDL
+    fails regime validation instead of silently switching to Ataraxos move learning.
+    """
+    agent = AgentHypers.model_validate(
+        {**regime.agent.model_dump(), "value_kind": output}
+    )
+    return with_agent(regime, id=id, agent=agent)
+
+
+def value_outputs(
+    regimes: Mapping[str, TrainingRegime], outputs: tuple[ValueOutput, ...]
+) -> dict[str, TrainingRegime]:
+    """Cross explicitly requested outputs; an invalid cell fails the whole plan.
+
+    Mapping keys are the experiment's labels and become unique regime IDs. Nothing
+    is allocated or executed here; the caller must bind the resulting cells to an
+    EvaluationProtocol with its own explicit budget and cohort.
+    """
+    if not regimes or not outputs or len(set(outputs)) != len(outputs):
+        raise ValueError("regimes and unique value outputs must be nonempty")
+    result: dict[str, TrainingRegime] = {}
+    for label, regime in regimes.items():
+        for output in outputs:
+            name = f"{label}-{output.replace('_', '-')}"
+            if name in result:
+                raise ValueError(f"duplicate recipe label: {name}")
+            result[name] = with_value_output(regime, id=name, output=output)
+    return result
+
+
+def ataraxos_baseline(
+    *,
+    id: str,
+    world: str,
+    match: MatchHypers,
+    observation: ObservationSpaceHypers,
+    agent: AgentHypers,
+    checkpoints: int,
+    updates: int,
+    transitions: int,
+    streams: int,
+    stage_seconds: float,
+    wall_seconds: float,
+) -> TrainingRegime:
+    """Build a one-thread CPU move-learning baseline with cumulative stages.
+
+    Setup, model and workload are explicit; this constructor grants no allocation.
+    Model output chooses the existing scalar or categorical value treatment. Stage
+    continuations retain the executor's optimizer, collector and EMA semantics.
+    """
+    if checkpoints < 1:
+        raise ValueError("at least one checkpoint is required")
+    regime = TrainingRegime(
+        id=id,
+        world=world,
+        match=match,
+        observation=observation,
+        agent=agent,
+        stages=[
+            TrainSelfPlay(
+                operation="train_self_play",
+                id=f"policy-{index}",
+                initial=f"policy-{index - 1}" if index else None,
+                updates=updates,
+                streams=streams,
+                transitions=transitions,
+                learning=AtaraxosMoveLearning(gradient="ataraxos_move"),
+                execution=Execution(wall_seconds=stage_seconds),
+            )
+            for index in range(checkpoints)
+        ],
+        wall_seconds=wall_seconds,
+    )
+    return TrainingRegime.model_validate(regime.model_dump())

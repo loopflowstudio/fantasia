@@ -13,12 +13,14 @@ from pydantic import BaseModel, ConfigDict
 
 from experiments.runners.training_protocol import EvaluationProtocol, ResolvedStudy
 from manabot.arena.models import canonical_sha256
+from manabot.infra.hypers import AgentHypers, MatchHypers, ObservationSpaceHypers
 from manabot.training.models import (
     Learning,
     Schedule,
     TrainingRegime,
     TrainSelfPlay,
 )
+from manabot.training.recipes import ataraxos_baseline, with_agent, with_value_output
 
 ROOT = Path(__file__).resolve().parents[2]
 ContrastName = Literal[
@@ -57,11 +59,34 @@ def resolve_contrast(name: ContrastName) -> Contrast:
         base_name = "advantage-filtering"
     elif name.startswith("combined-no-"):
         base_name = "combined"
-    elif name == "paper-value-head":
-        base_name = "ataraxos-move-scalar"
-    base = TrainingRegime.model_validate_json(
-        (ROOT / "experiments/regimes" / f"{base_name}.json").read_text()
-    )
+    if name == "paper-value-head":
+        base = ataraxos_baseline(
+            id="ataraxos-move-scalar",
+            world="w4",
+            match=MatchHypers.authored(
+                "ur-lessons-vs-gw-allies",
+                "ur_lessons",
+                "gw_allies",
+                hero="arena-seat-0",
+                villain="arena-seat-1",
+            ),
+            observation=ObservationSpaceHypers(),
+            agent=AgentHypers(
+                hidden_dim=16,
+                num_attention_heads=2,
+                semantic_pack="ur-lessons-vs-gw-allies",
+            ),
+            checkpoints=2,
+            updates=1,
+            transitions=64,
+            streams=4,
+            stage_seconds=80,
+            wall_seconds=180,
+        )
+    else:
+        base = TrainingRegime.model_validate_json(
+            (ROOT / "experiments/regimes" / f"{base_name}.json").read_text()
+        )
     base.id = f"{name}-control"
     for stage in base.stages:
         assert isinstance(stage, TrainSelfPlay)
@@ -73,13 +98,15 @@ def resolve_contrast(name: ContrastName) -> Contrast:
         if name in {"evaluation-ema", "behavior-ema"}:
             stage.learning.ema = 0.999
     base.wall_seconds = 150
-    treatment = base.model_copy(deep=True)
-    treatment.id = f"{name}-treatment"
+    treatment = with_agent(base, id=f"{name}-treatment", agent=base.agent)
+    if name == "paper-value-head":
+        treatment = with_value_output(
+            treatment, id=treatment.id, output="categorical_wdl"
+        )
     for stage in treatment.stages:
         assert isinstance(stage, TrainSelfPlay)
         learning = stage.learning
         if name == "paper-value-head":
-            treatment.agent.value_kind = "categorical_wdl"
             continue
         assert isinstance(learning, Learning)
         match name:

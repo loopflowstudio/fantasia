@@ -1,11 +1,11 @@
 # Modular architecture recipes for manabot
 
-**ETU-104 · 2026-10-05 · Draft for Jack Heart's review.** Research and design only.
-No architecture framework, training run, or scientific allocation is approved by
-this document. Jack Heart requested a separate design discussion before adoption.
-Review is underway in the existing conversation. Jack Heart selected Python
-experiment files as the authoring interface, with YAML/JSON as generated exports
-and reports. This decision does not approve the remaining framework design.
+**ETU-104 · 2026-10-05 · Accepted incremental implementation.** Jack Heart
+approved the reviewed design and requested implementation and landing. Section 11
+is the accepted delivery scope: Python recipes, shared validated composition and
+incremental refinement of the existing model configuration. The broader records
+and interfaces below remain design sketches unless explicitly listed as delivered.
+No scientific campaign or paid compute is authorized.
 
 [HTML technical review](modular-architecture-recipes.html) ·
 [System authority](../ARCHITECTURE.md) ·
@@ -32,15 +32,14 @@ The report identifies which architecture, objective, input, world, data, and cos
 produced each result. A missing history field or incompatible value target fails
 before collection. A changed label on a recipe cannot change a frozen run.
 
-This is a proposed future demo, not a command run in ETU-104. Strength and human
+This acceptance demo remains unrun in ETU-104; dependency delivery is pending. Strength and human
 challenger acceptance still require the chapter's separately frozen cohorts.
 A passing software demo proves the path only.
 
-**Review decisions:** approve or reject the small typed-spec approach; agree the
-scope of the first incremental extension; choose bounded recent-event input versus
-adding sequence-training support now; agree explicit transfer rather than
-permissive loading. Recommendation: bounded recent events first, sequence memory
-later, and strict reload plus separately receipted transfer.
+**Accepted first cut:** reuse existing configuration and construction; adopt the
+focused depth/value implementation rather than duplicate it. New history input,
+sequence collectors, and weight-transfer tooling remain later interventions.
+Strict ordinary reload remains authoritative.
 
 ## 2. Evidence from the actual repository
 
@@ -180,7 +179,7 @@ constructs spec objects or parents containing them, including TrainingRegime.
 Use Spec rather than Hypers for the refined configuration types: AgentSpec is
 the evolution of AgentHypers; component configuration can use EncoderSpec and
 ValueSpec. There is no AgentRecipe data class or additional recipe schema.
-This accepts terminology and ownership, not the entire implementation plan.
+Section 11 records the subsequently approved implementation boundary.
 Names in source inventories below refer to existing code. Rename related Hypers
 types coherently within the affected scope; preserve old serialized meanings and
 loader admission, and do not broaden the change into unrelated runtime types.
@@ -267,7 +266,7 @@ belongs to its train-belief stage, not the policy's `agent` field.
 
 Jack Heart requested cross-experiment helpers and investigation of Pydantic as
 the common base during review on 2026-10-05. Python authoring is accepted;
-the following consolidation is proposed. Reuse existing base types first; a shared convention is useful only where it
+the following broader consolidation remains optional beyond the accepted first cut. Reuse existing base types first; a shared convention is useful only where it
 removes concrete repeated validation or serialization work.
 
 Inspection finds three overlapping conventions: `infra/hypers.py:BaseHypersModel`
@@ -298,7 +297,7 @@ Pydantic validation: unchecked `model_copy(update=...)` is not an admission path
 Experiment code must make coupled changes (for example WDL output and its value
 target contract) visible in the resolved diff.
 
-Illustrative helper API, proposed and not implemented:
+Target helper API (aggregation/depth integration awaits focused delivery):
 
 ```python
 from collections.abc import Mapping
@@ -798,59 +797,61 @@ cannot export a real playable checkpoint. The complete-path gate prevents that.
 
 ## 11. Delivery cut and acceptance after review
 
-**This Task's slice:** sourced research, durable draft, HTML technical review,
-explicit unresolved decisions. No production code changes. ETU-104 stays open
-for Jack Heart's review feedback and accepted design or explicit rejection/defer.
+**Accepted by Jack Heart on 2026-10-05:** make registered comparisons easy to
+express as Python-built TrainingRegime objects. Keep architecture in the existing
+agent configuration; preserve checkpoint meanings and the frozen ETU-91 campaign.
+Refine AgentHypers into AgentSpec coherently after adopting focused delivery. A
+broad configuration hierarchy, alternate executor, registry or backend migration
+is not justified by this cut.
 
-**Proposed implementation slice after approval:** make the registered comparisons
-easy to express as Python-built TrainingRegime objects, using the existing types,
-constructors, exporters and loaders. A broad model or configuration rewrite is not currently justified; propose one
-only with a concrete limitation and benefit. Sequence within that slice:
+Implemented independent work:
 
-1. Adopt ETU-102/106's actual AgentHypers fields and model implementations; retain
-   baseline behavior, parameter names, initialization and old checkpoint admission.
-2. Add shared baseline and validated regime-variation helpers where existing
-   experiment files repeat this work. Reuse Learning, stages and ResolvedStudy.
-3. Add only missing hyperparameters needed by the chosen contrasts. Introduce a
-   nested type or module boundary only when its concrete use warrants it.
-4. Extend existing resolution/export metadata where necessary to identify each
-   experiment's effective settings. Keep AgentHypers as the model source of truth
-   and ordinary checkpoint loading as the reconstruction path.
-5. Demonstrate the value-model and capacity examples through the existing bounded
-   workflow and arena. Changes to compound or sampler construction are required
-   only if these helpers touch those paths; do not rewrite them for uniformity.
+- `manabot/training/recipes.py` supplies `ataraxos_baseline`, `with_agent`,
+  `with_value_output` and `value_outputs`. Setup, workload and budgets are explicit.
+  Composition snapshots nested values and validates the full TrainingRegime;
+  unsupported WDL/objective combinations fail before execution.
+- The existing omitted-controls paper-value contrast now authors its baseline in
+  Python and uses those helpers. Its prior resolved values remain the control;
+  existing JSON files and frozen evidence are retained. Neither collection nor
+  execution occurs when importing the recipe module.
+- Scalar/WDL selection uses the existing trainer's target and loss dispatch. It
+  does not silently change the policy learning rule. Generated JSON remains the
+  execution record; ordinary checkpoint loading remains reconstruction authority.
 
-There is no mandated preservation, deletion or class-renaming target. Remove actual duplicated
-logic when shared helpers replace it, preserving public contracts and evidence.
-Later recurrence, new sampler architectures and scientific comparisons retain
-separate scope and protocol requirements.
+**Delete — do not maintain:** replace the paper-value contrast's JSON-based
+baseline authoring and unchecked model variation with the shared constructors.
+Preserve exported fixtures, recipe identities, budgets, stages and objectives.
+Next remove ETU-106's repeated model-variation code when its delivery is admitted;
+no second aggregation/depth implementation will be created here.
 
-Proposed headless acceptance tests (new test names, not runnable today):
+Remaining acceptance:
 
-```bash
-uv run pytest tests/model/test_architecture_recipes.py tests/model/test_architecture_reload.py
-uv run pytest tests/training/test_architecture_workflow.py
-```
+1. Integrate actual ETU-106 delivery, including exact pooling, depth, initialization
+   and checkpoint semantics. The 2026-10-05 status read reports `human` at
+   `pr-review`: commit `2a508bab` is published as a branch but has no PR publication.
+   Its workflow failed before arena games; a corrected attempt remains subject to
+   that Task's review. ETU-104 does not release that boundary.
+2. ETU-102 is unstarted with no execution. Use delivered depth/width capability
+   once available rather than inventing a competing capacity architecture. Finish
+   AgentSpec naming and typed aggregation/capacity composition against those APIs.
+3. Move the eight-cell value-model authoring onto the helpers, retain every
+   resolved cell and protocol, and add the capacity examples. Keep unsupported
+   combinations explicit; no silent cell omission or allocation expansion.
+4. Verify ordinary export/reload for the selected models and run the approved
+   bounded baseline/value-token complete workflow through the existing arena,
+   exact replay and offline regeneration. Record all attempts and failures.
+5. Review and deliver the complete change through PR, CI and landing. Jack Heart
+   authorized landing, but upstream review and the complete workflow remain open.
 
-First file: explicit defaults and alias equality; unsupported combinations;
-baseline forward/gradient parity; masked-padding invariance; value token can
-receive gradient; scalar/WDL conversion; event order sensitivity, ID-renaming
-invariance and hidden-world swap invariance; unchanged focus coordinates;
-compound exact likelihood and native semantic parity. Second: real ordinary
-writer/loader for each admitted family, old recognized metadata, unknown/rejected
-schemas, source/target transfer receipts, wrong sideboard and projection.
-Workflow file: bounded two-checkpoint regime, ordinary reload, four-leg complete
-arena and replay, retained induced failure, offline report regeneration. Existing
-relevant model/training/belief/compound suites remain required. If native code
-changes in later work, debug Rust tests and the required root rebuild apply.
+Software acceptance is at most 15 minutes on one CPU thread per complete attempt.
+Scientific contrasts require a separate frozen protocol, independent seeds, paired
+held-out deals and declared costs. No strength, calibration or byte-identical
+stochastic-training claim follows from software acceptance. History, recurrence,
+new sampler architecture and transfer tooling are outside this first cut.
 
-Software acceptance has a predeclared one-thread CPU budget of at most 15 minutes
-per complete workflow attempt and retains failures; it is a proposal for later
-approval, not a new scientific allocation. Scientific contrasts separately freeze
-independent seeds, paired deals, caps, selection, action domain, data identities,
-and analysis. Equal steps and equal time answer different questions; report both,
-plus inference cost and parameter count. No claim of byte-identical stochastic
-training across devices or versions follows from resolved recipes.
+Focused check: recipe/treatment pytest passed 26 tests; the final retained-fixture
+assertion passed in the five-test recipe rerun. Ruff and HTML local-link checks
+passed. No complete workflow attempt or scientific run has started in ETU-104.
 
 ## 12. Review record and remaining decisions
 
@@ -865,16 +866,14 @@ training across devices or versions follows from resolved recipes.
 | 2026-10-05, Jack Heart, design review | Preferred refining the existing near-fit AgentHypers, without requiring its exact type or name. A substantially different design needs a strong reason; useful restructuring remains available. |
 | 2026-10-05, Jack Heart, design review | Prioritized Keras and JAX-community patterns. The added comparison focuses on Keras, Flax NNX and Equinox; it does not imply a backend migration. |
 | 2026-10-05, Jack Heart, design review | Accepted recipe = Python function constructing specs or their enclosing objects, and Hypers → Spec naming. Retain lessons from all earlier research sources alongside the increased Keras/JAX emphasis. |
-| Remaining review feedback | Framework scope, history and transfer decisions remain pending; authoring preference is not blanket implementation approval. |
+| 2026-10-05, Jack Heart, approval carried into implementation | Approved the reviewed incremental section-11 design, implementation and landing, with at most 15 minutes on one CPU thread per complete workflow attempt. |
 
-The consequential open decisions are: first-cut framework scope versus continuing
-local switches; recent-window-only history versus paying for sequence collectors
-now; and the explicit strict-transfer policy. Token aggregation's focused direction
-is already decided; its superiority, game-memory design and framework adoption
-are not. ETU-101 retains dashboard ownership. ETU-91's running campaign, checkout,
-recipes and evidence remain untouched.
+Review approval is complete. The outstanding delivery dependency is ETU-106's
+own review and successful software workflow, not renewed approval of ETU-104.
+ETU-102 has no delivered capacity implementation yet. ETU-101 retains dashboard
+ownership. ETU-91's running campaign, checkout, recipes and evidence are untouched.
 
-Validation for this documentation change is structural/link checking only. No
-native/model tests, optimizer runs, benchmark or scientific evaluation were
-performed. The HTML is a local, self-contained rendering of this proposal;
-visual browser validation is unavailable in this headless environment.
+The HTML is a self-contained rendering of this design and implementation status.
+Visual browser validation is unavailable in the headless environment; structural
+and local-link checks are used instead. Research citations and historical source
+observations above remain dated evidence rather than claims about merged code.

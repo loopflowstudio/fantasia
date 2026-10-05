@@ -798,25 +798,36 @@ compatibility and target admission. No scientific training, paid compute or
 ETU-91 changes occurred. The [local-search contract](../../docs/local-policy-search.md)
 owns the support semantics and remaining limits.
 
-## Architecture-recipe research boundary (ETU-104, 2026-10-05)
+## Architecture-recipe implementation boundary (ETU-104, 2026-10-05)
 
-Jack Heart requested primary-source research and a separate substantial design
-review before adopting an architecture framework. The sourced
-[draft design and HTML review](../../docs/plans/modular-architecture-recipes.md)
-propose strict resolved architecture specs and explicit builders, reusing
-TrainingRegime/TrainingRun, checkpoint world admission and EvaluationProtocol.
-These are proposals, not accepted architecture or permission to implement.
-The Task remains open for feedback and acceptance, rejection or deferral.
+Jack Heart reviewed and approved the incremental architecture-recipe design,
+implementation and landing. Python functions construct existing TrainingRegime
+values; model configuration stays in its agent field. Refine the existing
+AgentHypers toward AgentSpec, reuse Pydantic validation, ordinary construction,
+checkpoint admission and EvaluationProtocol. No registry, backend migration or
+new execution framework is required. The approved software workflow cap is
+15 minutes on one CPU thread per complete attempt; no scientific allocation or
+paid compute follows. ETU-101 retains W&B ownership; ETU-91 remains untouched.
+The [design and HTML review](../../docs/plans/modular-architecture-recipes.md)
+preserve the primary-source research, accepted first cut and remaining work.
 
-Inspection at `db820056` distinguishes four separate mechanisms: semantic-program
-GRU, compound declaration-prefix GRU, explicit viewer/belief memory, and the
-frozen-policy hand sampler. Current Agent ignores emitted recent events; its flat
-critic averages fixed slots while compound context is masked. New history input
-and pooling are explicit interventions, not silent baseline repairs. Equal tensor
-shapes do not establish equal input meaning or compatible weights.
+Shared recipe helpers now build the explicit Ataraxos move baseline and independent
+model/value-output variants. Full regime validation rejects incompatible targets;
+changing representation does not silently change the learning rule. The existing
+omitted-controls paper-value contrast consumes them with retained resolved settings.
+The remaining naming, depth/aggregation helpers and value/capacity demonstration
+must consume focused delivery rather than duplicate its model implementation.
 
-ETU-106's live 2026-10-05 directive records Jack Heart selecting value-token
-aggregation for focused implementation/testing. That and the independent capacity
-ladder need not wait for a framework; the later design must consume their exact
-semantics rather than duplicate them. ETU-101 retains W&B ownership. No training,
-scientific allocation, framework code or change to ETU-91 occurred in this research.
+The 2026-10-05 Loopflow read reports ETU-102 unstarted with no execution and ETU-106
+waiting at its own human pr-review. Published branch `2a508bab` has no PR publication;
+its full workflow failed before arena games, and the corrected attempt remains
+under that Task's review boundary. ETU-104 approval does not complete ETU-106's
+review. Keep ETU-104 open for integration, complete workflow acceptance, CI and
+landing after this dependency; do not treat helper tests as completed delivery.
+
+Inspection at `db820056` separates semantic-program GRU, compound prefix GRU,
+explicit viewer/belief memory and the frozen-policy hand sampler. Current Agent
+ignores recent events; new history input is an explicit information treatment.
+History/sequence training and transfer tooling remain later interventions. Equal
+tensor shapes do not establish equal meaning or compatible weights. No architecture
+strength claim or scientific study follows from these software changes.
