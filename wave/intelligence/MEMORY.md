@@ -638,3 +638,20 @@ workflow only; uncontended multi-seed hardware calibration, clone/sampling
 costs and conservative cohort projections remain open within the unchanged
 168-hour campaign ceiling. No new scientific allocation or paid compute follows
 from this command. Its costs must be included in campaign accounting.
+
+## ETU-95 software finish line (2026-10-04)
+
+Jack Heart separated software delivery from new training: ETU-95 now owns
+compound-policy sampling search and reloadable distillation targets; ETU-99 owns
+the scientific comparisons previously left open under ETU-95. Historical evidence
+and its limits above remain intact. No new training study or ETU-91 mutation is
+authorized by this continuation.
+
+Kickoff inspection at `72385a90` found that learned search already materializes
+hands directly, while compatible-prior play still enumerates through its tracker.
+Compound search is rejected; bypassing that check would use the unrelated flat
+head. The compound decoder's conditional probabilities, prefix values and native
+Command lowering supply the integration boundary, but prefix-conditioned search
+and a common injected sampler interface remain unimplemented. Compound suffixes
+must preserve the original viewer root and prefix rather than resampling each
+microstep. These are implementation findings, not new strength evidence.
