@@ -58,8 +58,11 @@ to canonical Commands. Never enumerate all attacker subsets.
 
 The implementation must prove these correspondences against native lowering,
 including forced/optionless factors, before admitting a compound root. An
-unrecognized factor-to-Command boundary fails explicitly. Blockers and payments
-remain separate ordinary decisions, as in the shipped compound player.
+unrecognized factor-to-Command boundary fails explicitly. ETU-94 is concurrently adding native blocker declarations and safe waterbend
+payment subsets (Jack Heart, 2026-10-04). Do not assume these remain ordinary
+following integration. Admit generic role boundaries only with native routing
+proof; otherwise reject unsupported compound boundaries explicitly while
+preserving ordinary sequential checkpoints.
 
 A rollout owns independent per-seat compound continuation state. It drains a
 sampled suffix without resampling; stale revision, actor changes or unexpected
@@ -140,8 +143,8 @@ candidate or human-play admission. The table protocol remains unchanged.
 
 ## Internal slices
 
-1. **This slice: sampling boundary.** Replace production prior enumeration and
-   learned-specific branching with the common typed interface; retain tiny exact
+1. **Implemented: sampling boundary.** Replaced production prior enumeration and
+   learned-specific branching with the common typed interface; retained tiny exact
    reference explicitly. Focused test forbids every native support constructor
    through player startup, observation updates, search and replay for both samplers.
 2. Add compound prefix-conditioned inference/continuation and native Command
@@ -169,7 +172,7 @@ uv run pytest -q tests/sim/test_local_update_sampling.py tests/sim/test_local_up
 uv run ruff check manabot/sim tests/sim
 ```
 
-The new files are planned, not present yet. Reuse tests without invoking existing
+The sampling test file exists; the compound test file remains planned. Reuse tests without invoking existing
 helpers that fit samplers or execute training regimes. Save deterministic model
 fixtures without optimizer steps when portable retained artifacts are absent.
 Native changes, if required for authoritative routing, require debug cargo tests
@@ -190,5 +193,24 @@ advice registration and human-play success are excluded. ETU-99 owns scientific
 comparisons; ETU-96 owns offline sampler quality. ETU-91 source, extension,
 artifacts, plans and 168-hour allocation remain untouched.
 
-Check result: source inspection at `72385a90` confirms the integration gaps above;
-fixture execution is pending implementation. No training or tests ran in kickoff.
+## Current implementation and remaining dependency
+
+The sampling slice introduces `SearchHandSampler`, `PreparedHands` and `HandBatch`,
+with physical and admitted learned implementations. Production player startup and
+history updates no longer create a tracker; `belief` explicitly retains the tiny
+reference. Receipts retain direct physical hands and existing learned provenance;
+source fingerprints include extracted sampling owners. Complete-game verification
+found and fixed the unique empty-hand case when the public hidden pool is empty.
+No optimizer or native code changed.
+
+The requested ETU-94 contribution failed with `Task input belongs to a stale or
+different Flow`. No decoder/Agent edits occurred. Jack Heart's subsequent steer
+confirms concurrent blocker/payment and Agent work and requires syncing the landed
+ETU-94 API before landing. Prefix completion, canonical projection, per-seat suffix
+state, compound collection and receipt provenance remain unimplemented. This slice
+is a local checkpoint only; it does not satisfy the full Task or authorize shipping
+partial compound support. ETU-94 coordination/integration remains required.
+
+Check result: six fixture-only sampling checks passed, including learned arena
+replay and a reloadable complete-game target shard; physical arena replay passed
+separately, and three existing analytic/root/privacy checks passed. No training ran.

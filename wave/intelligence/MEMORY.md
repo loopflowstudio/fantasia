@@ -655,3 +655,18 @@ Command lowering supply the integration boundary, but prefix-conditioned search
 and a common injected sampler interface remain unimplemented. Compound suffixes
 must preserve the original viewer root and prefix rather than resampling each
 microstep. These are implementation findings, not new strength evidence.
+
+The independent sampling slice now gives physical and learned samplers one typed
+search interface, direct count materialization, source-bound private receipts and
+whole-game player history without exact support construction. Fixture-only checks
+cover seeded replay, both samplers' arena paths and target-shard reader admission;
+no fitting or strength measurement ran. Full-game checks exposed the empty hidden
+pool, whose physical measure is the unique empty hand rather than a sampler error.
+
+Jack Heart confirmed concurrent ETU-94 blocker/payment and Agent extensions and
+requires integrating its landed API before ETU-95 lands. The attempted ordinary
+coordination contribution failed with `Task input belongs to a stale or different
+Flow`; no decoder or Agent edits occurred. Compound prefix completion, native
+Command alignment and rollout/collection suffix state remain unfinished. This
+sampling checkpoint is not ETU-95 software completion or permission to ship a
+partial compound implementation.

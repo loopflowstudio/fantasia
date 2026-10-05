@@ -2,7 +2,8 @@
 
 `LocalUpdateTeacher` owns no learning state. It estimates signed root-action
 values using canonical worlds, actor-view policy rollouts and signed leaf values.
-`LocalUpdatePlayer` maintains exact-range or approximate learned-history state. The closed-form
+`LocalUpdatePlayer` maintains viewer history, or an explicitly selected exact
+reference tracker. The closed-form
 update follows Ataraxos supplement S3.7 (7)-(8); model mismatch and truncated
 rollouts preclude an equilibrium guarantee. Receipts are private training data.
 """
@@ -30,7 +31,7 @@ from manabot.belief.likelihood import (
 from manabot.belief.player import ExactRangePlayer, RangeSampling
 from manabot.belief.range import BeliefState
 from manabot.belief.sampling import SamplerInput
-from manabot.belief.sampling_data import _digest, public_sampler_input
+from manabot.belief.sampling_data import _digest
 from manabot.belief.sampling_fit import load_belief_sampler
 from manabot.belief.state import (
     EmptyBeliefSupport,
@@ -38,9 +39,16 @@ from manabot.belief.state import (
     condition_belief,
     query_mass,
 )
-from manabot.belief.tracker import BeliefTracker
 from manabot.env import Env
 from manabot.model.world import validate_agent_setup
+from manabot.sim.local_sampling import (
+    HandBatch,
+    HandSample as SampledHandReceipt,
+    LearnedHandSampler,
+    PhysicalHandSampler,
+    SearchHandSampler,
+    validate_hand,
+)
 from manabot.sim.search_branch import SelectedFullCloneBackend
 import managym
 from managym.decision import DecisionFrame, Observation, SemanticTransition
@@ -59,7 +67,7 @@ class LocalSearchConfig(BaseModel):
     beta: float = Field(default=1.0, gt=0)
     decision_seconds: float = Field(default=1, gt=0)
     max_support: int = Field(default=20000, ge=1)
-    sampling: Literal["belief", "compatible_prior", "learned"] = "belief"
+    sampling: Literal["belief", "compatible_prior", "learned"] = "compatible_prior"
 
 
 class SamplerArtifact(BaseModel):
@@ -72,12 +80,6 @@ class SamplerArtifact(BaseModel):
     schema_identity: str
     policy_identity: str
     world_identity: str
-
-
-@dataclass(frozen=True)
-class SampledHandReceipt:
-    counts: tuple[tuple[str, int], ...]
-    log_probability: float
 
 
 @dataclass(frozen=True)
@@ -165,11 +167,15 @@ class LocalUpdateReceipt:
     rollouts: tuple[RolloutReceipt, ...]
     belief_seconds: float = 0.0
     learned_belief: LearnedBeliefReceipt | None = None
+    direct_belief: HandBatch | None = None
 
     @classmethod
     def from_json(cls, encoded: str) -> LocalUpdateReceipt:
         receipt = _RECEIPT_ADAPTER.validate_json(encoded)
-        if receipt.schema != "regularized-local-update/v1":
+        if receipt.schema not in (
+            "regularized-local-update/v1",
+            "regularized-local-update/v2",
+        ):
             raise ValueError("unsupported local update receipt")
         config = LocalSearchConfig.model_validate_json(receipt.config_json)
         target = regularized_update(
@@ -202,60 +208,98 @@ class LocalUpdateReceipt:
         if not np.allclose(sums / counts, receipt.values):
             raise ValueError("local values differ from retained rollouts")
         learned = receipt.learned_belief
+        direct = receipt.direct_belief
         if (config.sampling == "learned") != (learned is not None):
             raise ValueError("local receipt sampling provenance differs")
-        if learned is not None:
-            if learned.artifact.policy_identity != receipt.policy_sha256:
-                raise ValueError("local receipt sampler and policy identities differ")
-            source = json.loads(learned.constraints_json)
-            identity = source["source_observation"]
+        if direct is not None:
             if (
-                identity["viewer"] != receipt.viewer
-                or identity["revision"] != receipt.revision
-                or identity["viewer_state_hash"] != receipt.viewer_state_hash
-                or _digest(source) != receipt.world_identity
-                or learned.sampling_seed != receipt.seed
-                or receipt.sampling_probabilities
-                or receipt.condition_mass != 1.0
-                or json.loads(receipt.query_json) != {"kind": "true"}
-                or len(receipt.rollouts) != len(learned.hands) * count
+                receipt.schema != "regularized-local-update/v2"
+                or config.sampling == "belief"
             ):
-                raise ValueError("local receipt sampled root identity differs")
-            for ordinal, hand in enumerate(learned.hands):
-                counts_by_name = dict(hand.counts)
-                if (
-                    len(counts_by_name) != len(hand.counts)
-                    or sum(counts_by_name.values()) != source["hand_size"]
-                    or any(
-                        n <= 0 or n > source["pool"].get(name, 0)
-                        for name, n in hand.counts
-                    )
-                    or any(
-                        counts_by_name.get(name, 0) < n
-                        for name, n in source["known_hand"].items()
-                    )
-                    or not np.isfinite(hand.log_probability)
-                    or hand.log_probability > 1e-8
-                ):
-                    raise ValueError(
-                        "local receipt sampled hand violates public constraints"
-                    )
-                rows = receipt.rollouts[ordinal * count : (ordinal + 1) * count]
-                if any(
-                    row.world_index is not None or row.sampled_hand != hand
-                    for row in rows
-                ):
-                    raise ValueError("local receipt rollout sampled hand differs")
-        elif any(
-            row.world_index is None or row.sampled_hand is not None
-            for row in receipt.rollouts
+                raise ValueError("direct sampling requires a production sampling mode")
+            prepared = direct.prepared
+            if not prepared.history_identity or not prepared.distribution_identity:
+                raise ValueError("direct sampling identities are missing")
+            constraints_json, hands, sampling_seed = (
+                prepared.constraints_json,
+                direct.hands,
+                direct.seed,
+            )
+            if (
+                learned is not None
+                or prepared.distribution_identity != PhysicalHandSampler.identity
+            ):
+                raise ValueError("physical sampler identity differs")
+            source = json.loads(constraints_json)
+            names = prepared.card_names
+            if (
+                len(set(names)) != len(names)
+                or set(source["pool"]) - set(names)
+                or prepared.inputs.pool_counts
+                != tuple(source["pool"].get(n, 0) for n in names)
+                or prepared.inputs.known_minima
+                != tuple(source["known_hand"].get(n, 0) for n in names)
+                or prepared.inputs.hand_size != source["hand_size"]
+            ):
+                raise ValueError(
+                    "direct sampling coordinates differ from native constraints"
+                )
+        elif learned is not None:
+            constraints_json, hands, sampling_seed = (
+                learned.constraints_json,
+                learned.hands,
+                learned.sampling_seed,
+            )
+        else:
+            if (
+                receipt.schema == "regularized-local-update/v2"
+                and config.sampling != "belief"
+            ):
+                raise ValueError("production receipt lacks direct sampling evidence")
+            if any(
+                row.world_index is None or row.sampled_hand is not None
+                for row in receipt.rollouts
+            ):
+                raise ValueError("enumerated local receipt lacks world indexes")
+            return receipt
+        if (
+            learned is not None
+            and learned.artifact.policy_identity != receipt.policy_sha256
         ):
-            raise ValueError("enumerated local receipt lacks world indexes")
+            raise ValueError("local receipt sampler and policy identities differ")
+        source = json.loads(constraints_json)
+        identity = source["source_observation"]
+        if (
+            identity["viewer"] != receipt.viewer
+            or identity["revision"] != receipt.revision
+            or identity["viewer_state_hash"] != receipt.viewer_state_hash
+            or _digest(source) != receipt.world_identity
+            or sampling_seed != receipt.seed
+            or receipt.sampling_probabilities
+            or receipt.condition_mass != 1.0
+            or json.loads(receipt.query_json) != {"kind": "true"}
+            or len(receipt.rollouts) != len(hands) * count
+        ):
+            raise ValueError("local receipt sampled root identity differs")
+        for ordinal, hand in enumerate(hands):
+            validate_hand(hand, constraints_json)
+            rows = receipt.rollouts[ordinal * count : (ordinal + 1) * count]
+            if any(
+                row.world_index is not None
+                or row.sampled_hand is None
+                or row.sampled_hand.counts != hand.counts
+                or row.sampled_hand.log_probability != hand.log_probability
+                for row in rows
+            ):
+                raise ValueError("local receipt rollout sampled hand differs")
         return receipt
 
     def to_json(self) -> str:
+        payload = _RECEIPT_ADAPTER.dump_python(self, mode="json")
+        if self.schema == "regularized-local-update/v1":
+            payload.pop("direct_belief")
         return json.dumps(
-            _RECEIPT_ADAPTER.dump_python(self, mode="json"),
+            payload,
             sort_keys=True,
             separators=(",", ":"),
             allow_nan=False,
@@ -263,6 +307,8 @@ class LocalUpdateReceipt:
 
     def replay_identity(self) -> str:
         payload = _RECEIPT_ADAPTER.dump_python(self, mode="json")
+        if self.schema == "regularized-local-update/v1":
+            payload.pop("direct_belief")
         payload.pop("seconds")
         payload.pop("belief_seconds")
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
@@ -281,6 +327,19 @@ class LocalUpdateReceipt:
 _RECEIPT_ADAPTER = TypeAdapter(LocalUpdateReceipt)
 
 
+def local_search_source_sha256() -> str:
+    """Bind the search and sampling implementation owners for arena admission."""
+    root = Path(__file__).resolve().parents[2]
+    paths = (
+        "manabot/sim/local_update.py",
+        "manabot/sim/local_sampling.py",
+        "manabot/belief/sampling.py",
+        "manabot/belief/sampling_data.py",
+        "manabot/belief/sampling_fit.py",
+    )
+    return _digest({path: file_sha256(root / path) for path in paths})
+
+
 class LocalUpdateTeacher:
     """One admitted policy supplies rollouts, V and the belief-generating identity."""
 
@@ -291,6 +350,7 @@ class LocalUpdateTeacher:
         config: LocalSearchConfig,
         *,
         sampler: SamplerArtifact | None = None,
+        hand_sampler: SearchHandSampler | None = None,
     ) -> None:
         self.likelihood = FrozenPolicyLikelihood(checkpoint, expected_sha256=sha256)
         self.agent = self.likelihood.agent
@@ -331,8 +391,24 @@ class LocalUpdateTeacher:
                 expected_world_identity=sampler.world_identity,
             )
             self.sampler.requires_grad_(False)
+        self.hand_sampler: SearchHandSampler | None = (
+            LearnedHandSampler(self.sampler, sampler.sha256)
+            if self.sampler is not None and sampler is not None
+            else PhysicalHandSampler()
+            if config.sampling == "compatible_prior"
+            else None
+        )
+        self._sampler_authority = self.hand_sampler
+        if hand_sampler is not None:
+            if (
+                self.hand_sampler is None
+                or hand_sampler.kind != self.hand_sampler.kind
+                or hand_sampler.identity != self.hand_sampler.identity
+            ):
+                raise ValueError("injected sampler differs from admitted distribution")
+            self.hand_sampler = hand_sampler
         self.runtime_sha256 = file_sha256(Path(native.__file__))
-        self.source_sha256 = file_sha256(Path(__file__))
+        self.source_sha256 = local_search_source_sha256()
 
     def predict(self, engine: managym.Env) -> tuple[FloatArray, float]:
         actor = int(engine.current_agent_index())
@@ -396,25 +472,38 @@ class LocalUpdateTeacher:
         observation = Observation.from_json(engine.semantic_observation_json(viewer))
         selected_query = query or WorldQuery.true()
         learned = None
-        if self.sampler is not None:
+        direct = None
+        if self.hand_sampler is not None:
             if not isinstance(belief, ViewerHistory) or belief.viewer != viewer:
-                raise ValueError("learned search requires acting-viewer history")
+                raise ValueError("direct search requires acting-viewer history")
             if selected_query != WorldQuery.true():
-                raise ValueError("learned conditional query mass is unsupported")
-            assert self.sampler_artifact is not None
-            inputs, constraints = public_sampler_input(
-                engine, belief, self.sampler.schema
-            )
-            world_identity = _digest(json.loads(constraints))
-            belief_digest = _digest(
-                {
-                    "history": belief.identity,
-                    "inputs": asdict(inputs),
-                    "sampler": self.sampler_artifact.sha256,
-                }
-            )
+                raise ValueError("direct conditional query mass is unsupported")
+            assert self._sampler_authority is not None
+            prepared = self._sampler_authority.prepare(engine, belief)
+            if (
+                self.hand_sampler is not self._sampler_authority
+                and self.hand_sampler.prepare(engine, belief) != prepared
+            ):
+                raise ValueError(
+                    "injected sampler preparation differs from admitted distribution"
+                )
+            # Compare against an independent native snapshot before trusting an
+            # injected sampler's preparation or executing any branch.
+            if (
+                prepared.distribution_identity != self.hand_sampler.identity
+                or prepared.history_identity != belief.identity
+                or json.loads(prepared.constraints_json)
+                != json.loads(engine.hidden_hand_constraints_json(viewer))
+            ):
+                raise ValueError(
+                    "injected sampler preparation differs from source root"
+                )
+            world_identity = _digest(json.loads(prepared.constraints_json))
+            belief_digest = _digest(asdict(prepared))
             belief_model = (
-                f"approximate-learned-hand/sha256:{self.sampler_artifact.sha256}"
+                f"approximate-learned-hand/sha256:{self.hand_sampler.identity}"
+                if self.config.sampling == "learned"
+                else self.hand_sampler.identity
             )
             sampling_probabilities = ()
             mass = 1.0
@@ -439,8 +528,6 @@ class LocalUpdateTeacher:
                 raise ValueError(
                     "belief likelihood and rollout policy identities differ"
                 )
-            if self.config.sampling == "compatible_prior":
-                belief = BeliefState.compatible_prior(belief.space)
             selected_query = query or WorldQuery.true()
             mass = min(1.0, query_mass(belief, selected_query))
             conditioned = condition_belief(belief, selected_query)
@@ -469,44 +556,34 @@ class LocalUpdateTeacher:
             else min(self.config.cheap_worlds, self.config.worlds)
         )
         indexes: list[int | None]
-        if self.sampler is not None:
-            assert (
-                isinstance(belief, ViewerHistory) and self.sampler_artifact is not None
+        if self.hand_sampler is not None:
+            direct = self.hand_sampler.sample(
+                prepared, count=world_count, seed=seed, check=check
             )
-            generator = torch.Generator().manual_seed(seed)
-            with torch.inference_mode():
-                # Sequential draws preserve the sample prefix across cheap/full
-                # allocations; batched multinomial interleaves RNG by coordinate.
-                hands = torch.cat(
-                    [
-                        self.sampler.sample([inputs], generator=generator)
-                        for _ in range(world_count)
-                    ]
+            check()
+            if (
+                direct.prepared != prepared
+                or direct.seed != seed
+                or len(direct.hands) != world_count
+            ):
+                raise ValueError(
+                    "injected sampler batch differs from requested preparation"
                 )
-                log_probs = self.sampler.log_prob([inputs] * world_count, hands)
-            sampled = tuple(
-                SampledHandReceipt(
+            # Validate every hand before materializing even the first one.
+            for hand in direct.hands:
+                validate_hand(hand, prepared.constraints_json)
+            if self.sampler_artifact is not None:
+                learned = LearnedBeliefReceipt(
+                    self.sampler_artifact,
+                    prepared.history_identity,
+                    prepared.inputs,
+                    prepared.constraints_json,
+                    seed,
                     tuple(
-                        (name, int(count))
-                        for name, count in zip(
-                            self.sampler.schema.card_names, row, strict=True
-                        )
-                        if count
+                        SampledHandReceipt(h.counts, h.log_probability)
+                        for h in direct.hands
                     ),
-                    float(log_prob),
                 )
-                for row, log_prob in zip(
-                    hands.tolist(), log_probs.tolist(), strict=True
-                )
-            )
-            learned = LearnedBeliefReceipt(
-                self.sampler_artifact,
-                belief.identity,
-                inputs,
-                constraints,
-                seed,
-                sampled,
-            )
             indexes = [None] * world_count
         else:
             assert isinstance(belief, BeliefState)
@@ -518,11 +595,12 @@ class LocalUpdateTeacher:
             check()
             world_seed = int(rng.integers(0, 2**63))
             sampled_hand = None
-            if learned is not None:
-                sampled_hand = learned.hands[sample_number]
+            if direct is not None:
+                hand = direct.hands[sample_number]
+                sampled_hand = SampledHandReceipt(hand.counts, hand.log_probability)
                 world = engine.materialize_sampled_hand(
                     viewer,
-                    learned.constraints_json,
+                    direct.prepared.constraints_json,
                     dict(sampled_hand.counts),
                     world_seed,
                 )
@@ -606,7 +684,7 @@ class LocalUpdateTeacher:
             base, values, reference, alpha=self.config.alpha, beta=self.config.beta
         )
         receipt = LocalUpdateReceipt(
-            schema="regularized-local-update/v1",
+            schema="regularized-local-update/v2",
             policy_sha256=self.likelihood.checkpoint_sha256,
             runtime_sha256=self.runtime_sha256,
             teacher_source_sha256=self.source_sha256,
@@ -615,6 +693,7 @@ class LocalUpdateTeacher:
             belief_model=belief_model,
             sampling_probabilities=sampling_probabilities,
             learned_belief=learned,
+            direct_belief=direct if learned is None else None,
             query_json=json.dumps(selected_query.to_dict(), sort_keys=True),
             condition_mass=mass,
             viewer=viewer,
@@ -640,7 +719,7 @@ class LocalUpdatePlayer(ExactRangePlayer):
 
     Exact ranges and learned joint-hand approximations model the frozen policy.
     Neither becomes the actual opponent's posterior when opponent behavior differs.
-    Learned mode never initializes an exact tracker or enumerates its support.
+    Production samplers never initialize an exact tracker or enumerate support.
     """
 
     def __init__(self, teacher: LocalUpdateTeacher, *, seed: int = 0) -> None:
@@ -662,7 +741,10 @@ class LocalUpdatePlayer(ExactRangePlayer):
     def start_game(self, env: Env, seat: int) -> None:
         validate_agent_setup(self.teacher.agent, env.match.to_rust())
         started = time.perf_counter()
-        if self.teacher.sampler is not None:
+        self.last_receipt = None
+        self.history = None
+        self.tracker = None
+        if self.teacher.hand_sampler is not None:
             self.seat = seat
             self.history = ViewerHistory.from_observation(
                 Observation.from_json(env._engine.semantic_observation_json(seat))
@@ -672,7 +754,7 @@ class LocalUpdatePlayer(ExactRangePlayer):
         self._belief_seconds = time.perf_counter() - started
 
     def finish_game(self, *, game_index: int, seed: int) -> None:
-        if self.teacher.sampler is None:
+        if self.teacher.hand_sampler is None:
             super().finish_game(game_index=game_index, seed=seed)
         else:
             if self.history is None:
@@ -682,12 +764,12 @@ class LocalUpdatePlayer(ExactRangePlayer):
                     "game_index": game_index,
                     "seed": seed,
                     "history_identity": self.history.identity,
-                    "belief_model": "approximate-learned-hand",
+                    "belief_model": self.teacher.hand_sampler.identity,
                 }
             )
 
     def prepare_step(self, env: Env, acting: int, action: int) -> None:
-        if self.teacher.sampler is None and self.sampling is RangeSampling.BELIEF:
+        if self.teacher.hand_sampler is None and self.sampling is RangeSampling.BELIEF:
             super().prepare_step(env, acting, action)
 
     def observe_step(
@@ -695,20 +777,13 @@ class LocalUpdatePlayer(ExactRangePlayer):
     ) -> None:
         if self.seat is None:
             raise RuntimeError("start_game is required")
-        if self.teacher.sampler is not None:
+        if self.teacher.hand_sampler is not None:
             assert self.history is not None
             started = time.perf_counter()
             self.history = self.history.advance(
                 transition.receipt,
                 Observation.from_json(env._engine.semantic_observation_json(self.seat)),
                 acting=acting,
-            )
-            self._belief_seconds += time.perf_counter() - started
-            return
-        if self.sampling is RangeSampling.COMPATIBLE_PRIOR:
-            started = time.perf_counter()
-            self.tracker = BeliefTracker.from_engine(
-                env._engine, viewer=self.seat, likelihood=None, epsilon=0
             )
             self._belief_seconds += time.perf_counter() - started
             return

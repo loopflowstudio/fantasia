@@ -10,4 +10,8 @@ remains an explicitly selected tiny reference, never a production fallback.
 Compound search returns canonical conditional action targets with retained
 decoder-prefix provenance. These are not full joint-declaration distributions.
 Native lowering must establish prefix-to-Command alignment before admission.
-Coordinate any decoder API edits with ETU-94; no decoder edits occurred in kickoff.
+Jack Heart confirmed ETU-94 is concurrently extending native blockers/payments
+and Agent; sync its landed API before landing. The ETU-94 coordination contribution
+failed with `Task input belongs to a stale or different Flow`. No decoder/Agent
+edits have occurred; compound integration remains pending rather than assuming
+those new roles remain ordinary decisions.

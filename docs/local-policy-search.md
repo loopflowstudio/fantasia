@@ -2,7 +2,8 @@
 
 ETU-95 supplies a frozen-policy rollout teacher, retained local-update targets,
 TrainingRegime collection/distillation, arena lifecycle and an advice projection.
-Learned joint-hand sampling now feeds the teacher without enumerating support.
+Physical-prior and learned joint-hand sampling feed the teacher through one typed
+interface without enumerating support.
 The complete-history exact-posterior comparison remains blocked by Rules
 capabilities; no strength, bluffing or human-play result is established.
 
@@ -59,9 +60,11 @@ supported. Arena play samples the updated distribution and explicitly records
 that the actual opponent need not match the frozen belief model. Policy, value,
 rollout and likelihood share one checkpoint identity. `sampling=compatible_prior`
 uses the physical compatible-deal measure, not equal mass over count vectors.
-`sampling=belief` uses zero likelihood smoothing and fails on provider gaps.
-Queries restrict this distribution through managym; they never ask whether the
-actual hidden hand satisfies the query. A zero-mass query fails.
+`compatible_prior` is the default. `sampling=belief` explicitly selects the tiny
+exact-reference path, uses zero likelihood smoothing and fails on provider gaps.
+Only that reference supports conditional queries through managym; production
+samplers accept `True` and reject other queries before rollouts. No path asks
+whether the actual hidden hand satisfies a query. A zero-mass reference query fails.
 
 ## Evidence and budgets
 
@@ -82,12 +85,12 @@ its target formula, full action coverage and rollout means.
 
 Decision deadlines charge prior construction/history filtering since the previous
 decision as well as search. Stage/run budgets also charge setup, export and failed
-work. Native enumeration and individual forwards are cooperative operations:
-a call can overrun, after which the target is unavailable, never silently accepted
-or replaced with policy-only play. In `belief` and `compatible_prior` modes the support cap is checked **after
-enumeration**; those paths remain restricted to tractable pools. Learned mode
-uses direct count materialization and never constructs that support; its cost
-scales with sampled hands and vocabulary, not all compatible hands. Arena's existing subprocess game deadline supplies
+work. Native operations and individual forwards are cooperative: a call can overrun,
+after which the target is unavailable, never silently accepted or replaced with
+policy-only play. Only the explicit `belief` reference enumerates; its support
+cap is checked **after enumeration**, so it remains restricted to tractable pools.
+Both production samplers materialize counts directly; their cost scales with
+sampled hands and vocabulary, not all compatible hands. Arena's subprocess deadline supplies
 an outer execution bound. Equal nominal milliseconds do not prove equal realized
 cost; retain overruns and unavailable cells.
 
@@ -139,7 +142,8 @@ The staged recipe makes repeated teacher/student rounds executable; whether they
 compound, whether immutable replay helps, and whether stronger-teacher relabeling
 beats new games require the separately frozen protocol in
 [training follow-ups](../experiments/training-regime-followups.md). ETU-95 remains
-open for these scientific outcomes. ETU-91 and its allocations remain unchanged.
+open for the remaining compound-policy software integration. ETU-99 owns these
+scientific outcomes; ETU-91 and its allocations remain unchanged.
 
 Validation on 2026-10-04: 73 affected Python tests and 21 native debug world/branch
 tests passed before upstream sync. After rebuilding the merged native extension,
@@ -220,3 +224,30 @@ Checks: 57 affected Python tests passed before final upstream integration;
 11 native debug world/materializer tests and Clippy passed. The integrated CLI
 proof and 12 passing PR 212 sampler collection/regime checks cover the subsequent
 merge.
+
+## Search-facing sampler interface
+
+`manabot.sim.local_sampling.SearchHandSampler` separates native public-constraint
+preparation from seeded sampling. `PreparedHands` binds distribution, viewer
+history, vocabulary and native snapshot; `HandBatch` retains ordered counts and
+joint log probabilities. `LocalUpdateTeacher(hand_sampler=...)` accepts an
+implementation matching the admitted distribution identity, independently checks
+its preparation against the ordinary sampler, and validates the entire batch
+before materialization. Learned injection still requires the exact artifact and
+its policy/dataset/schema/world admission. Physical sampling removes public
+minima before drawing unknown slots and handles the unique empty-pool deal.
+Sequential draws preserve cheap/full sample prefixes. Deadlines include both
+preparation and sampling, with checks between draws and after injected calls.
+
+New receipts use `regularized-local-update/v2`, retaining direct physical samples
+without fabricated support indexes or learned artifact identities. Learned
+receipts retain their existing artifact-bound evidence. The reader still admits
+historical v1 receipts without rewriting their bytes. Arena source admission now
+uses `local_search_source_sha256()` to bind search plus sampling implementation
+owners; historical single-file fingerprints fail current admission.
+
+This interface does not complete compound prefix-conditioned search. ETU-94 is
+adding blocker declarations and payment subsets; search must integrate its landed
+API and prove native prefix-to-Command correspondence before admitting those
+boundaries. Unsupported compound checkpoints still fail explicitly. The live
+advice provider is unchanged.
