@@ -19,12 +19,17 @@ from manabot.verify.checkpoint_scenarios import main, score_checkpoint
 from manabot.verify.competency import SCENARIOS, build_scenario_env
 
 
-def _checkpoint(tmp_path: Path, name: str, *, max_actions: int = 64) -> Path:
+def _checkpoint(
+    tmp_path: Path, name: str, *, max_actions: int = 64, compound: bool = False
+) -> Path:
     torch.set_num_threads(1)
     torch.manual_seed(17)
     scenario = SCENARIOS[name]
     space = ObservationSpace(ObservationSpaceHypers(max_actions=max_actions))
-    agent = Agent(space, AgentHypers(hidden_dim=8, num_attention_heads=2))
+    agent = Agent(
+        space,
+        AgentHypers(hidden_dim=8, num_attention_heads=2, compound_decisions=compound),
+    )
     path = tmp_path / f"{name}.pt"
     save_bc_checkpoint(
         agent,
@@ -139,3 +144,14 @@ def test_command_cap_retains_failed_prefix(tmp_path: Path) -> None:
     assert score.decisions == 1 and score.replay_passed
     assert "Command cap" in (score.error or "")
     assert game is not None and game["failure"]
+
+
+def test_compound_checkpoint_combat_prefix_replays(tmp_path: Path) -> None:
+    name = "s4_race_vs_block"
+    checkpoint = _checkpoint(tmp_path, name, compound=True)
+    score, game = score_checkpoint(name, checkpoint)
+    assert score.status == "scored", score.error
+    assert score.replay_passed and game is not None
+    repeated, repeated_game = score_checkpoint(name, checkpoint)
+    assert repeated.trace_sha256 == score.trace_sha256
+    assert repeated_game == game

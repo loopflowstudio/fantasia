@@ -64,7 +64,8 @@ ETU-85 retains demo-opponent comparison ownership. No ETU-91 allocation applies.
 ## Evidence and reproduction
 
 `results.json` retains premise validation, every attempt's status and error,
-checkpoint digest, behavioral measurements, elapsed time including replay and
+checkpoint digest, behavioral measurements, separate premise-validation cost,
+elapsed attempt time including replay and
 trace identity. `traces.jsonl.gz` uses arena serialization with source-versioned
 scenario roots, native world/setup/input binding, declared observation capacity,
 seed, initial state digest and each actor's viewer frame, legal offer, Command

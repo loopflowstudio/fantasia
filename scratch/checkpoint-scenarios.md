@@ -28,4 +28,4 @@ hidden-hand swap, strict admission, failed prefixes and offline report replay
 are tested. S2 correctness uses resolved removal; tracker intent remains only a
 behavioral measurement. No scientific acceptance is claimed.
 
-Checks: focused gate suite running; CI owns the broader platform matrix.
+Checks: 37 affected Python checks passed with importlib collection; after main sync/native rebuild, 21 affected checks including compound replay passed; 7 native scenario tests passed in debug; final report-only regression and Ruff passed. CI owns the broader platform matrix.

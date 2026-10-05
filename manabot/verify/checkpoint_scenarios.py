@@ -228,6 +228,7 @@ def write_report(directory: Path) -> None:
         "or robustness conclusions. ETU-99 owns empirical comparisons.",
         "",
         f"Exact prefix replay: {replay.decisions} Commands in {replay.games} attempts.",
+        f"Premise validation: {payload['validation_seconds']:.3f} seconds (separate from checkpoint attempts).",
         "",
         "| Scenario | Status | Reference achieved | Outcome / error |",
         "| --- | --- | --- | --- |",
@@ -292,7 +293,9 @@ def main() -> None:
             "checkpoint mapping requires known scenario names and path strings"
         )
     args.out.mkdir(parents=True, exist_ok=False)
+    validation_started = time.perf_counter()
     validation = validate_scenarios(seeds=(args.seed,), max_steps=args.max_steps)
+    validation_seconds = time.perf_counter() - validation_started
     scores: list[ScenarioScore] = []
     games: list[dict[str, Any]] = []  # Existing arena trace wire boundary.
     for record in validation:
@@ -325,6 +328,7 @@ def main() -> None:
             json.dumps(
                 {
                     "schema_version": 1,
+                    "validation_seconds": validation_seconds,
                     "validation": [asdict(item) for item in validation],
                     "scores": [item.model_dump() for item in scores],
                     "trace": trace,
