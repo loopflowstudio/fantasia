@@ -508,9 +508,10 @@ def value_outputs(
 <p>The experiment file constructs complete TrainingRegime objects. These helpers
 replace only declared settings inside each regime, validate nested specifications
 and stage compatibility, and return independent values with distinct regime IDs.
-<code>value_outputs</code> explicitly couples output representation to the existing compatible
-value-target/loss contract; its exported diff shows both changes. Unsupported
-objectives fail. <code>with_capacity</code> preserves normalization, pooling and information
+<code>value_outputs</code> changes <code>agent.value_kind</code> and the regime ID in the resolved
+configuration. The existing trainer dispatches the corresponding value targets
+and loss from that field; stage learning settings remain unchanged. Unsupported
+objectives fail full-regime validation. <code>with_capacity</code> preserves normalization, pooling and information
 inputs. No helper changes budgets, starts training or silently omits invalid arms.</p>
 <p>The existing ResolvedStudy groups the resulting regimes with EvaluationProtocol,
 allocation, calibration and runtime fields. Recompute and validate regime digests
@@ -878,8 +879,10 @@ forward implementations. Test both output and gradient parity against retained
 baseline fixtures. An allowlisted same-shape key rename is a migration; changed
 normalization/attention/pooling semantics require a new architecture identity.</p>
 <h2 id="9-one-complete-construction-train-export-reload-evaluate-path">9. One complete construction → train → export → reload → evaluate path</h2>
-<p>This specifies a complete proposed software acceptance case, with present and
-new pieces labeled. It authorizes no execution in this Task.</p>
+<p>Jack Heart approved the bounded software workflow on 2026-10-05, under the
+section-11 cap. The first cut uses existing Agent construction, checkpoint
+metadata and admission. Additional architecture receipts, builders and transfer
+interfaces below remain design sketches, not prerequisites for that workflow.</p>
 <ol>
 <li><strong>Resolve.</strong> Start from the authored Allies/Lessons MatchHypers and saved
 observation capacities. Resolve the proposed baseline or value-token recipe
@@ -1020,11 +1023,12 @@ execution occurs when importing the recipe module.</li>
 does not silently change the policy learning rule. Generated JSON remains the
 execution record; ordinary checkpoint loading remains reconstruction authority.</li>
 </ul>
-<p><strong>Delete — do not maintain:</strong> replace the paper-value contrast's JSON-based
-baseline authoring and unchecked model variation with the shared constructors.
-Preserve exported fixtures, recipe identities, budgets, stages and objectives.
-Next remove ETU-106's repeated model-variation code when its delivery is admitted;
-no second aggregation/depth implementation will be created here.</p>
+<p><strong>Completed cleanup:</strong> the paper-value contrast now constructs its final
+budgets directly and returns before the PPO-only mutation loop. JSON-based
+authoring and direct value-kind mutation are removed; exported fixtures, recipe
+identities, budgets, stages and objectives remain intact. ETU-106's repeated
+model-variation code remains to be replaced after its delivery is admitted;
+aggregation/depth implementation stays with that focused delivery.</p>
 <p>Remaining acceptance:</p>
 <ol>
 <li>Integrate actual ETU-106 delivery, including exact pooling, depth, initialization
@@ -1049,9 +1053,7 @@ Scientific contrasts require a separate frozen protocol, independent seeds, pair
 held-out deals and declared costs. No strength, calibration or byte-identical
 stochastic-training claim follows from software acceptance. History, recurrence,
 new sampler architecture and transfer tooling are outside this first cut.</p>
-<p>Focused check: recipe/treatment pytest passed 26 tests; the final retained-fixture
-assertion passed in the five-test recipe rerun. Ruff and HTML local-link checks
-passed. No complete workflow attempt or scientific run has started in ETU-104.</p>
+<p>Retained check: <code>uv run pytest tests/training/test_architecture_recipes.py tests/training/test_omitted_controls.py -k 'not ema_behavior' -q</code> — 25 passed, 2 deselected. No complete workflow attempt or scientific run has started in ETU-104; gate owns complete-workflow acceptance after integration.</p>
 <h2 id="12-review-record-and-remaining-decisions">12. Review record and remaining decisions</h2>
 <table>
 <thead>
@@ -1079,7 +1081,7 @@ passed. No complete workflow attempt or scientific run has started in ETU-104.</
 </tr>
 <tr>
 <td>2026-10-05, Jack Heart, design review</td>
-<td>Requested reusable cross-experiment helpers and consideration of Pydantic plus existing object families. The proposed consolidation inventory and helper signatures above await further review.</td>
+<td>Requested reusable cross-experiment helpers and consideration of Pydantic plus existing object families. Shared Python helpers were subsequently approved in the incremental first cut; the broader consolidation inventory remains optional.</td>
 </tr>
 <tr>
 <td>2026-10-05, Jack Heart, design review</td>

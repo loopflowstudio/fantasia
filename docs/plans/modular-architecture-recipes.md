@@ -323,9 +323,10 @@ def value_outputs(
 The experiment file constructs complete TrainingRegime objects. These helpers
 replace only declared settings inside each regime, validate nested specifications
 and stage compatibility, and return independent values with distinct regime IDs.
-`value_outputs` explicitly couples output representation to the existing compatible
-value-target/loss contract; its exported diff shows both changes. Unsupported
-objectives fail. `with_capacity` preserves normalization, pooling and information
+`value_outputs` changes `agent.value_kind` and the regime ID in the resolved
+configuration. The existing trainer dispatches the corresponding value targets
+and loss from that field; stage learning settings remain unchanged. Unsupported
+objectives fail full-regime validation. `with_capacity` preserves normalization, pooling and information
 inputs. No helper changes budgets, starts training or silently omits invalid arms.
 
 The existing ResolvedStudy groups the resulting regimes with EvaluationProtocol,
@@ -692,8 +693,10 @@ normalization/attention/pooling semantics require a new architecture identity.
 
 ## 9. One complete construction → train → export → reload → evaluate path
 
-This specifies a complete proposed software acceptance case, with present and
-new pieces labeled. It authorizes no execution in this Task.
+Jack Heart approved the bounded software workflow on 2026-10-05, under the
+section-11 cap. The first cut uses existing Agent construction, checkpoint
+metadata and admission. Additional architecture receipts, builders and transfer
+interfaces below remain design sketches, not prerequisites for that workflow.
 
 1. **Resolve.** Start from the authored Allies/Lessons MatchHypers and saved
    observation capacities. Resolve the proposed baseline or value-token recipe
@@ -818,11 +821,12 @@ Implemented independent work:
   does not silently change the policy learning rule. Generated JSON remains the
   execution record; ordinary checkpoint loading remains reconstruction authority.
 
-**Delete — do not maintain:** replace the paper-value contrast's JSON-based
-baseline authoring and unchecked model variation with the shared constructors.
-Preserve exported fixtures, recipe identities, budgets, stages and objectives.
-Next remove ETU-106's repeated model-variation code when its delivery is admitted;
-no second aggregation/depth implementation will be created here.
+**Completed cleanup:** the paper-value contrast now constructs its final
+budgets directly and returns before the PPO-only mutation loop. JSON-based
+authoring and direct value-kind mutation are removed; exported fixtures, recipe
+identities, budgets, stages and objectives remain intact. ETU-106's repeated
+model-variation code remains to be replaced after its delivery is admitted;
+aggregation/depth implementation stays with that focused delivery.
 
 Remaining acceptance:
 
@@ -849,9 +853,7 @@ held-out deals and declared costs. No strength, calibration or byte-identical
 stochastic-training claim follows from software acceptance. History, recurrence,
 new sampler architecture and transfer tooling are outside this first cut.
 
-Focused check: recipe/treatment pytest passed 26 tests; the final retained-fixture
-assertion passed in the five-test recipe rerun. Ruff and HTML local-link checks
-passed. No complete workflow attempt or scientific run has started in ETU-104.
+Retained check: `uv run pytest tests/training/test_architecture_recipes.py tests/training/test_omitted_controls.py -k 'not ema_behavior' -q` — 25 passed, 2 deselected. No complete workflow attempt or scientific run has started in ETU-104; gate owns complete-workflow acceptance after integration.
 
 ## 12. Review record and remaining decisions
 
@@ -861,7 +863,7 @@ passed. No complete workflow attempt or scientific run has started in ETU-104.
 | 2026-10-05, Jack Heart, ETU-106 live directive | Selected value-token aggregation for focused implementation/testing; historical pooling is compatibility/control. Broad framework remains gated. |
 | 2026-10-05, ETU-104 research | Proposed closed typed specs, explicit builders, strict reload, separately receipted transfer, recent-window history first. Not approved. |
 | 2026-10-05, Jack Heart, design review | Selected Python files per experiment; YAML/JSON serve as generated exports/reports. Requested concrete walkthroughs of registered Ataraxos-inspired experiments. |
-| 2026-10-05, Jack Heart, design review | Requested reusable cross-experiment helpers and consideration of Pydantic plus existing object families. The proposed consolidation inventory and helper signatures above await further review. |
+| 2026-10-05, Jack Heart, design review | Requested reusable cross-experiment helpers and consideration of Pydantic plus existing object families. Shared Python helpers were subsequently approved in the incremental first cut; the broader consolidation inventory remains optional. |
 | 2026-10-05, Jack Heart, design review | Confirmed architecture belongs inside TrainingRegime as the model/hyperparameter configuration for TrainingRun. Evolve the existing agent field; do not add a competing top-level recipe owner. |
 | 2026-10-05, Jack Heart, design review | Preferred refining the existing near-fit AgentHypers, without requiring its exact type or name. A substantially different design needs a strong reason; useful restructuring remains available. |
 | 2026-10-05, Jack Heart, design review | Prioritized Keras and JAX-community patterns. The added comparison focuses on Keras, Flax NNX and Equinox; it does not imply a backend migration. |

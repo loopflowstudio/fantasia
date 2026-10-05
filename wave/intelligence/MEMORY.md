@@ -813,8 +813,11 @@ preserve the primary-source research, accepted first cut and remaining work.
 
 Shared recipe helpers now build the explicit Ataraxos move baseline and independent
 model/value-output variants. Full regime validation rejects incompatible targets;
-changing representation does not silently change the learning rule. The existing
-omitted-controls paper-value contrast consumes them with retained resolved settings.
+changing representation does not silently change the learning rule. The helper
+changes the model value-kind field; existing trainer dispatch selects its targets
+and loss while stage learning settings stay fixed. The omitted-controls paper-value
+contrast consumes these helpers with retained resolved settings and final budgets
+constructed directly, before the separate PPO mutation loop.
 The remaining naming, depth/aggregation helpers and value/capacity demonstration
 must consume focused delivery rather than duplicate its model implementation.
 
