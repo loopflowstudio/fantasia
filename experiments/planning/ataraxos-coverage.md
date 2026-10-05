@@ -131,6 +131,16 @@ capture does not expand the current 168-hour campaign or change its active plans
 
 ## Search integration contracts and remaining acceptance
 
+Jack Heart set sampling as the default direction for belief-conditioned search
+on 2026-10-04. Production search should consume constrained joint hidden-state
+samples without enumerating possible hands. Keep exact enumeration as a
+small-pool correctness and calibration reference, not a prerequisite for the
+sampling path. Compare a constrained prior sampler with learned sampling;
+learning must earn its complexity through better predictions or decisions.
+Evaluate public-constraint validity, joint dependencies, sensitivity to sample
+count, and playing strength at matched realized cost. This direction does not
+change the frozen campaign or authorize additional compute.
+
 ETU-95 now connects the frozen-policy belief sampler to rollouts directly.
 The learned path validates public pool counts, known minima, hand size and
 source observation identity, preserves the root viewer's information, and
