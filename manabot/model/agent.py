@@ -147,6 +147,18 @@ class Agent(nn.Module):
         is_agent_template = torch.cat(is_agent_parts).unsqueeze(0)
         self.register_buffer("_is_agent_template", is_agent_template)
 
+        # Construct optional parameters after the historical model to preserve
+        # its initialization order and state-dict names.
+        self.extra_attention = nn.ModuleList(
+            GameObjectAttention(embed_dim, hypers.num_attention_heads, ownership=False)
+            for _ in range(hypers.attention_layers - 1)
+        )
+        self.value_token = (
+            nn.Parameter(torch.randn(1, 1, embed_dim) / embed_dim**0.5)
+            if hypers.value_aggregation == "value_token"
+            else None
+        )
+
         # When True, forward() stashes raw pre-mask logits on
         # self.last_raw_logits for offline diagnosis. Off by default: the
         # detach/cpu copy is measurable in the inference hot path.
@@ -182,14 +194,33 @@ class Agent(nn.Module):
             )
         objects, is_agent, validity = self._gather_object_embeddings(obs)
 
+        if (
+            self.hypers.value_aggregation != "historical_mean"
+            and (validity.sum(1) == 0).any()
+        ):
+            raise ValueError("value aggregation requires a valid object")
         key_padding_mask = validity == 0
-
+        token_mode = self.value_token is not None
+        if token_mode:
+            objects = torch.cat(
+                (objects, self.value_token.expand(objects.shape[0], -1, -1)), dim=1
+            )
+            key_padding_mask = torch.cat(
+                (key_padding_mask, torch.zeros_like(key_padding_mask[:, :1])), dim=1
+            )
         if self.hypers.attention_on:
             post_attention_objects = self.attention(
                 objects, is_agent, key_padding_mask=key_padding_mask
             )
+            for layer in self.extra_attention:
+                post_attention_objects = layer(
+                    post_attention_objects, is_agent, key_padding_mask
+                )
         else:
             post_attention_objects = objects
+        token = post_attention_objects[:, -1] if token_mode else None
+        if token_mode:
+            post_attention_objects = post_attention_objects[:, :-1]
 
         informed_actions = self._gather_informed_actions(obs, post_attention_objects)
 
@@ -198,7 +229,16 @@ class Agent(nn.Module):
             # Save raw logits for offline diagnosis (scripts/diagnose_*).
             self.last_raw_logits = logits_before_mask.detach().cpu()
         logits = logits_before_mask.masked_fill(obs["actions_valid"] == 0, -1e8)
-        value = self.value_head(post_attention_objects)
+        if token is not None:
+            value = self.value_head[:2](token)
+            value = self.value_head[3:](value)
+        elif self.hypers.value_aggregation == "masked_mean":
+            projected = self.value_head[:2](post_attention_objects)
+            projected = projected.masked_fill((validity == 0).unsqueeze(-1), 0)
+            pooled = projected.sum(1) / validity.sum(1, keepdim=True)
+            value = self.value_head[3:](pooled)
+        else:
+            value = self.value_head(post_attention_objects)
         return logits, value
 
     def compound(
@@ -474,12 +514,18 @@ class GameObjectAttention(nn.Module):
       - And returning the context-rich output.
     """
 
-    def __init__(self, embedding_dim: int, num_heads: int):
+    def __init__(
+        self, embedding_dim: int, num_heads: int, *, ownership: bool = True
+    ) -> None:
         super().__init__()
         self.embedding_dim = embedding_dim
         self.logger = getLogger(__name__).getChild("attention")
         self.logger.info(f"Creating perspective vector of size {embedding_dim}")
-        self.perspective = nn.Parameter(torch.randn(embedding_dim) / embedding_dim**0.5)
+        self.perspective = (
+            nn.Parameter(torch.randn(embedding_dim) / embedding_dim**0.5)
+            if ownership
+            else None
+        )
         self.mha = nn.MultiheadAttention(
             embedding_dim, num_heads=num_heads, batch_first=True
         )
@@ -497,8 +543,16 @@ class GameObjectAttention(nn.Module):
         is_agent: torch.Tensor,
         key_padding_mask: torch.BoolTensor,
     ) -> torch.Tensor:
-        perspective_scale = torch.where(is_agent.unsqueeze(-1), 1.0, -1.0)
-        owned_objects = objects + perspective_scale * self.perspective
+        owned_objects = objects
+        if self.perspective is not None:
+            perspective_scale = torch.where(is_agent.unsqueeze(-1), 1.0, -1.0)
+            # A trailing value token has no owner; real-object indexes stay fixed.
+            if objects.shape[1] > is_agent.shape[1]:
+                perspective_scale = torch.cat(
+                    (perspective_scale, torch.zeros_like(perspective_scale[:, :1])),
+                    dim=1,
+                )
+            owned_objects = objects + perspective_scale * self.perspective
 
         attn_out, _ = self.mha(
             owned_objects,

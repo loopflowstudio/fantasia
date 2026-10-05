@@ -15,8 +15,12 @@ addresses this concrete dependency; no strength benefit has been measured.
 Categorical targets and expected-value conversion already exist in the Ataraxos
 move path. The compound decoder owns a separate critic, so ordinary value-head
 changes must not silently claim compound support. Saved AgentHypers and strict
-world-bound loading remain the architecture authority. Kickoff supplies a plan,
-not implemented variants or empirical promotion evidence.
+world-bound loading remain the architecture authority. The focused software now implements all four contrasts, generates eight recipes
+and uses the existing study executor/report. Defaults retain historical weights
+and equations; extra blocks omit repeated ownership and the value token is neutral.
+Focused reload, hidden-deal, gradient and padding checks passed. Integrated smoke,
+offline regeneration and empirical promotion remain pending; implementation does
+not establish strength. The protocol lives in experiments/value-models.md.
 
 ## Operating principle
 

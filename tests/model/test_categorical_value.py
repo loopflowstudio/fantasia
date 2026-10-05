@@ -18,10 +18,22 @@ from manabot.sim.net_opponent import SeatRoutedCollector
 import managym
 
 
-def _agent(kind: Literal["scalar", "categorical_wdl"]) -> Agent:
+def _agent(
+    kind: Literal["scalar", "categorical_wdl"],
+    aggregation: Literal[
+        "historical_mean", "masked_mean", "value_token"
+    ] = "historical_mean",
+    depth: Literal[1, 2] = 1,
+) -> Agent:
     return Agent(
         ObservationSpace(),
-        AgentHypers(hidden_dim=8, attention_on=False, value_kind=kind),
+        AgentHypers(
+            hidden_dim=8,
+            attention_on=True,
+            value_kind=kind,
+            value_aggregation=aggregation,
+            attention_layers=depth,
+        ),
     )
 
 
@@ -31,11 +43,23 @@ def _collector(agent: Agent) -> SeatRoutedCollector:
     )
 
 
+@pytest.mark.parametrize(
+    "aggregation,depth",
+    [
+        ("historical_mean", 1),
+        ("masked_mean", 1),
+        ("value_token", 1),
+        ("value_token", 2),
+    ],
+)
 @pytest.mark.parametrize("kind", ["scalar", "categorical_wdl"])
 def test_value_interface_and_collection_likelihoods(
-    kind: Literal["scalar", "categorical_wdl"], tmp_path: Path
+    kind: Literal["scalar", "categorical_wdl"],
+    tmp_path: Path,
+    aggregation: Literal["historical_mean", "masked_mean", "value_token"],
+    depth: Literal[1, 2],
 ) -> None:
-    agent = _agent(kind)
+    agent = _agent(kind, aggregation, depth)
     collector = _collector(agent)
     batch = collector.collect(agent, 4)
     obs = {
@@ -70,11 +94,15 @@ def test_value_interface_and_collection_likelihoods(
     torch.testing.assert_close(agent.get_value(obs), value)
 
     path = tmp_path / "critic.pt"
+    saved_hypers = agent.hypers.model_dump()
+    if aggregation == "historical_mean":
+        saved_hypers.pop("value_aggregation")
+        saved_hypers.pop("attention_layers")
     torch.save(
         {
             "model_state_dict": agent.state_dict(),
             "hypers": {
-                "agent_hypers": agent.hypers.model_dump(),
+                "agent_hypers": saved_hypers,
                 "observation_hypers": agent.observation_space.encoder.hypers.model_dump(),
             },
             "world_binding": checkpoint_world(
@@ -85,6 +113,8 @@ def test_value_interface_and_collection_likelihoods(
     )
     loaded, _ = load_checkpoint_agent(str(path))
     assert loaded.hypers.value_kind == kind
+    assert loaded.hypers.value_aggregation == aggregation
+    assert loaded.hypers.attention_layers == depth
     loaded_policy, loaded_value = loaded.forward_distribution(obs)
     torch.testing.assert_close(loaded_policy, policy, rtol=0, atol=0)
     torch.testing.assert_close(loaded_value, raw_value, rtol=0, atol=0)
@@ -115,11 +145,23 @@ def test_distributional_supervision_reaches_shared_encoder() -> None:
     assert all(parameter.grad is None for parameter in agent.policy_head.parameters())
 
 
-def test_categorical_policy_and_value_do_not_read_hidden_deal() -> None:
+@pytest.mark.parametrize(
+    "aggregation,depth",
+    [
+        ("historical_mean", 1),
+        ("masked_mean", 1),
+        ("value_token", 1),
+        ("value_token", 2),
+    ],
+)
+def test_categorical_policy_and_value_do_not_read_hidden_deal(
+    aggregation: Literal["historical_mean", "masked_mean", "value_token"],
+    depth: Literal[1, 2],
+) -> None:
     engine = managym.Env(seed=29, skip_trivial=True)
     engine.reset(Match().to_rust())
     actor = SemanticDecisionContract.from_env(engine).frame.actor
-    agent = _agent("categorical_wdl")
+    agent = _agent("categorical_wdl", aggregation, depth)
     space = agent.observation_space
     original = {
         key: torch.from_numpy(value).unsqueeze(0)
