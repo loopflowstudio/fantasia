@@ -884,7 +884,10 @@ It first failed reporting because the notebook extra was absent; ordinary resume
 retained the failure and completed reporting without retraining or replacing
 arena rows. Offline report/metrics regeneration was byte-identical. This proves
 software composition and reload/evaluation, not strength or chapter acceptance.
-Review preparation, publication, human code review, CI and landing remain open.
+PR #223 is published. Jack Heart explicitly requested completion through landing;
+the landing pass reviewed the diff and retained evidence, with 64 focused checks
+passing. This is agent technical review, not human code review. Required CI and
+verified merge remain delivery conditions.
 
 Inspection at `db820056` separates semantic-program GRU, compound prefix GRU,
 explicit viewer/belief memory and the frozen-policy hand sampler. Current Agent

@@ -819,8 +819,11 @@ uv run --extra notebook python -m experiments.runners.run_value_models --out .ru
 uv run --extra notebook python -m experiments.runners.run_value_models --report-only .runs/etu104-recipes-smoke-next
 ```
 
-Remaining delivery: review preparation, publication, human code review, CI and
-landing. The approved software
+Jack Heart requested completing delivery and landing after publication as PR #223.
+The landing pass reviewed the actual diff and retained acceptance evidence; 64
+focused recipe, control, aggregation and world-admission checks passed. This is
+agent technical review, not human code review. Required CI and verified merge
+remain delivery conditions. The approved software
 cap is 15 minutes per complete attempt. Scientific contrasts require a separate
 frozen protocol, independent seeds, paired held-out deals and declared costs.
 History, sequence training, new sampler architecture and transfer tooling remain
