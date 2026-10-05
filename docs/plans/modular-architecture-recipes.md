@@ -114,9 +114,11 @@ model modules, and an explicit reconstruction contract inside the existing
 TrainingRegime/checkpoint path. These sources do not prescribe Pydantic or a
 universal Spec suffix. Pydantic is a local fit because the repository already uses
 it. Recipe → spec is useful local terminology: recipe code produces typed settings;
-it does not require a new pair of classes for every component. AgentSpec is a
-possible refined name for AgentHypers, not a second configuration owner. Decide
-that rename alongside the actual structural changes, not as a standalone rewrite.
+it does not require a new pair of classes for every component. Jack Heart accepted the naming during review: recipe functions construct specs
+or enclosing objects, and the refined Hypers types use Spec names. AgentHypers
+therefore becomes AgentSpec as part of this work, not a parallel configuration
+owner. Existing-type names below identify current code; they are not a requirement
+to retain the Hypers suffix. Preserve serialized compatibility deliberately.
 
 
 This is research into public implementations, not access to internal practice.
@@ -172,6 +174,17 @@ replaced it. Nature's article endpoint failed through its identity redirect;
 the publisher supplement was accessible. No inaccessible page supports a claim.
 
 ## 4. The proposed architecture data model
+
+**Accepted naming, Jack Heart, 2026-10-05:** a recipe is a Python function that
+constructs spec objects or parents containing them, including TrainingRegime.
+Use Spec rather than Hypers for the refined configuration types: AgentSpec is
+the evolution of AgentHypers; component configuration can use EncoderSpec and
+ValueSpec. There is no AgentRecipe data class or additional recipe schema.
+This accepts terminology and ownership, not the entire implementation plan.
+Names in source inventories below refer to existing code. Rename related Hypers
+types coherently within the affected scope; preserve old serialized meanings and
+loader admission, and do not broaden the change into unrelated runtime types.
+
 
 **Direction, Jack Heart, 2026-10-05:** the existing AgentHypers is probably close
 to the needed model configuration; start by refining it. Its exact name, class
@@ -851,6 +864,7 @@ training across devices or versions follows from resolved recipes.
 | 2026-10-05, Jack Heart, design review | Confirmed architecture belongs inside TrainingRegime as the model/hyperparameter configuration for TrainingRun. Evolve the existing agent field; do not add a competing top-level recipe owner. |
 | 2026-10-05, Jack Heart, design review | Preferred refining the existing near-fit AgentHypers, without requiring its exact type or name. A substantially different design needs a strong reason; useful restructuring remains available. |
 | 2026-10-05, Jack Heart, design review | Prioritized Keras and JAX-community patterns. The added comparison focuses on Keras, Flax NNX and Equinox; it does not imply a backend migration. |
+| 2026-10-05, Jack Heart, design review | Accepted recipe = Python function constructing specs or their enclosing objects, and Hypers → Spec naming. Retain lessons from all earlier research sources alongside the increased Keras/JAX emphasis. |
 | Remaining review feedback | Framework scope, history and transfer decisions remain pending; authoring preference is not blanket implementation approval. |
 
 The consequential open decisions are: first-cut framework scope versus continuing
