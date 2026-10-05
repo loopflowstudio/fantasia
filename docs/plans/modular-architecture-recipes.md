@@ -86,6 +86,39 @@ with their sideboards. Never change frozen fingerprints to make an artifact fit.
 
 ## 3. What public model organizations actually expose
 
+### Primary design references: Keras and the JAX ecosystem
+
+**Direction, Jack Heart, 2026-10-05:** prioritize Keras and the JAX community as
+sources to borrow from. The earlier framework comparison below remains supporting
+research. This changes design emphasis; it does not request a backend migration.
+The following official documentation and public source were inspected during the
+review on 2026-10-05. These added links are live references, not pinned revisions.
+
+| Reference | Observed mechanism | Consequence for this design |
+| --- | --- | --- |
+| [Keras serialization](https://keras.io/guides/serialization_and_saving/) and [implementation](https://github.com/keras-team/keras/blob/master/keras/src/saving/serialization_lib.py) | Constructor configuration is exposed by get_config and reconstructed with from_config; weights are separate state. Custom object code must remain available. | Keep model construction readable and make its effective settings sufficient for reconstruction. Extend the existing saved AgentHypers contract rather than serialize arbitrary experiment code. |
+| [Keras Functional API](https://keras.io/guides/functional_api/) | Layers compose into models through explicit inputs and outputs; models can be reused as components. | Favor understandable encoder/value/decoder composition and visible shape contracts. A symbolic graph language is unnecessary for the current variants; existing PyTorch modules can provide these boundaries. |
+| [Flax NNX basics](https://flax.readthedocs.io/en/latest/nnx_basics.html) | Ordinary nested Python modules hold state; constructors receive dimensions and RNGs. NNX supports graph/state separation through split, merge and update. | Make architecture settings, learned parameters, buffers and runtime state distinct. Keep initialization inputs explicit. Shared object references matter; do not accidentally duplicate tied parameters during reconstruction. |
+| [Equinox overview](https://docs.kidger.site/equinox/all-of-equinox/) and [paper](https://arxiv.org/abs/2111.00254) | Models are callable PyTrees, and filtered transformations select which leaves participate. | Prefer small composable components and explicit gradient selection over a framework-specific model hierarchy. Pydantic validates configuration at boundaries; it need not wrap model tensors or every runtime object. |
+| [Equinox serialization example](https://docs.kidger.site/equinox/examples/serialisation/) | Leaf loading needs a compatible model skeleton; the example saves hyperparameters so that skeleton can be rebuilt. | Save resolved settings alongside exact parameter bytes. A matching tensor shape alone cannot establish semantic compatibility. |
+
+For further JAX-side architecture inspection, start with **Flax NNX and Equinox**.
+NNX is especially relevant to the existing object-oriented PyTorch Agent; Equinox
+provides a useful smaller, functional alternative. The Flax documentation separates
+NNX from the older Linen API, so observations about one must not silently describe
+the other. big_vision remains a concrete JAX experiment/preset example below.
+This selection is about relevant patterns, not a claim of community-wide dominance.
+
+The resulting recommendation is Python experiment composition, ordinary reusable
+model modules, and an explicit reconstruction contract inside the existing
+TrainingRegime/checkpoint path. These sources do not prescribe Pydantic or a
+universal Spec suffix. Pydantic is a local fit because the repository already uses
+it. Recipe → spec is useful local terminology: recipe code produces typed settings;
+it does not require a new pair of classes for every component. AgentSpec is a
+possible refined name for AgentHypers, not a second configuration owner. Decide
+that rename alongside the actual structural changes, not as a standalone rewrite.
+
+
 This is research into public implementations, not access to internal practice.
 Source revisions were resolved and inspected on 2026-10-05. Papers establish
 method and experiment claims; code establishes the configuration mechanism.
@@ -817,6 +850,7 @@ training across devices or versions follows from resolved recipes.
 | 2026-10-05, Jack Heart, design review | Requested reusable cross-experiment helpers and consideration of Pydantic plus existing object families. The proposed consolidation inventory and helper signatures above await further review. |
 | 2026-10-05, Jack Heart, design review | Confirmed architecture belongs inside TrainingRegime as the model/hyperparameter configuration for TrainingRun. Evolve the existing agent field; do not add a competing top-level recipe owner. |
 | 2026-10-05, Jack Heart, design review | Preferred refining the existing near-fit AgentHypers, without requiring its exact type or name. A substantially different design needs a strong reason; useful restructuring remains available. |
+| 2026-10-05, Jack Heart, design review | Prioritized Keras and JAX-community patterns. The added comparison focuses on Keras, Flax NNX and Equinox; it does not imply a backend migration. |
 | Remaining review feedback | Framework scope, history and transfer decisions remain pending; authoring preference is not blanket implementation approval. |
 
 The consequential open decisions are: first-cut framework scope versus continuing
