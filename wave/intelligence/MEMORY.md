@@ -18,8 +18,13 @@ changes must not silently claim compound support. Saved AgentHypers and strict
 world-bound loading remain the architecture authority. The focused software
 implements all four contrasts, generates eight recipes and uses the existing
 study executor/report. Variable-padding checks exercise the production attention
-and critic path rather than reproducing those equations in a test. Defaults retain historical weights
-and equations; extra blocks omit repeated ownership and the value token is neutral.
+and critic path rather than reproducing those equations in a test. Defaults
+retain historical weights and equations; extra blocks omit repeated ownership
+and the value token is neutral. The token participates in shared attention, so
+it changes policy representations as well as critic aggregation. Strict loading
+cannot distinguish historical and masked pooling from equal-shaped weights;
+saved architecture metadata is essential. The smoke exports raw/EMA artifacts
+but evaluates raw checkpoints only.
 Focused reload, hidden-deal, gradient and padding checks passed. Integrated smoke,
 offline regeneration and empirical promotion remain pending; implementation does
 not establish strength. The protocol lives in experiments/value-models.md.

@@ -6,5 +6,5 @@
   choice, not an exact Ataraxos reproduction claim.
 - The latest value-model steer supersedes history-first sequencing. History
   remains the next contrast; no recurrent memory or general framework is approved.
-- Bounded smoke counts and ceilings in the design are workflow proposals. No
+- Bounded smoke counts and ceilings are fixed in the generated workflow protocol. No
   multi-seed scientific allocation or strength threshold has been authorized.

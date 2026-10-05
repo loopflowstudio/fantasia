@@ -66,7 +66,11 @@ not equal inference cost. Host observations cannot remove contention.
 
 Focused software checks cover padding isolation, token gradients, ordinary
 reloads, hidden-deal swap invariance and WDL conversion. The integrated smoke,
-offline regeneration and broader gate suite remain pending. All strength
+offline regeneration and broader gate suite remain pending. Direct valid-object
+sensitivity, finite-gradient assertions, token focus-index preservation and
+malformed architecture/weight rejection remain focused acceptance checks.
+Strict loading cannot detect a historical/masked pooling relabel from equal
+weight shapes; saved metadata owns that distinction. All strength
 conclusions remain unresolved; historical defaults stay unchanged.
 
 Recent-event inputs follow this slice. Recurrent memory and ETU-104's general

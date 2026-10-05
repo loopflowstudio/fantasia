@@ -1,6 +1,7 @@
 # ETU-106: focused value-model contrasts
 
-2026-10-05. Kickoff design; implementation and measurements remain pending.
+2026-10-05. Reconciled against implementation through `fb15db92`; integrated
+gate and measurements remain pending.
 Jack Heart authorized focused software delivery and cheap bounded sanity checks.
 The latest steer prioritizes historical mean, validity-masked mean, one-layer
 value token and two-layer width-64 value token. Scalar versus categorical
@@ -17,7 +18,7 @@ and marks strength conclusions unresolved. No Etude protocol or world change is
 needed. This serves Trained Challengers' reproducible-training measure; workflow
 smoke alone satisfies neither full-game improvement nor human-challenger KRs.
 
-Proposed headless demo command after implementation:
+Headless demo command for the gate:
 
 ```bash
 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m experiments.runners.run_value_models --profile smoke --out .runs/etu106-value-smoke
@@ -28,7 +29,8 @@ arena replay and report machinery. It is not a second trainer or evidence store.
 
 ## Findings and source boundaries
 
-- `manabot/model/agent.py` uses one post-normalized GameObjectAttention block.
+- The historical path in `manabot/model/agent.py` uses one post-normalized
+  GameObjectAttention block; the new token contrast also supports two blocks.
   Attention zeros padded outputs, but the critic applies Linear/ReLU before
   fixed-slot mean pooling. Its bias can make padding nonzero again; even with
   zero bias, averaging all slots changes scale with occupancy. Masked pooling
@@ -62,7 +64,7 @@ arena replay and report machinery. It is not a second trainer or evidence store.
 
 ## Chosen architecture
 
-Add narrow typed AgentHypers fields `value_aggregation` with values
+Implemented narrow typed AgentHypers fields `value_aggregation` with values
 `historical_mean`, `masked_mean`, `value_token`, and `attention_layers` in {1,2}.
 Defaults remain historical mean and one layer. All eight recipes use width64,
 four heads, current post-normalization, current semantic inputs, and ordinary
@@ -88,7 +90,10 @@ critic MLP with the pooling operation bypassed. This lets valid objects and
 the token exchange information, so policy representations can change as well:
 call it a shared value-token architecture, not an isolated critic intervention.
 Apply ownership encoding once per stack, not repeatedly per layer. Mask padding
-at each block. No positional MTG board encoding is introduced.
+at each block. Production attention and critic helpers also serve the variable-
+padding regression, avoiding a second implementation in the test. Critic reads
+index existing layers without constructing temporary Sequential modules. No
+positional MTG board encoding is introduced.
 
 Reject token or depth>1 with attention disabled, invalid head/width combinations,
 and nonhistorical aggregation/depth on compound checkpoints. Historical compound
@@ -110,7 +115,7 @@ Use identical authored Allies/Lessons decks and sideboards, current runtime
 world/ABI, observation capacity, optimizer/schedules and supported legal domain.
 Retain full resolved JSON and digests before execution.
 
-Proposed bounded implementation proof: CPU one thread, seed 1061, two linked
+Bounded gate workflow proof: CPU one thread, seed 1061, two linked
 stages per cell, each one update of four streams x 64 transitions. Each cell
 has a 60-second total watchdog; the full study has a 900-second process ceiling
 including arena, export and report. One held-out paired deal 910106 and anchor
@@ -118,8 +123,8 @@ deal 920106, four deck/seat legs, raw checkpoints at both stages, random anchor.
 Use the existing paired arena selection; no cherry-picking cells or checkpoints.
 At most one full smoke attempt in the initial implementation pass. A timeout or
 failed cell remains incomplete, with its costs and artifacts retained; it does
-not authorize a longer retry. These are proposed cheap-check limits, not a new
-scientific budget. Do not run this during kickoff.
+not authorize a longer retry. These are cheap-check limits, not a new
+scientific budget. Gate owns the single initial attempt.
 
 Record native steps, learner transitions, optimizer exposures, complete games,
 parameters, collection/learning/export/arena costs, inference latency and observed
@@ -138,32 +143,35 @@ requires separately frozen budgets, cohort, held-out paired deals, anchors and
 success thresholds. No ETU-91 file, process, frozen checkout or allocation changes;
 no paid compute. W&B dashboards remain ETU-101's responsibility.
 
-## Implementation sequence and acceptance
+## Implementation and remaining acceptance
 
-**This slice:** model configuration, masking/token/depth implementation and strict
-checkpoint round trips. Focused test: `uv run pytest tests/model/test_value_aggregation.py
-tests/model/test_categorical_value.py tests/model/test_agent.py` (new aggregation
-test file). Verify padding payload/count invariance for masked/token modes,
-valid-row sensitivity, finite gradients into token/attention/critic, preserved
-action-focus indexes, WDL signed expectation and unchanged historical outputs.
-Test actual hidden-world swaps with identical viewer observations; do not settle
-for randomly generated tensors as information-safety proof. Test missing old
-fields, declared mode round trips, bad metadata/weights, disabled attention and
-compound rejection. Fixed deterministic fixtures establish loader behavior only.
+**Implemented:** typed aggregation/depth configuration, shared token and stack,
+eight generated recipes, study integration and report accounting. Existing
+focused tests cover finite padding payload/count isolation, nonzero gradients
+into token/attention/critic, the historical forward equations, missing-field
+defaults, scalar/WDL checkpoint round trips and invalid configuration rejection.
+Actual hidden-world swaps cover all four architectures with the WDL head.
+These deterministic fixtures establish software behavior only.
 
-Then add eight reproducible recipes and a thin experiment runner. Extend the
-existing EvaluationProtocol study literal with `value-models`, without relaxing
-existing frozen-study validators. Exercise executor continuation, raw/EMA export
-admission and ordinary checkpoint player use with both deck assignments. The
-gate command adds `tests/training/test_value_models.py`, existing
-`tests/training/test_ataraxos_regime.py` and `tests/training/test_study.py`, then the
-single bounded smoke and offline regeneration. Actual supplied candidate bytes
-and selected-world admission remain required for a playable-candidate claim.
+**Remaining focused verification:** direct valid-object sensitivity, explicit
+finite-gradient assertions, token action-focus index preservation, and rejection
+of incompatible saved architecture metadata/weights. Passing round trips alone
+do not establish the last contract. Historical-versus-masked metadata can share
+weight shapes; strict loading cannot infer the intended pooling from weights.
+These checks remain part of software acceptance, not empirical strength gates.
 
-Finish with durable protocol/report documentation and ordinary PR/CI delivery
-through the selected delivery steps. This kickoff does not publish or land code.
-No Rust changes are planned; if needed later, native debug tests and the pinned
-extension rebuild become required.
+**Remaining integrated gate:** the broader agent, Ataraxos regime and study suites,
+then the single bounded smoke and offline regeneration. The generated recipes
+inherit EMA exports from AtaraxosMoveLearning, but EvaluationProtocol evaluates
+only raw checkpoints. Acceptance includes raw/EMA export admission and ordinary
+raw checkpoint play with both deck assignments; it does not claim EMA arena
+measurement. The retained notebook/report must regenerate with unchanged
+analysis and report content. A failed or timed-out attempt remains incomplete
+under the existing ceiling. Actual candidate bytes and selected-world demo
+admission remain required for a playable-candidate claim.
+
+The durable protocol is `experiments/value-models.md`. Publication and CI belong
+to delivery preparation. No Rust changes were made in this slice.
 
 ## Follow-on priority and unresolved science
 
@@ -178,5 +186,7 @@ coordination with the existing frozen-policy sampler owner, with held-out joint
 NLL/calibration preceding matched-cost search; no duplicate belief experiment.
 ETU-104's broader architecture-recipe design still requires its own review.
 
-Check: source/API inspection completed at db820056; no training or implementation
-tests run during kickoff. Gate commands above are pending implementation.
+Delete — do not maintain: none. Historical pooling and categorical targets remain
+required compatibility and experimental controls.
+
+Check: `uv run pytest tests/model/test_value_aggregation.py tests/model/test_categorical_value.py tests/training/test_value_models.py -q` — prior implementation result: 29 passed; not rerun for documentation reconciliation; broader suites, smoke and offline regeneration deferred to gate.
