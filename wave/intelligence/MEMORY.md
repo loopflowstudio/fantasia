@@ -1,5 +1,23 @@
 # Intelligence memory
 
+## Focused value-model priority (ETU-106, 2026-10-05)
+
+Jack Heart authorized historical mean, validity-masked mean, one-layer value
+token and two-layer width-64 value-token software contrasts, crossed independently
+with the existing scalar/WDL heads. Recent-event input follows; learned recurrent
+memory is deferred. ETU-104's general architecture framework still requires its
+separate review. ETU-91's running campaign and frozen checkout remain untouched;
+only cheap bounded checks and protocol preparation are authorized here.
+
+Source inspection found that attention masks padded outputs but the ordinary
+critic applies a biased projection before fixed-slot averaging. Masked pooling
+addresses this concrete dependency; no strength benefit has been measured.
+Categorical targets and expected-value conversion already exist in the Ataraxos
+move path. The compound decoder owns a separate critic, so ordinary value-head
+changes must not silently claim compound support. Saved AgentHypers and strict
+world-bound loading remain the architecture authority. Kickoff supplies a plan,
+not implemented variants or empirical promotion evidence.
+
 ## Operating principle
 
 > Lead with building, not burden of proof.
