@@ -636,7 +636,7 @@ explicitly unsupported on this complete path; inference rates cannot substitute.
 Host load/RSS observations do not correct contention or measure throttling.
 The active ETU-91 campaign was not edited. Concurrent bounded checks prove
 workflow only; uncontended multi-seed hardware calibration, clone/sampling
-costs and conservative cohort projections remain open within the unchanged
+costs and conservative cohort projections belong to ETU-99 within the unchanged
 168-hour campaign ceiling. No new scientific allocation or paid compute follows
 from this command. Its costs must be included in campaign accounting.
 
@@ -677,6 +677,48 @@ scientific study or paid compute ran. ETU-91 was untouched; these proofs establi
 software behavior, not strength, calibration or human-play success. The durable
 [local-search contract](../../docs/local-policy-search.md) records supported paths,
 receipt/replay requirements and remaining scientific ownership.
+
+## Offline sampler software boundary (ETU-96, 2026-10-04)
+
+Jack Heart separated software completion from empirical acceptance: ETU-96 owns
+saved-game quality reporting; ETU-99 owns calibration, dropout and foreign-policy
+comparisons. Earlier statements keeping ETU-96 open for those scientific gates
+are superseded by this scope decision. ETU-91's campaign remains unchanged.
+
+`uv run python -m manabot.belief.sampling_report` reuses immutable datasets,
+checkpoint admission and existing sampler metrics. It preserves whole-game splits,
+generating policy/world/schema identities and learned artifact bytes, identifies
+foreign policies, and reports physical-prior and learned quality across sample
+counts without enumerating hands. Train metrics are explicitly in-sample. Private
+labels enter scoring only. Arbitrary queries, posterior KL without an exact
+reference, native peak memory and strength acceptance stay unavailable.
+
+Fixed non-optimized fixture weights cover reload, label-isolated samples, invalid
+draw detection and widened 40-definition/80-copy count spaces. Measured Python
+allocation peaks exclude native Torch workspace; timing and memory are fresh
+measurements, while statistical replay binds seed, artifacts and runtime/source
+identities. These are software proofs, not learned calibration or strength.
+The [sampler guide](../../docs/belief-sampler.md#offline-saved-game-quality-report)
+owns the command and interpretation limits.
+
+## Multistage software recovery (ETU-98, 2026-10-04)
+
+Jack Heart separated software acceptance from scientific measurements: ETU-98
+owns recovery delivery; ETU-99 owns empirical calibration. The bounded CPU
+recovery contract extends across self-play stages with stage-entry, update and
+completed-export snapshots. Linked stages preserve learner/Adam/EMA, RNGs,
+collector and iteration; fresh stages reset the learner. Completed records and
+artifact paths remain immutable across attempts. Other operation types and
+MPS/CUDA recovery remain unsupported.
+
+Stage-local update coordinates differ from the run-wide iteration and collector
+counters. Each stage retains its own watchdog allowance; ancestor run costs are
+charged once. Failed attempts and conservative abrupt-death costs remain in
+VerifyStore, including failures during recovery setup. Same-host source/runtime
+and artifact checks plus local leases bound the promise. These mechanisms do
+not retrofit the active ETU-91 campaign or establish strength, throughput,
+portable process snapshots or chapter acceptance. See the
+[recovery contract](../../docs/training-recovery.md).
 
 ## Compound software completion (ETU-94, 2026-10-04)
 
