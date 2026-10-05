@@ -265,8 +265,9 @@ compound decoder; production does not enumerate attacker subsets. Snapshots and
 prefix replay use the selected branch runtime, never raw branch cloning.
 
 Each counterfactual fixes its root action and samples the remaining declaration
-once. Rollouts keep independent per-seat suffix state and drain native Commands;
-leaf values inside declarations use the retained prefix. Base-policy collection
+once. A rollout retains one declaration at a time and drains its native Commands
+before admitting the next actor's root. Leaf values inside declarations use the
+retained prefix. Base-policy collection
 also samples a whole declaration once, whereas improved search play computes a
 local update at each retained prefix. Actor/revision/state changes and incomplete
 canonical coverage fail explicitly. Saved observation capacity remains binding.
