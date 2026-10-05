@@ -48,7 +48,10 @@ resolved engine state. Failure makes the scenario unsupported for that run.
 The policy run then measures countering bait versus a bomb (S1), delayed versus
 early wipe resolution (S2), held removal and target selection (S3), flying attacks
 and ground blocking (S4), and passing with response mana versus tapping out (S5).
-S2 checks actual removal after resolution, rather than scoring cast intent alone.
+Scores require both the recorded reference behavior and resolved effects. S4
+therefore requires the flying attack/ground hold as well as a win, and S5 requires
+the main-phase mana hold as well as countering the threat. S2 checks actual
+removal after resolution, rather than scoring cast intent alone.
 A turn-bounded run that never demonstrates the reference behavior records false;
 a technical failure records no score. The Command cap is a technical guard, not
 a tactical stopping rule.

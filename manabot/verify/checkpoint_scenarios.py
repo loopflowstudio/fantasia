@@ -176,9 +176,12 @@ def score_checkpoint(
         if hasattr(tracker, "set_winner"):
             tracker.set_winner(game["winner"])
         score.behaviors = tracker.result()
-        # Historical trackers include intent-only correctness (notably S2).
-        # Only resolved effects above own this runner's reference score.
-        score.behaviors.pop("correct", None)
+        # A favorable resolution alone does not prove the named behavior: S4
+        # requires the flying attack/ground hold, S5 the main-phase mana hold.
+        # S2 additionally needs the resolved removal checked above; its legacy
+        # tracker only observes cast intent.
+        intended_behavior = bool(score.behaviors.pop("correct"))
+        score.correct = bool(score.correct and intended_behavior)
         if file_sha256(checkpoint) != score.checkpoint_sha256:
             raise RuntimeError("checkpoint bytes changed during scoring")
     except Exception as error:
