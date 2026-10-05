@@ -28,9 +28,15 @@ but evaluates raw checkpoints only.
 Focused reload, hidden-deal, padding, valid-object sensitivity and finite-gradient
 checks passed. Both token depths preserve real-object action-focus indexes and
 absent focus; ordinary loading rejects incompatible token/depth/head metadata
-and malformed or missing token/layer weights. Integrated smoke, offline
-regeneration and empirical promotion remain pending; implementation does not
-establish strength. The protocol lives in experiments/value-models.md.
+and malformed or missing token/layer weights. The 108-test integrated suite
+passed. The sole bounded smoke failed before arena registration after 36.12 s
+because recipe IDs contained forbidden underscores; all eight training runs
+completed and 32 raw/EMA checkpoints passed export admission. Hyphenated IDs
+and a validator regression fix the cause (15 affected checks pass). The failed
+cohort and all artifacts remain in `.runs/etu106-value-smoke`; its incomplete
+report regenerates identically. No arena games or strength evidence exist.
+The one-attempt protocol requires separate bounded-rerun authorization before
+publication; no retry was launched. The protocol lives in experiments/value-models.md.
 
 ## Operating principle
 

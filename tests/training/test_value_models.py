@@ -1,7 +1,10 @@
 """The value factorial freezes one learning rule and independent output heads."""
 
+from pydantic import TypeAdapter
+
 from experiments.runners.run_value_models import smoke_plan
 from experiments.runners.training_protocol import ResolvedStudy
+from manabot.arena.models import PlayerRegistration
 from manabot.training.models import TrainingRegime, TrainSelfPlay
 
 
@@ -31,3 +34,8 @@ def test_value_factorial_protocol() -> None:
             assert isinstance(stage, TrainSelfPlay)
             assert stage.learning.gradient == "ataraxos_move"
             assert stage.streams * stage.transitions * stage.updates == 256
+            player_id = TypeAdapter(
+                PlayerRegistration.model_fields["player_id"].rebuild_annotation()
+            )
+            for variant in ("raw", "ema"):
+                player_id.validate_python(f"{recipe.id}-1061-{stage.id}-{variant}")

@@ -68,8 +68,19 @@ Focused software checks pass for padding isolation, valid-object sensitivity,
 finite gradients, ordinary reloads, hidden-deal swap invariance and WDL conversion.
 Both token depths preserve real-object focus indexes and absent focus through
 full forward evaluation. Ordinary loading rejects incompatible token/depth/head
-metadata, missing token/layer weights and malformed token shape. The integrated
-smoke, offline regeneration and broader gate suite remain pending.
+metadata, missing token/layer weights and malformed token shape. The broader gate suite passed 108 tests. The single integrated attempt on
+2026-10-05 failed after 36.12 seconds before arena play: generated recipe IDs
+contained underscores forbidden by PlayerRegistration. All eight training runs
+completed 512 learner transitions each and exported 32 admitted raw/EMA
+checkpoints in total. The failed attempt remains in
+`.runs/etu106-value-smoke`; no arena games were scored.
+
+Generated recipe IDs now use hyphens, with regression coverage against the arena
+ID validator. The affected study/protocol suite passed 15 tests after the fix.
+The incomplete-cohort notebook executes offline; report, metrics and cost-comparison
+bytes regenerate identically. This does not establish completed arena/report
+acceptance. The one-attempt allocation is exhausted: a separately authorized
+bounded rerun is required before publication. No retry or cohort rewrite occurred.
 Strict loading cannot detect a historical/masked pooling relabel from equal
 weight shapes; saved metadata owns that distinction. All strength
 conclusions remain unresolved; historical defaults stay unchanged.

@@ -29,7 +29,7 @@ def smoke_plan() -> ResolvedStudy:
     ):
         for kind in ("scalar", "categorical_wdl"):
             recipe = template.model_copy(deep=True)
-            recipe.id = f"value-{aggregation}-{depth}-{kind}"
+            recipe.id = f"value-{aggregation}-{depth}-{kind}".replace("_", "-")
             recipe.agent = recipe.agent.model_validate(
                 {
                     **recipe.agent.model_dump(),

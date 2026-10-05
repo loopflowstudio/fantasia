@@ -168,7 +168,11 @@ def run_study(
             raise RuntimeError(
                 "insufficient free disk for frozen study and evidence reserve"
             )
-    explicit_plan = study in {"omitted-controls", "training-calibration", "value-models"}
+    explicit_plan = study in {
+        "omitted-controls",
+        "training-calibration",
+        "value-models",
+    }
     if explicit_plan and plan is None:
         raise ValueError(f"{study} requires an explicit separately resolved plan")
     retained = None
