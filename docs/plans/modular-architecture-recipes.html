@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ETU-104 · Architecture recipes design review</title><style>
+:root { color-scheme: light; --ink:#202c31; --muted:#50636b; --line:#ccd5d5; --paper:#fafaf5; --accent:#155c62; }
+* {box-sizing:border-box} html {scroll-behavior:smooth} body {margin:0; background:var(--paper); color:var(--ink); font:17px/1.65 system-ui,sans-serif}
+a {color:var(--accent);text-underline-offset:3px} a:focus-visible {outline:3px solid #bb7229;outline-offset:4px}
+header {padding:38px 5vw 30px;background:#183e45;color:#fff} header p {max-width:850px;margin:8px 0} header a {color:#d1f0e8}
+.eyebrow {font:700 12px/1.5 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#bfe5d8}
+header .title {font:600 clamp(28px,4vw,48px)/1.15 Georgia,serif;margin:14px 0} .layout {display:grid;grid-template-columns:255px minmax(0,1120px);gap:45px;max-width:1500px;margin:auto;padding:36px 4vw}
+nav {align-self:start;position:sticky;top:20px;max-height:95vh;overflow:auto;font-size:13px} nav a {display:block;padding:8px 0;border-bottom:1px solid var(--line);text-decoration:none}
+main {min-width:0} h1 {font:600 32px/1.25 Georgia,serif} h2 {font:600 29px/1.3 Georgia,serif;border-top:2px solid var(--line);padding-top:30px;margin-top:48px;scroll-margin-top:20px} h3 {font-size:20px;margin-top:28px}
+p,li {max-width:95ch} table {border-collapse:collapse;width:100%;font-size:14px;line-height:1.55;display:block;overflow-x:auto;margin:24px 0} th {background:#e0ebe6;text-align:left} th,td {padding:13px 15px;border:1px solid var(--line);vertical-align:top;min-width:125px} tr:nth-child(even) {background:#f0f3ed}
+code {font:13px/1.65 ui-monospace,monospace;overflow-wrap:anywhere;background:#e8eeea;padding:2px 4px;border-radius:3px} pre {background:#172e35;color:#e4f3ec;border-radius:5px;padding:22px;overflow:auto} pre code {padding:0;background:none;color:inherit;overflow-wrap:normal}
+.flow {display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:24px 0}.flow span {border:1px solid #b3cdc7;border-radius:4px;padding:10px 14px;background:#edf5ee}.flow b {font-weight:500;color:#63767a}.boundary {border-left:4px solid #b77b36;background:#faf0dd;padding:17px 21px;margin:20px 0}
+footer {border-top:1px solid var(--line);padding:25px 5vw;font-size:13px;color:var(--muted)}
+@media(max-width:950px){.layout{display:block;padding:22px}nav{position:static;max-height:none;margin-bottom:30px;columns:2}nav a{break-inside:avoid}table{font-size:13px}header{padding:28px 22px}}
+@media print {nav,header{display:none}.layout{display:block;padding:0}body{font-size:10pt}h2{break-before:page}pre{white-space:pre-wrap}table{display:table;font-size:9pt}a{color:inherit}}
+</style></head>
+<body><header><div class="eyebrow">Etude Fantasia / Intelligence / ETU-104 / 05 October 2026</div><div class="title">One model contract.<br>Reproducible architecture comparisons.</div><p>A technical proposal for Jack Heart: explicit modules, resolved recipes, and ordinary checkpoint admission.</p><p><a href="modular-architecture-recipes.md">Read the durable Markdown design</a></p></header>
+<div class="layout"><nav aria-label="Review sections"><a href="#1-recommendation-and-the-observable-win">1. Recommendation and the observable win</a><a href="#2-evidence-from-the-actual-repository">2. Evidence from the actual repository</a><a href="#3-what-public-model-organizations-actually-expose">3. What public model organizations actually expose</a><a href="#4-the-proposed-architecture-data-model">4. The proposed architecture data model</a><a href="#5-example-recipes-and-independent-interventions">5. Example recipes and independent interventions</a><a href="#6-module-apis-tensors-and-state">6. Module APIs, tensors and state</a><a href="#7-gradient-initialization-and-value-contracts">7. Gradient, initialization and value contracts</a><a href="#8-checkpoint-identity-migration-and-transfer">8. Checkpoint identity, migration and transfer</a><a href="#9-one-complete-construction-train-export-reload-evaluate-path">9. One complete construction → train → export → reload → evaluate path</a><a href="#10-failure-behavior-alternatives-and-proportion">10. Failure behavior, alternatives and proportion</a><a href="#11-delivery-cut-and-acceptance-after-review">11. Delivery cut and acceptance after review</a><a href="#12-review-record-and-remaining-decisions">12. Review record and remaining decisions</a></nav><main>
+<div class="boundary"><strong>Draft — human review pending.</strong> Focused value-token work is separately authorized. The architecture framework is not approved. No training was run.</div>
+<div class="flow" aria-label="Proposed lifecycle"><span>Resolve recipe</span><b>→</b><span>Bind world &amp; inputs</span><b>→</b><span>Build &amp; train</span><b>→</b><span>Export &amp; reload</span><b>→</b><span>Existing arena</span></div>
+<h1>Modular architecture recipes for manabot</h1>
+<p><strong>ETU-104 · 2026-10-05 · Draft for Jack Heart's review.</strong> Research and design only.
+No architecture framework, training run, or scientific allocation is approved by
+this document. Jack Heart requested a separate design discussion before adoption.
+The later steer requests a review-design Session; the headless research result is
+ready for that discussion, not an approval or Task completion.</p>
+<p><a href="modular-architecture-recipes.html">HTML technical review</a> ·
+<a href="../ARCHITECTURE.md">System authority</a> ·
+<a href="../training-regimes.md">Training regimes</a> ·
+<a href="../../wave/intelligence/GOAL.md">Current chapter</a></p>
+<h2 id="1-recommendation-and-the-observable-win">1. Recommendation and the observable win</h2>
+<p>Use one typed, versioned architecture specification and explicit local builders
+for the policy core and the separate belief sampler. Keep the public <code>Agent</code>
+facade and existing player lifecycle. Compose a handful of real modules, with
+validated input and output contracts, rather than adding an Agent subclass for
+each experimental arm. Keep objectives and collection in TrainingRegime stages.
+Do not adopt Hydra, Ray, Transformers, or a general dependency-injection framework.</p>
+<p>The intended demo is a small, bounded complete workflow: resolve a baseline and
+value-token recipe; print their exact architectural difference and requirements;
+train through the existing regime executor; export and reload ordinary
+checkpoints; evaluate through the existing four-leg arena with exact replay.
+The report identifies which architecture, objective, input, world, data, and cost
+produced each result. A missing history field or incompatible value target fails
+before collection. A changed label on a recipe cannot change a frozen run.</p>
+<p>This is a proposed future demo, not a command run in ETU-104. Strength and human
+challenger acceptance still require the chapter's separately frozen cohorts.
+A passing software demo proves the path only.</p>
+<p><strong>Review decisions:</strong> approve or reject the small typed-spec approach; agree the
+scope of the first coherent cutover; choose bounded recent-event input versus
+adding sequence-training support now; agree explicit transfer rather than
+permissive loading. Recommendation: bounded recent events first, sequence memory
+later, and strict reload plus separately receipted transfer.</p>
+<h2 id="2-evidence-from-the-actual-repository">2. Evidence from the actual repository</h2>
+<p>Local observations below are at base <code>db820056de813a874ea89cb51f213639b007e389</code>.
+They describe code, not inferred model strength. Historical architecture prose
+is useful for authority but is not a reliable inventory of today's implementation.</p>
+<table>
+<thead>
+<tr>
+<th>Surface inspected</th>
+<th>What exists</th>
+<th>Design consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manabot/infra/hypers.py:AgentHypers</code></td>
+<td>Width, heads, attention switch, semantic pack, compound flag, scalar/WDL kind and belief dimensions</td>
+<td>These choices already form an implicit architecture schema. Replace their ownership coherently; do not build a second independently mutable graph description.</td>
+</tr>
+<tr>
+<td><code>manabot/model/agent.py:Agent</code></td>
+<td>Typed object projections, optional semantic programs and belief rows, one post-norm attention block, focus-aware action scoring</td>
+<td>Extract along these boundaries while retaining one facade. Attention MLP width currently equals heads × hidden width; heads and feedforward width must become independently explicit.</td>
+</tr>
+<tr>
+<td><code>Agent.value_head</code>, <code>MeanPoolingLayer</code></td>
+<td>Flat critic applies Linear/ReLU to object rows and averages every slot; attention masks its output rows first, but the critic projection can introduce nonzero padded rows after training</td>
+<td>Historical fixed-slot averaging is a baseline contract. Masked mean must mask after the per-row value projection and normalize by valid count. It is a treatment, not a silent baseline repair.</td>
+</tr>
+<tr>
+<td><code>Agent.compound</code>, <code>model/compound.py</code></td>
+<td>Masked context; one-root ragged offers; recurrent declaration prefix; differentiable factor log probabilities and scalar prefix values</td>
+<td>A game-memory GRU and a compound-prefix GRU are different state owners. Do not force compound output into flat <code>[B,A]</code> logits or claim categorical compound training already works.</td>
+</tr>
+<tr>
+<td><code>model/semantic_cards.py</code></td>
+<td>GRU encodes complete catalog programs with references; definition IDs route into schema-bound buffers</td>
+<td>This is program sequence encoding, not game-history memory. Preserve the complete catalog and semantic binding.</td>
+</tr>
+<tr>
+<td><code>env/observation.py:_encode_events</code></td>
+<td>Seven numeric columns, validity mask, filtered recent window, suffix truncation at max_events, raw source/target IDs</td>
+<td>Agent does not consume these events. Adding them changes information access even if tensor dimensions do not change. Raw identity columns cannot become learned semantic features by accident.</td>
+</tr>
+<tr>
+<td><code>training/models.py</code>, <code>execution.py</code></td>
+<td>Strict TrainingRegime stages; TrainingRun attempts, seeds, costs, artifacts; VerifyStore authority; Agent constructed in execution paths</td>
+<td>Extend these records and their ordinary writers/readers. Preserve failed attempts and actual device/threads. Do not create an architecture experiment database.</td>
+</tr>
+<tr>
+<td><code>sim/flat_mc.py:load_checkpoint_agent</code>, <code>model/world.py</code></td>
+<td>Reconstruct saved observation/hypers; validate world/setup/content/input; strict state dict; selected compiled content requires semantic pack</td>
+<td>Architecture identity supplements, never replaces, world admission. Equal shapes do not mean equal semantics.</td>
+</tr>
+<tr>
+<td><code>sim/value.py</code>, <code>training/ataraxos.py</code></td>
+<td>Existing scalar/value training and WDL training; serving converts WDL logits to signed expectation</td>
+<td>Representation and target semantics must be separate. Existing supervised win-logit values cannot be passed off as signed rollout values.</td>
+</tr>
+<tr>
+<td><code>belief/agent.py</code>, <code>state.py</code></td>
+<td>ViewerHistory, AgentMemory containing explicit belief; supplied-belief evaluation does not mutate autonomous belief memory</td>
+<td>Preserve the intervention boundary. No unexposed recurrent belief state may bypass a supplied belief.</td>
+</tr>
+<tr>
+<td><code>belief/sampling.py</code>, <code>sampling_fit.py</code></td>
+<td>Separate autoregressive constrained count sampler with its own GRU, schema, frozen generating policy, dataset and artifact admission</td>
+<td>Sampler is a second artifact family. It is not the policy's optional belief-input encoder and need not share parameters.</td>
+</tr>
+<tr>
+<td><code>experiments/runners/training_protocol.py</code></td>
+<td>EvaluationProtocol binds regimes, seeds, deals, four seat/deck legs, anchors, inference and selection</td>
+<td>Reuse and version this protocol. Its current study discriminator has no architecture-study member; add one explicitly later, not by relabeling an old scientific study.</td>
+</tr>
+</tbody>
+</table>
+<h3>Play and trace ownership checked before proposing persistence</h3>
+<p><code>etude/server.py:GameSession</code> owns live prompts, revisions, canonical decision
+rows and retained roots. <code>_step</code> makes automatic Commands but only appends
+canonical decision rows when <code>auto</code> is false. <code>TraceEvent.auto</code> distinguishes
+server passes from deliberate decisions. <code>_persist_attempt</code> writes current trace
+and canonical replay through <code>AttemptStore</code> in <code>play.sqlite</code>. The table DTOs in
+<code>etude/experience_protocol.py</code> follow the Rust-owned experience schema.</p>
+<p>Keep those owners. Architecture metadata belongs in existing artifact and player
+identity records, not a new session log. Canonical historical decisions alone
+are not a complete execution tape or a neural-memory snapshot. This inspection
+does not establish atomic durability across an engine transition and a crash.
+Reconstruct memory from admitted viewer history only; fail when that history is
+unavailable. Real human completion still needs dated human evidence.</p>
+<p><code>runtime_fingerprints</code> in <code>sim/teacher1_evidence.py</code> defaults to an Interactive
+mirror. The regime executor already passes its actual match and observation
+space; all new callers must do the same. <code>checkpoint_world</code> binds both decks
+with their sideboards. Never change frozen fingerprints to make an artifact fit.</p>
+<h2 id="3-what-public-model-organizations-actually-expose">3. What public model organizations actually expose</h2>
+<p>This is research into public implementations, not access to internal practice.
+Source revisions were resolved and inspected on 2026-10-05. Papers establish
+method and experiment claims; code establishes the configuration mechanism.
+Neither establishes what an organization does in its private infrastructure.</p>
+<table>
+<thead>
+<tr>
+<th>Public example</th>
+<th>Observed mechanism</th>
+<th>Useful here; cost to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meta/PyTorch torchtune</td>
+<td><code>_component_</code> paths instantiate nested components after OmegaConf resolution; training recipes orchestrate model, loss, optimizer and data</td>
+<td>Borrow separation of builders from training. An unrestricted import-path graph obscures the small set of legal combinations and makes typo/admission errors late. <a href="https://docs.pytorch.org/torchtune/main/deep_dives/configs.html">Config guide</a>, <a href="https://github.com/meta-pytorch/torchtune/blob/bd2a0fc7c31430972728494fa01aaeeb0ebf1ba1/torchtune/config/_instantiate.py">pinned implementation</a>.</td>
+</tr>
+<tr>
+<td>Google Research big_vision</td>
+<td>Python ConfigDict presets; ViT variant expansion; width/depth/pooling choices in a model factory; explicit load exclusions and positional-embedding adaptation</td>
+<td>Borrow complete resolved variants and named transfer rules. Image-position interpolation does not license remapping MTG definitions or world ABIs. <a href="https://github.com/google-research/big_vision/blob/0127fb6b337ee2a27bf4e54dea79cff176527356/big_vision/configs/vit_i1k.py">Config</a>, <a href="https://github.com/google-research/big_vision/blob/0127fb6b337ee2a27bf4e54dea79cff176527356/big_vision/models/vit.py">model/loader</a>.</td>
+</tr>
+<tr>
+<td>Hugging Face Transformers</td>
+<td>Config classes, model-type dispatch and Auto registration; model/config serialization coupled through documented APIs</td>
+<td>Borrow an explicit serialized architecture discriminator. A large extensible model zoo and remote custom code are unnecessary for five local variants. <a href="https://huggingface.co/docs/transformers/custom_models">Guide</a>, <a href="https://github.com/huggingface/transformers/blob/263c5eb913849847dcff1885b7b5e387c483f844/src/transformers/models/auto/configuration_auto.py">pinned registry</a>.</td>
+</tr>
+<tr>
+<td>Ray RLlib</td>
+<td>RLModuleSpec carries class, spaces and model configuration; module APIs separate training/inference and expose initial recurrent state; checkpoint constructor arguments are explicit</td>
+<td>Borrow the module/learner boundary and explicit state. Ray's distributed execution system would duplicate existing orchestration. <a href="https://docs.ray.io/en/latest/rllib/rl-modules.html">Current docs</a>, <a href="https://github.com/ray-project/ray/blob/479fa716904109d9df4b56b98ca3c3350e1ec13c/rllib/core/rl_module/rl_module.py">inspected release implementation</a>.</td>
+</tr>
+<tr>
+<td>DreamerV3 authors</td>
+<td>Named capacity presets change coordinated dimensions; Agent selects encoder/dynamics components; explicit carries pass through policy and training; stop-gradient choices are visible</td>
+<td>Borrow coherent capacity presets and explicit carry contracts. Its latent world model and imagination learning solve a different problem and are not a recipe framework to transplant. <a href="https://github.com/danijar/dreamerv3/blob/e01491fad6434b2245a3b8ca201dd7faedcc458c/dreamerv3/configs.yaml">Config</a>, <a href="https://github.com/danijar/dreamerv3/blob/e01491fad6434b2245a3b8ca201dd7faedcc458c/dreamerv3/agent.py">Agent</a>.</td>
+</tr>
+<tr>
+<td>Hydra</td>
+<td>Ordered defaults composition and structured config validation</td>
+<td>Borrow deterministic resolution, with an audit of effective values. Layered defaults, search paths, interpolation and launch plugins are disproportionate until simple named recipes become inadequate. <a href="https://hydra.cc/docs/advanced/defaults_list/">Composition</a>, <a href="https://hydra.cc/docs/tutorials/structured_config/defaults/">structured defaults</a>.</td>
+</tr>
+</tbody>
+</table>
+<p>Primary papers: <a href="https://arxiv.org/abs/2010.11929">Vision Transformer</a> motivates
+comparing encoder depth/width and token-based aggregation, not an expected MTG
+win. <a href="https://arxiv.org/abs/1910.03771">Transformers</a> describes a reusable model
+library. <a href="https://proceedings.mlr.press/v80/liang18b.html">RLlib</a> addresses
+composable distributed RL; the 2018 paper is not evidence for today's RLModule
+API. <a href="https://arxiv.org/abs/2301.04104">DreamerV3</a> supplies a relevant example of
+model scaling within an integrated learning method, not proof that scaling this
+policy pays at equal laptop time.</p>
+<p>The <a href="https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-026-11036-y/MediaObjects/41586_2026_11036_MOESM1_ESM.pdf">Ataraxos supplement</a>,
+S2 and S3.5–S3.6, specifies history-bearing inputs, a distinct belief model,
+pre-layernorm networks, and a Stratego move model with depth 8, width 384 and
+8 heads. These are paper-reported architecture choices, not evidence of an
+internal registry, config language, or MTG benefit. The move and belief networks
+must not be conflated. ETU-106 owns focused paper-inspired MTG contrasts;
+<a href="../ataraxos.md">the existing fidelity table</a> owns learning-rule departures.</p>
+<h3>Comparison across the requested boundaries</h3>
+<table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Finding across sources</th>
+<th>Proposed manabot choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Composition</td>
+<td>Torchtune/Hydra compose configuration; big_vision/Dreamer expose ordinary preset code</td>
+<td>Named pure constructors with typed patch overrides; resolve fully once; no inheritance chain at execution.</td>
+</tr>
+<tr>
+<td>Interfaces/factories</td>
+<td>RLlib makes operational interfaces explicit; Transformers dispatches model types; torchtune calls components</td>
+<td>Closed discriminated unions plus explicit builders. Unknown kind/version fails before allocation.</td>
+</tr>
+<tr>
+<td>Shapes</td>
+<td>RLlib carries spaces; big_vision derives tensor layouts from model dimensions</td>
+<td>Validate actual ObservationSpace and semantic capabilities in addition to dimensions; typed tensors still need runtime checks.</td>
+</tr>
+<tr>
+<td>Checkpoints/migrations</td>
+<td>Transformers couples config and model; big_vision has deliberate adaptation; RLlib records reconstruction arguments</td>
+<td>Strict same-architecture reload; versioned metadata migration and separately authorized weight transfer.</td>
+</tr>
+<tr>
+<td>Artifact identity</td>
+<td>Public configuration and a path/name are available mechanisms, not a proof of immutable identity</td>
+<td>Hash resolved semantics, source, world and bytes separately; keep labels out of semantic hashes.</td>
+</tr>
+<tr>
+<td>Lineage/reproducibility</td>
+<td>A model config does not by itself identify data, optimizer, runtime, or evaluation</td>
+<td>TrainingRun/VerifyStore remain lineage authority. Resolve inputs, retain attempts and costs; ETU-101 projects these to W&amp;B.</td>
+</tr>
+</tbody>
+</table>
+<p>Maintenance caveat: inspected public tips were dated 2026-10-05 (Transformers),
+2026-10-04 (DreamerV3), 2026-04-23 (torchtune), and 2025-05-19 (big_vision).
+The quiet big_vision tip is a historical research reference, not evidence of
+frequent current maintenance. Ray's current master path returned 404; the
+inspected code is release <code>ray-2.49.2</code>, commit above, dated 2025-09-13, alongside
+current maintained docs. Do not infer that all APIs are identical to current
+master. A guessed SigLIP config URL also returned 404; the verified ViT config
+replaced it. Nature's article endpoint failed through its identity redirect;
+the publisher supplement was accessible. No inaccessible page supports a claim.</p>
+<h2 id="4-the-proposed-architecture-data-model">4. The proposed architecture data model</h2>
+<p>All names in this section are proposed. Reuse Pydantic's existing strict/frozen
+style; disallow unknown keys and nonfinite numbers. <code>ArchitectureSpec</code> describes
+the function family, not training budgets, optimizer, data, target construction,
+device, inference sampling temperature or admission opponents.</p>
+<pre><code class="language-python">from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+class RecipeModel(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;, frozen=True, allow_inf_nan=False)
+
+class EncoderSpec(RecipeModel):
+    kind: Literal[&quot;typed_objects&quot;] = &quot;typed_objects&quot;
+    width: int = Field(ge=1)
+    depth: int = Field(ge=0)
+    heads: int = Field(ge=1)
+    ff_width: int = Field(ge=1)
+    norm: Literal[&quot;pre&quot;, &quot;post&quot;]
+    perspective: Literal[&quot;per_block&quot;, &quot;once&quot;]
+    semantic_program: Literal[&quot;none&quot;, &quot;catalog_gru&quot;]
+
+class HistorySpec(RecipeModel):
+    kind: Literal[&quot;none&quot;, &quot;recent_events&quot;]
+    projection: Literal[&quot;none&quot;, &quot;kind_amount_role_v1&quot;]
+    window: int = Field(ge=0)
+    order: Literal[&quot;none&quot;, &quot;relative_position&quot;]
+
+class ValueSpec(RecipeModel):
+    aggregation: Literal[&quot;fixed_slots&quot;, &quot;masked_mean&quot;, &quot;value_token&quot;]
+    output: Literal[&quot;scalar&quot;, &quot;categorical_wdl&quot;]
+
+class ArchitectureSpec(RecipeModel):
+    schema_version: Literal[1] = 1
+    family: Literal[&quot;policy_value&quot;] = &quot;policy_value&quot;
+    encoder: EncoderSpec
+    history: HistorySpec
+    memory: Literal[&quot;none&quot;] = &quot;none&quot;
+    decoder: Literal[&quot;flat_focus&quot;, &quot;compound_gru&quot;]
+    value: ValueSpec
+    belief_input: Literal[&quot;none&quot;, &quot;canonical_marginals&quot;]
+    initialization: Literal[&quot;existing_agent_v1&quot;, &quot;component_seeded_v1&quot;]
+</code></pre>
+<p>Cross-field validators additionally require width divisible by heads for
+attention, positive depth for a value token, all history-none fields zero/none,
+and a positive admitted event window for recent events. <code>depth=0</code> means no
+attention, not one hidden block. For the initial compatibility cut, reject
+compound + WDL and compound + value-token until their distinct prefix-value
+semantics are implemented and tested. Do not advertise a rectangular cartesian
+product of all fields as supported.</p>
+<p><code>perspective=per_block</code> means the current ownership vector is applied at every
+stacked block. <code>once</code> means applied before the stack only. At depth one they
+coincide; at greater depth they are different models. ETU-106's eventual choice
+must be recorded rather than hidden behind a generic “Transformer” label.</p>
+<p>Additional named records and their authority:</p>
+<table>
+<thead>
+<tr>
+<th>Proposed value</th>
+<th>Fields / ownership</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RecipePatch</code></td>
+<td>Optional typed fields for precisely the overrideable architectural choices. Unknown paths rejected; no arbitrary dictionary merge API.</td>
+</tr>
+<tr>
+<td><code>ResolvedArchitecture</code></td>
+<td>Complete ArchitectureSpec, architecture digest, required capabilities and parameter/buffer shape manifest. Built before optimizer allocation.</td>
+</tr>
+<tr>
+<td><code>ModelBinding</code></td>
+<td>Existing checkpoint world binding plus semantic catalog, consumed-field projection, belief-schema identity if enabled, and history-projection identity. Bind actual setup, not a preset name.</td>
+</tr>
+<tr>
+<td><code>ValueContract</code></td>
+<td>Actor-relative perspective, scalar units (<code>signed_return</code> or existing <code>win_logit</code>), WDL class order and expectation mapping. Trainer declares target semantics; builder verifies compatibility.</td>
+</tr>
+<tr>
+<td><code>ArchitectureReceipt</code></td>
+<td>Resolved spec/digest, builder ABI version, source digest, initialization scheme/seed receipt, observed parameter count and tensor manifest digest. Appended to existing artifact metadata.</td>
+</tr>
+<tr>
+<td><code>TransferPlan</code></td>
+<td>Source artifact SHA, source/target architecture digests, exact named key mapping, explicit omissions, target initialization receipt and new run relation. Empty/incomplete mappings rejected.</td>
+</tr>
+<tr>
+<td><code>SamplerArchitectureSpec</code></td>
+<td>Separate <code>family=&quot;hand_sampler&quot;</code>, count-GRU kind, hidden width, history projection and initialization; SamplerSchema supplied externally. Dataset-stage history dropout remains a treatment.</td>
+</tr>
+</tbody>
+</table>
+<p>Recipe names are human labels. Two aliases resolving to identical semantics get
+the same architecture digest. Source/build identity remains separate, so changed
+implementation with the same spec is still a different artifact lineage.
+Canonical serialization sorts keys, includes defaults, rejects NaN, and does not
+include paths, labels or timestamps in the architecture hash. Freeze the resolved
+spec in TrainingRun and in every exported checkpoint; never resolve a mutable
+preset name while reloading.</p>
+<h2 id="5-example-recipes-and-independent-interventions">5. Example recipes and independent interventions</h2>
+<p>The following is a concrete baseline input to the proposed resolver, not a file
+accepted by today's CLI:</p>
+<pre><code class="language-json">{
+  &quot;schema_version&quot;: 1,
+  &quot;family&quot;: &quot;policy_value&quot;,
+  &quot;encoder&quot;: {
+    &quot;kind&quot;: &quot;typed_objects&quot;, &quot;width&quot;: 64, &quot;depth&quot;: 1, &quot;heads&quot;: 4,
+    &quot;ff_width&quot;: 256, &quot;norm&quot;: &quot;post&quot;, &quot;perspective&quot;: &quot;per_block&quot;,
+    &quot;semantic_program&quot;: &quot;catalog_gru&quot;
+  },
+  &quot;history&quot;: {&quot;kind&quot;: &quot;none&quot;, &quot;projection&quot;: &quot;none&quot;, &quot;window&quot;: 0, &quot;order&quot;: &quot;none&quot;},
+  &quot;memory&quot;: &quot;none&quot;, &quot;decoder&quot;: &quot;flat_focus&quot;,
+  &quot;value&quot;: {&quot;aggregation&quot;: &quot;fixed_slots&quot;, &quot;output&quot;: &quot;scalar&quot;},
+  &quot;belief_input&quot;: &quot;none&quot;, &quot;initialization&quot;: &quot;existing_agent_v1&quot;
+}
+</code></pre>
+<p>The selected Allies/Lessons semantic pack and actual tensor capacities live in
+ModelBinding/TrainingRegime, not hidden defaults in this JSON. Generic uncompiled
+models resolve <code>semantic_program=none</code> only when their world admits it.</p>
+<table>
+<thead>
+<tr>
+<th>Recipe label</th>
+<th>Fully specified difference from the baseline above</th>
+<th>What it tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline</code></td>
+<td>None</td>
+<td>Reproduces the existing function, including critic pooling.</td>
+</tr>
+<tr>
+<td><code>masked-mean</code></td>
+<td><code>value.aggregation=masked_mean</code></td>
+<td>Validity-aware critic aggregation, with per-row value projection unchanged.</td>
+</tr>
+<tr>
+<td><code>value-token</code></td>
+<td><code>value.aggregation=value_token</code></td>
+<td>A learned token participates in attention; read it for the value MLP. This can also change policy object representations.</td>
+</tr>
+<tr>
+<td><code>depth-2</code></td>
+<td><code>encoder.depth=2</code></td>
+<td>Repeated existing post-norm block; independent parameters and declared perspective injection.</td>
+</tr>
+<tr>
+<td><code>pre-norm-2</code></td>
+<td>depth 2, norm pre, perspective per_block</td>
+<td>A separate norm contrast against depth-2, not baseline alone.</td>
+</tr>
+<tr>
+<td><code>width-128</code></td>
+<td>width 128, heads 4, ff_width 512</td>
+<td>A proposed capacity rung; not equal parameter count or equal runtime.</td>
+</tr>
+<tr>
+<td><code>events-32</code></td>
+<td>history recent_events, projection kind_amount_role_v1, window 32, order relative_position</td>
+<td>Bounded ordered recent information, no game recurrence.</td>
+</tr>
+<tr>
+<td><code>compound</code></td>
+<td>decoder compound_gru, aggregation masked_mean, output scalar</td>
+<td>Existing native structured support and prefix-value contract; compare with compound control, not just flat action accuracy.</td>
+</tr>
+<tr>
+<td><code>belief-input</code></td>
+<td>belief_input canonical_marginals</td>
+<td>Existing semantic belief-input path with required schema; ordinary generic trainers remain unsupported until they supply these inputs.</td>
+</tr>
+<tr>
+<td><code>wdl-token</code></td>
+<td>value aggregation value_token, output categorical_wdl</td>
+<td>Aggregation × representation crossing; requires existing categorical target path.</td>
+</tr>
+</tbody>
+</table>
+<p>Capacity ladder numbers are illustrative, not a scientific allocation. Ingest
+the focused ladder's actual resolved widths/heads/depths when it lands. Never
+rename or reconstruct its frozen recipes from these examples. Its minimal local
+AgentHypers extension can ship independently, with explicit serialized defaults,
+admission and parameter counts. The later resolver must express it losslessly.</p>
+<p>ETU-106's live Task was read on 2026-10-05 (revision
+<code>2026-10-05T20:48:12.333Z</code>). Jack Heart selected value-token aggregation for focused
+implementation/testing, retaining historical pooling as control and masked mean
+as an alternative. That selection is accepted scope for ETU-106; it is not
+approval of this framework. Coordinate by adopting its exact final pooling,
+token placement, normalization, state-key and default semantics during cutover.
+Do not create a second token implementation here. Its initial capacity ×
+history contrast and larger-rung repeat retain a fixed learning rule and action
+domain. Categorical versus scalar remains a separately identifiable contrast.</p>
+<p>The sampler example is independently resolved:
+<code>family=hand_sampler, kind=count_gru, hidden_width=64, history_projection=existing_commitment_summary, initialization=existing_sampler_v1</code>.
+Its SamplerSchema binds vocabulary, count limits and history coordinates. A
+future history Transformer is another explicit sampler variant with new data
+requirements, not a policy recipe changing the sampler implicitly.</p>
+<h2 id="6-module-apis-tensors-and-state">6. Module APIs, tensors and state</h2>
+<p>Proposed signatures use named domain values. <code>ObservationBatch</code> is a validated
+view of the existing tensor dictionary; validate once at collection/load boundaries
+and retain a cheap typed wrapper internally. It must not copy or reshape every
+tensor on every forward call. Concrete module implementations remain <code>nn.Module</code>
+so state dicts, parameter registration and devices have ordinary PyTorch behavior.</p>
+<pre><code class="language-python">from dataclasses import dataclass
+from typing import Protocol
+from torch import Tensor
+
+@dataclass(frozen=True)
+class EncodedObjects:
+    rows: Tensor          # float [B,N,D], including optional appended tokens
+    valid: Tensor         # bool [B,N]
+    object_count: int     # original object span; focus indexes address only it
+    value_index: int | None
+
+@dataclass(frozen=True)
+class FlatOutput:
+    logits: Tensor        # float [B,A], aligned with legal offer rows
+    value_raw: Tensor     # float [B,1] or [B,3], never silently converted for loss
+    value_expected: Tensor  # float [B], interpreted by ValueContract
+
+class ObjectEncoder(Protocol):
+    def __call__(self, batch: &quot;ObservationBatch&quot;) -&gt; EncodedObjects: ...
+
+class FlatDecoder(Protocol):
+    def __call__(self, batch: &quot;ObservationBatch&quot;, encoded: EncodedObjects) -&gt; Tensor: ...
+
+class ValueHead(Protocol):
+    def __call__(self, encoded: EncodedObjects) -&gt; Tensor: ...
+
+def resolve_architecture(
+    spec: ArchitectureSpec, binding: &quot;ModelBinding&quot;
+) -&gt; &quot;ResolvedArchitecture&quot;: ...
+
+def build_agent(
+    architecture: &quot;ResolvedArchitecture&quot;, binding: &quot;ModelBinding&quot;,
+    initialization: &quot;InitializationPlan&quot;
+) -&gt; &quot;Agent&quot;: ...
+
+def build_sampler(
+    spec: &quot;SamplerArchitectureSpec&quot;, schema: &quot;SamplerSchema&quot;,
+    initialization: &quot;InitializationPlan&quot;
+) -&gt; &quot;AutoregressiveBeliefSampler&quot;: ...
+</code></pre>
+<p>Quoted types denote proposed records or existing domain types identified above;
+this is an interface sketch, not an executable module. Flat and compound methods
+remain distinct on the facade. Preserve the existing compound call signature:
+<code>compound(obs, batch, *, tokens=None, prefix=(), generator=None, deterministic=False) -&gt; CompoundOutput</code>. The teacher-forced tape returns factor
+likelihoods and prefix values. Flat <code>forward</code> keeps the existing serving tuple;
+<code>forward_distribution</code> exposes raw critic targets for compatible trainers. Internal
+named outputs prevent positional tensor confusion without forcing every consumer
+to change at once.</p>
+<h3>Shapes and semantic capabilities</h3>
+<ul>
+<li>Current objects form <code>[B,N,D]</code>, validity <code>[B,N]</code>, flat actions <code>[B,A,F]</code>, focus
+indexes <code>[B,A,K]</code>, legal mask <code>[B,A]</code>. Focus indexes retain the original object
+coordinates when event/value tokens are appended. Reject invalid references;
+<code>-1</code> is the explicit absent focus.</li>
+<li>Validity is boolean internally; padded object/event rows cannot contribute as
+attention keys. Mask after biased projections before masked pooling. A learned
+value token is always valid and has neutral ownership, not the opponent's
+perspective embedding. Ordinary object ownership remains unchanged.</li>
+<li>For value-token aggregation append one trainable <code>[D]</code> token before the shared
+stack, read its final row, then use a two-layer value MLP. Its effect on policy
+is part of the treatment. A read-only query pooling head would be a different
+recipe; do not silently switch to that to avoid policy effects.</li>
+<li>Reject a nonterminal empty legal set; do not softmax all padding. Terminal
+transitions need no policy distribution. Existing finite-mask baseline
+behavior stays versioned; sampling must still prove zero invalid-action mass.</li>
+<li>Flat capacity overflow fails before action selection. Compound offers stay
+ragged with native support and no artificial candidate cap. Length buckets may
+improve batching but must not truncate legal choices or semantic programs.</li>
+<li>Required capabilities include complete semantic catalog when compiled content
+requires it, event projection when history is on, marginal schema when belief
+input is on, and native compound offers when decoding is compound. Validate
+behavior, not just keys with equal shapes.</li>
+</ul>
+<h3>History now, recurrence later</h3>
+<p>Initial event input consumes the already emitted window as an explicitly lossy
+input: embed event kind, signed amount and viewer-relative controller category,
+plus relative position, into D and append valid rows to the current-state stack.
+Source and target raw IDs are excluded; no stable entity semantics are inferred
+from allocation numbers. Known viewer/controller conversion must be validated;
+unknown controller gets an explicit category. No new claim of complete history
+or entity-resolved reasoning follows. The projection version fixes field units,
+kind filtering, chronological order and suffix-window policy.</p>
+<p>A zero-event window is valid; missing required tensors is an error. Existing
+transport truncation is part of the declared bounded-window contract, not a new
+silent overflow rule. New projection inputs beyond that window need a new ABI
+and receipts. Check hidden-world swap invariance and native/Python event encoding
+parity before enabling this path. Do not parse event hashes as meanings.</p>
+<p>A persistent memory variant is <strong>designed but not in first-cut schema</strong>. It needs
+<code>MemoryState(hidden[B,D], match_ids, viewers, last_cursors)</code> and explicit
+<code>step(batch, state, reset_mask) -&gt; (encoded, next_state)</code> plus sequence training.
+The player/collector owns state per match and seat; reset on terminal/new game,
+clone on search fork, replay on historical attachment, and reject missing prefix.
+Never store batch-global hidden state on Agent. Incremental events require
+canonical cursors so overlapping windows are not ingested twice. Store behavior
+state/version with collected sequences; train with declared sequence length,
+burn-in, padding and detach boundaries. Randomly shuffled single decisions
+cannot train recurrence correctly. Existing recovery snapshots must bind this
+state before claiming recurrent process recovery. This is why recent-window
+attention is the recommended first experiment.</p>
+<p>Compound prefix state lives only within one declaration and is discarded at its
+end or interruption. The existing Command suffix queue lives in the player,
+resets at game boundaries and fails on stale revision; it is not game memory.
+Belief intervention evaluation stays pure. A later shared memory system must
+explicitly separate public history from belief so supplying a belief cannot
+leave an uncontrolled private posterior in the action path.</p>
+<h2 id="7-gradient-initialization-and-value-contracts">7. Gradient, initialization and value contracts</h2>
+<p>Model construction knows output families, not PPO, GAE, Ataraxos, or teacher
+label generation. The objective owns clipping, loss coefficients, filters,
+bootstrapping, credit clocks and schedules. The regime validator checks required
+outputs against target semantics before allocating a collector.</p>
+<p>Policy and critic gradients reach their heads and the shared encoder. Behavior
+probabilities, reference distributions and value targets remain detached under
+the existing objective contracts. Compound sampled tokens are constants during
+score-function recomputation; factor log probabilities retain gradients. Grouped
+versus sequential credit is an objective treatment, not a different decoder.
+WDL output uses loss/draw/win order and <code>p(win)-p(loss)</code> for serving. A scalar
+network's output does not identify its units: preserve win-logit versus signed
+return in ValueContract and reject a search consumer requesting the wrong one.</p>
+<p>The frozen-policy sampler receives private truth only as supervision. Policy
+parameters stay frozen and get no sampler gradients. Optional canonical belief
+inputs to policy remain explicit distributions/projections, not hidden sampler
+activations. Shared semantic weights or joint optimization would be a new
+measured treatment with an explicit gradient graph and transfer contract.</p>
+<p>For baseline parity retain existing initialization order, orthogonal projection
+initialization, policy output gain 0.01, perspective scale, and native PyTorch
+initializers where current modules use them. Do not claim same-seed parity after
+changing construction order. New component-seeded initialization derives stable
+named seeds from a run seed and versioned component paths, within isolated RNG
+scopes; optimizer/data/action RNGs are separate. Shared unchanged components can
+then start identically across ablations. Width changes do not promise identical
+weights or function-preserving scaling. Token initialization and depth-block
+initialization must be explicit; proposed new token uses Normal(0, D^-0.5).
+ETU-106's actual accepted initialization supersedes this proposal at integration.</p>
+<h2 id="8-checkpoint-identity-migration-and-transfer">8. Checkpoint identity, migration and transfer</h2>
+<p>There are four different operations:</p>
+<ol>
+<li><strong>Reload:</strong> exact architecture and input/value contracts; strict parameter and
+buffer keys/shapes; verify artifact SHA and world binding; instantiate only
+admitted local builders. No arbitrary import path in a checkpoint.</li>
+<li><strong>Metadata migration:</strong> deterministic, versioned conversion of old saved
+AgentHypers to a full specification, preserving the old function and validation
+failures. Record original bytes and migration identity. Missing new fields
+mean the historically correct baseline only for a recognized old schema.</li>
+<li><strong>Transfer:</strong> create a new run and artifact with a TransferPlan. Permit exact
+named shared tensors only when semantic coordinates and shape agree; new heads
+get recorded initialization. Report every copied, omitted and rejected key.</li>
+<li><strong>Resume:</strong> existing recovery contracts restore optimizer, RNG, collector and
+EMA under exact admitted runtime/source/regime. An architecture change is a
+new run, never a recovery of the prior one.</li>
+</ol>
+<p>First transfer implementation should support no shape adaptation. Scalar-to-WDL
+may reuse compatible encoder weights but initializes a new head and optimizer;
+it is not a checkpoint reload. Width or vocabulary changes reject transfer unless
+a later named conversion supplies and verifies coordinate semantics. Do not use
+<code>strict=False</code> as a migration strategy. Fixed-to-masked pooling can share parameter
+shapes yet change the function; record it as new architecture even if all tensors
+copy. A compound switch cannot pretend the flat head was trained as a GRU.</p>
+<p>Proposed checkpoint additions, within the existing checkpoint artifact, are
+<code>architecture_receipt</code>, <code>value_contract</code>, and a versioned consumed-input binding.
+Retain <code>model_state_dict</code>, ordinary world binding, observation hypers and exact
+belief bindings. New schema stores one architectural source of truth; any old
+hypers export is derived and checked, never separately editable. Migrate old
+metadata only at the loader boundary, with narrowly tested mappings. Old missing
+world binding and removed positional-belief fields must continue to fail. No
+frozen artifact is rewritten in place.</p>
+<p>Stable state-key naming is part of the builder ABI. Initially preserve baseline
+keys using the facade or a single explicit lossless key map; delete duplicated
+forward implementations. Test both output and gradient parity against retained
+baseline fixtures. An allowlisted same-shape key rename is a migration; changed
+normalization/attention/pooling semantics require a new architecture identity.</p>
+<h2 id="9-one-complete-construction-train-export-reload-evaluate-path">9. One complete construction → train → export → reload → evaluate path</h2>
+<p>This specifies a complete proposed software acceptance case, with present and
+new pieces labeled. It authorizes no execution in this Task.</p>
+<ol>
+<li><strong>Resolve.</strong> Start from the authored Allies/Lessons MatchHypers and saved
+observation capacities. Resolve the proposed baseline or value-token recipe
+into a complete spec; bind actual world/content/sideboards/input capabilities.
+Print the architecture difference and parameters. The executor records the
+architecture receipt before training; a setup failure produces a retained
+failed attempt rather than an omitted arm.</li>
+<li><strong>Construct.</strong> Existing <code>execute_regime(regime, seed, out, store)</code> calls proposed
+<code>build_agent</code> instead of direct Agent construction. Validate signed scalar
+output with the chosen self-play objective, or WDL with Ataraxos targets.
+Initialize using the recorded seed plan; build the optimizer afterward.</li>
+<li><strong>Train.</strong> Keep the existing bounded self-play stage, terminal/reset semantics,
+all observation tensors, behavior likelihoods and cumulative cost clock.
+Same-run continuation uses the same architecture and optimizer. A stage asking
+to change architecture fails and must create a separate run/transfer.</li>
+<li><strong>Export.</strong> The ordinary writer saves weights plus the architecture/value/input
+contracts and mandatory world binding. Compute exact file digest and record
+artifact, cost, seed, source and target identities in StageRecord/TrainingRun.
+Raw and EMA are distinct artifacts, not interchangeable recipe names.</li>
+<li><strong>Reload.</strong> <code>load_checkpoint_agent</code> validates contracts, calls the same builder,
+strictly loads and returns Agent/ObservationSpace. A fixed admitted input
+yields equal policy/value outputs before and after reload on the same runtime;
+compare WDL logits as well as expectation. Wrong setup, architecture revision,
+event projection or state tensor fails before play.</li>
+<li><strong>Evaluate.</strong> Existing immutable player registration points at exact bytes.
+Extend EvaluationProtocol's study discriminator explicitly for architecture
+comparison; retain held-out paired deals, all four seat/deck legs, chosen
+inference policy, attempt retention and exact replay in the existing arena.
+Regenerate the report from records. Policy-only CPU and search-augmented
+evaluations are separate declared conditions. Use overlapping observed costs,
+not extrapolated equal-hours claims.</li>
+<li><strong>Play admission, when requested.</strong> Pass the real candidate through
+<code>configured_opponent</code> and GameSession with both deck assignments and the
+existing receipt requirements. Artifact reload alone is not demo admission;
+fixture completion is not a human win. No new table protocol or session store
+is needed solely because the network changed.</li>
+</ol>
+<p>Separate sampler continuation: freeze raw/EMA policy SHA → existing
+<code>collect_belief</code> whole-game dataset → <code>train_belief</code> using the sampler builder →
+ordinary sampler export/reload → existing saved-game quality report → optional
+local search with identical generating-policy identity. Each arrow retains the
+existing dataset/schema/world/policy guards. Sampler fit and evaluation costs
+remain separate from policy training. Conditional queries and unsupported
+belief/compound combinations remain rejected until explicitly implemented.</p>
+<p>Proposed interfaces at persistence boundaries:</p>
+<pre><code class="language-python">def validate_stage_model(
+    stage: &quot;Operation&quot;, architecture: &quot;ResolvedArchitecture&quot;,
+    value: &quot;ValueContract&quot;, binding: &quot;ModelBinding&quot;
+) -&gt; None: ...
+
+def migrate_checkpoint_metadata(
+    metadata: &quot;CheckpointMetadata&quot;
+) -&gt; &quot;AdmittedModelMetadata&quot;: ...
+
+def apply_weight_transfer(
+    source: &quot;AdmittedCheckpoint&quot;, target: &quot;Agent&quot;, plan: &quot;TransferPlan&quot;
+) -&gt; &quot;TransferReceipt&quot;: ...
+</code></pre>
+<p>Existing APIs such as execute_regime and load_checkpoint_agent remain public.
+No new train CLI is required; <code>uv run manabot train --regime &lt;resolved-file&gt;</code>
+remains the entry point after schema support lands. The JSON in section 5 is
+architecture-only and cannot be passed as a current TrainingRegime.</p>
+<h2 id="10-failure-behavior-alternatives-and-proportion">10. Failure behavior, alternatives and proportion</h2>
+<table>
+<thead>
+<tr>
+<th>Failure</th>
+<th>Required behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unknown recipe kind, typo, invalid width/heads or unsupported cross-product</td>
+<td>Parse/resolve error with field path before model/collector allocation; retained attempt if execution was requested.</td>
+</tr>
+<tr>
+<td>Missing semantic/history/belief capability, malformed masks, overflowing flat actions</td>
+<td>Admission or collection failure with the actual required schema/capacity; no truncation, neutral belief or decoder fallback.</td>
+</tr>
+<tr>
+<td>Different current world or content, changed bytes</td>
+<td>Existing ordinary loader rejection; preserve historical evidence.</td>
+</tr>
+<tr>
+<td>Interrupted compound suffix or missing memory prefix</td>
+<td>Fail closed; no resampling to manufacture a successful trace.</td>
+</tr>
+<tr>
+<td>Run timeout/OOM/incomplete game</td>
+<td>Existing failed/interrupted records, costs and partial evidence; no replacement games silently added.</td>
+</tr>
+<tr>
+<td>Architecture hash matches but source/build digest differs</td>
+<td>Distinct implementation lineage; exact resume refuses under its existing rules. Evaluation records the difference.</td>
+</tr>
+<tr>
+<td>Two presets change loss and architecture together</td>
+<td>Resolver may represent them, but contrast report marks confounding changes; no isolated architecture conclusion.</td>
+</tr>
+</tbody>
+</table>
+<p>Alternative A: keep adding AgentHypers switches. This is appropriate for the
+independent capacity ladder and ETU-106's focused change. It becomes fragile as
+history, compound prefix and belief capabilities need validation across exporters
+and trainers. The draft recommends a coherent extraction only after review.</p>
+<p>Alternative B: adopt generic Hydra/torchtune-style component paths. Flexible,
+but it allows configurations the code cannot train/serve and moves semantic
+validation into runtime wiring. There is no demonstrated need for external
+plugins, arbitrary DAGs or user-supplied model code here.</p>
+<p>Alternative C: one subclass per arm. Easy initially, but duplicates gathering,
+masking, state and checkpoint behavior; a masking fix can move one arm only.
+This defeats the requested reproducible comparisons.</p>
+<p>Recommended approach: explicit constructors and strict specs for a small closed
+set, growing only when a runnable experiment needs a new boundary. Avoid generic
+shape inference, automatic tensor adapters, optimizer-as-model config, a model
+registry service, a new tracking backend and distributed execution refactors.
+The principal failure risk is a framework that absorbs research time and still
+cannot export a real playable checkpoint. The complete-path gate prevents that.</p>
+<h2 id="11-delivery-cut-and-acceptance-after-review">11. Delivery cut and acceptance after review</h2>
+<p><strong>This Task's slice:</strong> sourced research, durable draft, HTML technical review,
+explicit unresolved decisions. No production code changes. ETU-104 stays open
+for Jack Heart's review feedback and accepted design or explicit rejection/defer.</p>
+<p><strong>Proposed implementation slice after approval:</strong> make architecture construction
+and checkpoint reconstruction share one owner across existing flat, compound,
+value and sampler paths; incorporate the already landed focused variants; add
+resolved receipt metadata; prove the complete path. A recipe field without the
+trainer/exporter/player cutover is not completion. Sequence within that slice:</p>
+<ol>
+<li>Recover ETU-106 and ladder final semantics, retain golden baseline fixtures,
+add closed specs/bindings and builders without changing baseline behavior.</li>
+<li>Extract existing gather/attention/policy/value boundaries. Move architectural
+ownership out of independently writable AgentHypers; retain a versioned input
+migration for existing artifacts/configs only. Remove direct construction in
+execution, BC, value and reload paths once they all use the same builder.</li>
+<li>Route compound and sampler constructors through their own typed contracts;
+preserve existing methods, output types, legality, gradients and separate
+artifact families. Do not unify unrelated hidden states.</li>
+<li>Update writers and ordinary loaders together; retire duplicated serialization
+facts. Keep historical-rejection fixtures and all admitted path tests.</li>
+<li>Run bounded software acceptance and review reports. Later recurrence, new
+sampler architecture or scientific comparisons need their own scope/protocol.</li>
+</ol>
+<p>Delete targets are duplicated construction and independently mutable architecture
+fields, not the Agent facade, trainer algorithms, physical-prior sampler,
+VerifyStore, arena, or native legality. Preserve the narrow old-metadata reader
+as a documented compatibility boundary; it is not a second model implementation.</p>
+<p>Proposed headless acceptance tests (new test names, not runnable today):</p>
+<pre><code class="language-bash">uv run pytest tests/model/test_architecture_recipes.py tests/model/test_architecture_reload.py
+uv run pytest tests/training/test_architecture_workflow.py
+</code></pre>
+<p>First file: explicit defaults and alias equality; unsupported combinations;
+baseline forward/gradient parity; masked-padding invariance; value token can
+receive gradient; scalar/WDL conversion; event order sensitivity, ID-renaming
+invariance and hidden-world swap invariance; unchanged focus coordinates;
+compound exact likelihood and native semantic parity. Second: real ordinary
+writer/loader for each admitted family, old recognized metadata, unknown/rejected
+schemas, source/target transfer receipts, wrong sideboard and projection.
+Workflow file: bounded two-checkpoint regime, ordinary reload, four-leg complete
+arena and replay, retained induced failure, offline report regeneration. Existing
+relevant model/training/belief/compound suites remain required. If native code
+changes in later work, debug Rust tests and the required root rebuild apply.</p>
+<p>Software acceptance has a predeclared one-thread CPU budget of at most 15 minutes
+per complete workflow attempt and retains failures; it is a proposal for later
+approval, not a new scientific allocation. Scientific contrasts separately freeze
+independent seeds, paired deals, caps, selection, action domain, data identities,
+and analysis. Equal steps and equal time answer different questions; report both,
+plus inference cost and parameter count. No claim of byte-identical stochastic
+training across devices or versions follows from resolved recipes.</p>
+<h2 id="12-review-record-and-remaining-decisions">12. Review record and remaining decisions</h2>
+<table>
+<thead>
+<tr>
+<th>Date / attribution</th>
+<th>Disposition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-10-05, Jack Heart</td>
+<td>Requested primary-source research and separate substantial design review before architecture framework adoption.</td>
+</tr>
+<tr>
+<td>2026-10-05, Jack Heart, ETU-106 live directive</td>
+<td>Selected value-token aggregation for focused implementation/testing; historical pooling is compatibility/control. Broad framework remains gated.</td>
+</tr>
+<tr>
+<td>2026-10-05, ETU-104 research</td>
+<td>Proposed closed typed specs, explicit builders, strict reload, separately receipted transfer, recent-window history first. Not approved.</td>
+</tr>
+<tr>
+<td>Review feedback</td>
+<td>Pending; no feedback or approval inferred from artifact readiness.</td>
+</tr>
+</tbody>
+</table>
+<p>The consequential open decisions are: first-cut framework scope versus continuing
+local switches; recent-window-only history versus paying for sequence collectors
+now; and the explicit strict-transfer policy. Token aggregation's focused direction
+is already decided; its superiority, game-memory design and framework adoption
+are not. ETU-101 retains dashboard ownership. ETU-91's running campaign, checkout,
+recipes and evidence remain untouched.</p>
+<p>Validation for this documentation change is structural/link checking only. No
+native/model tests, optimizer runs, benchmark or scientific evaluation were
+performed. The HTML is a local, self-contained rendering of this proposal;
+visual browser validation is unavailable in this headless environment.</p>
+</main></div><footer>Self-contained review artifact generated from the adjacent durable design. Links require their repository or internet destination. No external scripts, fonts, tracking, or model execution. Structural validation only; browser rendering unavailable.</footer></body></html>
