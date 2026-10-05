@@ -248,12 +248,13 @@ def project_compound(
             # enumerating subsets or assigning mass to earlier excluded taps.
             count = rows[0].candidate_stop - rows[0].candidate_start
             tail = tokens
+            selected = sum(tokens[1:])
             while len(tail) <= count:
-                output = _decode(agent, cursor, tail, check)
-                probabilities = output.probabilities[len(tail)]
-                if probabilities[1] > 0:
+                check()
+                remaining = count - len(tail) + 1
+                if selected < rows[0].maximum:
                     prefixes.append(tail + (1,))
-                if probabilities[0] == 0:
+                if selected + remaining - 1 < rows[0].minimum:
                     break
                 tail += (0,)
             else:
@@ -299,6 +300,8 @@ def project_compound(
         probability = float(
             output.log_probs[len(cursor.tokens) : len(prefix)].double().sum().exp()
         )
+        if probability <= 0:
+            raise ValueError("compound projection numerically lost policy support")
         choices[command.offer_id] = CompoundChoice(prefix, command, probability)
         prefix_value = float(
             output.values[len(cursor.tokens)]

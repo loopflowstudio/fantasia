@@ -191,8 +191,10 @@ def _validate_dataset(
             receipt = LocalUpdateReceipt.from_json(str(encoded))
             if len(receipt.target) != int(encoded_counts[row]):
                 raise ValueError("local receipt offers do not align")
-            if not np.allclose(
-                targets[row, valid_actions[row]], receipt.target, atol=1e-7
+            retained = np.asarray(receipt.target)
+            supplied = targets[row, valid_actions[row]]
+            if not np.allclose(supplied, retained, atol=1e-7) or not np.array_equal(
+                supplied > 0, retained > 0
             ):
                 raise ValueError("local target differs from retained update")
             if policy_target_kind == "local_soft":

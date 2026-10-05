@@ -274,6 +274,14 @@ def test_supported_root_rollout_reaching_payment_replays(
         assert targets.sum() == pytest.approx(1)
         assert np.all(targets[0, :count][inactive] == 0)
 
+    dataset[LOCAL_TARGET_KEY][0, np.flatnonzero(inactive)[0]] = 1e-12
+    with pytest.raises(ValueError, match="target differs"):
+        _validate_dataset(
+            dataset,
+            policy_target_kind="local_soft",
+            value_target_kind="terminal_outcome",
+        )
+
     # Direct count materialization changes hidden truth, never the viewer policy.
     constraints = branch.hidden_hand_constraints_json(viewer)
     hand = receipt.rollouts[0].sampled_hand
