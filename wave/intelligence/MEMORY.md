@@ -762,3 +762,16 @@ hidden-world swap invariance. The ordinary checkpoint reload and complete-game
 credit checks remain in the affected suite. These are software correctness
 checks, not scientific training, strength, calibration or challenger evidence.
 See [compound contracts](../../docs/training-regimes.md#compound-decisions).
+
+## Compound search payment limitation (ETU-95 review, 2026-10-04)
+
+Jack Heart identified that an admitted root can reach unsupported waterbend
+subsets during rollout. Both saved physical/learned sampler regressions now
+exercise the real priority-to-payment transition and fail without a target.
+Arbitrary full-game compound search remains unsupported; small complete-game
+fixtures are not general compatibility evidence. [ETU-100](https://linear.app/loopflow/issue/ETU-100)
+owns the software follow-up, not ETU-99. At a retained decoder prefix, a legal
+canonical action can have exact zero policy mass; reverse KL forbids assigning
+positive updated mass there. Preserve the original root/prefix and change the
+update/receipt support contract explicitly rather than smoothing or resampling.
+No training or scientific allocation was started.

@@ -75,6 +75,62 @@ def test_payment_boundary_rejected_and_sequential_surface_preserved() -> None:
     assert env.state_digest() == before
 
 
+@pytest.mark.parametrize("learned", [False, True])
+def test_supported_root_rollout_reaching_payment_fails_without_target(
+    tmp_path: Path, learned: bool
+) -> None:
+    """Priority admission cannot promise that every continuation is supported."""
+    torch.set_num_threads(1)
+    configs = [
+        managym.PlayerConfig("a", {"Water Tribe Rallier": 80, "Forest": 20}),
+        managym.PlayerConfig("b", {"Gray Ogre": 20, "Mountain": 20}),
+    ]
+    env = managym.Env(seed=81, skip_trivial=False)
+    env.reset(configs)
+    env.scenario_clear_hand(0)
+    env.scenario_clear_hand(1)
+    for _ in range(6):
+        env.scenario_force_battlefield(0, "Water Tribe Rallier", ready=True)
+    raw = env.scenario_refresh()
+    space = ObservationSpace()
+    agent = _agent()
+    path = tmp_path / "compound.pt"
+    save_bc_checkpoint(agent, space, path, player_configs=configs)
+    config = LocalSearchConfig(depth=2, decision_seconds=20)
+    teacher = LocalUpdateTeacher(path, file_sha256(path), config)
+    if learned:
+        artifact = saved_sampler(teacher, tmp_path / "sampler.pt")
+        teacher = LocalUpdateTeacher(
+            path,
+            file_sha256(path),
+            config.model_copy(update={"sampling": "learned"}),
+            sampler=artifact,
+        )
+    root = project_compound(teacher.agent, env, None, check)
+    action = next(
+        i
+        for i, row in enumerate(raw.action_space.actions)
+        if row.action_type == managym.ActionEnum.PRIORITY_ACTIVATE_ABILITY
+    )
+    assert root.choices[action].probability > 0
+    branch = env.clone_env()
+    branch.execute_semantic_command_json(root.choices[action].command.to_json())
+    assert json.loads(branch.compound_offers().projection_json())["kind"] == "waterbend"
+    history = ViewerHistory.from_observation(
+        Observation.from_json(
+            env.semantic_observation_json(int(env.current_agent_index()))
+        )
+    )
+    before = env.state_digest()
+    constructions = env.possible_world_space_construction_count()
+    # Search covers all root actions; a later unsupported boundary aborts the
+    # whole receipt, including any already evaluated pass/activation branches.
+    with pytest.raises(ValueError, match="payment-subset"):
+        teacher.search(env, history, seed=19)
+    assert env.state_digest() == before
+    assert env.possible_world_space_construction_count() == constructions
+
+
 @pytest.mark.parametrize("kind", ["attack", "blockers"])
 def test_joint_parity(kind: str) -> None:
     env, _ = _root("attack", 3) if kind == "attack" else _block_root(2, 2)

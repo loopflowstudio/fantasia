@@ -290,6 +290,23 @@ and compound serving outside this search continues to support ETU-94's subsets.
 Menace, effectful payments, kicker and ward follow the native sequential fallback
 when the compound offer API exposes ordinary offers.
 
+**Arbitrary full-game compound search is unsupported.** An admitted priority,
+cast or combat root can reach a waterbend subset during rollout; that search
+fails without returning a target. The complete-game fixtures below cover bounded
+decks without this boundary and do not establish compatibility with every game.
+The priority-to-payment regression exercises both physical and learned sampling,
+verifies admission of the initial root and the actual native activation transition,
+and checks that the failed search leaves the source root unchanged.
+
+[ETU-100](https://linear.app/loopflow/issue/ETU-100) owns the software follow-up,
+separately from ETU-99's empirical work. At a retained prefix, `p(a | prefix)=0`
+is exact policy support, not numerical underflow. A reverse-KL penalty
+`KL(q || p)` forbids positive `q(a)` there. Supporting this boundary therefore
+requires explicit zero-support semantics in the update, branch allocation and
+target/receipt readers, or another exact representation of the same declaration
+policy. Smoothing probabilities or rebuilding the policy from the new microstep
+would change the frozen teacher. Preserve the original root and prefix.
+
 `collect_local_update` accepts raw compound policy stages and compatible admitted
 samplers. Compound EMA remains unsupported by its training owner. Its canonical
 conditional targets load through the existing `local_soft`, `local_argmax` and

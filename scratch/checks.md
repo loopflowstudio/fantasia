@@ -1,0 +1,1 @@
+Main 48e55c35 integration: 39 combined checks passed; payment-continuation review: two physical/learned saved-fixture regressions passed in 0.32s. ETU-100 tracks zero-support software follow-up. No training.
