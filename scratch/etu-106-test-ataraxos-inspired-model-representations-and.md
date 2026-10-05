@@ -191,4 +191,8 @@ ETU-104's broader architecture-recipe design still requires its own review.
 Delete — do not maintain: none. Historical pooling and categorical targets remain
 required compatibility and experimental controls.
 
-Check: `OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run pytest tests/model/test_value_aggregation.py tests/model/test_categorical_value.py tests/training/test_value_models.py -q` — 42 passed in 2.44 s; focused Ruff lint passed and formatting applied; broader suites, smoke and offline regeneration deferred to gate.
+Checkpoint fixtures share one writer so valid and corrupted artifacts use the same
+world/setup envelope. Recipe digests hash the exact serialized recipes retained
+in the plan; the attention stack carries one object tensor through each layer.
+
+Check: `OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run pytest tests/model/test_value_aggregation.py tests/model/test_categorical_value.py tests/training/test_value_models.py -q` — 42 passed in 2.46 s; focused Ruff lint and diff checks passed; broader suites, smoke and offline regeneration deferred to gate.

@@ -228,16 +228,12 @@ class Agent(nn.Module):
                 (key_padding_mask, torch.zeros_like(key_padding_mask[:, :1])), dim=1
             )
         if self.hypers.attention_on:
-            post_attention_objects = self.attention(
+            objects = self.attention(
                 objects, is_agent, key_padding_mask=key_padding_mask
             )
             for layer in self.extra_attention:
-                post_attention_objects = layer(
-                    post_attention_objects, is_agent, key_padding_mask
-                )
-        else:
-            post_attention_objects = objects
-        return post_attention_objects
+                objects = layer(objects, is_agent, key_padding_mask)
+        return objects
 
     def _value_from_objects(
         self, objects: torch.Tensor, validity: torch.Tensor

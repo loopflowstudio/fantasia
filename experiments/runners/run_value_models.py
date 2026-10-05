@@ -45,18 +45,17 @@ def smoke_plan() -> ResolvedStudy:
                 assert isinstance(stage, TrainSelfPlay)
                 stage.execution.wall_seconds = 30
             recipes.append(TrainingRegime.model_validate(recipe.model_dump()))
+    resolved = tuple(recipe.model_dump(mode="json") for recipe in recipes)
     return ResolvedStudy(
         protocol=EvaluationProtocol(
             study="value-models",
-            regime_digests=tuple(
-                canonical_sha256(recipe.model_dump(mode="json")) for recipe in recipes
-            ),
+            regime_digests=tuple(canonical_sha256(recipe) for recipe in resolved),
             training_seeds=(1061,),
             paired_deals=(910106,),
             anchor_deals=(920106,),
             process_seconds=900,
         ),
-        recipes=tuple(recipe.model_dump(mode="json") for recipe in recipes),
+        recipes=resolved,
         allocation_seconds=900,
         prior_campaign_seconds=0,
         calibration_evidence="ETU-106 bounded workflow only; strength unresolved",

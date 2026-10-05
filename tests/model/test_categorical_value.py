@@ -43,6 +43,27 @@ def _collector(agent: Agent) -> SeatRoutedCollector:
     )
 
 
+def _save_checkpoint(
+    path: Path,
+    agent: Agent,
+    saved_hypers: dict[str, object],
+    weights: dict[str, torch.Tensor],
+) -> None:
+    torch.save(
+        {
+            "model_state_dict": weights,
+            "hypers": {
+                "agent_hypers": saved_hypers,
+                "observation_hypers": agent.observation_space.encoder.hypers.model_dump(),
+            },
+            "world_binding": checkpoint_world(
+                Match().to_rust(), agent.observation_space
+            ),
+        },
+        path,
+    )
+
+
 @pytest.mark.parametrize(
     "aggregation,depth",
     [
@@ -98,19 +119,7 @@ def test_value_interface_and_collection_likelihoods(
     if aggregation == "historical_mean":
         saved_hypers.pop("value_aggregation")
         saved_hypers.pop("attention_layers")
-    torch.save(
-        {
-            "model_state_dict": agent.state_dict(),
-            "hypers": {
-                "agent_hypers": saved_hypers,
-                "observation_hypers": agent.observation_space.encoder.hypers.model_dump(),
-            },
-            "world_binding": checkpoint_world(
-                Match().to_rust(), agent.observation_space
-            ),
-        },
-        path,
-    )
+    _save_checkpoint(path, agent, saved_hypers, agent.state_dict())
     loaded, _ = load_checkpoint_agent(str(path))
     assert loaded.hypers.value_kind == kind
     assert loaded.hypers.value_aggregation == aggregation
@@ -145,18 +154,8 @@ def test_checkpoint_rejects_incompatible_saved_architecture(
 ) -> None:
     agent = _agent("categorical_wdl", "value_token", 2)
     path = tmp_path / "incompatible.pt"
-    torch.save(
-        {
-            "model_state_dict": agent.state_dict(),
-            "hypers": {
-                "agent_hypers": {**agent.hypers.model_dump(), **fields},
-                "observation_hypers": agent.observation_space.encoder.hypers.model_dump(),
-            },
-            "world_binding": checkpoint_world(
-                Match().to_rust(), agent.observation_space
-            ),
-        },
-        path,
+    _save_checkpoint(
+        path, agent, {**agent.hypers.model_dump(), **fields}, agent.state_dict()
     )
     with pytest.raises((RuntimeError, ValueError), match=error):
         load_checkpoint_agent(str(path))
@@ -183,19 +182,7 @@ def test_checkpoint_rejects_incompatible_architecture_weights(
         }
         error = 'Missing key.*"extra_attention'
     path = tmp_path / "incompatible.pt"
-    torch.save(
-        {
-            "model_state_dict": weights,
-            "hypers": {
-                "agent_hypers": agent.hypers.model_dump(),
-                "observation_hypers": agent.observation_space.encoder.hypers.model_dump(),
-            },
-            "world_binding": checkpoint_world(
-                Match().to_rust(), agent.observation_space
-            ),
-        },
-        path,
-    )
+    _save_checkpoint(path, agent, agent.hypers.model_dump(), weights)
     with pytest.raises(RuntimeError, match=error):
         load_checkpoint_agent(str(path))
 
