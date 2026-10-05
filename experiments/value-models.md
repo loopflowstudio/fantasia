@@ -79,8 +79,23 @@ Generated recipe IDs now use hyphens, with regression coverage against the arena
 ID validator. The affected study/protocol suite passed 15 tests after the fix.
 The incomplete-cohort notebook executes offline; report, metrics and cost-comparison
 bytes regenerate identically. This does not establish completed arena/report
-acceptance. The one-attempt allocation is exhausted: a separately authorized
-bounded rerun is required before publication. No retry or cohort rewrite occurred.
+acceptance. The initial training attempt remains exhausted. On 2026-10-05 Jack Heart
+authorized necessary local checks and landing, preferring evaluation-only recovery.
+Recovery retains the original plan, all eight completed TrainingRuns and checkpoint
+bytes, and runs only the missing arena/report work in a separate directory. Arena
+registration IDs replace underscores with hyphens; recipe and artifact identities
+remain unchanged. Aliasing collisions fail explicitly. The original 36.12 seconds
+remain charged against the 900-second ceiling, leaving at most 863.88 seconds.
+No retraining, expanded cohort or scientific allocation is authorized.
+
+```bash
+OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m experiments.runners.run_value_models --recover-from .runs/etu106-value-smoke --out .runs/etu106-value-recovery
+```
+
+`recovery.json` binds the original files and evaluation runner bytes. Resume checks
+the original protocol, model/runtime sources and run identities; recovery validates
+all raw/EMA checkpoint digests before evaluation. The original failure is retained
+as an interruption in the recovery and remains unchanged in its source directory.
 Strict loading cannot detect a historical/masked pooling relabel from equal
 weight shapes; saved metadata owns that distinction. All strength
 conclusions remain unresolved; historical defaults stay unchanged.

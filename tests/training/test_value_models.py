@@ -1,11 +1,20 @@
 """The value factorial freezes one learning rule and independent output heads."""
 
+import json
+from pathlib import Path
+
+import pytest
 from pydantic import TypeAdapter
 
 from experiments.runners.run_value_models import smoke_plan
 from experiments.runners.training_protocol import ResolvedStudy
-from manabot.arena.models import PlayerRegistration
-from manabot.training.models import TrainingRegime, TrainSelfPlay
+from manabot.arena.models import PlayerRegistration, canonical_sha256, file_sha256
+from manabot.training.models import (
+    StageRecord,
+    TrainingRegime,
+    TrainingRun,
+    TrainSelfPlay,
+)
 
 
 def test_value_factorial_protocol() -> None:
@@ -39,3 +48,74 @@ def test_value_factorial_protocol() -> None:
             )
             for variant in ("raw", "ema"):
                 player_id.validate_python(f"{recipe.id}-1061-{stage.id}-{variant}")
+
+
+def test_recovery_preserves_source_and_requires_unchanged_exports(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from experiments.runners import run_value_models as runner
+
+    source = tmp_path / "failed"
+    source.mkdir()
+    plan = smoke_plan()
+    recipe = TrainingRegime.model_validate(plan.recipes[0])
+    checkpoint = source / "checkpoint.pt"
+    checkpoint.write_bytes(b"fixture")
+    run = TrainingRun(
+        id="retained",
+        regime=recipe,
+        regime_digest=canonical_sha256(recipe.model_dump(mode="json")),
+        seed=1061,
+        seed_streams={},
+        identities={},
+        status="completed",
+        stages=[
+            StageRecord(
+                id="policy-0",
+                status="completed",
+                artifacts={
+                    "raw": {
+                        "path": str(checkpoint),
+                        "sha256": file_sha256(checkpoint),
+                        "bytes": 7,
+                    }
+                },
+            )
+        ],
+    )
+    path = source / "run.json"
+    path.write_text(run.model_dump_json())
+    study = dict(
+        study="value-models",
+        status="failed",
+        seconds=36.0,
+        runs=[dict(path=str(path), sha256=file_sha256(path))],
+        comparisons=[],
+        measurements=[],
+        protocol_sha256=canonical_sha256(plan.protocol.model_dump(mode="json")),
+    )
+    (source / "study.json").write_text(json.dumps(study))
+    (source / "protocol.json").write_text(plan.protocol.model_dump_json())
+    (source / "recipes.json").write_text(json.dumps(plan.recipes))
+    (source / "resolved-plan.json").write_text(plan.model_dump_json())
+    before = {p.name: p.read_bytes() for p in source.iterdir()}
+    called: list[bool] = []
+
+    def resume_only(
+        study: str, out: Path, retained: ResolvedStudy, *, resume: bool
+    ) -> None:
+        assert study == "value-models" and resume
+        assert retained == plan
+        assert json.loads((out / "study.json").read_text())["seconds"] == 36.0
+        called.append(True)
+
+    monkeypatch.setattr(runner, "run_study", resume_only)
+    runner.recover_evaluation(source, tmp_path / "recovered")
+    assert called == [True]
+    assert before == {p.name: p.read_bytes() for p in source.iterdir()}
+    provenance = json.loads((tmp_path / "recovered/recovery.json").read_text())
+    assert provenance["remaining_seconds"] == 864
+    checkpoint.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="checkpoint digest"):
+        runner.recover_evaluation(source, tmp_path / "rejected")
+    assert not (tmp_path / "rejected").exists()
