@@ -83,10 +83,26 @@ from the student. The main RL arm is frozen independently of screen results.
   example replayed 1,073 decisions exactly. Terminal outcomes are noisy samples,
   not ground-truth expected values; association does not establish causal benefit.
 
+- [PR #216](https://github.com/loopflowstudio/etude/pull/216) extends compound
+  decisions to independent blocker assignments and fixed-economics waterbend
+  payments. Wide fixtures, normalized joint gradients, authoritative replay,
+  hidden-world invariance and checkpoint reload passed, including 89 affected
+  Python checks and 15 native debug checks. Unsafe cross-choice legality and
+  triggered payment effects remain sequential. ETU-94 software acceptance is
+  complete; comparative learning remains in ETU-99.
+- [PR #218](https://github.com/loopflowstudio/etude/pull/218) adds offline prior and
+  learned-sampler reports over saved whole-game datasets, with artifact/split
+  identities, sample-count sensitivity, calibration and explicit unsupported
+  metrics. Seven deterministic acceptance checks passed, including label
+  isolation and a 40-definition count space without enumeration. A command
+  evaluated 606 retained pilot decisions without fitting or generating games.
+  ETU-96 software acceptance is complete; empirical calibration remains open.
+
 These receipts establish software behavior, not empirical treatment benefit.
 ETU-92 and ETU-93 completed their revised software acceptance after merged code,
-relevant tests and successful CI were audited. ETU-94–98 retain their remaining
-software scope; ETU-95 owns search integration. ETU-99 owns the comparative
+relevant tests and successful CI were audited. ETU-94 and ETU-96 also completed their revised software acceptance.
+ETU-95, ETU-97 and ETU-98 retain their remaining delivery scope; ETU-95 owns
+search integration. ETU-99 owns the comparative
 scientific acceptance described below. Linear owns current execution state.
 
 ## Coverage
@@ -105,7 +121,7 @@ in the boundary column are retained in ETU-99, except the frozen ETU-91 cohort.
 | Actor-only filtering versus filtering the critic too; critic-error and terminal-proximity selection bias | ETU-93 | Both loss scopes and held-out complete-game residual diagnostics landed; benefits and true expected-value error remain unestablished |
 | Raw versus averaged weights; averaging for evaluation versus actual behavior | ETU-93 | Separate evaluation and behavior contrasts landed; frozen active studies still use raw weights and learner-driven collection |
 | Auxiliary predictions and value representation as learning accelerators | ETU-92 / ETU-93 | Explicit architecture hypotheses; do not silently bundle with gradient changes |
-| Compound attacks/blocks/targets/payments and joint log probability | [ETU-94](https://linear.app/loopflow/issue/ETU-94) | Attacker declarations and supported targeted casts landed; blockers/payments remain separate |
+| Compound attacks/blocks/targets/payments and joint log probability | [ETU-94](https://linear.app/loopflow/issue/ETU-94) | Attacks, eligible targets, independent blockers and fixed-economics waterbend payments landed; unsafe sequences remain separate |
 | Forced/optionless steps and honest underlying-decision accounting | ETU-94 | Audit existing auto-resolution; collapsing prompts is not a strength result |
 | Setup-style outcome-only versus bootstrapped compound-decision credit | ETU-94 | Transfer hypothesis, not assumed equivalent to Stratego setup |
 | Freeze a strong policy before belief-conditioned search; consistent beliefs, rollouts and value | [ETU-95](https://linear.app/loopflow/issue/ETU-95) | Compare policy-only, constrained-prior and learned sampling at equal realized cost; exact enumeration is a tiny reference only |
