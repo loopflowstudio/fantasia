@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict
 
 from experiments.runners.training_protocol import EvaluationProtocol, ResolvedStudy
 from manabot.arena.models import canonical_sha256
-from manabot.infra.hypers import AgentHypers, MatchHypers, ObservationSpaceHypers
+from manabot.infra.hypers import AgentSpec, MatchHypers, ObservationSpaceHypers
 from manabot.training.models import (
     Learning,
     Schedule,
@@ -66,7 +66,7 @@ def resolve_contrast(name: ContrastName) -> Contrast:
                 villain="arena-seat-1",
             ),
             observation=ObservationSpaceHypers(),
-            agent=AgentHypers(
+            agent=AgentSpec(
                 hidden_dim=16,
                 num_attention_heads=2,
                 semantic_pack="ur-lessons-vs-gw-allies",

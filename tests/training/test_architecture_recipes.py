@@ -5,13 +5,16 @@ from pathlib import Path
 from pydantic import ValidationError
 import pytest
 
+from experiments.runners.model_capacity import regimes as capacity_regimes
 from experiments.runners.omitted_controls import resolve_contrast
-from manabot.infra.hypers import AgentHypers
+from manabot.infra.hypers import AgentSpec
 from manabot.training.models import Learning, TrainingRegime, TrainSelfPlay
 from manabot.training.recipes import (
     ataraxos_baseline,
     value_outputs,
     with_agent,
+    with_capacity,
+    with_value_aggregation,
     with_value_output,
 )
 
@@ -82,7 +85,7 @@ def test_invalid_value_cross_fails_without_mutating_baseline() -> None:
 
 def test_variations_revalidate_mutated_input_objects() -> None:
     base = _baseline()
-    agent = AgentHypers()
+    agent = AgentSpec()
     agent.compound_decisions = True
     with pytest.raises(ValidationError, match="compound"):
         with_agent(base, id="invalid", agent=agent)
@@ -105,3 +108,36 @@ def test_existing_value_contrast_uses_same_targets() -> None:
     )
     assert contrast.treatment == expected
     assert contrast.baseline.agent.value_kind == "scalar"
+
+
+def test_capacity_examples_preserve_controls_and_snapshot_the_baseline() -> None:
+    base = with_value_aggregation(_baseline(), id="token", aggregation="value_token")
+    before = base.model_dump()
+    arms = capacity_regimes(base)
+    assert [(a.agent.hidden_dim, a.agent.attention_layers) for a in arms.values()] == [
+        (64, 1),
+        (64, 2),
+        (128, 2),
+    ]
+    for arm in arms.values():
+        assert arm.agent.value_aggregation == "value_token"
+        assert arm.agent.semantic_pack == base.agent.semantic_pack
+        assert arm.stages == base.stages
+        assert arm.match == base.match
+        assert arm.observation == base.observation
+        assert arm.wall_seconds == base.wall_seconds
+        assert TrainingRegime.model_validate_json(arm.model_dump_json()) == arm
+    arms["w64-d1"].match.hero_deck.clear()
+    assert arms["w128-d2"].match.hero_deck
+    assert base.model_dump() == before
+
+
+def test_architecture_variants_reject_unsupported_models() -> None:
+    base = _baseline()
+    with pytest.raises(ValidationError, match="divisible"):
+        with_capacity(base, id="invalid", width=65, depth=2, heads=4)
+    base.agent.attention_on = False
+    with pytest.raises(ValidationError, match="require attention"):
+        with_value_aggregation(base, id="invalid", aggregation="value_token")
+    with pytest.raises(ValidationError, match="require attention"):
+        with_capacity(base, id="invalid", width=64, depth=2, heads=4)

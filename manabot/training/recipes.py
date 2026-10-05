@@ -9,7 +9,7 @@ TrainingRegime remains the serialized owner; no recipe registry is involved.
 from collections.abc import Mapping
 from typing import Literal
 
-from manabot.infra.hypers import AgentHypers, MatchHypers, ObservationSpaceHypers
+from manabot.infra.hypers import AgentSpec, MatchHypers, ObservationSpaceHypers
 from manabot.training.models import (
     AtaraxosMoveLearning,
     Execution,
@@ -18,11 +18,11 @@ from manabot.training.models import (
 )
 
 ValueOutput = Literal["scalar", "categorical_wdl"]
+ValueAggregation = Literal["historical_mean", "masked_mean", "value_token"]
+AttentionDepth = Literal[1, 2]
 
 
-def with_agent(
-    regime: TrainingRegime, *, id: str, agent: AgentHypers
-) -> TrainingRegime:
+def with_agent(regime: TrainingRegime, *, id: str, agent: AgentSpec) -> TrainingRegime:
     """Replace only model settings and label; reject incompatible stage targets."""
     return TrainingRegime.model_validate(
         {**regime.model_dump(), "id": id, "agent": agent.model_dump()}
@@ -37,8 +37,37 @@ def with_value_output(
     The learning rule is preserved. In particular, converting ordinary PPO to WDL
     fails regime validation instead of silently switching to Ataraxos move learning.
     """
-    agent = AgentHypers.model_validate(
+    agent = AgentSpec.model_validate(
         {**regime.agent.model_dump(), "value_kind": output}
+    )
+    return with_agent(regime, id=id, agent=agent)
+
+
+def with_value_aggregation(
+    regime: TrainingRegime, *, id: str, aggregation: ValueAggregation
+) -> TrainingRegime:
+    """Change pooling only, preserving output representation and learning rules."""
+    agent = AgentSpec.model_validate(
+        {**regime.agent.model_dump(), "value_aggregation": aggregation}
+    )
+    return with_agent(regime, id=id, agent=agent)
+
+
+def with_capacity(
+    regime: TrainingRegime, *, id: str, width: int, depth: AttentionDepth, heads: int
+) -> TrainingRegime:
+    """Select delivered width/depth/head fields without changing information inputs.
+
+    The model owns its feedforward expansion and normalization. Unsupported depth,
+    head divisibility and compound combinations fail ordinary AgentSpec validation.
+    """
+    agent = AgentSpec.model_validate(
+        {
+            **regime.agent.model_dump(),
+            "hidden_dim": width,
+            "attention_layers": depth,
+            "num_attention_heads": heads,
+        }
     )
     return with_agent(regime, id=id, agent=agent)
 
@@ -68,7 +97,7 @@ def ataraxos_baseline(
     world: str,
     match: MatchHypers,
     observation: ObservationSpaceHypers,
-    agent: AgentHypers,
+    agent: AgentSpec,
     checkpoints: int,
     updates: int,
     transitions: int,
