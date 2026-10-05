@@ -54,14 +54,9 @@ class Contrast(BaseModel):
 
 def resolve_contrast(name: ContrastName) -> Contrast:
     """Return fully resolved arms; every delta is explicit in their digests."""
-    base_name = "rl-control"
-    if name in {"paper-filter", "filter-ties", "filter-scope"}:
-        base_name = "advantage-filtering"
-    elif name.startswith("combined-no-"):
-        base_name = "combined"
     if name == "paper-value-head":
         base = ataraxos_baseline(
-            id="ataraxos-move-scalar",
+            id=f"{name}-control",
             world="w4",
             match=MatchHypers.authored(
                 "ur-lessons-vs-gw-allies",
@@ -77,16 +72,28 @@ def resolve_contrast(name: ContrastName) -> Contrast:
                 semantic_pack="ur-lessons-vs-gw-allies",
             ),
             checkpoints=2,
-            updates=1,
+            updates=2,
             transitions=64,
             streams=4,
-            stage_seconds=80,
-            wall_seconds=180,
+            stage_seconds=60,
+            wall_seconds=150,
         )
-    else:
-        base = TrainingRegime.model_validate_json(
-            (ROOT / "experiments/regimes" / f"{base_name}.json").read_text()
+        return Contrast(
+            name=name,
+            baseline=base,
+            treatment=with_value_output(
+                base, id=f"{name}-treatment", output="categorical_wdl"
+            ),
         )
+
+    base_name = "rl-control"
+    if name in {"paper-filter", "filter-ties", "filter-scope"}:
+        base_name = "advantage-filtering"
+    elif name.startswith("combined-no-"):
+        base_name = "combined"
+    base = TrainingRegime.model_validate_json(
+        (ROOT / "experiments/regimes" / f"{base_name}.json").read_text()
+    )
     base.id = f"{name}-control"
     for stage in base.stages:
         assert isinstance(stage, TrainSelfPlay)
@@ -99,15 +106,9 @@ def resolve_contrast(name: ContrastName) -> Contrast:
             stage.learning.ema = 0.999
     base.wall_seconds = 150
     treatment = with_agent(base, id=f"{name}-treatment", agent=base.agent)
-    if name == "paper-value-head":
-        treatment = with_value_output(
-            treatment, id=treatment.id, output="categorical_wdl"
-        )
     for stage in treatment.stages:
         assert isinstance(stage, TrainSelfPlay)
         learning = stage.learning
-        if name == "paper-value-head":
-            continue
         assert isinstance(learning, Learning)
         match name:
             case "discount":

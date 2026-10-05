@@ -58,8 +58,6 @@ def value_outputs(
     for label, regime in regimes.items():
         for output in outputs:
             name = f"{label}-{output.replace('_', '-')}"
-            if name in result:
-                raise ValueError(f"duplicate recipe label: {name}")
             result[name] = with_value_output(regime, id=name, output=output)
     return result
 
