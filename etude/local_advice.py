@@ -49,7 +49,7 @@ def local_update_scenario(
                 label=labels[index],
                 probability=receipt.target[index],
                 visits=receipt.allocation_counts[index],
-                q=unavailable
+                q=UnavailableQuantity(status="unavailable", reason="no_realized_visits")
                 if receipt.values[index] is None
                 else AvailableQuantity(
                     status="available",

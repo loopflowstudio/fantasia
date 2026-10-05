@@ -137,7 +137,7 @@ def test_supported_root_rollout_reaching_payment_replays(
         else Agent(space, AgentHypers(hidden_dim=8, num_attention_heads=2))
     )
     path = tmp_path / "compound.pt"
-    save_bc_checkpoint(agent, space, path, player_configs=configs)
+    save_bc_checkpoint(agent, space, path, player_configs=configs, extra={"value_semantic": "signed_outcome"})
     config = LocalSearchConfig(depth=2, decision_seconds=20)
     teacher = LocalUpdateTeacher(path, file_sha256(path), config)
     if learned:
@@ -148,15 +148,19 @@ def test_supported_root_rollout_reaching_payment_replays(
             config.model_copy(update={"sampling": "learned"}),
             sampler=artifact,
         )
-    root = project_compound(teacher.agent, env, None, check)
     action = next(
         i
         for i, row in enumerate(raw.action_space.actions)
         if row.action_type == managym.ActionEnum.PRIORITY_ACTIVATE_ABILITY
     )
-    assert root.choices[action].probability > 0
     branch = env.clone_env()
-    branch.execute_semantic_command_json(root.choices[action].command.to_json())
+    if compound:
+        root = project_compound(teacher.agent, env, None, check)
+        assert root.choices[action].probability > 0
+        branch.execute_semantic_command_json(root.choices[action].command.to_json())
+    else:
+        assert teacher.predict(env)[0][action] > 0
+        branch.step(action)
     assert json.loads(branch.compound_offers().projection_json())["kind"] == "waterbend"
     history = ViewerHistory.from_observation(
         Observation.from_json(
