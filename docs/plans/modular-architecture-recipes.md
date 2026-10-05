@@ -3,8 +3,9 @@
 **ETU-104 · 2026-10-05 · Draft for Jack Heart's review.** Research and design only.
 No architecture framework, training run, or scientific allocation is approved by
 this document. Jack Heart requested a separate design discussion before adoption.
-The later steer requests a review-design Session; the headless research result is
-ready for that discussion, not an approval or Task completion.
+Review is underway in the existing conversation. Jack Heart selected Python
+experiment files as the authoring interface, with YAML/JSON as generated exports
+and reports. This decision does not approve the remaining framework design.
 
 [HTML technical review](modular-architecture-recipes.html) ·
 [System authority](../ARCHITECTURE.md) ·
@@ -13,7 +14,9 @@ ready for that discussion, not an approval or Task completion.
 
 ## 1. Recommendation and the observable win
 
-Use one typed, versioned architecture specification and explicit local builders
+Author Python experiment files that construct TrainingRegime variants through
+shared typed helpers. Evolve the regime’s agent field into one versioned
+architecture specification and use explicit local builders
 for the policy core and the separate belief sampler. Keep the public `Agent`
 facade and existing player lifecycle. Compose a handful of real modules, with
 validated input and output contracts, rather than adding an Agent subclass for
@@ -197,7 +200,7 @@ Additional named records and their authority:
 
 | Proposed value | Fields / ownership |
 | --- | --- |
-| `RecipePatch` | Optional typed fields for precisely the overrideable architectural choices. Unknown paths rejected; no arbitrary dictionary merge API. |
+| Recipe constructors | Ordinary typed Python functions returning complete specs. Explicit keyword arguments replace a separate patch language; unknown arguments and invalid combinations fail before execution. |
 | `ResolvedArchitecture` | Complete ArchitectureSpec, architecture digest, required capabilities and parameter/buffer shape manifest. Built before optimizer allocation. |
 | `ModelBinding` | Existing checkpoint world binding plus semantic catalog, consumed-field projection, belief-schema identity if enabled, and history-projection identity. Bind actual setup, not a preset name. |
 | `ValueContract` | Actor-relative perspective, scalar units (`signed_return` or existing `win_logit`), WDL class order and expectation mapping. Trainer declares target semantics; builder verifies compatibility. |
@@ -213,10 +216,192 @@ include paths, labels or timestamps in the architecture hash. Freeze the resolve
 spec in TrainingRun and in every exported checkpoint; never resolve a mutable
 preset name while reloading.
 
+### A shared family of specifications and experiment helpers
+
+**Ownership decision, Jack Heart, 2026-10-05:** architecture configuration lives
+inside TrainingRegime as the model/hyperparameter specification for a TrainingRun.
+Evolve the existing `TrainingRegime.agent: AgentHypers` boundary into the richer
+typed specification. `ArchitectureSpec` is the proposed evolved field type, not
+a separately selected top-level recipe or another source of model settings.
+TrainingRun retains the resolved regime as it already does. Checkpoint metadata
+projects the exact model specification from that regime for reconstruction.
+Experiment files compose regimes; ResolvedStudy groups them with evaluation and
+allocation. Their roles remain distinct. A frozen-policy sampler's architecture
+belongs to its train-belief stage, not the policy's `agent` field.
+
+Jack Heart requested cross-experiment helpers and investigation of Pydantic as
+the common base during review on 2026-10-05. Python authoring is accepted;
+the following consolidation is proposed. `RecipeModel` above denotes a shared
+specification base, not a new architecture-only validation convention.
+
+Inspection finds three overlapping conventions: `infra/hypers.py:BaseHypersModel`
+forbids extra fields; `training/models.py:Strict` also rejects nonfinite numbers;
+`EvaluationProtocol` additionally freezes assignment. Consolidate conventions
+incrementally into a shared validated record base and a frozen specification
+subtype. Do not freeze mutable execution records or silently change historical
+parsing/admission. Pydantic's `frozen=True` alone does not freeze nested lists or
+dicts; resolved plans must defensively snapshot nested values, use immutable
+collections where appropriate, and verify canonical digests at execution.
+
+| Existing type | Proposed relationship |
+| --- | --- |
+| `AgentHypers` | Evolve into the architecture specification owned by TrainingRegime.agent; retain a narrow old-schema reader and derive compatibility fields. ArchitectureSpec is its proposed successor, not a parallel editable object. |
+| `MatchHypers`, `ObservationSpaceHypers` | Keep their domain identity and existing validation; include resolved snapshots in the same specification family. Rules/setup and input capacities remain separate from architecture. |
+| `Schedule`, `Learning`, `AtaraxosMoveLearning`, `Execution`, operation types | Reuse as typed experiment components. Their current algorithms, schedules and discriminator semantics remain authoritative; no second objective schema. |
+| `TrainingRegime` | Own the architecture in its existing agent boundary along with match, observation and stages. Shared helpers return complete regime variants. Migrate mutation-dependent authoring before claiming immutable specs. |
+| `EvaluationProtocol`, `ResolvedStudy` | Reuse the existing evaluation and whole-study envelope. Generalize shared composition helpers around these rather than introducing a competing Experiment/Study object. |
+| `omitted_controls.Contrast` | Existing baseline/treatment composition is a concrete source for common helper extraction. Preserve its declared changes and labels. |
+| `TrainingRun`, `StageRecord` | Share serialization/validation conventions where compatible, but retain their execution-record lifecycle and VerifyStore authority. They are outputs, not recipe subclasses. |
+| `SamplerSchema`, runtime tensor dataclasses, `nn.Module` | Keep current owners and runtime representations. Wrap persisted sampler architecture in the spec family without converting every tensor object or module to Pydantic. |
+| `model/world.py` binding dictionaries | Candidate for a typed boundary wrapper; preserve serialized bytes, digest rules and admission. Never redefine managym world semantics merely to unify Python types. |
+
+Start with shared baseline/model constructors, validated variation helpers,
+named comparison construction and resolution/export. Cross only requested axes;
+reject unsupported combinations rather than silently dropping cells. Helpers
+return new values, never mutate a shared baseline. Reconstruct through normal
+Pydantic validation: unchecked `model_copy(update=...)` is not an admission path.
+Experiment code must make coupled changes (for example WDL output and its value
+target contract) visible in the resolved diff.
+
+Illustrative helper API, proposed and not implemented:
+
+```python
+from collections.abc import Mapping
+from typing import Literal
+
+def with_value(
+    regime: TrainingRegime, *,
+    aggregation: Literal["fixed_slots", "masked_mean", "value_token"],
+    output: Literal["scalar", "categorical_wdl"],
+) -> TrainingRegime: ...
+
+def with_capacity(
+    regime: TrainingRegime, *,
+    width: int, depth: int, heads: int, ff_width: int,
+) -> TrainingRegime: ...
+
+def value_outputs(
+    regimes: Mapping[str, TrainingRegime],
+    outputs: tuple[Literal["scalar", "categorical_wdl"], ...],
+) -> dict[str, TrainingRegime]: ...
+```
+
+The experiment file constructs complete TrainingRegime objects. These helpers
+replace only declared settings inside each regime, validate nested specifications
+and stage compatibility, and return independent values with distinct regime IDs.
+`value_outputs` explicitly couples output representation to the existing compatible
+value-target/loss contract; its exported diff shows both changes. Unsupported
+objectives fail. `with_capacity` preserves normalization, pooling and information
+inputs. No helper changes budgets, starts training or silently omits invalid arms.
+
+The existing ResolvedStudy groups the resulting regimes with EvaluationProtocol,
+allocation, calibration and runtime fields. Recompute and validate regime digests
+when constructing that envelope; preserve declared seeds, budgets and deal cohorts.
+Scientific protocols may not silently expand to more arms. The existing executor
+remains the only execution path. Add history or other composition helpers when
+repeated experiments need them, not an arbitrary configuration language or
+automatic hyperparameter search system.
+
 ## 5. Example recipes and independent interventions
 
-The following is a concrete baseline input to the proposed resolver, not a file
-accepted by today's CLI:
+### Author an experiment in Python; export its resolved configuration
+
+**Decision, Jack Heart, 2026-10-05:** prefer a Python file per experiment;
+YAML or similar formats belong in exports and reports. Experiment files compose
+typed model specifications, existing TrainingRegime values and EvaluationProtocol.
+Shared constructors remove repetition; the experiment file makes the changed and
+held-fixed choices visible together. No authored YAML tree or patch language is
+required. Model implementations remain ordinary shared PyTorch code.
+
+Imports and definition calls do not train, download data or mutate state. An
+explicit entry point resolves and validates the complete plan before execution.
+Planning/export works without constructing a collector. Scientific budgets and
+cohorts come from a separately frozen protocol, never hidden recipe defaults.
+Generated JSON is the machine-readable run record; YAML is an optional readable
+report. Reload uses the saved complete spec and admitted local builder, not a
+fresh invocation of the experiment file. Record the experiment source digest as
+well as the resolved plan: Python can compute a plan, but its name is not identity.
+
+The following is proposed authoring syntax, not an implemented API.
+`ataraxos_baseline()` is a shared constructor returning a complete TrainingRegime
+for the explicitly selected profile, including the versioned baseline agent,
+match, observation and stages. Its resolved settings are exported before execution.
+The file can accept a typed profile argument for bounded versus scientific plans;
+there is no implicit scientific allocation.
+
+```python
+# experiments/value_models.py — proposed authoring interface
+def regimes() -> dict[str, TrainingRegime]:
+    base = ataraxos_baseline()
+    token = with_value(base, aggregation="value_token", output="scalar")
+    aggregation_arms = {
+        "historical": base,
+        "masked": with_value(base, aggregation="masked_mean", output="scalar"),
+        "token": token,
+        "token_depth2": with_capacity(
+            token, width=64, depth=2, heads=4, ff_width=256,
+        ),
+    }
+    return value_outputs(aggregation_arms, ("scalar", "categorical_wdl"))
+```
+
+This is ETU-106's aggregation/depth axis. Cross these four entries with scalar
+and categorical WDL output for its eight cells. All use the same existing
+Ataraxos move rule; output representation selects the compatible existing value
+loss/target contract. It does not select a different policy learning algorithm.
+Keep the resolved regime and evaluation protocol alongside the model definitions
+in the experiment file, using their existing types rather than a new experiment
+execution framework.
+
+The read-only ETU-106 protocol snapshot inspected during review already specifies
+width 64, four heads, post-normalization, ownership injected once, and a neutral
+value token inside shared attention. Its worker has implemented focused variants;
+that is not a claim of merged or scientifically validated behavior. The later
+framework must consume these semantics, including initialization and state keys.
+
+```python
+# experiments/model_capacity.py — proposed authoring interface
+def regimes() -> dict[str, TrainingRegime]:
+    base = ataraxos_baseline()
+    return {
+        "w64_d1": base,
+        "w64_d2": with_capacity(
+            base, width=64, depth=2, heads=4, ff_width=256,
+        ),
+        "w128_d2": with_capacity(
+            base, width=128, depth=2, heads=4, ff_width=512,
+        ),
+    }
+```
+
+ETU-102 registers those width/depth points; heads and feedforward widths above
+illustrate explicit resolution, not a newly frozen cohort. ETU-103 owns early
+learning and full-budget comparisons. First compare depth at fixed width; then
+width at fixed depth. Hold aggregation, input, objective and action domain fixed.
+Report both decisions/exposures and elapsed cost because bigger models may learn
+from fewer samples while taking longer.
+
+For ETU-106's later normalization/history contrasts, the same file can declare
+two regimes with depth 2 and post- versus pre-normalization, or
+history-off versus an explicit `HistorySpec` at each capacity. History input is
+an information treatment; it is not silently enabled by increasing capacity.
+Exact recipe arguments remain subject to the reviewed schema and focused delivery.
+
+The lifecycle is: call the file's definitions → validate model/objective/input
+compatibility → export complete regimes, protocol and digests → execute through
+TrainingRun → ordinary checkpoint reload → existing arena/report. A later code
+edit creates a new plan; it cannot change a saved run. No study was launched here.
+
+Registered sources: [ETU-102](https://linear.app/loopflow/issue/ETU-102),
+[ETU-103](https://linear.app/loopflow/issue/ETU-103), and
+[ETU-106](https://linear.app/loopflow/issue/ETU-106). The inspected focused
+`experiments/value-models.md` snapshot has content revision
+`9aa850d3ea5e28a350ec1eca25b96e16e26ef91c7fa2ee08122cf9e2a90821d1`.
+
+### Generated baseline configuration
+
+The following illustrates the resolver's complete exported baseline, not an
+authored experiment file or a file accepted by today's CLI:
 
 ```json
 {
@@ -639,7 +824,10 @@ training across devices or versions follows from resolved recipes.
 | 2026-10-05, Jack Heart | Requested primary-source research and separate substantial design review before architecture framework adoption. |
 | 2026-10-05, Jack Heart, ETU-106 live directive | Selected value-token aggregation for focused implementation/testing; historical pooling is compatibility/control. Broad framework remains gated. |
 | 2026-10-05, ETU-104 research | Proposed closed typed specs, explicit builders, strict reload, separately receipted transfer, recent-window history first. Not approved. |
-| Review feedback | Pending; no feedback or approval inferred from artifact readiness. |
+| 2026-10-05, Jack Heart, design review | Selected Python files per experiment; YAML/JSON serve as generated exports/reports. Requested concrete walkthroughs of registered Ataraxos-inspired experiments. |
+| 2026-10-05, Jack Heart, design review | Requested reusable cross-experiment helpers and consideration of Pydantic plus existing object families. The proposed consolidation inventory and helper signatures above await further review. |
+| 2026-10-05, Jack Heart, design review | Confirmed architecture belongs inside TrainingRegime as the model/hyperparameter configuration for TrainingRun. Evolve the existing agent field; do not add a competing top-level recipe owner. |
+| Remaining review feedback | Framework scope, history and transfer decisions remain pending; authoring preference is not blanket implementation approval. |
 
 The consequential open decisions are: first-cut framework scope versus continuing
 local switches; recent-window-only history versus paying for sequence collectors
