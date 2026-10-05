@@ -638,3 +638,20 @@ workflow only; uncontended multi-seed hardware calibration, clone/sampling
 costs and conservative cohort projections remain open within the unchanged
 168-hour campaign ceiling. No new scientific allocation or paid compute follows
 from this command. Its costs must be included in campaign accounting.
+
+## Tactical checkpoint software boundary (ETU-97, 2026-10-04)
+
+Jack Heart separated software acceptance from scientific robustness (ETU-99).
+The [tactical runner](../../docs/checkpoint-scenarios.md) scores retained S1–S5
+roots through ordinary checkpoint players without training. Each custom-deck
+fixture requires its exact world/setup/input binding; selected Allies/Lessons
+policies are not relabeled compatible. Missing assignments and unauthentic
+belief-history attachment remain unsupported. Observation capacity fails closed.
+
+Arena traces now reconstruct versioned injected roots and explicitly replay
+bounded diagnostic prefixes; ordinary arena completion requirements remain.
+Contrasting scripts validate resolved effects. The new S2 score waits for wipe
+resolution instead of inheriting the historical cast-intent score. These local
+scripted premises are not globally optimal strategies or selected-match strength.
+Deterministic untrained fixture checkpoints establish software behavior only;
+no ETU-91 files, artifacts, native extension or allocation were changed.
