@@ -39,7 +39,7 @@ from tests.sim.test_local_update import make_teacher, small_match
 
 def saved_sampler(teacher: LocalUpdateTeacher, path: Path) -> SamplerArtifact:
     """Serialize an initialized model in the ordinary format, without fitting."""
-    names = ("Forest", "Gray Ogre", "Llanowar Elves", "Mountain")
+    names = ("Forest", "Gray Ogre", "Lightning Bolt", "Llanowar Elves", "Mountain")
     schema = SamplerSchema(
         "fixture-vocabulary", names, 2 * len(PUBLIC_COMMITMENT_KINDS) * (len(names) + 1)
     )

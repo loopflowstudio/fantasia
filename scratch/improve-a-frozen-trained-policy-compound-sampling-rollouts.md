@@ -147,12 +147,12 @@ candidate or human-play admission. The table protocol remains unchanged.
    learned-specific branching with the common typed interface; retained tiny exact
    reference explicitly. Focused test forbids every native support constructor
    through player startup, observation updates, search and replay for both samplers.
-2. Add compound prefix-conditioned inference/continuation and native Command
+2. **Implemented:** compound prefix-conditioned inference/continuation and native Command
    routing. Test cast targets, multiple attackers, singleton offers, forced
    factors, blockers/payments, two seats, interruption and depth cutoffs.
-3. Integrate collection, receipts/readers, arena replay and public projection.
+3. **Implemented:** collection, receipts/readers, arena replay and public projection.
    Targets must survive save/load with unchanged probabilities and provenance.
-4. Compress duplicate sampler/policy orchestration, document supported paths,
+4. **Ready for delivery:** compressed sampler orchestration, documented supported paths,
    reconcile Wave memory, verify at gate, then publish/land through Loopflow.
 
 Remove production construction of prior trackers and the blanket compound
@@ -172,7 +172,7 @@ uv run pytest -q tests/sim/test_local_update_sampling.py tests/sim/test_local_up
 uv run ruff check manabot/sim tests/sim
 ```
 
-The sampling test file exists; the compound test file remains planned. Reuse tests without invoking existing
+Both fixture test files now exist. Reuse tests without invoking existing
 helpers that fit samplers or execute training regimes. Save deterministic model
 fixtures without optimizer steps when portable retained artifacts are absent.
 Native changes, if required for authoritative routing, require debug cargo tests
@@ -193,24 +193,40 @@ advice registration and human-play success are excluded. ETU-99 owns scientific
 comparisons; ETU-96 owns offline sampler quality. ETU-91 source, extension,
 artifacts, plans and 168-hour allocation remain untouched.
 
-## Current implementation and remaining dependency
+## Final implementation and delivery boundary
 
-The sampling slice introduces `SearchHandSampler`, `PreparedHands` and `HandBatch`,
-with physical and admitted learned implementations. Production player startup and
-history updates no longer create a tracker; `belief` explicitly retains the tiny
-reference. Receipts retain direct physical hands and existing learned provenance;
-source fingerprints include extracted sampling owners. Complete-game verification
-found and fixed the unique empty-hand case when the public hidden pool is empty.
-No optimizer or native code changed.
+`SearchHandSampler`, `PreparedHands` and `HandBatch` cover constrained physical
+and admitted learned sampling. Production startup/history no longer construct
+support; only explicit `belief` retains the tiny reference. Direct physical
+receipts and existing learned provenance share sample validation. The physical
+measure handles the unique empty hand after the hidden pool empties.
 
-The requested ETU-94 contribution failed with `Task input belongs to a stale or
-different Flow`. No decoder/Agent edits occurred. Jack Heart's subsequent steer
-confirms concurrent blocker/payment and Agent work and requires syncing the landed
-ETU-94 API before landing. Prefix completion, canonical projection, per-seat suffix
-state, compound collection and receipt provenance remain unimplemented. This slice
-is a local checkpoint only; it does not satisfy the full Task or authorize shipping
-partial compound support. ETU-94 coordination/integration remains required.
+Jack Heart confirmed ETU-94 PR #216 merged; `lf task sync` integrated `bfa4be28`
+through `a8702494`. The earlier stale-Flow coordination error is superseded.
+`Agent.compound`/`CompoundDecoder` have a narrow forced-prefix option and end-prefix
+value, with no parameter/checkpoint-schema changes. Attackers, single-target casts,
+independent blocker roles and ordinary fallback offers have native route-verified
+canonical conditionals. Rollouts and base collection sample complete suffixes once;
+search play retains the original root and prefix across local updates. Runtime
+snapshots and replay use the selected branch API; raw clone calls were rejected
+by the production guard and removed.
 
-Check result: six fixture-only sampling checks passed, including learned arena
-replay and a reloadable complete-game target shard; physical arena replay passed
-separately, and three existing analytic/root/privacy checks passed. No training ran.
+Ordered waterbend subsets fail explicitly in compound search. Their lowering can
+assign zero conditional mass to otherwise legal micro-actions, violating this
+teacher's positive-support local-update contract. Jack Heart's steer explicitly
+permits unsupported role boundaries to fail while preserving sequential behavior;
+ordinary sequential checkpoints retain payment support. No dormant flat-head
+fallback was introduced. Compound serving itself retains ETU-94's payment support.
+
+The reader accepts v2 receipts with direct samples, compound prefix provenance,
+canonical Command counts and decoder-factor counts, while preserving historical
+v1 serialization. Targets load through existing distillation readers. Compound
+collection stages are admitted; flat supervision inside compound regimes stays
+unsupported. Intermediate replay needs the original retained cursor and source
+history. Live advice registration, exact compound likelihood and belief-enabled
+policy memory remain unavailable. No optimizer, experiment or paid compute ran.
+
+Check result: gate passed 60 fixture/affected Python checks, 6 native debug
+compound tests and focused Ruff/format checks; required CI remains the delivery
+owner. New search fixtures are included in Linux/macOS CI. Delivery will use
+`lf land -c`; scientific outcomes belong to ETU-99, not this software Task.

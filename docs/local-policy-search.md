@@ -27,8 +27,9 @@ local proof, not a portable scientific artifact.
 ## Contracts
 
 `manabot.sim.local_update.LocalUpdateTeacher` admits one checkpoint by exact
-SHA-256 through the ordinary world/setup loader. Categorical heads return signed
-expected outcomes; scalar artifacts must explicitly declare
+SHA-256 through the ordinary world/setup loader. Compound checkpoints use their
+decoder's signed-outcome prefix critic, never the unrelated flat head. Ordinary
+categorical heads return signed expected outcomes; ordinary scalar artifacts must declare
 `bc.value_semantic = signed_outcome`. TrainingRegime writes this declaration for
 self-play and local distillation. Untagged historical scalar critics are rejected
 because previous supervised teachers used win logits. No checkpoint port or
@@ -57,7 +58,7 @@ not fitted by these policy-only stages; shared-encoder drift remains measurable.
 Collection follows the **base frozen policy**, not its search update, so the
 likelihood model matches the generating population where its history model is
 supported. Arena play samples the updated distribution and explicitly records
-that the actual opponent need not match the frozen belief model. Policy, value,
+that the actual opponent need not match the frozen belief model. Where exact likelihood is supported, policy, value,
 rollout and likelihood share one checkpoint identity. `sampling=compatible_prior`
 uses the physical compatible-deal measure, not equal mass over count vectors.
 `compatible_prior` is the default. `sampling=belief` explicitly selects the tiny
@@ -133,17 +134,17 @@ materializer cannot refresh. The existing tracker only supplies supported
 hand-multiset/chance transport; it is not an exact posterior over every history
 or hidden library order. This discovered Rules dependency prevents the requested
 full-game exact-versus-prior acceptance today. Reference tracker behavior elsewhere
-is unchanged. Compound-policy checkpoints, belief-enabled policy rollout memory,
-arbitrary archived-root relabeling and new arena suites remain unsupported.
-A sampler trained on a compound checkpoint cannot enter sequential local search;
-this fails at policy admission even if sampler collection supports it. No automatic fallback or unmeasured replacement is provided.
+is unchanged. Belief-enabled policy rollout memory, arbitrary archived-root
+relabeling and new arena suites remain unsupported. Compound exact-history
+likelihood is unavailable; compound search requires a direct sampler. No automatic
+fallback or unmeasured replacement is provided.
 
 The staged recipe makes repeated teacher/student rounds executable; whether they
 compound, whether immutable replay helps, and whether stronger-teacher relabeling
 beats new games require the separately frozen protocol in
-[training follow-ups](../experiments/training-regime-followups.md). ETU-95 remains
-open for the remaining compound-policy software integration. ETU-99 owns these
-scientific outcomes; ETU-91 and its allocations remain unchanged.
+[training follow-ups](../experiments/training-regime-followups.md). ETU-99 owns
+these scientific outcomes; ETU-95 owns the software described here. ETU-91 and
+its allocations remain unchanged.
 
 Validation on 2026-10-04: 73 affected Python tests and 21 native debug world/branch
 tests passed before upstream sync. After rebuilding the merged native extension,
@@ -246,8 +247,62 @@ historical v1 receipts without rewriting their bytes. Arena source admission now
 uses `local_search_source_sha256()` to bind search plus sampling implementation
 owners; historical single-file fingerprints fail current admission.
 
-This interface does not complete compound prefix-conditioned search. ETU-94 is
-adding blocker declarations and payment subsets; search must integrate its landed
-API and prove native prefix-to-Command correspondence before admitting those
-boundaries. Unsupported compound checkpoints still fail explicitly. The live
-advice provider is unchanged.
+## Compound conditional search
+
+ETU-94 PR #216's landed native API is integrated. A compound checkpoint uses its
+original viewer Observation, ragged offers and recurrent token prefix across
+canonical microsteps. `CompoundDecoder` and `Agent.compound` accept `prefix=` to
+complete a forced prefix; existing `tokens=` still requires a complete tape.
+No parameters or serialized checkpoint fields were added. The decoder exposes an
+end-prefix value for optionless roles as well as the existing per-factor values.
+
+`manabot.sim.local_compound` projects a complete next-Command distribution and
+checks every route through native lowering. It supports attacker include/exclude
+factors, native single-target casts, independent blocker roles (one optional
+attacker per blocker), and ordinary action-aligned fallback offers. Small joint
+probability tests check the product of canonical conditionals against the original
+compound decoder; production does not enumerate attacker subsets. Snapshots and
+prefix replay use the selected branch runtime, never raw branch cloning.
+
+Each counterfactual fixes its root action and samples the remaining declaration
+once. Rollouts keep independent per-seat suffix state and drain native Commands;
+leaf values inside declarations use the retained prefix. Base-policy collection
+also samples a whole declaration once, whereas improved search play computes a
+local update at each retained prefix. Actor/revision/state changes and incomplete
+canonical coverage fail explicitly. Saved observation capacity remains binding.
+
+Receipts retain the original viewer root, offer projection, fixed tokens and
+preceding Commands. Replay at an intermediate prefix requires that original-root
+cursor alongside the source trajectory/history; a receipt alone cannot recover
+its tensors or authoritative source state. `canonical_commands` counts rollout
+steps, while `decoder_factors` counts executed decoder factors (including forced
+ones); neither counts speculative native lowering calls. All preparation,
+lowering, sampling, rollouts and value inference contribute to elapsed cost.
+Individual model/native calls are cooperative; an overrun yields no target.
+
+Ordered **waterbend subset** boundaries remain explicitly unsupported by compound
+search. Excluding an earlier tap while choosing a later one can leave a currently
+legal micro-action with zero conditional probability; the existing local-update
+contract requires positive support for every canonical action. Search rejects that
+native compound boundary rather than evaluating the dormant flat head or silently
+switching policies. Ordinary sequential checkpoints retain their payment support,
+and compound serving outside this search continues to support ETU-94's subsets.
+Menace, effectful payments, kicker and ward follow the native sequential fallback
+when the compound offer API exposes ordinary offers.
+
+`collect_local_update` accepts raw compound policy stages and compatible admitted
+samplers. Compound EMA remains unsupported by its training owner. Its canonical
+conditional targets load through the existing `local_soft`, `local_argmax` and
+`local_allocation` readers; flat students can consume these targets, but that does
+not promise preservation of a joint declaration policy. Mixing flat supervised
+training into a compound TrainingRegime remains rejected. No training run or
+scientific comparison is required for this software proof, and the live advice
+provider is still unregistered.
+
+Fixture-only validation on 2026-10-04 passed 60 affected Python checks, six native
+debug compound tests and focused Ruff/format checks. It includes physical and
+learned saved-artifact search, complete-game target reader admission, compound
+arena Command replay, small joint-probability parity and wide attacker/cast roots.
+No optimizer ran, no paid compute was used, and ETU-91 was not modified. CI runs
+the new search fixtures on Linux and macOS; these results are software evidence,
+not calibration, strength or human-play acceptance.

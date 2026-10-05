@@ -648,29 +648,35 @@ the scientific comparisons previously left open under ETU-95. Historical evidenc
 and its limits above remain intact. No new training study or ETU-91 mutation is
 authorized by this continuation.
 
-Kickoff inspection at `72385a90` found that learned search already materializes
-hands directly, while compatible-prior play still enumerates through its tracker.
-Compound search is rejected; bypassing that check would use the unrelated flat
-head. The compound decoder's conditional probabilities, prefix values and native
-Command lowering supply the integration boundary, but prefix-conditioned search
-and a common injected sampler interface remain unimplemented. Compound suffixes
-must preserve the original viewer root and prefix rather than resampling each
-microstep. These are implementation findings, not new strength evidence.
+The final software connects both direct hand samplers to frozen ordinary and
+supported compound policies. Production history never enumerates support; the
+explicit tiny exact reference remains separate. Empty hidden pools have one
+physical deal, the empty hand. Learned sampler admission retains exact policy,
+dataset, schema and world identity. `True` is the only production sampling query.
 
-The independent sampling slice now gives physical and learned samplers one typed
-search interface, direct count materialization, source-bound private receipts and
-whole-game player history without exact support construction. Fixture-only checks
-cover seeded replay, both samplers' arena paths and target-shard reader admission;
-no fitting or strength measurement ran. Full-game checks exposed the empty hidden
-pool, whose physical measure is the unique empty hand rather than a sampler error.
+Jack Heart confirmed ETU-94 PR #216 merged; its blocker/payment API was synced
+before final compound verification. Compound search retains original viewer
+roots and decoder prefixes, proves each canonical route through native lowering,
+and drains sampled suffixes in rollouts and base collection. Attackers,
+single-target casts, independent blocker roles and ordinary fallback offers work.
+The selected branch runtime owns snapshots and prefix replay; raw cloning a
+selected branch is forbidden. No model parameters or checkpoint fields changed.
 
-Jack Heart confirmed concurrent ETU-94 blocker/payment and Agent extensions and
-requires integrating its landed API before ETU-95 lands. The attempted ordinary
-coordination contribution failed with `Task input belongs to a stale or different
-Flow`; no decoder or Agent edits occurred. Compound prefix completion, native
-Command alignment and rollout/collection suffix state remain unfinished. This
-sampling checkpoint is not ETU-95 software completion or permission to ship a
-partial compound implementation.
+Ordered waterbend subsets remain explicitly unsupported in this search: excluding
+an earlier tap can give a currently legal micro-action zero conditional mass,
+which the teacher's positive-support local-update contract cannot accept. The
+explicit failure follows Jack Heart's role-boundary allowance. Sequential policies
+still handle payments; ETU-94 compound serving retains its own subset support.
+Compound exact likelihood, belief-input memory and live advice registration remain
+unavailable. Canonical conditional targets are not joint declaration targets.
+
+The fixture-only gate passed 60 affected Python checks, six native debug compound
+tests and focused lint/format checks, including saved-artifact physical/learned
+search, full-game target reader admission and compound arena replay. No optimizer,
+scientific study or paid compute ran. ETU-91 was untouched; these proofs establish
+software behavior, not strength, calibration or human-play success. The durable
+[local-search contract](../../docs/local-policy-search.md) records supported paths,
+receipt/replay requirements and remaining scientific ownership.
 
 ## Compound software completion (ETU-94, 2026-10-04)
 
