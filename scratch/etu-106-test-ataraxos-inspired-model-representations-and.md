@@ -1,7 +1,7 @@
 # ETU-106: focused value-model contrasts
 
-2026-10-05. Reconciled against implementation through `fb15db92`; integrated
-gate and measurements remain pending.
+2026-10-05. Focused acceptance checks are complete; integrated gate and
+measurements remain pending.
 Jack Heart authorized focused software delivery and cheap bounded sanity checks.
 The latest steer prioritizes historical mean, validity-masked mean, one-layer
 value token and two-layer width-64 value token. Scalar versus categorical
@@ -153,12 +153,14 @@ defaults, scalar/WDL checkpoint round trips and invalid configuration rejection.
 Actual hidden-world swaps cover all four architectures with the WDL head.
 These deterministic fixtures establish software behavior only.
 
-**Remaining focused verification:** direct valid-object sensitivity, explicit
-finite-gradient assertions, token action-focus index preservation, and rejection
-of incompatible saved architecture metadata/weights. Passing round trips alone
-do not establish the last contract. Historical-versus-masked metadata can share
-weight shapes; strict loading cannot infer the intended pooling from weights.
-These checks remain part of software acceptance, not empirical strength gates.
+**Focused acceptance complete:** valid-object perturbations change critic outputs
+and finite nonzero gradients reach valid objects, attention, critic and token
+for both scalar/WDL heads and both depths. Full forward checks preserve every
+real-object focus index and absent focus for one/two-layer tokens. Ordinary
+checkpoint loading rejects incompatible token/depth/head metadata, invalid depth,
+missing token/layer weights and malformed token shape. Historical-versus-masked
+metadata can share weight shapes; strict loading cannot infer the intended pooling
+from weights. These are software checks, not empirical strength evidence.
 
 **Remaining integrated gate:** the broader agent, Ataraxos regime and study suites,
 then the single bounded smoke and offline regeneration. The generated recipes
@@ -189,4 +191,4 @@ ETU-104's broader architecture-recipe design still requires its own review.
 Delete — do not maintain: none. Historical pooling and categorical targets remain
 required compatibility and experimental controls.
 
-Check: `uv run pytest tests/model/test_value_aggregation.py tests/model/test_categorical_value.py tests/training/test_value_models.py -q` — prior implementation result: 29 passed; not rerun for documentation reconciliation; broader suites, smoke and offline regeneration deferred to gate.
+Check: `OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run pytest tests/model/test_value_aggregation.py tests/model/test_categorical_value.py tests/training/test_value_models.py -q` — 42 passed in 2.44 s; focused Ruff lint passed and formatting applied; broader suites, smoke and offline regeneration deferred to gate.

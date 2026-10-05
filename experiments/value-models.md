@@ -64,11 +64,12 @@ not equal inference cost. Host observations cannot remove contention.
 
 ## Disposition
 
-Focused software checks cover padding isolation, token gradients, ordinary
-reloads, hidden-deal swap invariance and WDL conversion. The integrated smoke,
-offline regeneration and broader gate suite remain pending. Direct valid-object
-sensitivity, finite-gradient assertions, token focus-index preservation and
-malformed architecture/weight rejection remain focused acceptance checks.
+Focused software checks pass for padding isolation, valid-object sensitivity,
+finite gradients, ordinary reloads, hidden-deal swap invariance and WDL conversion.
+Both token depths preserve real-object focus indexes and absent focus through
+full forward evaluation. Ordinary loading rejects incompatible token/depth/head
+metadata, missing token/layer weights and malformed token shape. The integrated
+smoke, offline regeneration and broader gate suite remain pending.
 Strict loading cannot detect a historical/masked pooling relabel from equal
 weight shapes; saved metadata owns that distinction. All strength
 conclusions remain unresolved; historical defaults stay unchanged.

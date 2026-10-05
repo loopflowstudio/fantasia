@@ -131,6 +131,75 @@ def test_outcome_supervision_distinguishes_draw_from_balanced_win_loss() -> None
     assert not torch.equal(logits.grad[0], logits.grad[1])
 
 
+@pytest.mark.parametrize(
+    "fields,error",
+    [
+        ({"value_aggregation": "masked_mean"}, 'Unexpected key.*"value_token"'),
+        ({"attention_layers": 1}, 'Unexpected key.*"extra_attention'),
+        ({"value_kind": "scalar"}, "size mismatch for value_head"),
+        ({"attention_layers": 3}, "attention_layers"),
+    ],
+)
+def test_checkpoint_rejects_incompatible_saved_architecture(
+    tmp_path: Path, fields: dict[str, object], error: str
+) -> None:
+    agent = _agent("categorical_wdl", "value_token", 2)
+    path = tmp_path / "incompatible.pt"
+    torch.save(
+        {
+            "model_state_dict": agent.state_dict(),
+            "hypers": {
+                "agent_hypers": {**agent.hypers.model_dump(), **fields},
+                "observation_hypers": agent.observation_space.encoder.hypers.model_dump(),
+            },
+            "world_binding": checkpoint_world(
+                Match().to_rust(), agent.observation_space
+            ),
+        },
+        path,
+    )
+    with pytest.raises((RuntimeError, ValueError), match=error):
+        load_checkpoint_agent(str(path))
+
+
+@pytest.mark.parametrize("damage", ["missing_token", "token_shape", "missing_layer"])
+def test_checkpoint_rejects_incompatible_architecture_weights(
+    tmp_path: Path,
+    damage: Literal["missing_token", "token_shape", "missing_layer"],
+) -> None:
+    agent = _agent("categorical_wdl", "value_token", 2)
+    weights = agent.state_dict()
+    if damage == "missing_token":
+        del weights["value_token"]
+        error = 'Missing key.*"value_token"'
+    elif damage == "token_shape":
+        weights["value_token"] = weights["value_token"][..., :-1]
+        error = "size mismatch for value_token"
+    else:
+        weights = {
+            key: value
+            for key, value in weights.items()
+            if not key.startswith("extra_attention.")
+        }
+        error = 'Missing key.*"extra_attention'
+    path = tmp_path / "incompatible.pt"
+    torch.save(
+        {
+            "model_state_dict": weights,
+            "hypers": {
+                "agent_hypers": agent.hypers.model_dump(),
+                "observation_hypers": agent.observation_space.encoder.hypers.model_dump(),
+            },
+            "world_binding": checkpoint_world(
+                Match().to_rust(), agent.observation_space
+            ),
+        },
+        path,
+    )
+    with pytest.raises(RuntimeError, match=error):
+        load_checkpoint_agent(str(path))
+
+
 def test_distributional_supervision_reaches_shared_encoder() -> None:
     agent = _agent("categorical_wdl")
     collector = _collector(agent)

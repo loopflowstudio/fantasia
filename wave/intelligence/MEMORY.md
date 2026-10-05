@@ -25,9 +25,12 @@ it changes policy representations as well as critic aggregation. Strict loading
 cannot distinguish historical and masked pooling from equal-shaped weights;
 saved architecture metadata is essential. The smoke exports raw/EMA artifacts
 but evaluates raw checkpoints only.
-Focused reload, hidden-deal, gradient and padding checks passed. Integrated smoke,
-offline regeneration and empirical promotion remain pending; implementation does
-not establish strength. The protocol lives in experiments/value-models.md.
+Focused reload, hidden-deal, padding, valid-object sensitivity and finite-gradient
+checks passed. Both token depths preserve real-object action-focus indexes and
+absent focus; ordinary loading rejects incompatible token/depth/head metadata
+and malformed or missing token/layer weights. Integrated smoke, offline
+regeneration and empirical promotion remain pending; implementation does not
+establish strength. The protocol lives in experiments/value-models.md.
 
 ## Operating principle
 
