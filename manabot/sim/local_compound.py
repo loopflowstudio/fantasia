@@ -4,8 +4,7 @@ CompoundCursor keeps the original viewer tensors, native offers and forced
 prefix across canonical microsteps. Projection partitions the next Command for
 independent binary attackers and optional/single-target roles, verifying every
 route through native lowering. No declaration subsets are enumerated. Payment
-subsets are deliberately rejected: their ordered lowering can give zero mass to
-otherwise legal micro-actions, outside the current local-update target contract.
+subsets retain exact zeros for legal micro-actions excluded by the ordered prefix.
 """
 
 from collections import deque
@@ -60,7 +59,7 @@ class CompoundCursor:
 
 @dataclass(frozen=True)
 class CompoundChoice:
-    prefix: tuple[int, ...]
+    prefix: tuple[int, ...] | None
     command: Command
     probability: float
 
@@ -154,10 +153,6 @@ def compound_cursor(
         raise ValueError("compound search exceeds checkpoint observation capacity")
     projection = engine.compound_offers().projection_json()
     offers = flatten_projection(json.loads(projection))
-    if any(offer["verb"] == "pay_waterbend" for offer in offers.offers):
-        raise ValueError(
-            "compound search does not support ordered payment-subset boundaries"
-        )
     root = CompoundRoot(
         SelectedFullCloneBackend()
         .open_session(match_id="compound-root", audit=False)
@@ -219,7 +214,11 @@ def project_compound(
     prefixes: list[tuple[int, ...]] = []
     tokens = cursor.tokens
     compound_kind = str(offers.offers[0]["verb"])
-    if not tokens and compound_kind not in {"declare_attackers", "declare_blockers"}:
+    if not tokens and compound_kind not in {
+        "declare_attackers",
+        "declare_blockers",
+        "pay_waterbend",
+    }:
         # Complete ordinary/priority offers keep canonical ordering. Cast target
         # selection is a later Command from this same root, not a new forward root.
         prefixes = [(index,) for index in range(len(offers.offers))]
@@ -240,6 +239,25 @@ def project_compound(
                 for bit in (0, 1)
                 if output.probabilities[ordinal][bit] > 0
             ]
+        elif offer["verb"] == "pay_waterbend":
+            if len(rows) != 1:
+                raise ValueError("unsupported compound payment roles")
+            # The next Command is the first included candidate after this prefix,
+            # or mana completion after excluding the remainder. These disjoint
+            # prefix cylinders integrate over every unchosen suffix, without
+            # enumerating subsets or assigning mass to earlier excluded taps.
+            count = rows[0].candidate_stop - rows[0].candidate_start
+            tail = tokens
+            while len(tail) <= count:
+                output = _decode(agent, cursor, tail, check)
+                probabilities = output.probabilities[len(tail)]
+                if probabilities[1] > 0:
+                    prefixes.append(tail + (1,))
+                if probabilities[0] == 0:
+                    break
+                tail += (0,)
+            else:
+                prefixes.append(tail)
         elif offer["verb"] == "declare_blockers" or offer["verb"] == "cast":
             row_index = (
                 len(cursor.commands) if offer["verb"] == "declare_blockers" else 0
@@ -292,6 +310,13 @@ def project_compound(
         ):
             raise ValueError("compound value depends on a not-yet-chosen suffix")
         value = prefix_value
+    if compound_kind == "pay_waterbend":
+        for offer in frame.offers:
+            offer_id = int(offer["id"])
+            if offer_id not in choices:
+                choices[offer_id] = CompoundChoice(
+                    None, Command("inaccessible", frame.revision, offer_id), 0.0
+                )
     if set(choices) != {int(offer["id"]) for offer in frame.offers}:
         raise ValueError("compound projection does not cover canonical legal offers")
     aligned = tuple(choices[int(offer["id"])] for offer in frame.offers)
@@ -300,12 +325,10 @@ def project_compound(
         value is None
         or not np.isfinite(value)
         or not np.isfinite(probabilities).all()
-        or np.any(probabilities <= 0)
+        or np.any(probabilities < 0)
         or not np.isclose(probabilities.sum(), 1, atol=1e-6)
     ):
-        raise ValueError(
-            "compound canonical distribution is not normalized positive support"
-        )
+        raise ValueError("compound canonical distribution is not normalized support")
     return CompoundProjection(cursor, aligned, value)
 
 
@@ -317,6 +340,8 @@ def advance_compound(
 ) -> CompoundCursor | None:
     """Retain the original root until its entire native Command boundary ends."""
     choice = projection.choices[action]
+    if choice.prefix is None or choice.probability <= 0:
+        raise ValueError("canonical action is outside retained compound policy support")
     cursor = CompoundCursor(
         projection.cursor.root,
         choice.prefix,

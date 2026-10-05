@@ -36,20 +36,22 @@ def local_update_scenario(
     unavailable = UnavailableQuantity(
         status="unavailable", reason="insufficient_world_coverage"
     )
-    values = np.asarray(receipt.values)
+    values = np.asarray([v if v is not None else 0.0 for v in receipt.values])
     return AdvisorScenarioEvidence(
         scenario_id=belief.scenario_id,
         belief=belief,
         condition_mass=receipt.condition_mass,
         support=belief.positive_support,
-        sampled_worlds=len(receipt.rollouts) // len(receipt.offer_ids),
+        sampled_worlds=max(receipt.allocation_counts),
         actions=[
             AdvisorOfferEvidence(
                 offer_id=offer,
                 label=labels[index],
                 probability=receipt.target[index],
                 visits=receipt.allocation_counts[index],
-                q=AvailableQuantity(
+                q=unavailable
+                if receipt.values[index] is None
+                else AvailableQuantity(
                     status="available",
                     value=float(values[index]),
                     method="signed_frozen_policy_rollout_value/v1",

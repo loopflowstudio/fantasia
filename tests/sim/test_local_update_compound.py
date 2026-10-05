@@ -1,5 +1,6 @@
 """Saved compound-policy search fixtures; no fitting or scientific evaluation."""
 
+from dataclasses import replace
 from itertools import product
 import json
 from pathlib import Path
@@ -66,20 +67,57 @@ def test_native_prefix_projection(kind: str) -> None:
     assert step >= 1
 
 
-def test_payment_boundary_rejected_and_sequential_surface_preserved() -> None:
-    env, raw = _waterbend_root(6)
-    before = env.state_digest()
-    with pytest.raises(ValueError, match="payment-subset"):
-        project_compound(_agent(), env, None, check)
-    assert len(raw.action_space.actions) > 1
-    assert env.state_digest() == before
+@pytest.mark.parametrize("lands", [0, 2, 5])
+def test_payment_joint_parity(lands: int) -> None:
+    torch.set_num_threads(1)
+    env, _ = _waterbend_root(6, lands=lands)
+    agent = _agent()
+    root = project_compound(agent, env, None, check).cursor
+    total = 0.0
+    saw_zero = False
+    for bits in product((0, 1), repeat=6):
+        if not max(0, 5 - lands) <= sum(bits) <= 5:
+            continue
+        with torch.inference_mode():
+            output = agent.compound(
+                root.root.observation, root.root.offers, tokens=(0, *bits)
+            )
+        commands = json.loads(
+            env.compound_commands_json(
+                env.compound_offers(), output.submission.to_json()
+            )
+        )
+        branch = env.clone_env()
+        cursor = None
+        probability = 1.0
+        for row in commands:
+            projection = project_compound(agent, branch, cursor, check)
+            assert projection.probabilities.sum() == pytest.approx(1, abs=1e-6)
+            for i in np.flatnonzero(projection.probabilities == 0):
+                saw_zero = True
+                with pytest.raises(ValueError, match="outside retained"):
+                    advance_compound(agent, projection, int(i), check)
+            action = next(
+                i
+                for i, choice in enumerate(projection.choices)
+                if choice.command.offer_id == row["offer_id"]
+            )
+            probability *= projection.choices[action].probability
+            cursor = advance_compound(agent, projection, action, check)
+            branch.execute_semantic_command_json(json.dumps(row))
+        assert cursor is None
+        assert probability == pytest.approx(float(output.log_prob.exp()), rel=1e-5)
+        total += probability
+    assert total == pytest.approx(1, abs=1e-6)
+    assert saw_zero
 
 
+@pytest.mark.parametrize("compound", [False, True])
 @pytest.mark.parametrize("learned", [False, True])
-def test_supported_root_rollout_reaching_payment_fails_without_target(
-    tmp_path: Path, learned: bool
+def test_supported_root_rollout_reaching_payment_replays(
+    tmp_path: Path, learned: bool, compound: bool
 ) -> None:
-    """Priority admission cannot promise that every continuation is supported."""
+    """An admitted priority root can roll through payment on either sampler."""
     torch.set_num_threads(1)
     configs = [
         managym.PlayerConfig("a", {"Water Tribe Rallier": 80, "Forest": 20}),
@@ -93,7 +131,11 @@ def test_supported_root_rollout_reaching_payment_fails_without_target(
         env.scenario_force_battlefield(0, "Water Tribe Rallier", ready=True)
     raw = env.scenario_refresh()
     space = ObservationSpace()
-    agent = _agent()
+    agent = (
+        _agent()
+        if compound
+        else Agent(space, AgentHypers(hidden_dim=8, num_attention_heads=2))
+    )
     path = tmp_path / "compound.pt"
     save_bc_checkpoint(agent, space, path, player_configs=configs)
     config = LocalSearchConfig(depth=2, decision_seconds=20)
@@ -123,12 +165,84 @@ def test_supported_root_rollout_reaching_payment_fails_without_target(
     )
     before = env.state_digest()
     constructions = env.possible_world_space_construction_count()
-    # Search covers all root actions; a later unsupported boundary aborts the
-    # whole receipt, including any already evaluated pass/activation branches.
-    with pytest.raises(ValueError, match="payment-subset"):
-        teacher.search(env, history, seed=19)
+    receipt = teacher.search(env, history, seed=19)
+    teacher.verify_replay(env, history, receipt)
+    LocalUpdateReceipt.from_json(receipt.to_json())
     assert env.state_digest() == before
     assert env.possible_world_space_construction_count() == constructions
+    if not compound:
+        return
+
+    # Skip the first tap and take the second. The still-legal first tap now has
+    # zero conditional mass, while the original root and recurrent prefix survive.
+    payment = project_compound(teacher.agent, branch, None, check)
+    action = next(
+        i for i, choice in enumerate(payment.choices) if choice.prefix == (0, 0, 1)
+    )
+    cursor = advance_compound(teacher.agent, payment, action, check)
+    assert cursor is not None
+    branch.execute_semantic_command_json(payment.choices[action].command.to_json())
+    viewer = int(branch.current_agent_index())
+    history = ViewerHistory.from_observation(
+        Observation.from_json(branch.semantic_observation_json(viewer))
+    )
+    receipt = teacher.search(branch, history, seed=23, compound_cursor=cursor)
+    teacher.verify_replay(branch, history, receipt, compound_cursor=cursor)
+    assert LocalUpdateReceipt.from_json(receipt.to_json()) == receipt
+    inactive = np.asarray(receipt.base) == 0
+    assert inactive.any()
+    assert all((v is None) == zero for v, zero in zip(receipt.values, inactive))
+    assert np.all(np.asarray(receipt.target)[inactive] == 0)
+    assert np.all(np.asarray(receipt.allocation_counts)[inactive] == 0)
+    assert all(np.isfinite(v) for v in receipt.mixing_diagnostics().values())
+    with pytest.raises(TimeoutError):
+        teacher.search(branch, history, seed=23, compound_cursor=cursor, deadline=1)
+    for schema in ("regularized-local-update/v1", "regularized-local-update/v2"):
+        with pytest.raises(ValueError, match="historical"):
+            LocalUpdateReceipt.from_json(replace(receipt, schema=schema).to_json())
+    bad_values = tuple(0.0 if v is None else v for v in receipt.values)
+    with pytest.raises(ValueError, match="exactly on policy support"):
+        LocalUpdateReceipt.from_json(replace(receipt, values=bad_values).to_json())
+    bad_target = np.asarray(receipt.target)
+    bad_target[np.flatnonzero(inactive)[0]] = 1e-12
+    with pytest.raises(ValueError, match="target"):
+        LocalUpdateReceipt.from_json(
+            replace(receipt, target=tuple(bad_target)).to_json()
+        )
+
+    encoded = space.encode(branch.observation_for_player(viewer))
+    dataset = {key: np.expand_dims(value, 0) for key, value in encoded.items()}
+    count = len(receipt.target)
+    dataset.update(
+        {
+            "action": np.array([int(np.argmax(receipt.target))]),
+            "game_index": np.array([0]),
+            "num_valid": np.array([count]),
+            "seat": np.array([viewer]),
+            "winner": np.array([-1]),
+            LOCAL_RECEIPT_KEY: np.array([receipt.to_json()]),
+            LOCAL_TARGET_KEY: np.zeros_like(dataset["actions_valid"]),
+        }
+    )
+    dataset[LOCAL_TARGET_KEY][0, :count] = receipt.target
+    for kind in ("local_soft", "local_argmax", "local_allocation"):
+        targets = _validate_dataset(
+            dataset, policy_target_kind=kind, value_target_kind="terminal_outcome"
+        )
+        assert targets is not None
+        assert targets.sum() == pytest.approx(1)
+        assert np.all(targets[0, :count][inactive] == 0)
+
+    # Direct count materialization changes hidden truth, never the viewer policy.
+    constraints = branch.hidden_hand_constraints_json(viewer)
+    hand = receipt.rollouts[0].sampled_hand
+    assert hand is not None
+    swapped = branch.materialize_sampled_hand(
+        viewer, constraints, dict(hand.counts), 912
+    )
+    swapped_projection = project_compound(teacher.agent, swapped, cursor, check)
+    np.testing.assert_array_equal(swapped_projection.probabilities, receipt.base)
+    assert branch.possible_world_space_construction_count() == constructions
 
 
 @pytest.mark.parametrize("kind", ["attack", "blockers"])
@@ -327,9 +441,11 @@ def test_compound_regime_admits_direct_collection() -> None:
     assert isinstance(regime.stages[-1], CollectLocalUpdate)
 
 
-@pytest.mark.parametrize("kind,count", [("attack", 65), ("cast", 33)])
+@pytest.mark.parametrize("kind,count", [("attack", 65), ("cast", 33), ("payment", 65)])
 def test_wide_projection_has_no_declaration_enumeration(kind: str, count: int) -> None:
-    env, _ = _root(kind, count)
+    env, _ = (
+        _waterbend_root(count, lands=2) if kind == "payment" else _root(kind, count)
+    )
     agent = _agent(wide=True)
     projection = project_compound(agent, env, None, check)
     assert len(projection.choices) == len(

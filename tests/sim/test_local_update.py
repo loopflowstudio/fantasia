@@ -87,8 +87,12 @@ def test_two_kl_optimum_and_shift_invariance() -> None:
     np.testing.assert_allclose(
         result, regularized_update(base, values + 8, reference, alpha=0.3, beta=2)
     )
-    with pytest.raises(ValueError, match="positive support"):
-        regularized_update(np.array([0.0, 1.0]), values, reference, alpha=0.3, beta=2)
+    np.testing.assert_array_equal(
+        regularized_update(
+            np.array([0.0, 1.0]), np.array([np.nan, 1.0]), reference, alpha=0.3, beta=2
+        ),
+        [0.0, 1.0],
+    )
 
 
 def test_real_root_replay_and_hidden_swap(tmp_path: Path) -> None:
