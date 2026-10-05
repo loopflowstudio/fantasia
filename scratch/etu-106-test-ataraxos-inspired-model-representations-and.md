@@ -1,7 +1,8 @@
 # ETU-106: focused value-model contrasts
 
-2026-10-05. Focused acceptance checks are complete; integrated gate and
-measurements remain pending.
+2026-10-05. Focused and broader checks passed; the single integrated smoke
+failed before arena registration. Publication is blocked pending an authorized
+bounded rerun of the corrected recipes.
 Jack Heart authorized focused software delivery and cheap bounded sanity checks.
 The latest steer prioritizes historical mean, validity-masked mean, one-layer
 value token and two-layer width-64 value token. Scalar versus categorical
@@ -162,15 +163,21 @@ missing token/layer weights and malformed token shape. Historical-versus-masked
 metadata can share weight shapes; strict loading cannot infer the intended pooling
 from weights. These are software checks, not empirical strength evidence.
 
-**Remaining integrated gate:** the broader agent, Ataraxos regime and study suites,
-then the single bounded smoke and offline regeneration. The generated recipes
-inherit EMA exports from AtaraxosMoveLearning, but EvaluationProtocol evaluates
-only raw checkpoints. Acceptance includes raw/EMA export admission and ordinary
-raw checkpoint play with both deck assignments; it does not claim EMA arena
-measurement. The retained notebook/report must regenerate with unchanged
-analysis and report content. A failed or timed-out attempt remains incomplete
-under the existing ceiling. Actual candidate bytes and selected-world demo
-admission remain required for a playable-candidate claim.
+**Integrated gate outcome:** 108 affected tests passed; lint passed and one
+formatting mismatch was corrected before execution. The sole smoke failed after
+36.12 seconds: recipe IDs included underscores forbidden by PlayerRegistration.
+All eight training runs completed 512 transitions and exported 32 admitted raw/EMA
+checkpoints. No arena games ran. Evidence remains at `.runs/etu106-value-smoke`.
+Generated IDs now use hyphens and tests validate both raw/EMA registration IDs
+against the arena's actual field contract. The 15 affected study/protocol tests
+pass. The incomplete report/notebook executes offline and report, metrics and
+cost-comparison bytes regenerate identically; this is not completed-cohort proof.
+
+**Remaining publication boundary:** authorize a separately bounded rerun, then
+complete raw checkpoint arena play with both deck assignments and offline
+regeneration. The one-attempt protocol does not authorize another attempt here.
+Retained recipes, checkpoints and failure receipts were not rewritten. No EMA
+arena measurement, selected-world demo admission or strength claim is established.
 
 The durable protocol is `experiments/value-models.md`. Publication and CI belong
 to delivery preparation. No Rust changes were made in this slice.
@@ -195,4 +202,4 @@ Checkpoint fixtures share one writer so valid and corrupted artifacts use the sa
 world/setup envelope. Recipe digests hash the exact serialized recipes retained
 in the plan; the attention stack carries one object tensor through each layer.
 
-Check: `OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run pytest tests/model/test_value_aggregation.py tests/model/test_categorical_value.py tests/training/test_value_models.py -q` — 42 passed in 2.46 s; focused Ruff lint and diff checks passed; broader suites, smoke and offline regeneration deferred to gate.
+Check: affected model/Ataraxos/regime/study suite — 108 passed; ID-fix study/protocol regression — 15 passed; Ruff/diff checks pass; sole smoke failed at registration, incomplete offline report regenerated identically. Full CI remains deferred until publication.
