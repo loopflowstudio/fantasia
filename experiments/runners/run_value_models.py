@@ -113,16 +113,14 @@ def smoke_plan() -> ResolvedStudy:
     token = with_value_aggregation(
         base, id="value-value-token-1", aggregation="value_token"
     )
-    models = {
-        base.id: base,
-        "value-masked-mean-1": with_value_aggregation(
+    models = (
+        base,
+        with_value_aggregation(
             base, id="value-masked-mean-1", aggregation="masked_mean"
         ),
-        token.id: token,
-        "value-value-token-2": with_capacity(
-            token, id="value-value-token-2", width=64, depth=2, heads=4
-        ),
-    }
+        token,
+        with_capacity(token, id="value-value-token-2", width=64, depth=2, heads=4),
+    )
     recipes = value_outputs(models, ("scalar", "categorical_wdl"))
     resolved = tuple(recipe.model_dump(mode="json") for recipe in recipes.values())
     return ResolvedStudy(

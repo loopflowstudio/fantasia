@@ -6,7 +6,7 @@ and snapshots nested values so editing one arm cannot change its baseline.
 TrainingRegime remains the serialized owner; no recipe registry is involved.
 """
 
-from collections.abc import Mapping
+from collections.abc import Sequence
 from typing import Literal
 
 from manabot.infra.hypers import AgentSpec, MatchHypers, ObservationSpaceHypers
@@ -73,20 +73,22 @@ def with_capacity(
 
 
 def value_outputs(
-    regimes: Mapping[str, TrainingRegime], outputs: tuple[ValueOutput, ...]
+    regimes: Sequence[TrainingRegime], outputs: tuple[ValueOutput, ...]
 ) -> dict[str, TrainingRegime]:
     """Cross explicitly requested outputs; an invalid cell fails the whole plan.
 
-    Mapping keys are the experiment's labels and become unique regime IDs. Nothing
-    is allocated or executed here; the caller must bind the resulting cells to an
-    EvaluationProtocol with its own explicit budget and cohort.
+    Each regime ID supplies its cell prefix; a second label would duplicate that
+    authority. The caller binds the cells to an EvaluationProtocol with an explicit
+    budget and cohort. Nothing is allocated or executed here.
     """
     if not regimes or not outputs or len(set(outputs)) != len(outputs):
         raise ValueError("regimes and unique value outputs must be nonempty")
+    if len({regime.id for regime in regimes}) != len(regimes):
+        raise ValueError("value cross requires unique regime IDs")
     result: dict[str, TrainingRegime] = {}
-    for label, regime in regimes.items():
+    for regime in regimes:
         for output in outputs:
-            name = f"{label}-{output.replace('_', '-')}"
+            name = f"{regime.id}-{output.replace('_', '-')}"
             result[name] = with_value_output(regime, id=name, output=output)
     return result
 

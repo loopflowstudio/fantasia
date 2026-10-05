@@ -51,8 +51,9 @@ def test_python_baseline_preserves_existing_resolved_recipe() -> None:
 
 def test_value_cross_has_independent_models_and_unchanged_controls() -> None:
     base = _baseline()
+    base.id = "base"
     snapshot = base.model_dump()
-    arms = value_outputs({"base": base}, ("scalar", "categorical_wdl"))
+    arms = value_outputs((base,), ("scalar", "categorical_wdl"))
     assert len(arms) == 2
     for name, arm in arms.items():
         assert arm.id == name
@@ -72,15 +73,17 @@ def test_value_cross_has_independent_models_and_unchanged_controls() -> None:
 
 def test_invalid_value_cross_fails_without_mutating_baseline() -> None:
     base = _baseline()
+    with pytest.raises(ValueError, match="unique regime IDs"):
+        value_outputs((base, base.model_copy(deep=True)), ("scalar",))
     for stage in base.stages:
         assert isinstance(stage, TrainSelfPlay)
         stage.learning = Learning()
     before = base.model_dump()
     with pytest.raises(ValidationError, match="requires ataraxos_move"):
-        value_outputs({"ppo": base}, ("scalar", "categorical_wdl"))
+        value_outputs((base,), ("scalar", "categorical_wdl"))
     assert base.model_dump() == before
     with pytest.raises(ValueError, match="nonempty"):
-        value_outputs({"ppo": base}, ("scalar", "scalar"))
+        value_outputs((base,), ("scalar", "scalar"))
 
 
 def test_variations_revalidate_mutated_input_objects() -> None:

@@ -311,7 +311,7 @@ def with_capacity(
 ) -> TrainingRegime: ...
 
 def value_outputs(
-    regimes: Mapping[str, TrainingRegime],
+    regimes: Sequence[TrainingRegime],
     outputs: tuple[Literal["scalar", "categorical_wdl"], ...],
 ) -> dict[str, TrainingRegime]: ...
 ```
@@ -324,6 +324,7 @@ future interventions; a helper cannot invent support for them.
 The experiment file constructs complete TrainingRegime objects. These helpers
 replace only declared settings inside each regime, validate nested specifications
 and stage compatibility, and return independent values with distinct regime IDs.
+Each input regime ID supplies its cell prefix; duplicate IDs fail before crossing.
 `value_outputs` changes `agent.value_kind` and the regime ID in the resolved
 configuration. The existing trainer dispatches the corresponding value targets
 and loss from that field; stage learning settings remain unchanged. Unsupported
@@ -372,16 +373,16 @@ from manabot.training.recipes import (
 
 base = smoke_baseline()
 token = with_value_aggregation(base, id="value-value-token-1", aggregation="value_token")
-models = {
-    base.id: base,
-    "value-masked-mean-1": with_value_aggregation(
+models = (
+    base,
+    with_value_aggregation(
         base, id="value-masked-mean-1", aggregation="masked_mean",
     ),
-    token.id: token,
-    "value-value-token-2": with_capacity(
+    token,
+    with_capacity(
         token, id="value-value-token-2", width=64, depth=2, heads=4,
     ),
-}
+)
 recipes = value_outputs(models, ("scalar", "categorical_wdl"))
 ```
 

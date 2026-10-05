@@ -20,7 +20,7 @@ from manabot.training.models import (
     TrainingRegime,
     TrainSelfPlay,
 )
-from manabot.training.recipes import ataraxos_baseline, with_agent, with_value_output
+from manabot.training.recipes import ataraxos_baseline, with_value_output
 
 ROOT = Path(__file__).resolve().parents[2]
 ContrastName = Literal[
@@ -105,7 +105,8 @@ def resolve_contrast(name: ContrastName) -> Contrast:
         if name in {"evaluation-ema", "behavior-ema"}:
             stage.learning.ema = 0.999
     base.wall_seconds = 150
-    treatment = with_agent(base, id=f"{name}-treatment", agent=base.agent)
+    treatment = base.model_copy(deep=True)
+    treatment.id = f"{name}-treatment"
     for stage in treatment.stages:
         assert isinstance(stage, TrainSelfPlay)
         learning = stage.learning

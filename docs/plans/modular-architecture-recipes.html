@@ -497,7 +497,7 @@ def with_capacity(
 ) -&gt; TrainingRegime: ...
 
 def value_outputs(
-    regimes: Mapping[str, TrainingRegime],
+    regimes: Sequence[TrainingRegime],
     outputs: tuple[Literal[&quot;scalar&quot;, &quot;categorical_wdl&quot;], ...],
 ) -&gt; dict[str, TrainingRegime]: ...
 </code></pre>
@@ -508,6 +508,7 @@ future interventions; a helper cannot invent support for them.</p>
 <p>The experiment file constructs complete TrainingRegime objects. These helpers
 replace only declared settings inside each regime, validate nested specifications
 and stage compatibility, and return independent values with distinct regime IDs.
+Each input regime ID supplies its cell prefix; duplicate IDs fail before crossing.
 <code>value_outputs</code> changes <code>agent.value_kind</code> and the regime ID in the resolved
 configuration. The existing trainer dispatches the corresponding value targets
 and loss from that field; stage learning settings remain unchanged. Unsupported
@@ -548,16 +549,16 @@ from manabot.training.recipes import (
 
 base = smoke_baseline()
 token = with_value_aggregation(base, id=&quot;value-value-token-1&quot;, aggregation=&quot;value_token&quot;)
-models = {
-    base.id: base,
-    &quot;value-masked-mean-1&quot;: with_value_aggregation(
+models = (
+    base,
+    with_value_aggregation(
         base, id=&quot;value-masked-mean-1&quot;, aggregation=&quot;masked_mean&quot;,
     ),
-    token.id: token,
-    &quot;value-value-token-2&quot;: with_capacity(
+    token,
+    with_capacity(
         token, id=&quot;value-value-token-2&quot;, width=64, depth=2, heads=4,
     ),
-}
+)
 recipes = value_outputs(models, (&quot;scalar&quot;, &quot;categorical_wdl&quot;))
 </code></pre>
 <p>All eight cells retain ETU-106's resolved regimes and exact digests, seed 1061,
