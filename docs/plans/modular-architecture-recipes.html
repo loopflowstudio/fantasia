@@ -17,7 +17,7 @@ footer {border-top:1px solid var(--line);padding:25px 5vw;font-size:13px;color:v
 </style></head>
 <body><header><div class="eyebrow">Etude Fantasia / Intelligence / ETU-104 / 05 October 2026</div><div class="title">One model contract.<br>Reproducible architecture comparisons.</div><p>A technical proposal for Jack Heart: explicit modules, resolved recipes, and ordinary checkpoint admission.</p><p><a href="modular-architecture-recipes.md">Read the durable Markdown design</a></p></header>
 <div class="layout"><nav aria-label="Review sections"><a href="#1-recommendation-and-the-observable-win">1. Recommendation and the observable win</a><a href="#2-evidence-from-the-actual-repository">2. Evidence from the actual repository</a><a href="#3-what-public-model-organizations-actually-expose">3. What public model organizations actually expose</a><a href="#4-the-proposed-architecture-data-model">4. The proposed architecture data model</a><a href="#5-example-recipes-and-independent-interventions">5. Example recipes and independent interventions</a><a href="#6-module-apis-tensors-and-state">6. Module APIs, tensors and state</a><a href="#7-gradient-initialization-and-value-contracts">7. Gradient, initialization and value contracts</a><a href="#8-checkpoint-identity-migration-and-transfer">8. Checkpoint identity, migration and transfer</a><a href="#9-one-complete-construction-train-export-reload-evaluate-path">9. One complete construction → train → export → reload → evaluate path</a><a href="#10-failure-behavior-alternatives-and-proportion">10. Failure behavior, alternatives and proportion</a><a href="#11-delivery-cut-and-acceptance-after-review">11. Delivery cut and acceptance after review</a><a href="#12-review-record-and-remaining-decisions">12. Review record and remaining decisions</a></nav><main>
-<div class="boundary"><strong>Approved — implementation in progress.</strong> Jack Heart approved the incremental design and landing. Focused model delivery and complete workflow acceptance remain pending. Only focused software tests ran here.</div>
+<div class="boundary"><strong>Approved — implementation verified.</strong> Jack Heart approved the incremental design and landing. AgentSpec and shared value/capacity recipes passed the bounded workflow: 120 exact-replayed games. A reporting dependency failure was retained and recovered without retraining. Flow review, CI and landing remain.</div>
 <div class="flow" aria-label="Proposed lifecycle"><span>Resolve recipe</span><b>→</b><span>Bind world &amp; inputs</span><b>→</b><span>Build &amp; train</span><b>→</b><span>Export &amp; reload</span><b>→</b><span>Existing arena</span></div>
 <h1 id="modular-architecture-recipes-for-manabot">Modular architecture recipes for manabot</h1>
 <p><strong>ETU-104 · 2026-10-05 · Accepted incremental implementation.</strong> Jack Heart
@@ -32,7 +32,7 @@ No scientific campaign or paid compute is authorized.</p>
 <a href="../../wave/intelligence/GOAL.md">Current chapter</a></p>
 <h2 id="1-recommendation-and-the-observable-win">1. Recommendation and the observable win</h2>
 <p>Author Python experiment files that construct TrainingRegime variants through
-shared typed helpers. Build on <code>TrainingRegime.agent: AgentHypers</code>, extending
+shared typed helpers. Build on <code>TrainingRegime.agent: AgentSpec</code>, extending
 its existing fields and validation for the concrete experiments. Reuse current
 Agent construction and checkpoint loading; extract shared helpers only where
 those experiments expose actual duplication. Keep the public <code>Agent</code>
@@ -47,7 +47,7 @@ checkpoints; evaluate through the existing four-leg arena with exact replay.
 The report identifies which architecture, objective, input, world, data, and cost
 produced each result. A missing history field or incompatible value target fails
 before collection. A changed label on a recipe cannot change a frozen run.</p>
-<p>This acceptance demo remains unrun in ETU-104; dependency delivery is pending. Strength and human
+<p>ETU-106 delivery is integrated at <code>a371af46</code>; section 11 records ETU-104 acceptance. Strength and human
 challenger acceptance still require the chapter's separately frozen cohorts.
 A passing software demo proves the path only.</p>
 <p><strong>Accepted first cut:</strong> reuse existing configuration and construction; adopt the
@@ -129,7 +129,7 @@ is useful for authority but is not a reliable inventory of today's implementatio
 </tr>
 </tbody>
 </table>
-<h3>Play and trace ownership checked before proposing persistence</h3>
+<h3 id="play-and-trace-ownership-checked-before-proposing-persistence">Play and trace ownership checked before proposing persistence</h3>
 <p><code>etude/server.py:GameSession</code> owns live prompts, revisions, canonical decision
 rows and retained roots. <code>_step</code> makes automatic Commands but only appends
 canonical decision rows when <code>auto</code> is false. <code>TraceEvent.auto</code> distinguishes
@@ -147,7 +147,7 @@ mirror. The regime executor already passes its actual match and observation
 space; all new callers must do the same. <code>checkpoint_world</code> binds both decks
 with their sideboards. Never change frozen fingerprints to make an artifact fit.</p>
 <h2 id="3-what-public-model-organizations-actually-expose">3. What public model organizations actually expose</h2>
-<h3>Primary design references: Keras and the JAX ecosystem</h3>
+<h3 id="primary-design-references-keras-and-the-jax-ecosystem">Primary design references: Keras and the JAX ecosystem</h3>
 <p><strong>Direction, Jack Heart, 2026-10-05:</strong> prioritize Keras and the JAX community as
 sources to borrow from. The earlier framework comparison below remains supporting
 research. This changes design emphasis; it does not request a backend migration.
@@ -202,8 +202,8 @@ universal Spec suffix. Pydantic is a local fit because the repository already us
 it. Recipe → spec is useful local terminology: recipe code produces typed settings;
 it does not require a new pair of classes for every component. Jack Heart accepted the naming during review: recipe functions construct specs
 or enclosing objects, and the refined Hypers types use Spec names. AgentHypers
-therefore becomes AgentSpec as part of this work, not a parallel configuration
-owner. Existing-type names below identify current code; they are not a requirement
+is now named AgentSpec, retaining the same configuration owner. Existing-type
+names in dated inventories below identify the inspected code; they are not a requirement
 to retain the Hypers suffix. Preserve serialized compatibility deliberately.</p>
 <p>This is research into public implementations, not access to internal practice.
 Source revisions were resolved and inspected on 2026-10-05. Papers establish
@@ -265,7 +265,7 @@ pre-layernorm networks, and a Stratego move model with depth 8, width 384 and
 internal registry, config language, or MTG benefit. The move and belief networks
 must not be conflated. ETU-106 owns focused paper-inspired MTG contrasts;
 <a href="../ataraxos.md">the existing fidelity table</a> owns learning-rule departures.</p>
-<h3>Comparison across the requested boundaries</h3>
+<h3 id="comparison-across-the-requested-boundaries">Comparison across the requested boundaries</h3>
 <table>
 <thead>
 <tr>
@@ -342,14 +342,14 @@ still excludes budgets, optimizers, datasets and evaluation policy.</p>
 window and ordering have joint invariants. It is not a reason to reorganize all
 existing fields. Illustrative proposed extension (existing AgentHypers fields
 are omitted from the sketch, not removed):</p>
-<pre><code class="language-python">class HistoryHypers(BaseHypersModel):
+<pre><code class="language-python">class HistorySpec(BaseHypersModel):
     kind: Literal[&quot;none&quot;, &quot;recent_events&quot;] = &quot;none&quot;
     projection: Literal[&quot;none&quot;, &quot;kind_amount_role_v1&quot;] = &quot;none&quot;
     window: int = Field(default=0, ge=0)
     order: Literal[&quot;none&quot;, &quot;relative_position&quot;] = &quot;none&quot;
 
-# Within the existing AgentHypers, when the history experiment needs it:
-# history: HistoryHypers = Field(default_factory=HistoryHypers)
+# Within AgentSpec, when the history experiment needs it:
+# history: HistorySpec = Field(default_factory=HistorySpec)
 </code></pre>
 <p>Prefer the existing BaseHypersModel and validation methods. Align shared
 validation conventions incrementally when justified, preserving historical
@@ -363,8 +363,8 @@ semantics are implemented and tested. Do not advertise a rectangular cartesian
 product of all fields as supported.</p>
 <p><code>perspective=per_block</code> means the current ownership vector is applied at every
 stacked block. <code>once</code> means applied before the stack only. At depth one they
-coincide; at greater depth they are different models. ETU-106's eventual choice
-must be recorded rather than hidden behind a generic “Transformer” label.</p>
+coincide; at greater depth they are different models. ETU-106 uses ownership once and post-normalization; its delivered fields
+and implementations remain authoritative.</p>
 <p>Additional named records and their authority:</p>
 <table>
 <thead>
@@ -411,7 +411,7 @@ Canonical serialization sorts keys, includes defaults, rejects NaN, and does not
 include paths, labels or timestamps in the architecture hash. Freeze the resolved
 spec in TrainingRun and in every exported checkpoint; never resolve a mutable
 preset name while reloading.</p>
-<h3>A shared family of specifications and experiment helpers</h3>
+<h3 id="a-shared-family-of-specifications-and-experiment-helpers">A shared family of specifications and experiment helpers</h3>
 <p><strong>Ownership decision, Jack Heart, 2026-10-05:</strong> architecture configuration lives
 inside TrainingRegime as the model/hyperparameter specification for a TrainingRun.
 Start from <code>TrainingRegime.agent: AgentHypers</code> and refine it. The ownership
@@ -485,19 +485,15 @@ return new values, never mutate a shared baseline. Reconstruct through normal
 Pydantic validation: unchecked <code>model_copy(update=...)</code> is not an admission path.
 Experiment code must make coupled changes (for example WDL output and its value
 target contract) visible in the resolved diff.</p>
-<p>Target helper API (aggregation/depth integration awaits focused delivery):</p>
-<pre><code class="language-python">from collections.abc import Mapping
-from typing import Literal
-
-def with_value(
-    regime: TrainingRegime, *,
-    aggregation: Literal[&quot;fixed_slots&quot;, &quot;masked_mean&quot;, &quot;value_token&quot;],
-    output: Literal[&quot;scalar&quot;, &quot;categorical_wdl&quot;],
+<p>Delivered helper API (<code>manabot/training/recipes.py</code>):</p>
+<pre><code class="language-python">def with_value_aggregation(
+    regime: TrainingRegime, *, id: str,
+    aggregation: Literal[&quot;historical_mean&quot;, &quot;masked_mean&quot;, &quot;value_token&quot;],
 ) -&gt; TrainingRegime: ...
 
 def with_capacity(
-    regime: TrainingRegime, *,
-    width: int, depth: int, heads: int, ff_width: int,
+    regime: TrainingRegime, *, id: str,
+    width: int, depth: Literal[1, 2], heads: int,
 ) -&gt; TrainingRegime: ...
 
 def value_outputs(
@@ -505,6 +501,10 @@ def value_outputs(
     outputs: tuple[Literal[&quot;scalar&quot;, &quot;categorical_wdl&quot;], ...],
 ) -&gt; dict[str, TrainingRegime]: ...
 </code></pre>
+<p>The delivered model fixes post-normalization, injects ownership once, and derives
+feedforward width from heads × embedding width. This first cut exposes only the
+admitted fields. Independent feedforward width, normalization and history remain
+future interventions; a helper cannot invent support for them.</p>
 <p>The experiment file constructs complete TrainingRegime objects. These helpers
 replace only declared settings inside each regime, validate nested specifications
 and stage compatibility, and return independent values with distinct regime IDs.
@@ -521,7 +521,7 @@ remains the only execution path. Add history or other composition helpers when
 repeated experiments need them, not an arbitrary configuration language or
 automatic hyperparameter search system.</p>
 <h2 id="5-example-recipes-and-independent-interventions">5. Example recipes and independent interventions</h2>
-<h3>Author an experiment in Python; export its resolved configuration</h3>
+<h3 id="author-an-experiment-in-python-export-its-resolved-configuration">Author an experiment in Python; export its resolved configuration</h3>
 <p><strong>Decision, Jack Heart, 2026-10-05:</strong> prefer a Python file per experiment;
 YAML or similar formats belong in exports and reports. Experiment files compose
 typed model specifications, existing TrainingRegime values and EvaluationProtocol.
@@ -536,72 +536,56 @@ Generated JSON is the machine-readable run record; YAML is an optional readable
 report. Reload uses the saved complete spec and admitted local builder, not a
 fresh invocation of the experiment file. Record the experiment source digest as
 well as the resolved plan: Python can compute a plan, but its name is not identity.</p>
-<p>The following is proposed authoring syntax, not an implemented API.
-<code>ataraxos_baseline()</code> is a shared constructor returning a complete TrainingRegime
-for the explicitly selected profile, including the versioned baseline agent,
-match, observation and stages. Its resolved settings are exported before execution.
-The file can accept a typed profile argument for bounded versus scientific plans;
-there is no implicit scientific allocation.</p>
-<pre><code class="language-python"># experiments/value_models.py — proposed authoring interface
-def regimes() -&gt; dict[str, TrainingRegime]:
-    base = ataraxos_baseline()
-    token = with_value(base, aggregation=&quot;value_token&quot;, output=&quot;scalar&quot;)
-    aggregation_arms = {
-        &quot;historical&quot;: base,
-        &quot;masked&quot;: with_value(base, aggregation=&quot;masked_mean&quot;, output=&quot;scalar&quot;),
-        &quot;token&quot;: token,
-        &quot;token_depth2&quot;: with_capacity(
-            token, width=64, depth=2, heads=4, ff_width=256,
-        ),
-    }
-    return value_outputs(aggregation_arms, (&quot;scalar&quot;, &quot;categorical_wdl&quot;))
+<p>The delivered experiment is <code>experiments/runners/run_value_models.py</code>.
+<code>smoke_baseline()</code> calls the shared <code>ataraxos_baseline</code> with the authored
+Allies/Lessons setup, semantic pack, width 64/four heads, two linked stages,
+one update per stage, four streams of 64 transitions, 30-second stage limits
+and a 60-second cell limit. Every input and allocation is explicit in Python.</p>
+<pre><code class="language-python">from experiments.runners.run_value_models import smoke_baseline
+from manabot.training.recipes import (
+    value_outputs, with_capacity, with_value_aggregation,
+)
+
+base = smoke_baseline()
+token = with_value_aggregation(base, id=&quot;value-value-token-1&quot;, aggregation=&quot;value_token&quot;)
+models = {
+    base.id: base,
+    &quot;value-masked-mean-1&quot;: with_value_aggregation(
+        base, id=&quot;value-masked-mean-1&quot;, aggregation=&quot;masked_mean&quot;,
+    ),
+    token.id: token,
+    &quot;value-value-token-2&quot;: with_capacity(
+        token, id=&quot;value-value-token-2&quot;, width=64, depth=2, heads=4,
+    ),
+}
+recipes = value_outputs(models, (&quot;scalar&quot;, &quot;categorical_wdl&quot;))
 </code></pre>
-<p>This is ETU-106's aggregation/depth axis. Cross these four entries with scalar
-and categorical WDL output for its eight cells. All use the same existing
-Ataraxos move rule; output representation selects the compatible existing value
-loss/target contract. It does not select a different policy learning algorithm.
-Keep the resolved regime and evaluation protocol alongside the model definitions
-in the experiment file, using their existing types rather than a new experiment
-execution framework.</p>
-<p>The read-only ETU-106 protocol snapshot inspected during review already specifies
-width 64, four heads, post-normalization, ownership injected once, and a neutral
-value token inside shared attention. Its worker has implemented focused variants;
-that is not a claim of merged or scientifically validated behavior. The later
-framework must consume these semantics, including initialization and state keys.</p>
-<pre><code class="language-python"># experiments/model_capacity.py — proposed authoring interface
-def regimes() -&gt; dict[str, TrainingRegime]:
-    base = ataraxos_baseline()
-    return {
-        &quot;w64_d1&quot;: base,
-        &quot;w64_d2&quot;: with_capacity(
-            base, width=64, depth=2, heads=4, ff_width=256,
-        ),
-        &quot;w128_d2&quot;: with_capacity(
-            base, width=128, depth=2, heads=4, ff_width=512,
-        ),
-    }
+<p>All eight cells retain ETU-106's resolved regimes and exact digests, seed 1061,
+paired deal 910106, anchor deal 920106, four seat/deck legs and 900-second process
+cap. Scalar/WDL output selects the existing value targets and loss while keeping
+the Ataraxos policy learning settings fixed. Raw and EMA exports retain ordinary
+admission. Importing and resolving definitions does not train.</p>
+<p>The capacity examples are <code>experiments/runners/model_capacity.py:regimes</code>:</p>
+<pre><code class="language-python">from experiments.runners.model_capacity import regimes
+from experiments.runners.run_value_models import smoke_baseline
+
+capacity_examples = regimes(smoke_baseline())
+assert set(capacity_examples) == {&quot;w64-d1&quot;, &quot;w64-d2&quot;, &quot;w128-d2&quot;}
 </code></pre>
-<p>ETU-102 registers those width/depth points; heads and feedforward widths above
-illustrate explicit resolution, not a newly frozen cohort. ETU-103 owns early
-learning and full-budget comparisons. First compare depth at fixed width; then
-width at fixed depth. Hold aggregation, input, objective and action domain fixed.
-Report both decisions/exposures and elapsed cost because bigger models may learn
-from fewer samples while taking longer.</p>
-<p>For ETU-106's later normalization/history contrasts, the same file can declare
-two regimes with depth 2 and post- versus pre-normalization, or
-history-off versus an explicit <code>HistorySpec</code> at each capacity. History input is
-an information treatment; it is not silently enabled by increasing capacity.
-Exact recipe arguments remain subject to the reviewed schema and focused delivery.</p>
-<p>The lifecycle is: call the file's definitions → validate model/objective/input
-compatibility → export complete regimes, protocol and digests → execute through
-TrainingRun → ordinary checkpoint reload → existing arena/report. A later code
-edit creates a new plan; it cannot change a saved run. No study was launched here.</p>
+<p>They change only width, depth and head count plus the regime label. They preserve
+pooling, semantic input, learning, setup and the supplied baseline's budgets.
+These constructions do not allocate an evaluation protocol or run ETU-102/103.
+Width/depth changes create new models; no weight transfer is implied.</p>
+<p>ETU-106's merged implementation supplies the exact pooling/depth/initialization
+semantics. No second encoder, registry, builder or checkpoint schema is needed.
+History remains an explicit later information treatment; no architecture recipe
+silently consumes the ignored recent-event tensors.</p>
 <p>Registered sources: <a href="https://linear.app/loopflow/issue/ETU-102">ETU-102</a>,
 <a href="https://linear.app/loopflow/issue/ETU-103">ETU-103</a>, and
 <a href="https://linear.app/loopflow/issue/ETU-106">ETU-106</a>. The inspected focused
 <code>experiments/value-models.md</code> snapshot has content revision
 <code>9aa850d3ea5e28a350ec1eca25b96e16e26ef91c7fa2ee08122cf9e2a90821d1</code>.</p>
-<h3>Generated baseline configuration</h3>
+<h3 id="generated-baseline-configuration">Generated baseline configuration</h3>
 <p>The following illustrates the resolver's complete exported baseline, not an
 authored experiment file or a file accepted by today's CLI:</p>
 <pre><code class="language-json">{
@@ -734,7 +718,7 @@ class ValueHead(Protocol):
     def __call__(self, encoded: EncodedObjects) -&gt; Tensor: ...
 
 def resolve_architecture(
-    spec: AgentHypers, binding: &quot;ModelBinding&quot;
+    spec: AgentSpec, binding: &quot;ModelBinding&quot;
 ) -&gt; &quot;ResolvedArchitecture&quot;: ...
 
 def build_agent(
@@ -755,7 +739,7 @@ likelihoods and prefix values. Flat <code>forward</code> keeps the existing serv
 <code>forward_distribution</code> exposes raw critic targets for compatible trainers. Internal
 named outputs prevent positional tensor confusion without forcing every consumer
 to change at once.</p>
-<h3>Shapes and semantic capabilities</h3>
+<h3 id="shapes-and-semantic-capabilities">Shapes and semantic capabilities</h3>
 <ul>
 <li>Current objects form <code>[B,N,D]</code>, validity <code>[B,N]</code>, flat actions <code>[B,A,F]</code>, focus
 indexes <code>[B,A,K]</code>, legal mask <code>[B,A]</code>. Focus indexes retain the original object
@@ -780,7 +764,7 @@ requires it, event projection when history is on, marginal schema when belief
 input is on, and native compound offers when decoding is compound. Validate
 behavior, not just keys with equal shapes.</li>
 </ul>
-<h3>History now, recurrence later</h3>
+<h3 id="history-now-recurrence-later">History now, recurrence later</h3>
 <p>Initial event input consumes the already emitted window as an explicitly lossy
 input: embed event kind, signed amount and viewer-relative controller category,
 plus relative position, into D and append valid rows to the current-state stack.
@@ -884,49 +868,35 @@ section-11 cap. The first cut uses existing Agent construction, checkpoint
 metadata and admission. Additional architecture receipts, builders and transfer
 interfaces below remain design sketches, not prerequisites for that workflow.</p>
 <ol>
-<li><strong>Resolve.</strong> Start from the authored Allies/Lessons MatchHypers and saved
-observation capacities. Resolve the proposed baseline or value-token recipe
-into a complete spec; bind actual world/content/sideboards/input capabilities.
-Print the architecture difference and parameters. The executor records the
-architecture receipt before training; a setup failure produces a retained
-failed attempt rather than an omitted arm.</li>
-<li><strong>Construct.</strong> Existing <code>execute_regime(regime, seed, out, store)</code> calls proposed
-<code>build_agent</code> instead of direct Agent construction. Validate signed scalar
-output with the chosen self-play objective, or WDL with Ataraxos targets.
-Initialize using the recorded seed plan; build the optimizer afterward.</li>
-<li><strong>Train.</strong> Keep the existing bounded self-play stage, terminal/reset semantics,
-all observation tensors, behavior likelihoods and cumulative cost clock.
-Same-run continuation uses the same architecture and optimizer. A stage asking
-to change architecture fails and must create a separate run/transfer.</li>
-<li><strong>Export.</strong> The ordinary writer saves weights plus the architecture/value/input
-contracts and mandatory world binding. Compute exact file digest and record
-artifact, cost, seed, source and target identities in StageRecord/TrainingRun.
-Raw and EMA are distinct artifacts, not interchangeable recipe names.</li>
-<li><strong>Reload.</strong> <code>load_checkpoint_agent</code> validates contracts, calls the same builder,
-strictly loads and returns Agent/ObservationSpace. A fixed admitted input
-yields equal policy/value outputs before and after reload on the same runtime;
-compare WDL logits as well as expectation. Wrong setup, architecture revision,
-event projection or state tensor fails before play.</li>
-<li><strong>Evaluate.</strong> Existing immutable player registration points at exact bytes.
-Extend EvaluationProtocol's study discriminator explicitly for architecture
-comparison; retain held-out paired deals, all four seat/deck legs, chosen
-inference policy, attempt retention and exact replay in the existing arena.
-Regenerate the report from records. Policy-only CPU and search-augmented
-evaluations are separate declared conditions. Use overlapping observed costs,
-not extrapolated equal-hours claims.</li>
-<li><strong>Play admission, when requested.</strong> Pass the real candidate through
-<code>configured_opponent</code> and GameSession with both deck assignments and the
-existing receipt requirements. Artifact reload alone is not demo admission;
-fixture completion is not a human win. No new table protocol or session store
-is needed solely because the network changed.</li>
+<li><strong>Resolve.</strong> <code>smoke_plan()</code> constructs complete TrainingRegime values, validates
+model/stage compatibility and binds their canonical digests to EvaluationProtocol.
+<code>--write-plan</code> exports the complete plan without constructing a collector.</li>
+<li><strong>Construct and train.</strong> Existing <code>execute_regime</code> uses ordinary Agent
+construction from <code>regime.agent: AgentSpec</code>, the recorded seed and actual
+observation/setup. Training stages retain their learning rules, optimizer,
+continuation, EMA and watchdog ownership.</li>
+<li><strong>Export.</strong> Existing writers retain <code>agent_hypers</code> as the dictionary key,
+<code>model_state_dict</code>, observation capacities and mandatory world binding.
+TrainingRun/StageRecord retain source/runtime, seed, exact artifact bytes,
+costs and failures. Renaming the Python type does not migrate saved fields.</li>
+<li><strong>Reload.</strong> <code>load_checkpoint_agent</code> reconstructs AgentSpec from the saved
+dictionary, validates setup/input and strictly loads parameters/buffers.
+Missing aggregation/depth fields retain historical one-layer semantics.
+Wrong metadata or weights fail ordinary admission; no aliases or state ports.</li>
+<li><strong>Evaluate.</strong> The existing <code>value-models</code> study discriminator, immutable player
+registrations and arena run both raw checkpoint cutoffs with exact command
+replay, all four deck/seat legs and random anchors. Report regeneration uses
+retained records without training. Equal thread count is not equal inference
+cost, and smoke scores are not method-level evidence.</li>
+<li><strong>Play admission, when requested.</strong> The separate real-demo workflow still uses
+<code>configured_opponent</code> and GameSession with both assignments. Arena replay and
+artifact reload do not establish human-game completion or challenger strength.</li>
 </ol>
-<p>Separate sampler continuation: freeze raw/EMA policy SHA → existing
-<code>collect_belief</code> whole-game dataset → <code>train_belief</code> using the sampler builder →
-ordinary sampler export/reload → existing saved-game quality report → optional
-local search with identical generating-policy identity. Each arrow retains the
-existing dataset/schema/world/policy guards. Sampler fit and evaluation costs
-remain separate from policy training. Conditional queries and unsupported
-belief/compound combinations remain rejected until explicitly implemented.</p>
+<p>Separate sampler continuation remains the existing frozen policy → whole-game
+private dataset → separately admitted sampler artifact → quality report/local
+search path. Its schema, world, policy identity and gradient boundaries are
+unchanged. Compound policy decoding retains its existing configuration and
+prefix/reset lifecycle; unsupported value/capacity combinations fail validation.</p>
 <p>Proposed interfaces at persistence boundaries:</p>
 <pre><code class="language-python">def validate_stage_model(
     stage: &quot;Operation&quot;, architecture: &quot;ResolvedArchitecture&quot;,
@@ -943,7 +913,7 @@ def apply_weight_transfer(
 </code></pre>
 <p>Existing APIs such as execute_regime and load_checkpoint_agent remain public.
 No new train CLI is required; <code>uv run manabot train --regime &lt;resolved-file&gt;</code>
-remains the entry point after schema support lands. The JSON in section 5 is
+remains the entry point for a resolved regime. The JSON in section 5 is
 architecture-only and cannot be passed as a current TrainingRegime.</p>
 <h2 id="10-failure-behavior-alternatives-and-proportion">10. Failure behavior, alternatives and proportion</h2>
 <table>
@@ -1006,54 +976,52 @@ cannot export a real playable checkpoint. The complete-path gate prevents that.<
 <p><strong>Accepted by Jack Heart on 2026-10-05:</strong> make registered comparisons easy to
 express as Python-built TrainingRegime objects. Keep architecture in the existing
 agent configuration; preserve checkpoint meanings and the frozen ETU-91 campaign.
-Refine AgentHypers into AgentSpec coherently after adopting focused delivery. A
+AgentHypers is refined in place as AgentSpec after adopting focused delivery. A
 broad configuration hierarchy, alternate executor, registry or backend migration
 is not justified by this cut.</p>
-<p>Implemented independent work:</p>
+<p>Delivered implementation:</p>
 <ul>
-<li><code>manabot/training/recipes.py</code> supplies <code>ataraxos_baseline</code>, <code>with_agent</code>,
-<code>with_value_output</code> and <code>value_outputs</code>. Setup, workload and budgets are explicit.
-Composition snapshots nested values and validates the full TrainingRegime;
-unsupported WDL/objective combinations fail before execution.</li>
-<li>The existing omitted-controls paper-value contrast now authors its baseline in
-Python and uses those helpers. Its prior resolved values remain the control;
-existing JSON files and frozen evidence are retained. Neither collection nor
-execution occurs when importing the recipe module.</li>
-<li>Scalar/WDL selection uses the existing trainer's target and loss dispatch. It
-does not silently change the policy learning rule. Generated JSON remains the
-execution record; ordinary checkpoint loading remains reconstruction authority.</li>
+<li>ETU-106 PR #222 (<code>a371af46</code>) was merged with CI passing and 120 replayed
+evaluation-recovery games, as reported by Jack Heart. <code>lf sync</code> integrated it;
+the earlier dependency review blocker is resolved.</li>
+<li><code>AgentSpec</code> replaces the Python type AgentHypers in ordinary model construction,
+training, serving, exports, scripts and tests. Serialized <code>agent_hypers</code> keys,
+field meanings, defaults, strict loading and world admission stay unchanged.</li>
+<li><code>ataraxos_baseline</code>, <code>with_agent</code>, <code>with_value_output</code>,
+<code>with_value_aggregation</code>, <code>with_capacity</code> and <code>value_outputs</code> compose independent
+validated regimes. The paper-value contrast and eight-cell value study use
+them; all eight ETU-106 recipe digests and its protocol remain unchanged.</li>
+<li>The capacity example constructs width/depth 64/1, 64/2 and 128/2 through the
+delivered model fields. No ETU-102 run, alternative encoder or expanded study.</li>
 </ul>
-<p><strong>Completed cleanup:</strong> the paper-value contrast now constructs its final
-budgets directly and returns before the PPO-only mutation loop. JSON-based
-authoring and direct value-kind mutation are removed; exported fixtures, recipe
-identities, budgets, stages and objectives remain intact. ETU-106's repeated
-model-variation code remains to be replaced after its delivery is admitted;
-aggregation/depth implementation stays with that focused delivery.</p>
-<p>Remaining acceptance:</p>
-<ol>
-<li>Integrate actual ETU-106 delivery, including exact pooling, depth, initialization
-and checkpoint semantics. The 2026-10-05 status read reports <code>human</code> at
-<code>pr-review</code>: commit <code>2a508bab</code> is published as a branch but has no PR publication.
-Its workflow failed before arena games; a corrected attempt remains subject to
-that Task's review. ETU-104 does not release that boundary.</li>
-<li>ETU-102 is unstarted with no execution. Use delivered depth/width capability
-once available rather than inventing a competing capacity architecture. Finish
-AgentSpec naming and typed aggregation/capacity composition against those APIs.</li>
-<li>Move the eight-cell value-model authoring onto the helpers, retain every
-resolved cell and protocol, and add the capacity examples. Keep unsupported
-combinations explicit; no silent cell omission or allocation expansion.</li>
-<li>Verify ordinary export/reload for the selected models and run the approved
-bounded baseline/value-token complete workflow through the existing arena,
-exact replay and offline regeneration. Record all attempts and failures.</li>
-<li>Review and deliver the complete change through PR, CI and landing. Jack Heart
-authorized landing, but upstream review and the complete workflow remain open.</li>
-</ol>
-<p>Software acceptance is at most 15 minutes on one CPU thread per complete attempt.
-Scientific contrasts require a separate frozen protocol, independent seeds, paired
-held-out deals and declared costs. No strength, calibration or byte-identical
-stochastic-training claim follows from software acceptance. History, recurrence,
-new sampler architecture and transfer tooling are outside this first cut.</p>
-<p>Retained check: <code>uv run pytest tests/training/test_architecture_recipes.py tests/training/test_omitted_controls.py -k 'not ema_behavior' -q</code> — 25 passed, 2 deselected. No complete workflow attempt or scientific run has started in ETU-104; gate owns complete-workflow acceptance after integration.</p>
+<p><strong>Delete — do not maintain:</strong> the old AgentHypers Python symbol and imports,
+JSON-template authoring of these value comparisons, and their unchecked per-cell
+model/budget mutation loops are removed. Frozen JSON/checkpoint evidence stays
+intact. Existing ordinary construction, learning rules and recovery remain owners.</p>
+<p>The retained one-thread workflow at code commit <code>486739d5</code> completed all eight
+runs, 16 raw plus 16 EMA exports, and 30 arena cells / 120 valid exact-replayed
+games in 348.04 charged seconds. Evidence lives in
+<code>.runs/etu104-recipes-smoke</code>. The first attempt reached all games but failed
+reporting at 342.77 seconds because <code>nbclient</code> was absent. The original study
+JSON is retained as <code>study-before-report-resume.json</code>; ordinary <code>run_study(..., resume=True)</code> retained that interruption and completed only reporting after
+installing the declared notebook extra. All checkpoint, run and arena-row hashes
+remained identical. No retraining, replay replacement or protocol change occurred.
+Offline regeneration reproduced report, metrics and cost/uncertainty JSON bytes;
+the report's notebook code cells executed.</p>
+<p>Repeat the bounded workflow with its declared reporting dependencies:</p>
+<pre><code class="language-bash">uv run --extra notebook python -m experiments.runners.run_value_models --out .runs/etu104-recipes-smoke-next
+uv run --extra notebook python -m experiments.runners.run_value_models --report-only .runs/etu104-recipes-smoke-next
+</code></pre>
+<p>Remaining delivery: the supplied Flow's remaining preparation, publication,
+human <code>pr-review</code>, CI and landing. The approved software
+cap is 15 minutes per complete attempt. Scientific contrasts require a separate
+frozen protocol, independent seeds, paired held-out deals and declared costs.
+History, sequence training, new sampler architecture and transfer tooling remain
+outside this first cut. No strength or byte-identical-training claim follows.</p>
+<p>Check: recipe/value/omitted-controls checks passed 49 (2 deselected), categorical
+reload/protocol checks passed 23, and infra/model/world/challenger checks passed
+39; focused Ruff/format and HTML links passed. CI owns its remaining matrix.
+These command counts overlap on two protocol tests; they are not 111 unique tests.</p>
 <h2 id="12-review-record-and-remaining-decisions">12. Review record and remaining decisions</h2>
 <table>
 <thead>
@@ -1105,9 +1073,9 @@ new sampler architecture and transfer tooling are outside this first cut.</p>
 </tr>
 </tbody>
 </table>
-<p>Review approval is complete. The outstanding delivery dependency is ETU-106's
-own review and successful software workflow, not renewed approval of ETU-104.
-ETU-102 has no delivered capacity implementation yet. ETU-101 retains dashboard
+<p>Review approval is complete, and ETU-106 is integrated. The capacity examples
+use its delivered width/depth fields; no independent ETU-102 implementation or
+scientific run is claimed. ETU-101 retains dashboard
 ownership. ETU-91's running campaign, checkout, recipes and evidence are untouched.</p>
 <p>The HTML is a self-contained rendering of this design and implementation status.
 Visual browser validation is unavailable in the headless environment; structural

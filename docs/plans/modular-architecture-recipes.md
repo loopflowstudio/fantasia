@@ -15,7 +15,7 @@ No scientific campaign or paid compute is authorized.
 ## 1. Recommendation and the observable win
 
 Author Python experiment files that construct TrainingRegime variants through
-shared typed helpers. Build on `TrainingRegime.agent: AgentHypers`, extending
+shared typed helpers. Build on `TrainingRegime.agent: AgentSpec`, extending
 its existing fields and validation for the concrete experiments. Reuse current
 Agent construction and checkpoint loading; extract shared helpers only where
 those experiments expose actual duplication. Keep the public `Agent`
@@ -32,7 +32,7 @@ The report identifies which architecture, objective, input, world, data, and cos
 produced each result. A missing history field or incompatible value target fails
 before collection. A changed label on a recipe cannot change a frozen run.
 
-This acceptance demo remains unrun in ETU-104; dependency delivery is pending. Strength and human
+ETU-106 delivery is integrated at `a371af46`; section 11 records ETU-104 acceptance. Strength and human
 challenger acceptance still require the chapter's separately frozen cohorts.
 A passing software demo proves the path only.
 
@@ -115,8 +115,8 @@ universal Spec suffix. Pydantic is a local fit because the repository already us
 it. Recipe → spec is useful local terminology: recipe code produces typed settings;
 it does not require a new pair of classes for every component. Jack Heart accepted the naming during review: recipe functions construct specs
 or enclosing objects, and the refined Hypers types use Spec names. AgentHypers
-therefore becomes AgentSpec as part of this work, not a parallel configuration
-owner. Existing-type names below identify current code; they are not a requirement
+is now named AgentSpec, retaining the same configuration owner. Existing-type
+names in dated inventories below identify the inspected code; they are not a requirement
 to retain the Hypers suffix. Preserve serialized compatibility deliberately.
 
 
@@ -205,14 +205,14 @@ existing fields. Illustrative proposed extension (existing AgentHypers fields
 are omitted from the sketch, not removed):
 
 ```python
-class HistoryHypers(BaseHypersModel):
+class HistorySpec(BaseHypersModel):
     kind: Literal["none", "recent_events"] = "none"
     projection: Literal["none", "kind_amount_role_v1"] = "none"
     window: int = Field(default=0, ge=0)
     order: Literal["none", "relative_position"] = "none"
 
-# Within the existing AgentHypers, when the history experiment needs it:
-# history: HistoryHypers = Field(default_factory=HistoryHypers)
+# Within AgentSpec, when the history experiment needs it:
+# history: HistorySpec = Field(default_factory=HistorySpec)
 ```
 
 Prefer the existing BaseHypersModel and validation methods. Align shared
@@ -229,8 +229,8 @@ product of all fields as supported.
 
 `perspective=per_block` means the current ownership vector is applied at every
 stacked block. `once` means applied before the stack only. At depth one they
-coincide; at greater depth they are different models. ETU-106's eventual choice
-must be recorded rather than hidden behind a generic “Transformer” label.
+coincide; at greater depth they are different models. ETU-106 uses ownership once and post-normalization; its delivered fields
+and implementations remain authoritative.
 
 Additional named records and their authority:
 
@@ -297,21 +297,17 @@ Pydantic validation: unchecked `model_copy(update=...)` is not an admission path
 Experiment code must make coupled changes (for example WDL output and its value
 target contract) visible in the resolved diff.
 
-Target helper API (aggregation/depth integration awaits focused delivery):
+Delivered helper API (`manabot/training/recipes.py`):
 
 ```python
-from collections.abc import Mapping
-from typing import Literal
-
-def with_value(
-    regime: TrainingRegime, *,
-    aggregation: Literal["fixed_slots", "masked_mean", "value_token"],
-    output: Literal["scalar", "categorical_wdl"],
+def with_value_aggregation(
+    regime: TrainingRegime, *, id: str,
+    aggregation: Literal["historical_mean", "masked_mean", "value_token"],
 ) -> TrainingRegime: ...
 
 def with_capacity(
-    regime: TrainingRegime, *,
-    width: int, depth: int, heads: int, ff_width: int,
+    regime: TrainingRegime, *, id: str,
+    width: int, depth: Literal[1, 2], heads: int,
 ) -> TrainingRegime: ...
 
 def value_outputs(
@@ -319,6 +315,11 @@ def value_outputs(
     outputs: tuple[Literal["scalar", "categorical_wdl"], ...],
 ) -> dict[str, TrainingRegime]: ...
 ```
+
+The delivered model fixes post-normalization, injects ownership once, and derives
+feedforward width from heads × embedding width. This first cut exposes only the
+admitted fields. Independent feedforward width, normalization and history remain
+future interventions; a helper cannot invent support for them.
 
 The experiment file constructs complete TrainingRegime objects. These helpers
 replace only declared settings inside each regime, validate nested specifications
@@ -357,75 +358,58 @@ report. Reload uses the saved complete spec and admitted local builder, not a
 fresh invocation of the experiment file. Record the experiment source digest as
 well as the resolved plan: Python can compute a plan, but its name is not identity.
 
-The following is proposed authoring syntax, not an implemented API.
-`ataraxos_baseline()` is a shared constructor returning a complete TrainingRegime
-for the explicitly selected profile, including the versioned baseline agent,
-match, observation and stages. Its resolved settings are exported before execution.
-The file can accept a typed profile argument for bounded versus scientific plans;
-there is no implicit scientific allocation.
+The delivered experiment is `experiments/runners/run_value_models.py`.
+`smoke_baseline()` calls the shared `ataraxos_baseline` with the authored
+Allies/Lessons setup, semantic pack, width 64/four heads, two linked stages,
+one update per stage, four streams of 64 transitions, 30-second stage limits
+and a 60-second cell limit. Every input and allocation is explicit in Python.
 
 ```python
-# experiments/value_models.py — proposed authoring interface
-def regimes() -> dict[str, TrainingRegime]:
-    base = ataraxos_baseline()
-    token = with_value(base, aggregation="value_token", output="scalar")
-    aggregation_arms = {
-        "historical": base,
-        "masked": with_value(base, aggregation="masked_mean", output="scalar"),
-        "token": token,
-        "token_depth2": with_capacity(
-            token, width=64, depth=2, heads=4, ff_width=256,
-        ),
-    }
-    return value_outputs(aggregation_arms, ("scalar", "categorical_wdl"))
+from experiments.runners.run_value_models import smoke_baseline
+from manabot.training.recipes import (
+    value_outputs, with_capacity, with_value_aggregation,
+)
+
+base = smoke_baseline()
+token = with_value_aggregation(base, id="value-value-token-1", aggregation="value_token")
+models = {
+    base.id: base,
+    "value-masked-mean-1": with_value_aggregation(
+        base, id="value-masked-mean-1", aggregation="masked_mean",
+    ),
+    token.id: token,
+    "value-value-token-2": with_capacity(
+        token, id="value-value-token-2", width=64, depth=2, heads=4,
+    ),
+}
+recipes = value_outputs(models, ("scalar", "categorical_wdl"))
 ```
 
-This is ETU-106's aggregation/depth axis. Cross these four entries with scalar
-and categorical WDL output for its eight cells. All use the same existing
-Ataraxos move rule; output representation selects the compatible existing value
-loss/target contract. It does not select a different policy learning algorithm.
-Keep the resolved regime and evaluation protocol alongside the model definitions
-in the experiment file, using their existing types rather than a new experiment
-execution framework.
+All eight cells retain ETU-106's resolved regimes and exact digests, seed 1061,
+paired deal 910106, anchor deal 920106, four seat/deck legs and 900-second process
+cap. Scalar/WDL output selects the existing value targets and loss while keeping
+the Ataraxos policy learning settings fixed. Raw and EMA exports retain ordinary
+admission. Importing and resolving definitions does not train.
 
-The read-only ETU-106 protocol snapshot inspected during review already specifies
-width 64, four heads, post-normalization, ownership injected once, and a neutral
-value token inside shared attention. Its worker has implemented focused variants;
-that is not a claim of merged or scientifically validated behavior. The later
-framework must consume these semantics, including initialization and state keys.
+The capacity examples are `experiments/runners/model_capacity.py:regimes`:
 
 ```python
-# experiments/model_capacity.py — proposed authoring interface
-def regimes() -> dict[str, TrainingRegime]:
-    base = ataraxos_baseline()
-    return {
-        "w64_d1": base,
-        "w64_d2": with_capacity(
-            base, width=64, depth=2, heads=4, ff_width=256,
-        ),
-        "w128_d2": with_capacity(
-            base, width=128, depth=2, heads=4, ff_width=512,
-        ),
-    }
+from experiments.runners.model_capacity import regimes
+from experiments.runners.run_value_models import smoke_baseline
+
+capacity_examples = regimes(smoke_baseline())
+assert set(capacity_examples) == {"w64-d1", "w64-d2", "w128-d2"}
 ```
 
-ETU-102 registers those width/depth points; heads and feedforward widths above
-illustrate explicit resolution, not a newly frozen cohort. ETU-103 owns early
-learning and full-budget comparisons. First compare depth at fixed width; then
-width at fixed depth. Hold aggregation, input, objective and action domain fixed.
-Report both decisions/exposures and elapsed cost because bigger models may learn
-from fewer samples while taking longer.
+They change only width, depth and head count plus the regime label. They preserve
+pooling, semantic input, learning, setup and the supplied baseline's budgets.
+These constructions do not allocate an evaluation protocol or run ETU-102/103.
+Width/depth changes create new models; no weight transfer is implied.
 
-For ETU-106's later normalization/history contrasts, the same file can declare
-two regimes with depth 2 and post- versus pre-normalization, or
-history-off versus an explicit `HistorySpec` at each capacity. History input is
-an information treatment; it is not silently enabled by increasing capacity.
-Exact recipe arguments remain subject to the reviewed schema and focused delivery.
-
-The lifecycle is: call the file's definitions → validate model/objective/input
-compatibility → export complete regimes, protocol and digests → execute through
-TrainingRun → ordinary checkpoint reload → existing arena/report. A later code
-edit creates a new plan; it cannot change a saved run. No study was launched here.
+ETU-106's merged implementation supplies the exact pooling/depth/initialization
+semantics. No second encoder, registry, builder or checkpoint schema is needed.
+History remains an explicit later information treatment; no architecture recipe
+silently consumes the ignored recent-event tensors.
 
 Registered sources: [ETU-102](https://linear.app/loopflow/issue/ETU-102),
 [ETU-103](https://linear.app/loopflow/issue/ETU-103), and
@@ -530,7 +514,7 @@ class ValueHead(Protocol):
     def __call__(self, encoded: EncodedObjects) -> Tensor: ...
 
 def resolve_architecture(
-    spec: AgentHypers, binding: "ModelBinding"
+    spec: AgentSpec, binding: "ModelBinding"
 ) -> "ResolvedArchitecture": ...
 
 def build_agent(
@@ -698,49 +682,35 @@ section-11 cap. The first cut uses existing Agent construction, checkpoint
 metadata and admission. Additional architecture receipts, builders and transfer
 interfaces below remain design sketches, not prerequisites for that workflow.
 
-1. **Resolve.** Start from the authored Allies/Lessons MatchHypers and saved
-   observation capacities. Resolve the proposed baseline or value-token recipe
-   into a complete spec; bind actual world/content/sideboards/input capabilities.
-   Print the architecture difference and parameters. The executor records the
-   architecture receipt before training; a setup failure produces a retained
-   failed attempt rather than an omitted arm.
-2. **Construct.** Existing `execute_regime(regime, seed, out, store)` calls proposed
-   `build_agent` instead of direct Agent construction. Validate signed scalar
-   output with the chosen self-play objective, or WDL with Ataraxos targets.
-   Initialize using the recorded seed plan; build the optimizer afterward.
-3. **Train.** Keep the existing bounded self-play stage, terminal/reset semantics,
-   all observation tensors, behavior likelihoods and cumulative cost clock.
-   Same-run continuation uses the same architecture and optimizer. A stage asking
-   to change architecture fails and must create a separate run/transfer.
-4. **Export.** The ordinary writer saves weights plus the architecture/value/input
-   contracts and mandatory world binding. Compute exact file digest and record
-   artifact, cost, seed, source and target identities in StageRecord/TrainingRun.
-   Raw and EMA are distinct artifacts, not interchangeable recipe names.
-5. **Reload.** `load_checkpoint_agent` validates contracts, calls the same builder,
-   strictly loads and returns Agent/ObservationSpace. A fixed admitted input
-   yields equal policy/value outputs before and after reload on the same runtime;
-   compare WDL logits as well as expectation. Wrong setup, architecture revision,
-   event projection or state tensor fails before play.
-6. **Evaluate.** Existing immutable player registration points at exact bytes.
-   Extend EvaluationProtocol's study discriminator explicitly for architecture
-   comparison; retain held-out paired deals, all four seat/deck legs, chosen
-   inference policy, attempt retention and exact replay in the existing arena.
-   Regenerate the report from records. Policy-only CPU and search-augmented
-   evaluations are separate declared conditions. Use overlapping observed costs,
-   not extrapolated equal-hours claims.
-7. **Play admission, when requested.** Pass the real candidate through
-   `configured_opponent` and GameSession with both deck assignments and the
-   existing receipt requirements. Artifact reload alone is not demo admission;
-   fixture completion is not a human win. No new table protocol or session store
-   is needed solely because the network changed.
+1. **Resolve.** `smoke_plan()` constructs complete TrainingRegime values, validates
+   model/stage compatibility and binds their canonical digests to EvaluationProtocol.
+   `--write-plan` exports the complete plan without constructing a collector.
+2. **Construct and train.** Existing `execute_regime` uses ordinary Agent
+   construction from `regime.agent: AgentSpec`, the recorded seed and actual
+   observation/setup. Training stages retain their learning rules, optimizer,
+   continuation, EMA and watchdog ownership.
+3. **Export.** Existing writers retain `agent_hypers` as the dictionary key,
+   `model_state_dict`, observation capacities and mandatory world binding.
+   TrainingRun/StageRecord retain source/runtime, seed, exact artifact bytes,
+   costs and failures. Renaming the Python type does not migrate saved fields.
+4. **Reload.** `load_checkpoint_agent` reconstructs AgentSpec from the saved
+   dictionary, validates setup/input and strictly loads parameters/buffers.
+   Missing aggregation/depth fields retain historical one-layer semantics.
+   Wrong metadata or weights fail ordinary admission; no aliases or state ports.
+5. **Evaluate.** The existing `value-models` study discriminator, immutable player
+   registrations and arena run both raw checkpoint cutoffs with exact command
+   replay, all four deck/seat legs and random anchors. Report regeneration uses
+   retained records without training. Equal thread count is not equal inference
+   cost, and smoke scores are not method-level evidence.
+6. **Play admission, when requested.** The separate real-demo workflow still uses
+   `configured_opponent` and GameSession with both assignments. Arena replay and
+   artifact reload do not establish human-game completion or challenger strength.
 
-Separate sampler continuation: freeze raw/EMA policy SHA → existing
-`collect_belief` whole-game dataset → `train_belief` using the sampler builder →
-ordinary sampler export/reload → existing saved-game quality report → optional
-local search with identical generating-policy identity. Each arrow retains the
-existing dataset/schema/world/policy guards. Sampler fit and evaluation costs
-remain separate from policy training. Conditional queries and unsupported
-belief/compound combinations remain rejected until explicitly implemented.
+Separate sampler continuation remains the existing frozen policy → whole-game
+private dataset → separately admitted sampler artifact → quality report/local
+search path. Its schema, world, policy identity and gradient boundaries are
+unchanged. Compound policy decoding retains its existing configuration and
+prefix/reset lifecycle; unsupported value/capacity combinations fail validation.
 
 Proposed interfaces at persistence boundaries:
 
@@ -761,7 +731,7 @@ def apply_weight_transfer(
 
 Existing APIs such as execute_regime and load_checkpoint_agent remain public.
 No new train CLI is required; `uv run manabot train --regime <resolved-file>`
-remains the entry point after schema support lands. The JSON in section 5 is
+remains the entry point for a resolved regime. The JSON in section 5 is
 architecture-only and cannot be passed as a current TrainingRegime.
 
 ## 10. Failure behavior, alternatives and proportion
@@ -803,57 +773,60 @@ cannot export a real playable checkpoint. The complete-path gate prevents that.
 **Accepted by Jack Heart on 2026-10-05:** make registered comparisons easy to
 express as Python-built TrainingRegime objects. Keep architecture in the existing
 agent configuration; preserve checkpoint meanings and the frozen ETU-91 campaign.
-Refine AgentHypers into AgentSpec coherently after adopting focused delivery. A
+AgentHypers is refined in place as AgentSpec after adopting focused delivery. A
 broad configuration hierarchy, alternate executor, registry or backend migration
 is not justified by this cut.
 
-Implemented independent work:
+Delivered implementation:
 
-- `manabot/training/recipes.py` supplies `ataraxos_baseline`, `with_agent`,
-  `with_value_output` and `value_outputs`. Setup, workload and budgets are explicit.
-  Composition snapshots nested values and validates the full TrainingRegime;
-  unsupported WDL/objective combinations fail before execution.
-- The existing omitted-controls paper-value contrast now authors its baseline in
-  Python and uses those helpers. Its prior resolved values remain the control;
-  existing JSON files and frozen evidence are retained. Neither collection nor
-  execution occurs when importing the recipe module.
-- Scalar/WDL selection uses the existing trainer's target and loss dispatch. It
-  does not silently change the policy learning rule. Generated JSON remains the
-  execution record; ordinary checkpoint loading remains reconstruction authority.
+- ETU-106 PR #222 (`a371af46`) was merged with CI passing and 120 replayed
+  evaluation-recovery games, as reported by Jack Heart. `lf sync` integrated it;
+  the earlier dependency review blocker is resolved.
+- `AgentSpec` replaces the Python type AgentHypers in ordinary model construction,
+  training, serving, exports, scripts and tests. Serialized `agent_hypers` keys,
+  field meanings, defaults, strict loading and world admission stay unchanged.
+- `ataraxos_baseline`, `with_agent`, `with_value_output`,
+  `with_value_aggregation`, `with_capacity` and `value_outputs` compose independent
+  validated regimes. The paper-value contrast and eight-cell value study use
+  them; all eight ETU-106 recipe digests and its protocol remain unchanged.
+- The capacity example constructs width/depth 64/1, 64/2 and 128/2 through the
+  delivered model fields. No ETU-102 run, alternative encoder or expanded study.
 
-**Completed cleanup:** the paper-value contrast now constructs its final
-budgets directly and returns before the PPO-only mutation loop. JSON-based
-authoring and direct value-kind mutation are removed; exported fixtures, recipe
-identities, budgets, stages and objectives remain intact. ETU-106's repeated
-model-variation code remains to be replaced after its delivery is admitted;
-aggregation/depth implementation stays with that focused delivery.
+**Delete — do not maintain:** the old AgentHypers Python symbol and imports,
+JSON-template authoring of these value comparisons, and their unchecked per-cell
+model/budget mutation loops are removed. Frozen JSON/checkpoint evidence stays
+intact. Existing ordinary construction, learning rules and recovery remain owners.
 
-Remaining acceptance:
+The retained one-thread workflow at code commit `486739d5` completed all eight
+runs, 16 raw plus 16 EMA exports, and 30 arena cells / 120 valid exact-replayed
+games in 348.04 charged seconds. Evidence lives in
+`.runs/etu104-recipes-smoke`. The first attempt reached all games but failed
+reporting at 342.77 seconds because `nbclient` was absent. The original study
+JSON is retained as `study-before-report-resume.json`; ordinary `run_study(...,
+resume=True)` retained that interruption and completed only reporting after
+installing the declared notebook extra. All checkpoint, run and arena-row hashes
+remained identical. No retraining, replay replacement or protocol change occurred.
+Offline regeneration reproduced report, metrics and cost/uncertainty JSON bytes;
+the report's notebook code cells executed.
 
-1. Integrate actual ETU-106 delivery, including exact pooling, depth, initialization
-   and checkpoint semantics. The 2026-10-05 status read reports `human` at
-   `pr-review`: commit `2a508bab` is published as a branch but has no PR publication.
-   Its workflow failed before arena games; a corrected attempt remains subject to
-   that Task's review. ETU-104 does not release that boundary.
-2. ETU-102 is unstarted with no execution. Use delivered depth/width capability
-   once available rather than inventing a competing capacity architecture. Finish
-   AgentSpec naming and typed aggregation/capacity composition against those APIs.
-3. Move the eight-cell value-model authoring onto the helpers, retain every
-   resolved cell and protocol, and add the capacity examples. Keep unsupported
-   combinations explicit; no silent cell omission or allocation expansion.
-4. Verify ordinary export/reload for the selected models and run the approved
-   bounded baseline/value-token complete workflow through the existing arena,
-   exact replay and offline regeneration. Record all attempts and failures.
-5. Review and deliver the complete change through PR, CI and landing. Jack Heart
-   authorized landing, but upstream review and the complete workflow remain open.
+Repeat the bounded workflow with its declared reporting dependencies:
 
-Software acceptance is at most 15 minutes on one CPU thread per complete attempt.
-Scientific contrasts require a separate frozen protocol, independent seeds, paired
-held-out deals and declared costs. No strength, calibration or byte-identical
-stochastic-training claim follows from software acceptance. History, recurrence,
-new sampler architecture and transfer tooling are outside this first cut.
+```bash
+uv run --extra notebook python -m experiments.runners.run_value_models --out .runs/etu104-recipes-smoke-next
+uv run --extra notebook python -m experiments.runners.run_value_models --report-only .runs/etu104-recipes-smoke-next
+```
 
-Retained check: `uv run pytest tests/training/test_architecture_recipes.py tests/training/test_omitted_controls.py -k 'not ema_behavior' -q` — 25 passed, 2 deselected. No complete workflow attempt or scientific run has started in ETU-104; gate owns complete-workflow acceptance after integration.
+Remaining delivery: the supplied Flow's remaining preparation, publication,
+human `pr-review`, CI and landing. The approved software
+cap is 15 minutes per complete attempt. Scientific contrasts require a separate
+frozen protocol, independent seeds, paired held-out deals and declared costs.
+History, sequence training, new sampler architecture and transfer tooling remain
+outside this first cut. No strength or byte-identical-training claim follows.
+
+Check: recipe/value/omitted-controls checks passed 49 (2 deselected), categorical
+reload/protocol checks passed 23, and infra/model/world/challenger checks passed
+39; focused Ruff/format and HTML links passed. CI owns its remaining matrix.
+These command counts overlap on two protocol tests; they are not 111 unique tests.
 
 ## 12. Review record and remaining decisions
 
@@ -870,9 +843,9 @@ Retained check: `uv run pytest tests/training/test_architecture_recipes.py tests
 | 2026-10-05, Jack Heart, design review | Accepted recipe = Python function constructing specs or their enclosing objects, and Hypers → Spec naming. Retain lessons from all earlier research sources alongside the increased Keras/JAX emphasis. |
 | 2026-10-05, Jack Heart, approval carried into implementation | Approved the reviewed incremental section-11 design, implementation and landing, with at most 15 minutes on one CPU thread per complete workflow attempt. |
 
-Review approval is complete. The outstanding delivery dependency is ETU-106's
-own review and successful software workflow, not renewed approval of ETU-104.
-ETU-102 has no delivered capacity implementation yet. ETU-101 retains dashboard
+Review approval is complete, and ETU-106 is integrated. The capacity examples
+use its delivered width/depth fields; no independent ETU-102 implementation or
+scientific run is claimed. ETU-101 retains dashboard
 ownership. ETU-91's running campaign, checkout, recipes and evidence are untouched.
 
 The HTML is a self-contained rendering of this design and implementation status.
