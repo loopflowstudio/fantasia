@@ -15,7 +15,9 @@ Aggregation = Literal["historical_mean", "masked_mean", "value_token"]
 
 @pytest.mark.parametrize("aggregation", ["masked_mean", "value_token"])
 @pytest.mark.parametrize("depth", [1, 2])
-def test_padding_and_gradient_contract(aggregation: Aggregation, depth: int) -> None:
+def test_padding_and_gradient_contract(
+    aggregation: Aggregation, depth: Literal[1, 2]
+) -> None:
     torch.manual_seed(106)
     agent = Agent(
         ObservationSpace(),
@@ -28,19 +30,9 @@ def test_padding_and_gradient_contract(aggregation: Aggregation, depth: int) -> 
     def evaluate(padding: int, payload: float) -> torch.Tensor:
         rows = torch.cat((objects, torch.full((2, padding, 64), payload)), 1)
         ownership = torch.cat((owners, torch.zeros(2, padding, dtype=torch.bool)), 1)
-        mask = torch.cat((torch.zeros(2, 5), torch.ones(2, padding)), 1).bool()
-        if agent.value_token is not None:
-            rows = torch.cat((rows, agent.value_token.expand(2, -1, -1)), 1)
-            mask = torch.cat((mask, torch.zeros(2, 1, dtype=torch.bool)), 1)
-        rows = agent.attention(rows, ownership, mask)
-        for layer in agent.extra_attention:
-            rows = layer(rows, ownership, mask)
-        if agent.value_token is not None:
-            pooled = agent.value_head[:2](rows[:, -1])
-        else:
-            projected = agent.value_head[:2](rows).masked_fill(mask.unsqueeze(-1), 0)
-            pooled = projected.sum(1) / (~mask).sum(1, keepdim=True)
-        return agent.value_head[3:](pooled)
+        valid = torch.cat((torch.ones(2, 5), torch.zeros(2, padding)), 1)
+        encoded = agent._attend_objects(rows, ownership, valid)
+        return agent._value_from_objects(encoded, valid)
 
     expected = evaluate(0, 0)
     torch.testing.assert_close(expected, evaluate(7, 29), atol=1e-6, rtol=1e-5)

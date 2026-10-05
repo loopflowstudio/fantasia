@@ -17,6 +17,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def smoke_plan() -> ResolvedStudy:
+    template = TrainingRegime.model_validate_json(
+        (ROOT / "experiments/regimes/ataraxos-move-scalar.json").read_text()
+    )
     recipes: list[TrainingRegime] = []
     for aggregation, depth in (
         ("historical_mean", 1),
@@ -25,9 +28,7 @@ def smoke_plan() -> ResolvedStudy:
         ("value_token", 2),
     ):
         for kind in ("scalar", "categorical_wdl"):
-            recipe = TrainingRegime.model_validate_json(
-                (ROOT / "experiments/regimes/ataraxos-move-scalar.json").read_text()
-            )
+            recipe = template.model_copy(deep=True)
             recipe.id = f"value-{aggregation}-{depth}-{kind}"
             recipe.agent = recipe.agent.model_validate(
                 {

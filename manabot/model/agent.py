@@ -194,14 +194,33 @@ class Agent(nn.Module):
             )
         objects, is_agent, validity = self._gather_object_embeddings(obs)
 
+        encoded = self._attend_objects(objects, is_agent, validity)
+        # The optional trailing token is a critic input, never an action focus.
+        post_attention_objects = encoded[:, : validity.shape[1]]
+
+        informed_actions = self._gather_informed_actions(obs, post_attention_objects)
+
+        logits_before_mask = self.policy_head(informed_actions).squeeze(-1)
+        if self.debug:
+            # Save raw logits for offline diagnosis (scripts/diagnose_*).
+            self.last_raw_logits = logits_before_mask.detach().cpu()
+        logits = logits_before_mask.masked_fill(obs["actions_valid"] == 0, -1e8)
+        return logits, self._value_from_objects(encoded, validity)
+
+    def _attend_objects(
+        self,
+        objects: torch.Tensor,
+        is_agent: torch.Tensor,
+        validity: torch.Tensor,
+    ) -> torch.Tensor:
+        """Encode real objects and, when configured, a trailing neutral value token."""
         if (
             self.hypers.value_aggregation != "historical_mean"
             and (validity.sum(1) == 0).any()
         ):
             raise ValueError("value aggregation requires a valid object")
         key_padding_mask = validity == 0
-        token_mode = self.value_token is not None
-        if token_mode:
+        if self.value_token is not None:
             objects = torch.cat(
                 (objects, self.value_token.expand(objects.shape[0], -1, -1)), dim=1
             )
@@ -218,28 +237,22 @@ class Agent(nn.Module):
                 )
         else:
             post_attention_objects = objects
-        token = post_attention_objects[:, -1] if token_mode else None
-        if token_mode:
-            post_attention_objects = post_attention_objects[:, :-1]
+        return post_attention_objects
 
-        informed_actions = self._gather_informed_actions(obs, post_attention_objects)
-
-        logits_before_mask = self.policy_head(informed_actions).squeeze(-1)
-        if self.debug:
-            # Save raw logits for offline diagnosis (scripts/diagnose_*).
-            self.last_raw_logits = logits_before_mask.detach().cpu()
-        logits = logits_before_mask.masked_fill(obs["actions_valid"] == 0, -1e8)
-        if token is not None:
-            value = self.value_head[:2](token)
-            value = self.value_head[3:](value)
-        elif self.hypers.value_aggregation == "masked_mean":
-            projected = self.value_head[:2](post_attention_objects)
+    def _value_from_objects(
+        self, objects: torch.Tensor, validity: torch.Tensor
+    ) -> torch.Tensor:
+        """Read the critic while preserving historical value_head parameter names."""
+        if self.hypers.value_aggregation == "historical_mean":
+            return self.value_head(objects)
+        if self.value_token is not None:
+            objects = objects[:, -1]
+        projected = self.value_head[1](self.value_head[0](objects))
+        if self.hypers.value_aggregation == "masked_mean":
             projected = projected.masked_fill((validity == 0).unsqueeze(-1), 0)
-            pooled = projected.sum(1) / validity.sum(1, keepdim=True)
-            value = self.value_head[3:](pooled)
-        else:
-            value = self.value_head(post_attention_objects)
-        return logits, value
+            projected = projected.sum(1) / validity.sum(1, keepdim=True)
+        # Indexing avoids constructing temporary Sequential modules per decision.
+        return self.value_head[5](self.value_head[4](self.value_head[3](projected)))
 
     def compound(
         self,

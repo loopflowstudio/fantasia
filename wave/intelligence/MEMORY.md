@@ -15,8 +15,10 @@ addresses this concrete dependency; no strength benefit has been measured.
 Categorical targets and expected-value conversion already exist in the Ataraxos
 move path. The compound decoder owns a separate critic, so ordinary value-head
 changes must not silently claim compound support. Saved AgentHypers and strict
-world-bound loading remain the architecture authority. The focused software now implements all four contrasts, generates eight recipes
-and uses the existing study executor/report. Defaults retain historical weights
+world-bound loading remain the architecture authority. The focused software
+implements all four contrasts, generates eight recipes and uses the existing
+study executor/report. Variable-padding checks exercise the production attention
+and critic path rather than reproducing those equations in a test. Defaults retain historical weights
 and equations; extra blocks omit repeated ownership and the value token is neutral.
 Focused reload, hidden-deal, gradient and padding checks passed. Integrated smoke,
 offline regeneration and empirical promotion remain pending; implementation does
