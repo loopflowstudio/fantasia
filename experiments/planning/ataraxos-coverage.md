@@ -98,11 +98,28 @@ from the student. The main RL arm is frozen independently of screen results.
   evaluated 606 retained pilot decisions without fitting or generating games.
   ETU-96 software acceptance is complete; empirical calibration remains open.
 
+- [PR #217](https://github.com/loopflowstudio/etude/pull/217) extends bounded
+  same-host CPU self-play recovery across linked and fresh stages. Completed
+  artifacts and costs survive interruption, retry-setup failure and death after
+  a recovery claim. Twenty-two recovery checks passed after the final fixes,
+  including subprocess death and exact continuation equivalence. ETU-98 software
+  acceptance is complete. Other stage operations and MPS/CUDA recovery remain
+  unsupported; empirical throughput measurements remain in ETU-99.
+- [PR #219](https://github.com/loopflowstudio/etude/pull/219) scores current-world
+  tactical roots through ordinary checkpoint players with exact custom-deck and
+  observation-capacity admission, replayable injected prefixes and offline
+  reports. Scoring requires the intended behavior and resolved outcome, not just
+  cast intent or eventual victory. All five fixture checkpoints and privacy,
+  rejection, tamper and replay checks passed, with seven native debug scenario
+  checks and integrated sampler/scenario coverage. ETU-97 software acceptance is
+  complete. Selected-match transfer, belief-history attachment and scientific
+  robustness remain unestablished; no attacker was newly trained.
+
 These receipts establish software behavior, not empirical treatment benefit.
 ETU-92 and ETU-93 completed their revised software acceptance after merged code,
 relevant tests and successful CI were audited. ETU-94 and ETU-96 also completed their revised software acceptance.
-ETU-95, ETU-97 and ETU-98 retain their remaining delivery scope; ETU-95 owns
-search integration. ETU-99 owns the comparative
+ETU-97 and ETU-98 completed their revised software acceptance as well.
+ETU-95 retains the remaining search-integration delivery scope. ETU-99 owns the comparative
 scientific acceptance described below. Linear owns current execution state.
 
 ## Coverage
