@@ -112,7 +112,9 @@ def regularized_update(
 ) -> FloatArray:
     """Maximize p·Q - alpha KL(p||reference) - beta KL(p||base).
 
-    All vectors have shape [legal_actions]. Values are signed expected outcomes;
+    All vectors have shape [legal_actions]. Base zeros restrict the feasible
+    simplex; values outside its support may be NaN and are never consulted.
+    The reference remains strictly positive. Values are signed expected outcomes;
     beta is the inverse step scale. This is one detached local simplex update,
     not a gradient through a determinized game or an argmax improvement claim.
     """
@@ -246,7 +248,7 @@ class LocalUpdateReceipt:
         if not np.array_equal(counts > 0, support) or not np.array_equal(
             counts, receipt.allocation_counts
         ):
-            raise ValueError("local update lacks complete action coverage")
+            raise ValueError("local update lacks complete policy-support coverage")
         sums = np.bincount(
             [row.action_index for row in receipt.rollouts],
             weights=[row.signed_value for row in receipt.rollouts],

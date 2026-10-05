@@ -7,8 +7,6 @@ identified by method; it is not silently called a win probability.
 
 from collections.abc import Sequence
 
-import numpy as np
-
 from etude.advice import (
     AdvisorOfferEvidence,
     AdvisorScenarioEvidence,
@@ -36,7 +34,6 @@ def local_update_scenario(
     unavailable = UnavailableQuantity(
         status="unavailable", reason="insufficient_world_coverage"
     )
-    values = np.asarray([v if v is not None else 0.0 for v in receipt.values])
     return AdvisorScenarioEvidence(
         scenario_id=belief.scenario_id,
         belief=belief,
@@ -53,7 +50,7 @@ def local_update_scenario(
                 if receipt.values[index] is None
                 else AvailableQuantity(
                     status="available",
-                    value=float(values[index]),
+                    value=receipt.values[index],
                     method="signed_frozen_policy_rollout_value/v1",
                 ),
                 robustness=unavailable,
@@ -63,7 +60,11 @@ def local_update_scenario(
         ],
         root_value=AvailableQuantity(
             status="available",
-            value=float(values @ receipt.target),
+            value=sum(
+                value * probability
+                for value, probability in zip(receipt.values, receipt.target)
+                if value is not None
+            ),
             method="signed_local_policy_value/v1",
         ),
         root_uncertainty=unavailable,

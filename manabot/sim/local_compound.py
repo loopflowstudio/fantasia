@@ -2,9 +2,9 @@
 
 CompoundCursor keeps the original viewer tensors, native offers and forced
 prefix across canonical microsteps. Projection partitions the next Command for
-independent binary attackers and optional/single-target roles, verifying every
-route through native lowering. No declaration subsets are enumerated. Payment
-subsets retain exact zeros for legal micro-actions excluded by the ordered prefix.
+independent binary attackers, optional/single-target roles and ordered payment
+subsets, verifying each supported route through native lowering. No declaration
+subsets are enumerated. Payment subsets retain exact zeros for legal micro-actions excluded by the ordered prefix.
 """
 
 from collections import deque
@@ -59,7 +59,7 @@ class CompoundCursor:
 
 @dataclass(frozen=True)
 class CompoundChoice:
-    prefix: tuple[int, ...] | None
+    prefix: tuple[int, ...] | None  # None means inaccessible under this policy
     command: Command
     probability: float
 
@@ -409,10 +409,12 @@ class CompoundRollout:
     def advance(self, projection: CompoundProjection, action: int) -> None:
         next_cursor = advance_compound(self.agent, projection, action, self.check)
         if next_cursor is None:
+            prefix = projection.choices[action].prefix
+            assert prefix is not None  # advance_compound admitted this action
             output = _decode(
                 self.agent,
                 projection.cursor,
-                projection.choices[action].prefix,
+                prefix,
                 self.check,
             )
             self.factors += len(output.tokens) - len(projection.cursor.tokens)

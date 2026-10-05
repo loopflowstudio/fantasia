@@ -199,19 +199,8 @@ def _validate_dataset(
                 local_targets[row] = targets[row]
             elif policy_target_kind == "local_argmax":
                 legal = np.flatnonzero(valid_actions[row])
-                local_targets[
-                    row,
-                    legal[
-                        int(
-                            np.argmax(
-                                [
-                                    v if v is not None else -np.inf
-                                    for v in receipt.values
-                                ]
-                            )
-                        )
-                    ],
-                ] = 1
+                values = [v if v is not None else -np.inf for v in receipt.values]
+                local_targets[row, legal[int(np.argmax(values))]] = 1
             else:
                 counts = np.asarray(receipt.allocation_counts)
                 local_targets[row, valid_actions[row]] = counts / counts.sum()

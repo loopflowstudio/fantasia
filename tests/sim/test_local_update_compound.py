@@ -9,6 +9,8 @@ import numpy as np
 import pytest
 import torch
 
+from etude.advice import BeliefNormalizationReceipt
+from etude.local_advice import local_update_scenario
 from manabot.belief.likelihood import file_sha256
 from manabot.belief.state import ViewerHistory
 from manabot.env import Env, Match, ObservationSpace
@@ -137,7 +139,13 @@ def test_supported_root_rollout_reaching_payment_replays(
         else Agent(space, AgentHypers(hidden_dim=8, num_attention_heads=2))
     )
     path = tmp_path / "compound.pt"
-    save_bc_checkpoint(agent, space, path, player_configs=configs, extra={"value_semantic": "signed_outcome"})
+    save_bc_checkpoint(
+        agent,
+        space,
+        path,
+        player_configs=configs,
+        extra={"value_semantic": "signed_outcome"},
+    )
     config = LocalSearchConfig(depth=2, decision_seconds=20)
     teacher = LocalUpdateTeacher(path, file_sha256(path), config)
     if learned:
@@ -172,6 +180,12 @@ def test_supported_root_rollout_reaching_payment_replays(
     receipt = teacher.search(env, history, seed=19)
     teacher.verify_replay(env, history, receipt)
     LocalUpdateReceipt.from_json(receipt.to_json())
+    assert (
+        LocalUpdateReceipt.from_json(
+            replace(receipt, schema="regularized-local-update/v2").to_json()
+        ).target
+        == receipt.target
+    )
     assert env.state_digest() == before
     assert env.possible_world_space_construction_count() == constructions
     if not compound:
@@ -229,6 +243,29 @@ def test_supported_root_rollout_reaching_payment_replays(
         }
     )
     dataset[LOCAL_TARGET_KEY][0, :count] = receipt.target
+    saved = tmp_path / "payment-target.npz"
+    np.savez(saved, **dataset)
+    dataset = load_shards([saved])
+    evidence = local_update_scenario(
+        receipt,
+        BeliefNormalizationReceipt(
+            scenario_id="baseline",
+            space_identity=receipt.world_identity,
+            belief_model_id=receipt.belief_model,
+            distribution_sha256=receipt.belief_digest,
+            normalized_belief_sha256=receipt.belief_digest,
+            positive_support=1,
+            normalization_error=0,
+            provenance_kind="model_inferred",
+            provenance_identity=receipt.policy_sha256,
+        ),
+        labels=["payment"] * count,
+    )
+    assert evidence.sampled_worlds == 1
+    for action, zero in zip(evidence.actions, inactive):
+        assert (action.q.status == "unavailable") == zero
+    assert evidence.root_value.status == "available"
+    assert np.isfinite(evidence.root_value.value)
     for kind in ("local_soft", "local_argmax", "local_allocation"):
         targets = _validate_dataset(
             dataset, policy_target_kind=kind, value_target_kind="terminal_outcome"
