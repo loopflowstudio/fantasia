@@ -208,9 +208,11 @@ def training_dashboard(run: TrainingRun) -> Dashboard:
                     row[f"availability/rl/{metric}"] = isinstance(value, (float, int))
                     if isinstance(value, (float, int)) and math.isfinite(value):
                         row[f"rl/{metric}"] = value
-                if diagnostic.get("rows"):
+                if diagnostic.get("rows") and isinstance(
+                    diagnostic.get("retained"), (int, float)
+                ):
                     row["rl/retained_fraction"] = (
-                        diagnostic.get("retained", 0) / diagnostic["rows"]
+                        diagnostic["retained"] / diagnostic["rows"]
                     )
             rows.append(row)
     return Dashboard(

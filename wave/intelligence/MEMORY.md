@@ -1,5 +1,31 @@
 # Intelligence memory
 
+## Reading learning trends (ETU-117, 2026-10-06)
+
+Jack Heart requested saved-data-only reporting, publication and a review demo;
+landing remains forbidden pending review. The editable create-once notebook now
+leads with checkpoint scores, separate scientific and monitoring cohorts, seed
+variation and descriptive seed/deal intervals. Missing initialization stays
+unavailable. Per-regime diagnostics separate the KL-inclusive policy objective,
+value loss, entropy and unweighted KL, with labeled trailing smoothing, gaps,
+selection counts and raw downloads. No historical minibatch averages are invented.
+
+The completed history exports contain 1,044/2,965 entropy values within .001 nat
+of ln(2), plus 35 empty-filter updates. The trainer retains only the last optimized
+timestep minibatch. Binary near-uniform choices remain a hypothesis: its support
+sizes/probabilities were not saved. Entropy is not competence. The three-seed
+scientific endpoint effect is 0 [−11,+9.33] points, unresolved; both scientific
+and earlier one-seed monitoring lack evaluated initialization. Monitoring ABIs
+differ, so its histories remain separate per run. Pipeline/replay smoke does not
+supply a positive learning control; that design remains separate work.
+
+The [report and reproduction guide](../../docs/evidence/history-report-learning-2026-10-06.md)
+owns evidence, costs and limits. Originals/user notebooks remain untouched. An
+accidentally broad validation selection ran tiny training fixtures and started a
+monitor attempt, then was interrupted with no completed monitoring rows; retained
+separately under `.runs/etu117-interrupted-validation`, never scientific evidence.
+Subsequent validation is offline-only. No substantive campaign allocation follows.
+
 ## Experiment execution and notebook boundary (ETU-113, 2026-10-06)
 
 Jack Heart accepted Experiment as the declarative comparison interface, with one
@@ -1007,52 +1033,19 @@ owns the support semantics and remaining limits.
 
 ## Architecture-recipe implementation boundary (ETU-104, 2026-10-05)
 
-Jack Heart reviewed and approved the incremental architecture-recipe design,
-implementation and landing. Python functions construct existing TrainingRegime
-values; model configuration stays in its agent field. AgentSpec refines the existing
-AgentHypers in place, reusing Pydantic validation, ordinary construction,
-checkpoint admission and EvaluationProtocol. No registry, backend migration or
-new execution framework is required. The approved software workflow cap is
-15 minutes on one CPU thread per complete attempt; no scientific allocation or
-paid compute follows. ETU-101 retains W&B ownership; ETU-91 remains untouched.
-The [design and HTML review](../../docs/plans/modular-architecture-recipes.md)
-preserve the primary-source research, accepted first cut and remaining work.
-
-Shared recipe helpers now build the explicit Ataraxos move baseline and independent
-model, value-output, pooling and capacity variants. Full regime validation rejects
-incompatible targets; representation selects existing value dispatch without
-changing stage learning settings. Both the paper-value contrast and eight-cell
-value study consume these helpers. AgentSpec is the single Python model type;
-checkpoint dictionaries retain `agent_hypers`, existing fields and admission.
-No checkpoint metadata migration or state-key port is necessary for this rename.
-
-Jack Heart reported ETU-106 merged as PR #222 at `a371af46` with CI passing and
-120 exact-replayed evaluation-recovery games. ETU-104 integrated it with `lf sync`.
-The old dependency review blocker is resolved. Recipe composition retains all
-eight regime digests and the evaluation protocol. Capacity examples use the
-merged width/depth fields and allocate no ETU-102/103 study. Feedforward expansion,
-post-normalization and ownership injection stay with the delivered model.
-
-ETU-104 at `486739d5` completed eight regimes, 32 admitted exports and 120
-exact-replayed games in 348.04 seconds. Missing-notebook-dependency recovery
-retained failure evidence without retraining; offline regeneration was identical.
-Full details remain at `a3b22009`. This proves
-software composition and reload/evaluation, not strength or chapter acceptance.
-PR #223 is published. Jack Heart explicitly requested completion through landing;
-the landing pass reviewed the diff and retained evidence, with 64 focused checks
-passing. This is agent technical review, not human code review. Required CI and
-verified merge remain delivery conditions.
-
-
-Recipe composition uses regime IDs as the single cell-label source and rejects
-duplicates before crossing value outputs. Every variation snapshots and validates
-the complete result, so nested edits cannot mutate sibling arms and unsupported
-model/objective combinations fail before execution. Compression preserved all
-eight resolved regime digests and the evaluation protocol; recipe labels do not
-substitute for artifact or model identity. The delivered no-attention switch is
-`attention_on=False`, not a zero-depth model. Broader nested specs and receipts
-remain design sketches; ordinary AgentSpec and checkpoint admission own the
-implemented path.
+Jack Heart approved the incremental recipe design, implementation and landing.
+AgentSpec remains the single model configuration authority; Python recipe helpers
+construct ordinary TrainingRegime values without a registry, checkpoint migration
+or weight port. Component variations snapshot/validate complete configurations,
+reject duplicate labels and preserve the eight resolved value-study digests and
+protocol. ETU-106 was integrated before verification. The retained `486739d5`
+workflow completed eight regimes, 32 admitted exports and 120 exact-replayed games
+in 348.04 seconds; notebook dependency recovery required no retraining and offline
+regeneration was identical. These are composition/reload proofs, not strength or
+chapter acceptance. ETU-91 remained untouched. PR #223's merged status is recorded
+in the later ETU-109 entry. Full implementation/delivery history remains at
+`33bce999`; the [design](../../docs/plans/modular-architecture-recipes.md) owns
+scope and deferred architecture sketches.
 
 ## Training dashboard software (ETU-101, 2026-10-05)
 
