@@ -31,6 +31,10 @@ Run provenance lives in the verify store (`.runs/verify.sqlite`).
 
 ## Index
 
+ETU-99's [remaining Ataraxos transfer protocols](ataraxos-transfer.md) map
+delivered instruments to unexecuted sampler, search, distillation and robustness
+studies. Proposed budgets are separate from ETU-91 and grant no execution authority.
+
 | exp | question | verdict |
 |---|---|---|
 | [00](exp-00-decision-profile.md) / [00-cost](exp-00-cost-basis.md) / [00c](exp-00c-seat-balanced-baselines.md) | calibrate the instrument | 194 decisions/game; single-init baselines meaningless; $0.44/1M steps. ~~Per-seat findings (94%/23.1% on-play)~~ deal artifacts per exp-06 — deal-averaged random mirrors are at parity (repro_06) |
@@ -78,3 +82,8 @@ Run provenance lives in the verify store (`.runs/verify.sqlite`).
 
 (Older platform docs: [first-light-run-1](first-light-run-1.md),
 [sps-closeout](sps-closeout.md).)
+
+Distributed-RL research and the unexecuted bounded workload plan live in
+[the ETU-108 report](../docs/distributed-rl.md). Its supervisor is in
+[runners/distributed_benchmark.py](runners/distributed_benchmark.py); this is
+benchmark preparation, not a completed two-host training experiment.
