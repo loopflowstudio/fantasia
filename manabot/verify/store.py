@@ -9,9 +9,12 @@ from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING, Any
 
+from pydantic_core import to_jsonable_python
+
 from .util import EvaluationArtifacts
 
 if TYPE_CHECKING:
+    from manabot.training.experiment_execution import ExperimentRun
     from manabot.training.models import TrainingRun
 
 RUN_CONFIG_FIELDS = (
@@ -95,6 +98,34 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def training_stage_payloads(con: sqlite3.Connection, run_id: str) -> list[dict]:
+    """Return one run's stage records in execution order, diagnostics included.
+
+    Diagnostics live in their own append-only table. Stores written before that
+    table existed keep them inline in the stage payload, and may lack the table
+    entirely when opened read-only, so both layouts are read here.
+    """
+    stages = [
+        json.loads(payload)
+        for (payload,) in con.execute(
+            "SELECT payload FROM training_stages WHERE run_id=? ORDER BY rowid",
+            (run_id,),
+        )
+    ]
+    if not con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='training_stage_diagnostics'"
+    ).fetchone():
+        return stages
+    for stage in stages:
+        rows = con.execute(
+            "SELECT payload FROM training_stage_diagnostics WHERE run_id=? AND stage_id=? ORDER BY seq",
+            (run_id, stage["id"]),
+        ).fetchall()
+        if rows or "diagnostics" not in stage:
+            stage["diagnostics"] = [json.loads(payload) for (payload,) in rows]
+    return stages
+
+
 def _clean_json(value: Any) -> Any:
     if isinstance(value, dict):
         return {key: _clean_json(val) for key, val in value.items()}
@@ -138,6 +169,24 @@ class VerifyStore:
     def close(self) -> None:
         self.con.close()
 
+    def save_experiment_run(self, run: ExperimentRun) -> None:
+        """Persist actual execution separately from the declarative Experiment."""
+        with self.con:
+            self.con.execute(
+                "INSERT INTO experiment_runs VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload",
+                (run.id, run.model_dump_json()),
+            )
+
+    def experiment_run(self, run_id: str) -> ExperimentRun:
+        from manabot.training.experiment_execution import ExperimentRun
+
+        row = self.con.execute(
+            "SELECT payload FROM experiment_runs WHERE id=?", (run_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(run_id)
+        return ExperimentRun.model_validate_json(row[0])
+
     def save_training_run(self, run: TrainingRun) -> None:
         """Commit one canonical regime execution and its stage records atomically."""
         with self.con:
@@ -148,8 +197,36 @@ class VerifyStore:
             for stage in run.stages:
                 self.con.execute(
                     "INSERT INTO training_stages VALUES (?, ?, ?) ON CONFLICT(run_id, stage_id) DO UPDATE SET payload=excluded.payload",
-                    (run.id, stage.id, stage.model_dump_json()),
+                    (run.id, stage.id, stage.model_dump_json(exclude={"diagnostics"})),
                 )
+                self._save_stage_diagnostics(run.id, stage.id, stage.diagnostics)
+
+    def _save_stage_diagnostics(
+        self, run_id: str, stage_id: str, diagnostics: list[dict]
+    ) -> None:
+        """Write only the diagnostic rows this save can have changed.
+
+        Executors append one row per update and may still be filling in the
+        newest row, so the last stored row is rewritten and later rows are
+        inserted. Earlier rows are immutable once saved; that keeps a save's
+        cost independent of how many updates the stage has already recorded.
+        """
+        key = (run_id, stage_id)
+        stored = self.con.execute(
+            "SELECT COALESCE(MAX(seq) + 1, 0) FROM training_stage_diagnostics WHERE run_id=? AND stage_id=?",
+            key,
+        ).fetchone()[0]
+        if stored > len(diagnostics):
+            self.con.execute(
+                "DELETE FROM training_stage_diagnostics WHERE run_id=? AND stage_id=? AND seq>=?",
+                (*key, len(diagnostics)),
+            )
+            stored = len(diagnostics)
+        for seq in range(max(stored - 1, 0), len(diagnostics)):
+            self.con.execute(
+                "INSERT INTO training_stage_diagnostics VALUES (?, ?, ?, ?) ON CONFLICT(run_id, stage_id, seq) DO UPDATE SET payload=excluded.payload",
+                (*key, seq, json.dumps(to_jsonable_python(diagnostics[seq]))),
+            )
 
     def claim_training_recovery(self, parent_id: str, run: TrainingRun) -> None:
         """Atomically allow one continuation per stopped attempt, never a fork."""
@@ -179,16 +256,16 @@ class VerifyStore:
         if row is None:
             raise KeyError(run_id)
         payload = json.loads(row[0])
-        stage_rows = self.con.execute(
-            "SELECT payload FROM training_stages WHERE run_id=? ORDER BY rowid",
-            (run_id,),
-        ).fetchall()
-        payload["stages"] = [json.loads(stage[0]) for stage in stage_rows]
+        payload["stages"] = training_stage_payloads(self.con, run_id)
         return TrainingRun.model_validate(payload)
 
     def _create_schema(self) -> None:
         self.con.executescript(
             """
+            CREATE TABLE IF NOT EXISTS experiment_runs (
+                id TEXT PRIMARY KEY,
+                payload TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS training_runs (
                 id TEXT PRIMARY KEY,
                 payload TEXT NOT NULL
@@ -198,6 +275,13 @@ class VerifyStore:
                 stage_id TEXT NOT NULL,
                 payload TEXT NOT NULL,
                 PRIMARY KEY (run_id, stage_id)
+            );
+            CREATE TABLE IF NOT EXISTS training_stage_diagnostics (
+                run_id TEXT NOT NULL,
+                stage_id TEXT NOT NULL,
+                seq INTEGER NOT NULL,
+                payload TEXT NOT NULL,
+                PRIMARY KEY (run_id, stage_id, seq)
             );
             CREATE TABLE IF NOT EXISTS runs (
                 id INTEGER PRIMARY KEY,

@@ -15,6 +15,29 @@ attempt 005 is running. ETU-119 owns persistence fixes; frozen runs stay unchang
 Growing update intervals do not isolate save cost. Wider budgets also change the
 elapsed-budget schedule. No strength or chapter acceptance follows.
 
+## Experiment execution and notebook boundary (ETU-113, 2026-10-06)
+
+Jack Heart accepted declarative Experiment comparisons: one Python declaration
+per experiment and a shared explicit runner. History/depth
+consumers preserve calibrated regime identities, seed order and scientific deal
+reservations. Configured local CPU placement admits one learner plus one bounded
+evaluator; remote placement/provisioning and alternative trackers remain follow-ups.
+TrainingRun and VerifyStore retain learning and execution authority. Monitoring
+reuses ETU-101, keeps original checkpoint coordinates, retains failures and charges
+evaluator process time separately. Resume grants no budget or silent retries.
+
+Jack Heart revised the demo contract: one create-once editable notebook generates
+read-only HTML graphs/dashboard, leading with progress/freshness, applicable loss,
+latest evaluation, costs and failures; comparisons share milestones. Metric docs and reusable functions own
+deeper analysis. Notebook edits survive refresh; Jack Heart's original edited
+demo remains intact beside a separately named revised generator. Cells only read
+retained data. Interpretation, ledger updates and next-experiment choices belong
+to a skill. Landing and auto-merge remain forbidden pending Jack Heart's review.
+
+Tiny fixtures prove scheduling/reporting only; timeouts remain retained and
+incomplete cohorts never become rates. No strength claim or live ETU-103/106
+change follows. [Execution guide](../../docs/experiment-execution.md): launch, recovery, costs and reporting.
+
 ## History input (ETU-106, 2026-10-06)
 
 Jack Heart authorized [history-screen delivery and recovery](../../experiments/history-input.md).
@@ -467,36 +490,20 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-GOAL.md owns ETU-21/31/34 dispositions; history is at `59f16e0d`/`60e2f897`.
-[Live-advice limits](../../docs/plans/live-belief-advice.md) remain; demos do not
-establish strength or full-game calibration. Rules owns history.
+Detail remains at `59f16e0d` / `60e2f897`; GOAL.md owns ETU-21's abandonment,
+ETU-31's deferral and ETU-34's completion. Bounded demos prove no strength or
+conditional student flips. ed2 survives; unavailable advice/checkpoints remain
+subject to [the live-advice plan](../../docs/plans/live-belief-advice.md).
+Rules owns history semantics; check existing Tasks before overlapping work.
 
 ## Corrected-world training binding (2026-09-29)
 
-`scripts/train_challenger.py` remains the receipt-bound training-to-demo runner.
-The regime executor described below adds staged training; it does not yet
-replace that demo admission path. It builds
-teacher games with `MatchHypers.authored`, so sideboards are present and Learn
-offers a Lesson; deck constants alone give the old setup. The play server
-rejects a candidate whose content manifest was taken without sideboards. The
-runner records rules-runtime, content, setup, Lesson-pool and
-observation/action ABI digests, requires admission (engine legal-offer count
-equals encoded rows at every decision, at least one Learn decision offering a
-Lesson, search cap hits at most 1%), and completes only after the candidate
-plays both deck assignments through `configured_opponent` and `GameSession`.
-`train_search_supervised` now takes `observation_hypers`.
-
-Two eight-game executions completed on 2026-09-29 in 200 s and 139 s with zero
-omitted choices over 993 and 824 decisions (18 and 17 Learn decisions). In
-both, held-out policy KL stayed at its untrained value (0.0218 → 0.0222,
-0.0197 → 0.0212): PUCT-64×4 visit targets were close to uniform (top share 47%
-versus 39% uniform) and each run took about 56 optimizer steps. Which of those
-limits learning is untested. Treat these checkpoints as pipeline proof only.
-Details and unreviewed decisions are in the
-[2026-09-29 record](../../docs/evidence/corrected-world-training-2026-09-29.md).
-That record predates the current w4 declaration. New runs resolve the native
-world and exact ABI identities; ETU-75 owns the shared checkpoint/setup binding.
-
+`scripts/train_challenger.py` owns training-to-demo admission with authored
+sideboards and exact world/setup/ABI bindings. Two bounded executions proved the
+pipeline, not improvement: held-out KL stayed near initialization. Full observations
+and unresolved label/optimizer limits remain in
+[the dated record](../../docs/evidence/corrected-world-training-2026-09-29.md) and
+this memory at `fd7437df`. Regime execution does not replace demo admission.
 
 ## Training regime reconciliation (2026-10-04)
 
@@ -1026,18 +1033,16 @@ eight regime digests and the evaluation protocol. Capacity examples use the
 merged width/depth fields and allocate no ETU-102/103 study. Feedforward expansion,
 post-normalization and ownership injection stay with the delivered model.
 
-The retained ETU-104 bounded run at `486739d5` completed eight regimes, 32
-admitted raw/EMA exports and 120 exact-replayed games in 348.04 charged seconds.
-It first failed reporting because the notebook extra was absent; ordinary resume
-retained the failure and completed reporting without retraining or replacing
-arena rows. Offline report/metrics regeneration was byte-identical. This proves
+ETU-104 at `486739d5` completed eight regimes, 32 admitted exports and 120
+exact-replayed games in 348.04 seconds. Missing-notebook-dependency recovery
+retained failure evidence without retraining; offline regeneration was identical.
+Full details remain at `a3b22009`. This proves
 software composition and reload/evaluation, not strength or chapter acceptance.
 PR #223 is published. Jack Heart explicitly requested completion through landing;
 the landing pass reviewed the diff and retained evidence, with 64 focused checks
 passing. This is agent technical review, not human code review. Required CI and
 verified merge remain delivery conditions.
 
-Inspection at `ccb6538c`: equal shapes do not establish weight compatibility.
 
 Recipe composition uses regime IDs as the single cell-label source and rejects
 duplicates before crossing value outputs. Every variation snapshots and validates
@@ -1084,34 +1089,34 @@ The live W&B service was not exercised. These remain software fixtures.
 
 ## Capacity software receipt boundary (ETU-102, 2026-10-05)
 
-Jack Heart authorized independent software completion, publication and landing
-following the PR 222/223 audit. Their AgentSpec width/depth/head validation,
-baseline-preserving model and with_capacity ladder remain the sole configuration
-owner. ETU-102 adds derived versioned architecture identity, total/trainable
-parameter accounting by actual component, TrainingRun identity and ordinary
-checkpoint receipt admission. Present receipts reject contradictory equal-shaped
-pooling metadata; absent historical receipts retain existing world/weight checks.
-World/content, source/runtime and checkpoint bytes remain separate authorities.
-No weight port, forward-equation change or second recipe schema was introduced.
+Jack Heart authorized independent software delivery. AgentSpec and with_capacity
+remain configuration owners; derived architecture receipts bind resolved model
+meaning and actual component parameter totals. Absent historical receipts retain
+world/weight checks; present contradictory metadata fails admission. World,
+source/runtime and checkpoint bytes remain separate. No weight port or changed
+forward equation was introduced. Trainable counts are export flags, not exposures.
 
-The existing calibration runner now freezes a bounded three-capacity CPU workflow
-and measures model construction, loading, first call, warmed inference, collection,
-optimizer, sampled RSS and total time. At `90c55627` the single retained ladder
-attempt completed in 212.56 seconds with six admitted raw checkpoints and 40
-exact-replayed games. Exact counts were 138,434 / 188,418 / 712,706 parameters
-for 64/1, 64/2 and 128/2 with four heads and selected-match semantic input.
-Host load was high; timings establish tooling, not scaling or strength. An earlier
-default-calibration test retained one 10-second game timeout; a 30-second per-game
-allowance fixed the workflow without raising its total cap. The focused checks
-passed with one optional notebook skip. Full records and interpretation limits
-live in [calibration documentation](../../docs/training-calibration.md).
-ETU-91 remained untouched; no scientific capacity study, paid compute, demo or
-chapter acceptance follows. The declarative-recipe follow-up should continue to
-use AgentSpec and these derived receipts rather than add an architecture owner.
-Trainable counts describe export-time flags, not optimizer exposures. Calibration
-inference batches are identified per checkpoint but need not match across arms;
-their timings cannot isolate capacity alone. Cold measurements mean fresh model
-construction/loading in an initialized process, not cold imports or OS caches.
+The retained `90c55627` CPU ladder completed in 212.56 seconds: six admitted raw
+checkpoints and 40 exact-replayed games. Semantic 64/1, 64/2, 128/2 models had
+138,434 / 188,418 / 712,706 parameters. High host load and differing inference
+batches prevent capacity-only timing claims. A retained timeout was fixed within the original cap.
+Full timing definitions and integration evidence remain at `fd7437df` and in the
+[calibration guide](../../docs/training-calibration.md). These are software proofs;
+no scientific allocation, strength, demo or chapter acceptance follows. ETU-91
+remained untouched.
+
+## Larger ordinary models (ETU-115, 2026-10-06)
+
+Jack Heart authorized larger recipes and laptop probes. AgentSpec depth/expansion
+preserves default identities. Opt-in 384/8/1536 leaves ETU-103 unchanged:
+16,815,746 parameters, 203 slots rather than the estimated 270–300.
+Actions/events are not attention rows. Four sizes trained/exported; mode-mismatched verification failed. Read-only
+recovery proved changed weights and exact reload. Eight CPU/MPS probes completed.
+Contention prevents scaling claims; diagnostic Adam rates are not RL throughput. MPS model execution does not establish stage-device support (ETU-114).
+Padding removal changes pooling/focus; ABI/defaults remain unchanged.
+Preserve `.runs/etu115-scale`; the [report](../../docs/evidence/ataraxos-scale-2026-10-06.md)
+owns identities, failures, memory and limits. No scientific allocation, strength
+or chapter acceptance follows.
 
 ## Declarative experiment authoring (ETU-109, 2026-10-05)
 
