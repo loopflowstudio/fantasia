@@ -1,1 +1,0 @@
-Validation: six native fixture/matrix tests and 14 built release browser checks pass locally (macOS screenshots ignored); Linux run 37412988847 passes 14 browser checks in generation and strict comparison plus native matrix validation. Only discard PNG changes; ETU-77 remains open for human play.
