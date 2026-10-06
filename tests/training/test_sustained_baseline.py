@@ -71,7 +71,7 @@ def calibration_fixture(root: Path) -> ExperimentRun:
                 },
                 stages=[
                     StageRecord(
-                        id="update-64",
+                        id=regime.stages[0].id,
                         status="completed",
                         optimizer_exposures=64,
                         diagnostics=[
