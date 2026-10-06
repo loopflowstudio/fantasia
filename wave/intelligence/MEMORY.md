@@ -7,8 +7,8 @@ Jack Heart authorized RunPod software and an under-&#36;5 proof, not larger trai
 and immutable artifact relocation. ETU-108/larger-model work stay independent.
 SQLite admission needs VerifyStore's complete run/stage reader.
 
-The dated inventory reported zero pods; no implementation rental/training ran.
-CUDA execution, self-deletion and returned-checkpoint play remain unproved.
+Inventory reported zero pods. CUDA, self-deletion and returned-checkpoint play
+remain unproved; implementation rented nothing.
 The [remote contract](../../docs/remote-training.md) owns the &#36;4.90 all-attempt
 helper. Cleanup recovers costs only from retained/observed evidence; unknown
 billing blocks retries. Initial-empty inventory requires final-empty inventory;
