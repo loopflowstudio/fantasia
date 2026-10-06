@@ -32,6 +32,7 @@ not a provider invoice. The prior shakedown's $0.29 is reported expenditure.
 | 003 | `5f1c34d6` | Guardian and CUDA smoke passed; first stage interrupted; all 21 bundle files verified; deleted | $0.3260 |
 | 004 | `62fc7e15` | 350 updates/stage completed; records/checkpoints returned; four replayed arena games; deleted | $0.3661 |
 | 005 | `62fc7e15` | 600 updates/stage completed; four replayed arena games; deleted | $0.5010 |
+| 006 | `88375ad0` | Local-disk setup; 16 CUDA updates; four replayed arena games; deleted | $0.0450 |
 
 Attempt 001 retains the original unresolved receipt plus explicit manual
 reconciliation. An authenticated query observed the unique receipt-owned pod at
@@ -131,6 +132,79 @@ Phase boundaries synchronize the GPU. CUDA receipts add actual device, memory,
 capability and runtime; the returned toolchain record includes driver version.
 CPU defaults and receipt fields retain their prior meaning.
 
+## Local-disk setup measurement
+
+Source and its `.venv` live at `/opt/manabot/repo`, with uv's cache alongside at
+`/opt/manabot/uv-cache`. Only returned evidence and input recipes use `/workspace`.
+The 20 GB pod volume is deleted with the pod; no independent persistent volume is
+created. Container storage remains 30 GB. This is a fresh install, not a prebuilt
+image or a warm-environment claim.
+
+On 2026-10-06, attempt 006 measured **53 seconds for uv sync, 20 seconds for the
+native build, and 90 seconds for the complete bootstrap**. The comparable interval
+from `.venv/pyvenv.cfg` to final `toolchain.txt` was **71 seconds**, versus **486
+seconds** on attempt 005's network-volume environment. That interval includes
+install and build; the older observation is not a direct uv timer. Both are
+single observations on different rentals, and the newer source includes PR #250;
+this supports the placement choice, not a controlled hardware benchmark.
+
+The short run completed 16 CUDA updates in 27.76 seconds, returned verified
+raw/EMA records, and played four exact-replayed games in 6.51 seconds. The pod
+was deleted and inventory was empty. Task cost through 006 is **$1.6160** including
+the reported shakedown. The measured bootstrap plus guardian/provisioning fits the
+existing five-minute example setup reserve; longer earlier attempts used twenty
+minutes. Keep extra reserve for larger dependencies or slow availability.
+`bootstrap-timing.json` travels with the immutable evidence bundle.
+
+## Worked example: two experiments on one rental
+
+[ops/examples/two_experiments.py](../ops/examples/two_experiments.py) keeps one
+machine for two seeds of a small regime at the **same exact committed source**.
+It uses the existing compiler, price/resource admission, startup guardian,
+transport, bundle verifier and cleanup. It adds no public command or reuse mode.
+The normal deployment command continues to rent a fresh pod and delete it.
+Changing dependency/native inputs between experiments is outside this example;
+do not silently reuse an incompatible environment.
+
+Prepare the small recipe, commit and non-force push any source edits, then run:
+
+```bash
+uv run python - <<'PYCODE'
+import json
+from pathlib import Path
+recipe = json.loads(Path('experiments/regimes/direct-self-play.json').read_text())
+recipe['wall_seconds'] = 300
+for stage in recipe['stages']:
+    stage['updates'] = 8
+    stage['execution']['wall_seconds'] = 150
+    stage['learning']['ema'] = 0.9
+Path('.runs').mkdir(exist_ok=True)
+Path('.runs/two-experiments.json').write_text(json.dumps(recipe, indent=2))
+PYCODE
+doppler run --project etude --config prd -- uv run python ops/examples/two_experiments.py \
+  --regime .runs/two-experiments.json --mix ops/mixes/runpod-small.json
+```
+
+Setup happens once. Both training commands use `uv run --no-sync`, assert the
+pinned commit/tree and create separate TrainingRuns/databases for seeds 197 and
+198. Every artifact returns and ordinary raw/EMA loading must pass. The original
+30-minute allowance never extends: the pod guardian deletes at minute 28, with
+two minutes reserved for laptop cleanup. The laptop also bounds SSH and deletes
+in `finally`. The default path's guardian probes established scoped deletion on
+this image; the example uses the same startup guardian without another probe.
+
+An idle L4 still costs **$0.49/hour compute**, plus storage (the plan reserves
+$0.02/hour). Keeping it live saves setup, not rental charges. `experiments.json`
+separates first-run setup, idle gaps, training command and transfer time;
+TrainingRun retains training phase costs. `deployment.json` includes the entire
+rental, including setup and teardown. Records stay under the same ignored
+`.runs/remote-acceptance` ledger; unresolved prior costs/deletions prevent another
+rental and the example retains its conservative $4.90 ledger ceiling.
+Use `remote status` to inspect live count/hourly compute and `remote cleanup`
+with the recorded deployment receipt if cleanup is unconfirmed.
+
+Real two-experiment timing and teardown evidence remains to be recorded.
+
 ## Deadlines and cleanup
 
 Every command first rents a short guardian probe, then waits for pod-side deletion.
@@ -157,7 +231,7 @@ doppler run --project etude --config prd -- uv run manabot remote cleanup \
 receipt and retry cleanup. Estimated cost includes observed rental time and the
 declared storage allowance; it is not a provider invoice. Price admission is not
 an atomic spending cap. Provider outage, a container that never starts, or laptop
-loss before startup can defeat the two guards. No network volume is created.
+loss before startup can defeat the two guards. No independent persistent volume is created.
 The provider's [delete operation](https://docs.runpod.io/api-reference/pods/DELETE/pods/podId)
 terminates the rental; stopping alone is insufficient because storage remains.
 
