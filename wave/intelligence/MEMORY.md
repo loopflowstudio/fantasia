@@ -159,9 +159,8 @@ await measurements and an explicit estimator contract. Neither PPO nor Ataraxos
 implements V-trace; clipping/reverse KL do not authorize arbitrary lag. Preserve
 same-viewer terminal/bootstrap boundaries, full behavior distributions, opponent
 versions, unique samples and one optimizer owner. Zero-lag compatibility remains
-a proposal, not reinstatement of synchronous rounds. Existing value-token/depth
-variants need configuration, not new implementations. No scientific allocation
-follows; the report owns primary sources, launch/stop instructions and acceptance.
+a proposal, not reinstatement of synchronous rounds. No scientific allocation follows; the report owns sources, launch/stop
+instructions and acceptance.
 
 ## Focused value-model priority (ETU-106, 2026-10-05)
 
