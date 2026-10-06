@@ -52,6 +52,9 @@ class MonitorProtocol(Strict):
     bootstrap_replicates: int = Field(default=2000, ge=1)
     game_seconds: float = Field(default=120, gt=0)
     max_commands: int = Field(default=10_000, ge=1)
+    opponent: Literal["scripted_greedy", "random"] = Field(
+        default="scripted_greedy", exclude_if=lambda value: value == "scripted_greedy"
+    )
 
     @model_validator(mode="after")
     def unique_deals(self) -> MonitorProtocol:
@@ -292,12 +295,14 @@ def _manifest(
     )
     opponent = PlayerRegistration(
         **common,
-        player_id="monitor-scripted-greedy",
-        display_name="Frozen scripted greedy",
+        player_id="monitor-" + protocol.opponent.replace("_", "-"),
+        display_name="Frozen scripted greedy"
+        if protocol.opponent == "scripted_greedy"
+        else "Uniform legal random",
         role="anchor",
         runner_kind="code",
-        player_spec={"kind": "scripted_greedy"},
-        compute_class_id="scripted-greedy-cpu-v1",
+        player_spec={"kind": protocol.opponent},
+        compute_class_id=protocol.opponent.replace("_", "-") + "-cpu-v1",
         source_sha256=file_sha256(Path(players.__file__)),
     )
     key = ArenaKey(

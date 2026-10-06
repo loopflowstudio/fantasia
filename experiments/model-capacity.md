@@ -227,3 +227,60 @@ automatic failure verdict. Full-budget means the frozen affordable endpoint;
 it does not mean convergence. The current source's remote CLI returns artifacts
 only after training, so live-export/evaluator admission remains a prerequisite to
 the scientific cohort, alongside the calibration-derived allocation.
+
+### Hardware sweep amendment, before the new probes
+
+Jack Heart assigned the two-card performance sweep to ETU-103 on 2026-10-06.
+The initial L4 probes remain unchanged: at source `b6bbd1a4`, both capacities
+completed 16 updates / 16,384 learner transitions, returned verified exports,
+and completed four exact-replayed CPU arena games each. Rental deletion was
+confirmed for both; estimated rental costs were $0.0546896941 and $0.0747118629.
+Training times were 97.721 and 154.289 seconds. These are short feasibility
+observations; no strength aggregates were inspected. CPU evaluation process times
+were 45.318 and 38.949 seconds on one paired deal. Game length confounds that
+comparison. The configured 256 transitions are **per stream** (four streams),
+so the observed update batch is 1,024, unlike the historical mini screen.
+
+The next two jobs use NVIDIA L4 (24 GB class) and NVIDIA A40 (48 GB), in that
+order, each with a 2,100-second client allowance, existing pod deadline and
+$0.50 deployment cap. Current live quotes for both were $0.49/hour; each launch
+must re-admit price. The two-hour calibration clock began with the first retained
+rental at Unix 1791328605.990033 and includes this preparation and CPU work;
+a new job refuses admission if its full allowance no longer fits. The initial
+$15 aggregate ceiling retains a $1 storage/report reserve. No cap increase is
+currently justified. Unused allowance does not authorize retries.
+
+The shared 256-row real selected-match input was collected with seed10349 and
+four CPU streams, without optimizer work. Its exact serialized SHA256 is
+`719fc91a7eb69395303a5ba11cb560336b6c3fc81ae12e0e57e46f8d593cf7a3`.
+Both cards receive those same bytes. Model-only cells cross all four existing
+capacity rungs with batches 1, 4, 16, 64, 256 and 1024. Batches above 256 cycle
+the fixed real rows; no padding is removed. Record cold construction/first call,
+two warmup calls and three one-second timed windows for inference and diagnostic
+Adam (uniform legal-policy cross entropy plus squared scalar value, all rows).
+CUDA synchronization bounds timings; float32 and disabled TF32 are explicit.
+These optimizer probes are not Ataraxos updates or useful RL throughput.
+
+Complete-loop cells independently cross every capacity with 4/16/64 streams and
+128/512 total learner transitions per update, three ordinary updates each. The
+first update is cold; the following two expose steady update coordinates.
+Learning/filter/schedule settings remain the retained scalar-token recipe.
+TrainingRun/VerifyStore own phase times, actual exposures, skipped updates and
+exports. One worker and one CPU thread do not imply one stream. Both cards use
+identical cells; report each card's best observed feasible configuration separately,
+with these short-run and selection limits. No strength-based configuration choice.
+
+Each cell has a 70-second child cap; each full grid a 900-second cap within its
+rental. All OOMs, partial phases, timeouts and unvisited cells remain explicit.
+CUDA allocation/reservation peaks, attention slots, validity/padding, source,
+native/runtime and input identities are retained. Model-only improvements cannot
+stand in for complete-loop improvements. Collection includes both engine and
+inference, so its fraction alone does not establish engine starvation; relate it
+to fixed-batch inference and stream sweeps before proposing new collection code.
+No separate software Task is warranted without a demonstrated missing capability.
+
+CPU coordination: ETU-118's calibration subsequently acquired the shared lease;
+a fixed-input attempt declined it without collecting data. ETU-103 waited and
+preserved that owner. Both four-game checks and the final input collection used
+the shared lease. Concurrent sustained campaigns still require a tested handoff;
+no learner is displaced and no timing correction is invented.

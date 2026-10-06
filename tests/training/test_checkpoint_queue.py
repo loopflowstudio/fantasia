@@ -185,3 +185,38 @@ def test_completed_result_projects_and_interruption_suppresses_rate(
     )
     assert dashboard["rows"][0]["availability/monitor_rates"] is False
     assert "monitor/score/mean" not in dashboard["rows"][0]
+
+
+def test_relocated_checkpoint_keeps_producer_binding(
+    tmp_path: Path, fake_process: list[Process]
+) -> None:
+    source = tmp_path / "run.json"
+    run = run_fixture(source)
+    run.stages[0].artifacts["initial_raw"] = {
+        "path": "initial.pt",
+        "sha256": "c" * 64,
+        "bytes": 1,
+    }
+    atomic_json(source, run.model_dump(mode="json"))
+
+    original = source.read_bytes()
+
+    def relocate(reference: queue.ArtifactReference) -> queue.ArtifactReference:
+        return {**reference, "path": str(tmp_path / reference["sha256"])}
+
+    monitor = queue.CheckpointQueue(
+        tmp_path / "monitor",
+        queue.MonitoringBudget(seconds=10, attempt_seconds=5, include_initial=True),
+        lease=tmp_path / "lease",
+        resolve_artifact=relocate,
+    )
+    try:
+        monitor.tick([source])
+        job_path = next((tmp_path / "monitor").glob("attempt-*/job.json"))
+        job = queue.EvaluationJob.model_validate_json(job_path.read_text())
+        assert job.checkpoint.coordinates.updates == 0
+        assert job.checkpoint.artifact["path"] == str(tmp_path / ("c" * 64))
+        assert job.run.stages[0].artifacts["initial_raw"]["path"] == "initial.pt"
+        assert source.read_bytes() == original
+    finally:
+        monitor.close()
