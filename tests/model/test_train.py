@@ -23,7 +23,7 @@ from manabot.env import (
     VectorEnv,
 )
 from manabot.infra import (
-    AgentHypers,
+    AgentSpec,
     Experiment,
     ExperimentHypers,
     Hypers,
@@ -87,7 +87,7 @@ def trainer(observation_space, experiment):
     )
     agent = Agent(
         observation_space,
-        AgentHypers(hidden_dim=4, num_attention_heads=2),
+        AgentSpec(hidden_dim=4, num_attention_heads=2),
     )
     hypers = TrainHypers(
         num_envs=2,
@@ -104,6 +104,19 @@ def trainer(observation_space, experiment):
 
 
 class TestRollout:
+    def test_saved_checkpoint_round_trips_with_actual_setup(self, trainer):
+        from manabot.sim.flat_mc import load_checkpoint_agent
+
+        trainer.start_time = 0.0
+        trainer.save()
+        agent, space = load_checkpoint_agent(
+            str(trainer.experiment.runs_dir / "step_0.pt")
+        )
+        assert space.shapes == trainer.env.observation_space.shapes
+        assert agent.world_binding["setups"][0]["sideboard"] == {}
+        for name, tensor in trainer.agent.state_dict().items():
+            assert torch.equal(tensor.cpu(), agent.state_dict()[name]), name
+
     def test_rollout_step_shapes(self, trainer):
         next_obs, _ = trainer.env.reset()
         new_obs, reward, done, action, logprob, value = trainer._rollout_step(next_obs)
@@ -244,7 +257,7 @@ def test_training_loop_runs_100_steps(observation_space, experiment):
         device=experiment.device,
         opponent_policy="passive",
     )
-    agent = Agent(observation_space, AgentHypers(hidden_dim=4, num_attention_heads=2))
+    agent = Agent(observation_space, AgentSpec(hidden_dim=4, num_attention_heads=2))
     hypers = TrainHypers(
         num_envs=2,
         num_steps=10,

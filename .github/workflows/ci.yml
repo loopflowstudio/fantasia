@@ -95,7 +95,15 @@ jobs:
         run: |
           uv run --python 3.12 --extra dev pytest tests/env/ tests/agent/ tests/model/ \
             tests/sim/test_structured_policy.py \
+            tests/verify/test_checkpoint_scenarios.py tests/training/test_scenario_validation.py \
+            tests/belief/test_sampling_report.py \
             tests/bench/test_structured_policy_benchmark.py
+
+      - name: Frozen-policy search fixtures
+        run: |
+          uv run --python 3.12 --extra dev pytest -q \
+            tests/sim/test_local_update_sampling.py \
+            tests/sim/test_local_update_compound.py
 
       - name: Enum smoke test
         run: uv run --python 3.12 python -c "import managym; assert int(managym.ZoneEnum.STACK) == 4"

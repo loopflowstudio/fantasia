@@ -23,8 +23,8 @@ from experiments.runners.run_visit_teacher_production import (
     _verify,
     _verify_job_reference,
 )
-from manabot.env import ObservationSpace
-from manabot.infra.hypers import AgentHypers
+from manabot.env import Match, ObservationSpace
+from manabot.infra.hypers import AgentSpec
 from manabot.model.agent import Agent
 from manabot.sim.distill import save_bc_checkpoint
 from manabot.sim.teacher1_evidence import ContractError, file_sha256
@@ -147,8 +147,14 @@ def test_control_receipt_rejects_wrong_hash_before_loading(tmp_path: Path) -> No
 def test_control_receipt_binds_checkpoint_arm_and_model(tmp_path: Path) -> None:
     path = tmp_path / "policy-value.pt"
     obs_space = ObservationSpace()
-    agent = Agent(obs_space, AgentHypers())
-    save_bc_checkpoint(agent, obs_space, path, extra={"arm": "policy_value"})
+    agent = Agent(obs_space, AgentSpec())
+    save_bc_checkpoint(
+        agent,
+        obs_space,
+        path,
+        player_configs=Match().to_rust(),
+        extra={"arm": "policy_value"},
+    )
     receipt = _control_receipt(
         path,
         {

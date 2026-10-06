@@ -2,10 +2,12 @@
 //!
 //! The current `ActionSpace` and target legality queries remain authoritative.
 //! This module projects a narrow, uncapped typed view for priority pass,
-//! single `CreatureOrPlayer` target casts, and complete attacker declarations,
+//! single `CreatureOrPlayer` target casts, complete combat declarations, and
+//! commuting waterbend payments,
 //! then lowers accepted IDs through the existing rules executor. It
 //! intentionally does not own match revisions, prompt persistence, recovery,
-//! or policy decoding.
+//! or policy decoding. `compound_offers` covers the full legal surface and
+//! `compound_commands` lowers its atomic selections to canonical Commands.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -13,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::action::{Action, ActionSpaceKind},
-    flow::game::Game,
+    flow::game::{Game, PendingChoice},
     state::{
         ability::TargetSpec,
         game_object::{CardId, ObjectId, ObjectRef, PermanentId, PlayerId, Target},
@@ -86,9 +88,11 @@ pub enum OfferVerb {
     DeclareAttacker,
     DeclareAttackers,
     DeclareBlocker,
+    DeclareBlockers,
     Decline,
     PassPriority,
     PayCost,
+    PayWaterbend,
     PlayLand,
     ScryBottom,
     ScryKeep,
@@ -209,6 +213,12 @@ pub enum AtomicCommand {
         player: PlayerId,
         attackers: Vec<ObjectRef>,
     },
+    DeclarationSequence {
+        binding: OfferSetBinding,
+        player: PlayerId,
+        kind: ActionSpaceKind,
+        actions: Vec<Action>,
+    },
     SearchAction {
         binding: OfferSetBinding,
         action: Action,
@@ -239,9 +249,28 @@ enum InternalOffer {
         attackers: BTreeMap<CandidateId, ObjectRef>,
         declaration_order: Vec<ObjectRef>,
     },
+    DeclareBlockers {
+        player: PlayerId,
+        choices: Vec<BlockerChoice>,
+    },
+    Waterbend {
+        player: PlayerId,
+        role: RoleId,
+        taps: BTreeMap<CandidateId, Action>,
+        min: usize,
+        max: usize,
+        remaining_generic: usize,
+    },
     SearchAction {
         action: Action,
     },
+}
+
+#[derive(Clone, Debug)]
+struct BlockerChoice {
+    role: RoleId,
+    targets: BTreeMap<CandidateId, Action>,
+    decline: Action,
 }
 
 #[derive(Clone, Debug)]
@@ -276,7 +305,12 @@ impl StructuredOfferSet {
                         (*offer_id, *role, *candidate_id, *object_ref)
                     }));
                 }
-                InternalOffer::PassPriority { .. } | InternalOffer::SearchAction { .. } => {}
+                // Compound-only bindings lower through exact canonical actions;
+                // they are not projected into canonical DecisionFrame offers.
+                InternalOffer::DeclareBlockers { .. }
+                | InternalOffer::Waterbend { .. }
+                | InternalOffer::PassPriority { .. }
+                | InternalOffer::SearchAction { .. } => {}
             }
         }
         bindings
@@ -373,6 +407,85 @@ impl StructuredOfferSet {
                     binding: self.binding,
                     player: *player,
                     attackers: selected_attackers,
+                })
+            }
+            InternalOffer::DeclareBlockers { player, choices } => {
+                let mut answers = BTreeMap::new();
+                for ChoiceAnswer::Candidates { role, candidates } in &submission.answers {
+                    if answers.insert(*role, candidates).is_some() {
+                        return Err(StructuredOfferError::DuplicateRole(*role));
+                    }
+                }
+                let mut actions = Vec::with_capacity(choices.len());
+                for choice in choices {
+                    let selected = answers
+                        .remove(&choice.role)
+                        .ok_or(StructuredOfferError::MissingAnswer(choice.role))?;
+                    let action = match selected.as_slice() {
+                        [] => choice.decline.clone(),
+                        [candidate] => choice
+                            .targets
+                            .get(candidate)
+                            .cloned()
+                            .ok_or(StructuredOfferError::UnknownCandidate(*candidate))?,
+                        _ => {
+                            return Err(StructuredOfferError::CardinalityOutOfRange {
+                                role: choice.role,
+                                min: 0,
+                                max: 1,
+                                actual: selected.len(),
+                            })
+                        }
+                    };
+                    actions.push(action);
+                }
+                if let Some(role) = answers.keys().next() {
+                    return Err(StructuredOfferError::UnexpectedRole(*role));
+                }
+                Ok(AtomicCommand::DeclarationSequence {
+                    binding: self.binding,
+                    player: *player,
+                    kind: ActionSpaceKind::DeclareBlocker,
+                    actions,
+                })
+            }
+            InternalOffer::Waterbend {
+                player,
+                role,
+                taps,
+                min,
+                max,
+                remaining_generic,
+            } => {
+                let selected = candidate_answer(&submission.answers, *role)?;
+                if selected.len() < *min || selected.len() > *max {
+                    return Err(StructuredOfferError::CardinalityOutOfRange {
+                        role: *role,
+                        min: *min,
+                        max: *max,
+                        actual: selected.len(),
+                    });
+                }
+                let mut ids = BTreeSet::new();
+                for candidate in selected {
+                    if !ids.insert(*candidate) {
+                        return Err(StructuredOfferError::DuplicateCandidate(*candidate));
+                    }
+                    if !taps.contains_key(candidate) {
+                        return Err(StructuredOfferError::UnknownCandidate(*candidate));
+                    }
+                }
+                // Canonical candidate order removes permutation aliases. Payment
+                // with mana is the final action unless taps exhaust generic cost.
+                let mut actions: Vec<_> = ids.iter().map(|id| taps[id].clone()).collect();
+                if selected.len() < *remaining_generic {
+                    actions.push(Action::PayCost { player: *player });
+                }
+                Ok(AtomicCommand::DeclarationSequence {
+                    binding: self.binding,
+                    player: *player,
+                    kind: ActionSpaceKind::Waterbend,
+                    actions,
                 })
             }
             InternalOffer::SearchAction { action } => {
@@ -564,6 +677,336 @@ impl Game {
             binding: OfferSetBinding(self.decision_epoch),
             internal,
         })
+    }
+
+    /// Complete legal policy surface. Only engine-owned atomic choices group;
+    /// every other decision retains its ordinary action-aligned offer.
+    pub fn compound_offers(&self) -> Result<StructuredOfferSet, StructuredOfferError> {
+        let mut complete = self.structured_search_offers()?;
+        match self.current_action_space.as_ref().map(|space| space.kind) {
+            Some(ActionSpaceKind::DeclareAttacker) => self.structured_attacker_offers(),
+            Some(ActionSpaceKind::DeclareBlocker) => {
+                Ok(self.structured_blocker_offers()?.unwrap_or(complete))
+            }
+            Some(ActionSpaceKind::Waterbend) => {
+                Ok(self.structured_waterbend_offers()?.unwrap_or(complete))
+            }
+            Some(ActionSpaceKind::Priority) => {
+                let presentation = self.structured_priority_offers()?;
+                for offer in &mut complete.projection.offers {
+                    let Some(InternalOffer::SearchAction {
+                        action: Action::CastSpell { card, .. },
+                    }) = complete.internal.get(&offer.id)
+                    else {
+                        continue;
+                    };
+                    let replacement =
+                        presentation
+                            .internal
+                            .iter()
+                            .find_map(|(id, inner)| match inner {
+                                InternalOffer::CastSingleTarget {
+                                    card: target_card, ..
+                                } if target_card == card => Some((*id, inner.clone())),
+                                _ => None,
+                            });
+                    if let Some((id, inner)) = replacement {
+                        let original_id = offer.id;
+                        *offer = presentation
+                            .projection
+                            .offers
+                            .iter()
+                            .find(|candidate| candidate.id == id)
+                            .expect("bound offer")
+                            .clone();
+                        offer.id = original_id;
+                        complete.internal.insert(original_id, inner);
+                    }
+                }
+                Ok(complete)
+            }
+            _ => Ok(complete),
+        }
+    }
+
+    /// Independent blocker assignments are a product of authoritative pair
+    /// supports. Menace couples assignments and the current engine repairs an
+    /// illegal singleton after declaration; retain its sequential path until a
+    /// dependent joint support can exclude those aliases before sampling.
+    fn structured_blocker_offers(
+        &self,
+    ) -> Result<Option<StructuredOfferSet>, StructuredOfferError> {
+        let space = self
+            .action_space()
+            .ok_or(StructuredOfferError::NoActiveActionSpace)?;
+        let player = space.player.ok_or(StructuredOfferError::MissingActor)?;
+        let combat = self
+            .state
+            .combat
+            .as_ref()
+            .ok_or(StructuredOfferError::WrongDecision)?;
+        if combat
+            .attackers
+            .iter()
+            .any(|attacker| self.effective_keywords(*attacker).menace)
+        {
+            return Ok(None);
+        }
+        let first = space
+            .actions
+            .iter()
+            .find_map(|action| match action {
+                Action::DeclareBlocker { blocker, .. } => Some(*blocker),
+                _ => None,
+            })
+            .ok_or(StructuredOfferError::WrongDecision)?;
+        let mut choices = Vec::new();
+        let mut bound = Vec::new();
+        for blocker in
+            std::iter::once(first).chain(combat.blockers_to_declare.iter().rev().copied())
+        {
+            let targets: Vec<_> = combat
+                .attackers
+                .iter()
+                .copied()
+                .filter(|attacker| self.blocker_can_block_attacker(blocker, *attacker))
+                .collect();
+            // Optionless later declarations are auto-resolved by tick(). Keep
+            // them explicit only when that engine facility is disabled.
+            if targets.is_empty() && self.skip_trivial && blocker != first {
+                continue;
+            }
+            let role = RoleId(
+                u16::try_from(choices.len()).map_err(|_| StructuredOfferError::IdentityOverflow)?,
+            );
+            let mut candidates = Vec::new();
+            let mut actions = BTreeMap::new();
+            for attacker in targets {
+                let id = next_candidate_id(candidates.len())?;
+                candidates.push(self.compound_permanent_candidate(attacker, id)?);
+                actions.insert(
+                    id,
+                    Action::DeclareBlocker {
+                        player,
+                        blocker,
+                        attacker: Some(attacker),
+                    },
+                );
+            }
+            let name = self
+                .compound_permanent_candidate(blocker, CandidateId(0))?
+                .label;
+            let max = u16::from(!candidates.is_empty());
+            choices.push(ChoiceStep::Select {
+                role,
+                label: format!("Block with {name}"),
+                candidates: CandidateSource {
+                    id: CandidateSourceId(u32::from(role.0)),
+                    depends_on: Vec::new(),
+                    initial: Some(candidates),
+                },
+                min: 0,
+                max,
+                ordered: false,
+                distinct: true,
+            });
+            bound.push(BlockerChoice {
+                role,
+                targets: actions,
+                decline: Action::DeclareBlocker {
+                    player,
+                    blocker,
+                    attacker: None,
+                },
+            });
+        }
+        let offer = InteractionOffer {
+            id: OfferId(0),
+            actor: wire_player_id(player)?,
+            verb: OfferVerb::DeclareBlockers,
+            public_commitment: None,
+            source: None,
+            label: "Declare blockers".into(),
+            help: None,
+            choices,
+            confirm_label: "Declare blockers".into(),
+        };
+        Ok(Some(StructuredOfferSet {
+            projection: StructuredOfferProjection {
+                actor: offer.actor,
+                kind: PromptKind::DeclareBlockers,
+                offers: vec![offer],
+            },
+            binding: OfferSetBinding(self.decision_epoch),
+            internal: BTreeMap::from([(
+                OfferId(0),
+                InternalOffer::DeclareBlockers {
+                    player,
+                    choices: bound,
+                },
+            )]),
+        }))
+    }
+
+    /// Group a commuting subset of waterbend taps and the remaining mana
+    /// payment. Taps with triggered effects or competing mana production stay
+    /// sequential: their support and information boundary can depend on order.
+    fn structured_waterbend_offers(
+        &self,
+    ) -> Result<Option<StructuredOfferSet>, StructuredOfferError> {
+        let Some(PendingChoice::Waterbend {
+            player,
+            permanent,
+            ability_index,
+            remaining_generic,
+        }) = self.pending_choice
+        else {
+            return Err(StructuredOfferError::WrongDecision);
+        };
+        if !self.state.delayed_triggers.is_empty()
+            || self.state.permanents.iter().flatten().any(|permanent| {
+                let card = &self.state.cards[permanent.card];
+                !card.abilities.is_empty() || !card.triggered_mana_abilities.is_empty()
+            })
+        {
+            return Ok(None);
+        }
+        let legal_taps = self.waterbend_candidates(player);
+        if legal_taps.iter().any(|id| {
+            self.state.permanents[*id]
+                .as_ref()
+                .is_some_and(|permanent| {
+                    !self.state.cards[permanent.card].mana_abilities.is_empty()
+                })
+        }) {
+            return Ok(None);
+        }
+        let source = self.state.permanents[permanent]
+            .as_ref()
+            .ok_or(StructuredOfferError::InvalidCurrentTarget)?;
+        let cost = self.state.cards[source.card]
+            .activated_abilities
+            .get(ability_index)
+            .ok_or(StructuredOfferError::WrongDecision)?
+            .mana_cost
+            .with_generic(remaining_generic);
+        let max = legal_taps.len().min(usize::from(remaining_generic));
+        let available = self.available_mana(player);
+        let min = (0..=max)
+            .find(|count| available.can_pay(&cost.reduced_generic(*count as u8)))
+            .ok_or_else(|| {
+                StructuredOfferError::Invariant("waterbend has no payable completion".into())
+            })?;
+        let role = RoleId(0);
+        let mut candidates = Vec::new();
+        let mut taps = BTreeMap::new();
+        for permanent in legal_taps {
+            let id = next_candidate_id(candidates.len())?;
+            candidates.push(self.compound_permanent_candidate(permanent, id)?);
+            taps.insert(id, Action::WaterbendTap { player, permanent });
+        }
+        let offer = InteractionOffer {
+            id: OfferId(0),
+            actor: wire_player_id(player)?,
+            verb: OfferVerb::PayWaterbend,
+            public_commitment: None,
+            source: None,
+            label: "Pay waterbend".into(),
+            help: None,
+            choices: vec![ChoiceStep::Select {
+                role,
+                label: "Tap for waterbend".into(),
+                candidates: CandidateSource {
+                    id: CandidateSourceId(0),
+                    depends_on: Vec::new(),
+                    initial: Some(candidates),
+                },
+                min: min as u16,
+                max: max as u16,
+                ordered: false,
+                distinct: true,
+            }],
+            confirm_label: "Pay waterbend".into(),
+        };
+        Ok(Some(StructuredOfferSet {
+            projection: StructuredOfferProjection {
+                actor: offer.actor,
+                kind: PromptKind::Waterbend,
+                offers: vec![offer],
+            },
+            binding: OfferSetBinding(self.decision_epoch),
+            internal: BTreeMap::from([(
+                OfferId(0),
+                InternalOffer::Waterbend {
+                    player,
+                    role,
+                    taps,
+                    min,
+                    max,
+                    remaining_generic: usize::from(remaining_generic),
+                },
+            )]),
+        }))
+    }
+
+    fn compound_permanent_candidate(
+        &self,
+        permanent: PermanentId,
+        id: CandidateId,
+    ) -> Result<Candidate, StructuredOfferError> {
+        let object = self
+            .permanent_object_ref(permanent)
+            .ok_or(StructuredOfferError::InvalidCurrentTarget)?;
+        let permanent = self.state.permanents[permanent]
+            .as_ref()
+            .ok_or(StructuredOfferError::InvalidCurrentTarget)?;
+        Ok(Candidate {
+            id,
+            value: CandidateValue::Subject {
+                subject: SubjectRef::Object {
+                    id: object_render_id(permanent.id, object.incarnation.0),
+                },
+            },
+            label: self.state.cards[permanent.card].name.clone(),
+            help: None,
+            preview: None,
+        })
+    }
+
+    /// Lower a complete submission on an exact fork, never mutate the root.
+    /// Multi-command offers stop at the end of the native declaration/payment.
+    /// No planner or policy observes intermediate states during this operation.
+    pub fn compound_commands(
+        &self,
+        offers: &StructuredOfferSet,
+        submission: &OfferSubmission,
+    ) -> Result<Vec<crate::decision::Command>, StructuredOfferError> {
+        let command = offers.decode(submission)?;
+        let mut fork = self.clone();
+        let mut commands = Some(Vec::new());
+        fork.apply_legacy_command_inner(&command, &mut commands)?;
+        Ok(commands.expect("recording enabled"))
+    }
+
+    fn record_compound_step(
+        &mut self,
+        action: usize,
+        commands: &mut Option<Vec<crate::decision::Command>>,
+    ) -> Result<bool, StructuredOfferError> {
+        if let Some(commands) = commands {
+            let frame = self
+                .semantic_decision_frame()
+                .map_err(|error| StructuredOfferError::Invariant(error.to_string()))?;
+            commands.push(crate::decision::Command {
+                command_id: format!("compound-{}-{}", frame.revision, commands.len()),
+                expected_revision: frame.revision,
+                offer_id: frame.offers[action].id.0,
+                answers: Vec::new(),
+                object_preconditions: Vec::new(),
+            });
+        }
+        self.step(action)
+            .map_err(|error| StructuredOfferError::StaleOrIllegal(error.0))
     }
 
     /// Project the currently covered priority actions without changing state.
@@ -824,7 +1267,7 @@ impl Game {
     ) -> Result<(bool, usize), StructuredOfferError> {
         let command = offers.decode(submission)?;
         let checkpoint = self.clone();
-        match self.apply_legacy_command_inner(&command) {
+        match self.apply_legacy_command_inner(&command, &mut None) {
             Ok(result) => Ok(result),
             Err(error) => {
                 *self = checkpoint;
@@ -836,11 +1279,13 @@ impl Game {
     fn apply_legacy_command_inner(
         &mut self,
         command: &AtomicCommand,
+        commands: &mut Option<Vec<crate::decision::Command>>,
     ) -> Result<(bool, usize), StructuredOfferError> {
         let binding = match command {
             AtomicCommand::PassPriority { binding, .. }
             | AtomicCommand::CastSpell { binding, .. }
             | AtomicCommand::DeclareAttackers { binding, .. }
+            | AtomicCommand::DeclarationSequence { binding, .. }
             | AtomicCommand::SearchAction { binding, .. } => *binding,
         };
         if binding != OfferSetBinding(self.decision_epoch) {
@@ -866,9 +1311,7 @@ impl Game {
                         })
                     })
                     .ok_or(StructuredOfferError::WrongDecision)?;
-                let done = self
-                    .step(action)
-                    .map_err(|error| StructuredOfferError::StaleOrIllegal(error.0))?;
+                let done = self.record_compound_step(action, commands)?;
                 Ok((done, 1))
             }
             AtomicCommand::CastSpell {
@@ -898,9 +1341,7 @@ impl Game {
                         })
                     })
                     .ok_or(StructuredOfferError::WrongDecision)?;
-                let mut done = self
-                    .step(cast)
-                    .map_err(|error| StructuredOfferError::StaleOrIllegal(error.0))?;
+                let mut done = self.record_compound_step(cast, commands)?;
                 let mut actions = 1;
 
                 // With skip_trivial enabled, a sole legal target may already
@@ -929,9 +1370,7 @@ impl Game {
                                 "structured target is absent from the legacy prompt".to_string(),
                             )
                         })?;
-                    done = self
-                        .step(target)
-                        .map_err(|error| StructuredOfferError::StaleOrIllegal(error.0))?;
+                    done = self.record_compound_step(target, commands)?;
                     actions += 1;
                 }
                 Ok((done, actions))
@@ -993,14 +1432,61 @@ impl Game {
                                 "legacy attacker prompt lacks a binary choice".to_string(),
                             )
                         })?;
-                    done = self
-                        .step(action)
-                        .map_err(|error| StructuredOfferError::StaleOrIllegal(error.0))?;
+                    done = self.record_compound_step(action, commands)?;
                     actions += 1;
                 }
                 Ok((done, actions))
             }
-            AtomicCommand::SearchAction { .. } => Err(StructuredOfferError::WrongDecision),
+            AtomicCommand::DeclarationSequence {
+                player,
+                kind,
+                actions,
+                ..
+            } => {
+                let mut done = false;
+                let mut executed = 0;
+                for action in actions {
+                    // tick() may have consumed forced payment suffix factors.
+                    // Only these known, effect-free taps/remainder can be omitted.
+                    if *kind == ActionSpaceKind::Waterbend && self.skip_trivial {
+                        match action {
+                            Action::WaterbendTap { permanent, .. }
+                                if self.state.permanents[*permanent]
+                                    .as_ref()
+                                    .is_some_and(|permanent| permanent.tapped) =>
+                            {
+                                continue
+                            }
+                            Action::PayCost { .. }
+                                if !matches!(
+                                    self.pending_choice,
+                                    Some(PendingChoice::Waterbend { .. })
+                                ) =>
+                            {
+                                continue
+                            }
+                            _ => {}
+                        }
+                    }
+                    // A changed kind/actor is never a continuation: do not
+                    // consume a reveal, priority window, or opponent choice.
+                    let index = self
+                        .action_space()
+                        .filter(|space| space.kind == *kind && space.player == Some(*player))
+                        .and_then(|space| space.actions.iter().position(|legal| legal == action))
+                        .ok_or(StructuredOfferError::WrongDecision)?;
+                    done = self.record_compound_step(index, commands)?;
+                    executed += 1;
+                }
+                Ok((done, executed))
+            }
+            AtomicCommand::SearchAction { action, .. } => {
+                let index = self
+                    .action_space()
+                    .and_then(|space| space.actions.iter().position(|legal| legal == action))
+                    .ok_or(StructuredOfferError::WrongDecision)?;
+                Ok((self.record_compound_step(index, commands)?, 1))
+            }
         }
     }
 
@@ -1017,6 +1503,15 @@ impl Game {
             return self.apply_search_action(command);
         }
         let checkpoint = self.clone();
+        if matches!(command, AtomicCommand::DeclarationSequence { .. }) {
+            return match self.apply_legacy_command_inner(command, &mut None) {
+                Ok((done, _)) => Ok(done),
+                Err(error) => {
+                    *self = checkpoint;
+                    Err(error)
+                }
+            };
+        }
         match self.apply_atomic_command_inner(command) {
             Ok(game_over) => Ok(game_over),
             Err(error) => {
@@ -1077,6 +1572,7 @@ impl Game {
             AtomicCommand::PassPriority { binding, .. }
             | AtomicCommand::CastSpell { binding, .. }
             | AtomicCommand::DeclareAttackers { binding, .. }
+            | AtomicCommand::DeclarationSequence { binding, .. }
             | AtomicCommand::SearchAction { binding, .. } => *binding,
         };
         if binding != OfferSetBinding(self.decision_epoch) {
@@ -1204,6 +1700,9 @@ impl Game {
                         .map_err(|error| StructuredOfferError::StaleOrIllegal(error.0))?;
                 }
                 Ok(self.finish_action_step())
+            }
+            AtomicCommand::DeclarationSequence { .. } => {
+                unreachable!("sequence routed to canonical lowering")
             }
             AtomicCommand::SearchAction { action, .. } => {
                 let offered = action_space.actions.iter().any(|legal| legal == action);

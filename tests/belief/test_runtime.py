@@ -10,9 +10,10 @@ from manabot.belief import (
     ManabotPlayer,
     belief_schema_from_engine,
 )
-from manabot.env import ObservationSpace
-from manabot.infra.hypers import AgentHypers
+from manabot.env import Match, ObservationSpace
+from manabot.infra.hypers import AgentSpec
 from manabot.model import Agent
+from manabot.model.world import checkpoint_world
 from manabot.sim.distill import save_bc_checkpoint
 from manabot.sim.flat_mc import load_checkpoint_agent, make_player
 from managym.decision import SEMANTIC_DECISION_VERSION
@@ -109,7 +110,7 @@ class NativeContractEngine:
 def _belief_agent() -> Agent:
     return Agent(
         ObservationSpace(),
-        AgentHypers(
+        AgentSpec(
             hidden_dim=8,
             num_attention_heads=2,
             belief_count_buckets=3,
@@ -147,6 +148,7 @@ def test_serialized_belief_checkpoint_binds_exact_runtime_schema(tmp_path) -> No
         agent.observation_space,
         checkpoint_path,
         belief_schema=schema,
+        player_configs=Match().to_rust(),
     )
 
     payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
@@ -175,6 +177,9 @@ def test_belief_checkpoint_loader_requires_serialized_binding(tmp_path) -> None:
     checkpoint_path = tmp_path / "unbound-belief.pt"
     torch.save(
         {
+            "world_binding": checkpoint_world(
+                Match().to_rust(), agent.observation_space
+            ),
             "hypers": {
                 "observation_hypers": (
                     agent.observation_space.encoder.hypers.model_dump()
@@ -191,10 +196,13 @@ def test_belief_checkpoint_loader_requires_serialized_binding(tmp_path) -> None:
 
 
 def test_checkpoint_loader_rejects_removed_agent_fields(tmp_path) -> None:
-    agent = Agent(ObservationSpace(), AgentHypers(hidden_dim=8, num_attention_heads=2))
+    agent = Agent(ObservationSpace(), AgentSpec(hidden_dim=8, num_attention_heads=2))
     checkpoint_path = tmp_path / "removed-agent-field.pt"
     torch.save(
         {
+            "world_binding": checkpoint_world(
+                Match().to_rust(), agent.observation_space
+            ),
             "hypers": {
                 "observation_hypers": (
                     agent.observation_space.encoder.hypers.model_dump()

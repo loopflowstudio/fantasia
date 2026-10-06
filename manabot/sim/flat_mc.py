@@ -29,12 +29,13 @@ import torch
 from manabot.belief.encoding import BeliefCheckpointBinding
 from manabot.env import Env, Match, ObservationSpace, Reward
 from manabot.infra.hypers import (
-    AgentHypers,
+    AgentSpec,
     MatchHypers,
     ObservationSpaceHypers,
     RewardHypers,
 )
 from manabot.model.agent import Agent
+from manabot.sim.compound import CompoundPolicy
 from manabot.sim.search_runtime import DEFAULT_MAX_PLAYOUT_STEPS, SearchStats
 from manabot.verify.util import (
     INTERACTIVE_DECK,
@@ -160,13 +161,26 @@ class RandomMatchupPlayer:
 class AgentMatchupPlayer:
     """Trained policy player (stochastic, as in prior seat-balanced evals)."""
 
-    def __init__(self, agent: Agent, deterministic: bool = False):
+    def __init__(self, agent: Agent, deterministic: bool = False) -> None:
         self.agent = agent
         self.deterministic = deterministic
         agent.eval()
+        self.compound = (
+            CompoundPolicy(agent, deterministic=deterministic)
+            if agent.hypers.compound_decisions
+            else None
+        )
+
+    def start_game(self, env: Env, seat: int) -> None:
+        if self.compound is not None:
+            self.compound.reset()
 
     def act(self, env: Env, obs: dict[str, np.ndarray]) -> int:
-        del env
+        from manabot.model.world import validate_agent_setup
+
+        validate_agent_setup(self.agent, env.match.to_rust())
+        if self.compound is not None:
+            return self.compound.act(env._engine, env.last_raw_obs)
         return _select_agent_action(self.agent, obs, deterministic=self.deterministic)
 
 
@@ -196,7 +210,12 @@ def load_checkpoint_agent(
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
     hypers = checkpoint["hypers"]
     obs_space = ObservationSpace(ObservationSpaceHypers(**hypers["observation_hypers"]))
-    agent = Agent(obs_space, AgentHypers(**hypers["agent_hypers"]))
+    from manabot.model.world import validate_checkpoint_world, validate_policy_input
+
+    world_binding = validate_checkpoint_world(checkpoint, obs_space)
+    agent = Agent(obs_space, AgentSpec(**hypers["agent_hypers"]))
+    validate_policy_input(agent, world_binding)
+    agent.world_binding = world_binding
     binding = None
     if agent.belief_count_buckets > 0:
         binding = BeliefCheckpointBinding.from_checkpoint(checkpoint)
@@ -233,6 +252,25 @@ def make_player(
     """
 
     kind = spec["kind"]
+    if kind == "local_update":
+        from pathlib import Path
+
+        from manabot.sim.local_update import (
+            LocalSearchConfig,
+            LocalUpdatePlayer,
+            LocalUpdateTeacher,
+            SamplerArtifact,
+        )
+
+        teacher = LocalUpdateTeacher(
+            Path(spec["checkpoint"]),
+            str(spec["checkpoint_sha256"]),
+            LocalSearchConfig.model_validate(spec.get("config", {})),
+            sampler=SamplerArtifact.model_validate(spec["sampler"])
+            if spec.get("sampler")
+            else None,
+        )
+        return LocalUpdatePlayer(teacher, seed=seed), teacher.space
     if kind == "search":
         return (
             FlatMCPlayer(

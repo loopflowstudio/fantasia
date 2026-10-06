@@ -276,6 +276,26 @@ impl Env {
     }
 
     /// Project the complete action-aligned structured surface used by search.
+    pub fn compound_offers(&self) -> Result<StructuredOfferSet, AgentError> {
+        self.game
+            .as_ref()
+            .ok_or_else(|| AgentError("env not reset".into()))?
+            .compound_offers()
+            .map_err(|error| AgentError(error.to_string()))
+    }
+
+    pub fn compound_commands(
+        &self,
+        offers: &StructuredOfferSet,
+        submission: &OfferSubmission,
+    ) -> Result<Vec<SemanticCommand>, AgentError> {
+        self.game
+            .as_ref()
+            .ok_or_else(|| AgentError("env not reset".into()))?
+            .compound_commands(offers, submission)
+            .map_err(|error| AgentError(error.to_string()))
+    }
+
     pub fn structured_search_offers(&self) -> Result<StructuredOfferSet, AgentError> {
         self.game
             .as_ref()
@@ -365,6 +385,25 @@ impl Env {
             .map_err(|error| AgentError(error.to_string()))
     }
 
+    /// Project hidden-hand constraints without enumerating compatible hands.
+    pub fn hidden_hand_constraints(
+        &self,
+        viewer: usize,
+    ) -> Result<crate::possible_worlds::HiddenHandConstraints, AgentError> {
+        let game = self.game.as_ref().ok_or_else(|| {
+            AgentError("env.hidden_hand_constraints called before reset".to_string())
+        })?;
+        if viewer >= game.state.players.len() {
+            return Err(AgentError(
+                "hidden_hand_constraints: invalid viewer".to_string(),
+            ));
+        }
+        Ok(crate::possible_worlds::HiddenHandConstraints::for_viewer(
+            game,
+            PlayerId(viewer),
+        ))
+    }
+
     /// Canonical viewer-relative possible-world space. Enumeration, exact
     /// physical-deal weights, ordering, and identity all remain managym-owned.
     pub fn possible_world_space(
@@ -430,6 +469,34 @@ impl Env {
         space
             .condition_projection(query)
             .map_err(|error| AgentError(format!("possible_world_condition: {error:?}")))
+    }
+
+    /// Direct sampled-hand materialization; never enumerates possible worlds.
+    pub fn materialize_sampled_hand(
+        &self,
+        viewer: usize,
+        source_json: &str,
+        hand: &std::collections::BTreeMap<String, u32>,
+        seed: u64,
+    ) -> Result<Env, AgentError> {
+        let constraints = self.hidden_hand_constraints(viewer)?;
+        let expected: serde_json::Value = serde_json::from_str(source_json)
+            .map_err(|error| AgentError(format!("invalid hand constraints: {error}")))?;
+        if serde_json::to_value(&constraints).map_err(|error| AgentError(error.to_string()))?
+            != expected
+        {
+            return Err(AgentError(
+                "sampled hand constraints are stale or inconsistent".to_string(),
+            ));
+        }
+        let game = self
+            .game
+            .as_ref()
+            .ok_or_else(|| AgentError("sampled hand before reset".to_string()))?;
+        let branch = constraints
+            .materialize_hand(game, hand, seed)
+            .map_err(|error| AgentError(format!("sampled hand: {error}")))?;
+        Ok(self.branch_from_game(branch))
     }
 
     /// Materialize one canonical world index into an isolated branch. The

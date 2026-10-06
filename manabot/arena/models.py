@@ -129,6 +129,52 @@ class PlayerRegistration(StrictModel):
                     or (self.world == "w2" and not self.player_spec["deterministic"])
                 ):
                     raise ValueError("checkpoint inference spec must be fully explicit")
+            elif kind == "local_update":
+                from manabot.sim.local_update import LocalSearchConfig, SamplerArtifact
+
+                config = LocalSearchConfig.model_validate(
+                    self.player_spec.get("config", {})
+                )
+                required = {
+                    "kind",
+                    "config",
+                    "implementation_source_sha256",
+                }
+                if config.sampling == "learned":
+                    required.add("sampler")
+                    sampler = SamplerArtifact.model_validate(
+                        self.player_spec.get("sampler")
+                    )
+                    if sampler.policy_identity != self.checkpoint_sha256:
+                        raise ValueError(
+                            "sampler generating policy differs from arena checkpoint"
+                        )
+                if set(self.player_spec) != required:
+                    raise ValueError(
+                        "local-update inference spec must be fully explicit"
+                    )
+                config = LocalSearchConfig.model_validate(self.player_spec["config"])
+                if config.model_dump() != self.player_spec["config"]:
+                    raise ValueError("local-update config must include every parameter")
+                digest = self.player_spec["implementation_source_sha256"]
+                if (
+                    not isinstance(digest, str)
+                    or len(digest) != 64
+                    or any(c not in "0123456789abcdef" for c in digest)
+                ):
+                    raise ValueError("local-update source identity is required")
+                if (
+                    self.search_semantics is None
+                    or self.search_semantics.model_dump()
+                    != {
+                        "branch_audit": True,
+                        "root_prior": "two-kl-local-update/v1",
+                        "leaf_evaluator": "frozen-viewer-policy-signed-value/v1",
+                    }
+                    or self.search_call_seed_derivation_id
+                    != "local-policy-seed-times-1000003-plus-call-mod-2pow63/v1"
+                ):
+                    raise ValueError("local-update search and seed semantics differ")
             elif kind == "policy_prior_puct":
                 required_keys = {
                     "kind",

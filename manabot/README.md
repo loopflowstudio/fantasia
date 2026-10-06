@@ -38,6 +38,23 @@ require positive integer counts. `Match.swapped()` moves both lists together;
 
 ## World identity
 
+Ordinary checkpoints require `world_binding` from
+`manabot.model.world.checkpoint_world(actual_player_configs, observation_space)`.
+This binds native `WORLD_VERSION`, rules schemas, full deck/sideboard pairs,
+content manifest and input schema. Missing or mismatched bindings fail before
+weights load. Seat reversal preserves each deck's sideboard. BC and value
+writers require explicit `player_configs`; never infer training setup from
+tensor dimensions or the default deck.
+
+For the compiled Allies/Lessons matchup, use
+`AgentSpec(semantic_pack="ur-lessons-vs-gw-allies")`. The ordinary model joins
+viewer-safe `semantic_cards` transport IDs to complete checked catalog programs,
+including characteristics and referenced definitions; `known_hand` contains
+public definition minima, not hidden hand slots. Selected compiled checkpoints
+without that semantic input fail admission. Generic uncompiled training keeps
+its existing bounded feature model. These models do not certify strength or
+semantic transfer; no previous checkpoint is relabeled compatible.
+
 An observation/action-shape or rules-meaning change is a world version.
 The current world is **w4** (`managym.WORLD_VERSION`); its rules, tensor shape,
 and compatibility limits are in [WORLDS.md](../WORLDS.md). Earlier checkpoints,
@@ -82,10 +99,25 @@ transfer. The generic PPO and teacher-shard trainers do not yet produce the
 semantic belief inputs required to train a belief-enabled policy. Historical
 positional-condition checkpoints are rejected rather than reinterpreted.
 
+Training regimes can freeze a policy, collect private whole-game supervision,
+and fit a constrained autoregressive hand sampler without exact enumeration.
+See [frozen-policy belief sampling](../docs/belief-sampler.md). This separately
+admitted belief artifact does not change the policy's input contract or establish
+foreign-opponent calibration or search strength.
+
+Frozen-policy local search and same-root distillation run through
+[`collect_local_update` regimes](../docs/local-policy-search.md). The bounded
+compatible-prior recipe completes games; exact-history search rejects unsupported
+Rules likelihood events. Target receipts and arena replay retain this distinction.
+
 Experiment-specific driver scripts live in
 [experiments/runners/](../experiments/runners/), not here — `manabot/` keeps
 only reusable instruments. The experiment discipline and ledger are in
 [experiments/README.md](../experiments/README.md).
+
+For versioned S1–S5 tactical diagnostics through ordinary checkpoint players,
+see [checkpoint scenario scoring](../docs/checkpoint-scenarios.md). Each retained
+custom-deck root requires its exact checkpoint setup binding.
 
 ## Research program
 
@@ -118,3 +150,8 @@ from manabot.env import ObservationSpace
 # Local imports
 from .sibling import Thing
 ```
+
+Compound checkpoints use an autoregressive legal-offer decoder and execute via
+ordinary checkpoint players. Their complete-game training stages, credit
+boundaries and separate comparison recipes are documented under
+[compound decisions](../docs/training-regimes.md#compound-decisions).

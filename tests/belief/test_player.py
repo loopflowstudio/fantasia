@@ -14,7 +14,7 @@ from manabot.belief.likelihood import (
 )
 from manabot.belief.player import ExactRangePlayer, UniformRangePlayer
 from manabot.env import ObservationSpace
-from manabot.infra.hypers import AgentHypers, ObservationSpaceHypers
+from manabot.infra.hypers import AgentSpec, ObservationSpaceHypers
 from manabot.model.agent import Agent
 from manabot.sim.flat_mc import play_games
 from manabot.sim.teacher1_evidence import _fresh_env
@@ -224,13 +224,24 @@ def test_player_tracks_opponent_pass_from_semantic_receipt() -> None:
 def test_tiny_matchup_records_calibration_replay_and_system_cost(
     tmp_path: Path,
 ) -> None:
+    from manabot.model.world import checkpoint_world
+    import managym
+
+    tiny_deck = {"Mountain": 4, "Raging Goblin": 4}
     checkpoint = tmp_path / "tiny-policy.pt"
     obs_hypers = ObservationSpaceHypers()
-    agent_hypers = AgentHypers()
+    agent_hypers = AgentSpec()
     obs_space = ObservationSpace(obs_hypers)
     agent = Agent(obs_space, agent_hypers)
     torch.save(
         {
+            "world_binding": checkpoint_world(
+                [
+                    managym.PlayerConfig("Hero", tiny_deck),
+                    managym.PlayerConfig("Villain", tiny_deck),
+                ],
+                obs_space,
+            ),
             "hypers": {
                 "observation_hypers": obs_hypers.model_dump(),
                 "agent_hypers": agent_hypers.model_dump(),
@@ -248,8 +259,6 @@ def test_tiny_matchup_records_calibration_replay_and_system_cost(
         "max_steps": 200,
         "likelihood_batch_size": 16,
     }
-    tiny_deck = {"Mountain": 4, "Raging Goblin": 4}
-
     result = play_games(
         {"kind": "exact_range", **common},
         {"kind": "uniform_range", **common},

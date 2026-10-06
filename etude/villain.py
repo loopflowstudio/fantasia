@@ -18,6 +18,7 @@ Supported villain types (see ``build_villain_policy``):
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 import random
 from typing import TYPE_CHECKING, Callable
 
@@ -124,16 +125,34 @@ class CheckpointVillain:
     never pay the import cost.
     """
 
-    def __init__(self, path: str, *, deterministic: bool = False):
+    def __init__(
+        self,
+        path: str,
+        *,
+        deterministic: bool = False,
+        player_configs: Sequence[managym.PlayerConfig] | None = None,
+    ) -> None:
+        from manabot.model.world import validate_agent_setup
+
+        # Keep the optional Torch/model stack behind checkpoint construction.
+        from manabot.sim.compound import CompoundPolicy
         from manabot.sim.flat_mc import load_checkpoint_agent
         from manabot.verify.util import _select_agent_action
 
         self._select_action = _select_agent_action
         self.agent, self.obs_space = load_checkpoint_agent(path)
+        if player_configs is not None:
+            validate_agent_setup(self.agent, player_configs)
         self.deterministic = deterministic
+        self.compound = (
+            CompoundPolicy(self.agent, deterministic=deterministic)
+            if self.agent.hypers.compound_decisions
+            else None
+        )
 
     def __call__(self, env: managym.Env, obs: managym.Observation) -> int:
-        del env
+        if self.compound is not None:
+            return self.compound.act(env, obs)
         # Policy weights score each action independently of the padded action
         # count. At inference preserve the entire rules offer list, including
         # decisions wider than the training batch's storage capacity.
@@ -172,5 +191,6 @@ def build_villain_policy(config: "GameConfig") -> VillainPolicy:
         return CheckpointVillain(
             config.villain_checkpoint,
             deterministic=config.villain_deterministic,
+            player_configs=config.to_rust(),
         )
     raise ValueError(f"Unsupported villain_type: {villain_type}")

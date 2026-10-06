@@ -71,6 +71,16 @@ def build_player(
         if checkpoint_path is None:
             raise FileNotFoundError("checkpoint candidate bytes are unavailable")
         spec["path"] = checkpoint_path
+        if spec["kind"] == "local_update":
+            from manabot.sim import local_update
+
+            if (
+                local_update.local_search_source_sha256()
+                != spec["implementation_source_sha256"]
+            ):
+                raise ValueError("local-update implementation source drift")
+            spec["checkpoint"] = checkpoint_path
+            spec["checkpoint_sha256"] = registration.checkpoint_sha256
     if spec["kind"] == "scripted_greedy":
         return ScriptedGreedyPlayer(), None
     player, obs_space = make_player(spec, seed=seed)

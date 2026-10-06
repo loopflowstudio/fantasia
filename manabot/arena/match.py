@@ -14,9 +14,11 @@ import numpy as np
 from etude.server import ASSET_MANIFEST_HASH, CONTENT_HASH
 from manabot.env import Match, ObservationSpace
 from manabot.infra.hypers import MatchHypers
+from manabot.sim.local_update import LocalUpdatePlayer
 from manabot.sim.teacher1_evidence import build_command, build_viewer_frame
 from manabot.verify.util import INTERACTIVE_DECK
 from managym import WORLD_VERSION
+from managym.decision import Command, DecisionFrame
 
 from .guidance import build_arena_player
 from .models import ArenaKey, PlayerRegistration, canonical_sha256
@@ -99,6 +101,15 @@ def _execute_game(
         env, obs = replay_environment(game, space)
         game["initial_state_digest"] = env._engine.state_digest()
         send(("initial", game["initial_state_digest"]))
+        for seat, player_id in enumerate(game["seat_players"]):
+            player = built[player_id][0]
+            if isinstance(player, LocalUpdatePlayer):
+                player.start_game(env, seat)
+        local_players = [
+            player
+            for player, _ in built.values()
+            if isinstance(player, LocalUpdatePlayer)
+        ]
         decision_counts = dict.fromkeys(built, 0)
         for revision in range(max_commands):
             raw = env.last_raw_obs
@@ -134,7 +145,22 @@ def _execute_game(
             command = build_command(frame, action)
             responsible = None
             send(("phase", None))
-            obs, _, terminated, truncated, info = env.step(action)
+            if local_players:
+                for player in local_players:
+                    player.prepare_step(env, actor, action)
+                semantic_frame = DecisionFrame.from_json(
+                    env._engine.semantic_decision_frame_json()
+                )
+                semantic_command = Command(
+                    f"arena-{revision}",
+                    semantic_frame.revision,
+                    int(semantic_frame.offers[action]["id"]),
+                )
+                obs, _, terminated, truncated, info, transition = env.step_semantic(
+                    semantic_command
+                )
+            else:
+                obs, _, terminated, truncated, info = env.step(action)
             decision = {
                 "revision": revision,
                 "actor": actor,
@@ -151,9 +177,22 @@ def _execute_game(
                 "post_state_digest": env._engine.state_digest(),
                 "latency_seconds": elapsed,
             }
+            player = built[player_id][0]
+            if (
+                isinstance(player, LocalUpdatePlayer)
+                and player.last_receipt is not None
+            ):
+                # Arena traces are private. Advice uses the explicit public projection.
+                decision["local_update_receipt"] = player.last_receipt.to_json()
+                decision["latency_seconds"] += player.last_receipt.belief_seconds
+                decision["belief_model_mismatch"] = (
+                    "opponent_behavior_not_assumed_equal_to_frozen_policy"
+                )
             game["decisions"].append(decision)
             decision_counts[player_id] += 1
             send(("decision", decision))
+            for player in local_players:
+                player.observe_step(env, actor, transition)
             if truncated or any(
                 info.get(name)
                 for name in (
@@ -426,11 +465,13 @@ def play_cell(
                 }
             rows.append(row)
     trace_receipt["artifact_path"] = trace_relative_path
+    replay_started = time.perf_counter()
     receipts = [replay_games([game]).to_dict() for game in games]
     replay_payload = {
         name: sum(r[name] for r in receipts) for name in receipts[0] if name != "passed"
     }
     replay_payload["passed"] = all(r["passed"] for r in receipts)
+    replay_payload["seconds"] = time.perf_counter() - replay_started
     for row, receipt in zip(rows, receipts, strict=True):
         row["replay_passed"] = receipt["passed"]
         row["trace_shard_sha256"] = trace_receipt["sha256"]

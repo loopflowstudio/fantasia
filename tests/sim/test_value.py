@@ -7,10 +7,11 @@ validity.
 """
 
 import numpy as np
+import pytest
 import torch
 
 from manabot.env import Env, Match, ObservationSpace, Reward
-from manabot.infra.hypers import AgentHypers, MatchHypers, RewardHypers
+from manabot.infra.hypers import AgentSpec, MatchHypers, RewardHypers
 from manabot.model.agent import Agent
 from manabot.sim.distill import OBS_KEYS
 from manabot.sim.flat_mc import load_checkpoint_agent, make_player, spec_name
@@ -73,8 +74,7 @@ class TestOutcomeLabels:
         usable, labels = outcome_labels(dataset)
         assert (dataset["winner"][usable] >= 0).all()
         expect = (
-            dataset["winner"][usable].astype(int)
-            == dataset["seat"][usable].astype(int)
+            dataset["winner"][usable].astype(int) == dataset["seat"][usable].astype(int)
         ).astype(np.float32)
         assert np.array_equal(labels, expect)
 
@@ -104,7 +104,7 @@ class TestSpearman:
 class TestTrainValue:
     def test_loss_decreases_and_policy_head_untouched(self):
         dataset = tiny_dataset()
-        init = Agent(ObservationSpace(), AgentHypers())
+        init = Agent(ObservationSpace(), AgentSpec())
         init_state = {k: v.clone() for k, v in init.state_dict().items()}
         agent, _, history = train_value(
             dataset, init_state=init_state, epochs=3, lr=1e-3, batch_size=32
@@ -116,7 +116,7 @@ class TestTrainValue:
 
     def test_freeze_encoder_only_moves_value_head(self):
         dataset = tiny_dataset()
-        init = Agent(ObservationSpace(), AgentHypers())
+        init = Agent(ObservationSpace(), AgentSpec())
         init_state = {k: v.clone() for k, v in init.state_dict().items()}
         agent, _, _ = train_value(
             dataset,
@@ -129,11 +129,13 @@ class TestTrainValue:
             same = torch.equal(param.detach().cpu(), init_state[name])
             assert same != name.startswith("value_head"), name
 
-    def test_checkpoint_roundtrip(self, tmp_path):
+    def test_checkpoint_roundtrip(self, tmp_path, interactive_player_configs):
         dataset = tiny_dataset()
         agent, obs_space, _ = train_value(dataset, epochs=1, batch_size=32)
         path = tmp_path / "value.pt"
-        save_value_checkpoint(agent, obs_space, path)
+        save_value_checkpoint(
+            agent, obs_space, path, player_configs=interactive_player_configs
+        )
         loaded, _ = load_checkpoint_agent(str(path))
         for (name, a), (_, b) in zip(
             agent.state_dict().items(), loaded.state_dict().items()
@@ -144,7 +146,7 @@ class TestTrainValue:
 class TestValueScorer:
     def test_scores_are_probs(self):
         env, obs = make_env()
-        scorer = ValueScorer(Agent(ObservationSpace(), AgentHypers()))
+        scorer = ValueScorer(Agent(ObservationSpace(), AgentSpec()))
         batch = {
             key: np.asarray(obs[key])[None].astype(
                 np.int32 if key == "action_focus" else np.float32
@@ -166,9 +168,7 @@ class TestPoolPerspective:
         roots = pool.root_actions()
         assert len(roots) == pool.num_slots == 3 * 2 * num_actions
         # (world, action, rollout) lexicographic layout
-        expect = [
-            a for _ in range(3) for a in range(num_actions) for _ in range(2)
-        ]
+        expect = [a for _ in range(3) for a in range(num_actions) for _ in range(2)]
         assert roots == expect
         buffers = _allocate_buffers(ObservationSpace(), pool.num_slots)
         pool.set_buffers(buffers, pool.num_slots)
@@ -182,17 +182,23 @@ class TestPoolPerspective:
 
 
 class TestPlayers:
-    def _value_checkpoint(self, tmp_path) -> str:
+    @pytest.fixture
+    def value_checkpoint(self, tmp_path, interactive_player_configs) -> str:
         obs_space = ObservationSpace()
-        agent = Agent(obs_space, AgentHypers())
+        agent = Agent(obs_space, AgentSpec())
         path = tmp_path / "value.pt"
-        save_value_checkpoint(agent, obs_space, path)
+        save_value_checkpoint(
+            agent, obs_space, path, player_configs=interactive_player_configs
+        )
         return str(path)
 
-    def test_vgreedy_plays_valid_actions(self, tmp_path):
+    def test_vgreedy_plays_valid_actions(self, value_checkpoint):
         env, obs = make_env(seed=7)
         player, _ = make_player(
-            {"kind": "value_greedy", "checkpoint": self._value_checkpoint(tmp_path)},
+            {
+                "kind": "value_greedy",
+                "checkpoint": value_checkpoint,
+            },
             seed=1,
         )
         assert isinstance(player, VGreedyPlayer)
@@ -206,14 +212,14 @@ class TestPlayers:
                 break
         assert player.stats.decisions > 0
 
-    def test_value_search_scores_stay_in_range(self, tmp_path):
+    def test_value_search_scores_stay_in_range(self, value_checkpoint):
         env, obs = make_env(seed=9)
         player, _ = make_player(
             {
                 "kind": "value_search",
                 "sims": 8,
                 "depth": 2,
-                "checkpoint": self._value_checkpoint(tmp_path),
+                "checkpoint": value_checkpoint,
             },
             seed=2,
         )

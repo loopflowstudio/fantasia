@@ -1,5 +1,9 @@
 """
 agent.py
+Shared viewer-observation encoder, legal-action policy and scalar or WDL critic.
+
+Agent.forward preserves the serving policy/value interface. Training uses
+forward_distribution when it needs loss/draw/win logits rather than their mean.
 """
 
 from typing import Dict, Optional, Tuple
@@ -9,8 +13,10 @@ import torch.nn as nn
 
 # Local imports
 from manabot.env import ObservationSpace
-from manabot.infra import AgentHypers
+from manabot.infra import AgentSpec
 from manabot.infra.log import getLogger
+from manabot.model.compound import CompoundDecoder, CompoundOutput
+from manabot.sim.structured_policy import RaggedOfferBatch
 
 
 class Agent(nn.Module):
@@ -25,7 +31,7 @@ class Agent(nn.Module):
     such as why the model appears to always select the default action.
     """
 
-    def __init__(self, observation_space: ObservationSpace, hypers: AgentHypers):
+    def __init__(self, observation_space: ObservationSpace, hypers: AgentSpec) -> None:
         super().__init__()
         self.observation_space = observation_space
         self.hypers = hypers
@@ -41,6 +47,15 @@ class Agent(nn.Module):
         action_dim = enc.action_dim  # e.g., 6 (5 action types + validity flag)
         self.max_focus_objects = enc.max_focus_objects
         embed_dim = hypers.hidden_dim
+        self.compound_decoder = (
+            CompoundDecoder(embed_dim) if hypers.compound_decisions else None
+        )
+
+        self.semantic_cards = None
+        if hypers.semantic_pack is not None:
+            from .semantic_cards import SemanticCardEncoder
+
+            self.semantic_cards = SemanticCardEncoder(hypers.semantic_pack, embed_dim)
 
         # Set up typed object embeddings.
         self.player_embedding = ProjectionLayer(player_dim, embed_dim)
@@ -75,16 +90,17 @@ class Agent(nn.Module):
             nn.ReLU(),
             layer_init(nn.Linear(embed_dim, 1), gain=0.01),
         )
+        value_dim = 3 if hypers.value_kind == "categorical_wdl" else 1
         self.value_head = nn.Sequential(
             layer_init(nn.Linear(embed_dim, embed_dim)),
             nn.ReLU(),
             MeanPoolingLayer(dim=1),
             layer_init(nn.Linear(embed_dim, embed_dim)),
             nn.ReLU(),
-            layer_init(nn.Linear(embed_dim, 1)),
+            layer_init(nn.Linear(embed_dim, value_dim)),
         )
         self.logger.info(f"Policy head: ({embed_dim} -> 1)")
-        self.logger.info(f"Value head: ({embed_dim} -> 1)")
+        self.logger.info(f"Value head: ({embed_dim} -> {value_dim})")
 
         self.belief_count_buckets = int(hypers.belief_count_buckets)
         if self.belief_count_buckets > 0:
@@ -129,6 +145,18 @@ class Agent(nn.Module):
         is_agent_template = torch.cat(is_agent_parts).unsqueeze(0)
         self.register_buffer("_is_agent_template", is_agent_template)
 
+        # Construct optional parameters after the historical model to preserve
+        # its initialization order and state-dict names.
+        self.extra_attention = nn.ModuleList(
+            GameObjectAttention(embed_dim, hypers.num_attention_heads, ownership=False)
+            for _ in range(hypers.attention_layers - 1)
+        )
+        self.value_token = (
+            nn.Parameter(torch.randn(1, 1, embed_dim) / embed_dim**0.5)
+            if hypers.value_aggregation == "value_token"
+            else None
+        )
+
         # When True, forward() stashes raw pre-mask logits on
         # self.last_raw_logits for offline diagnosis. Off by default: the
         # detach/cpu copy is measurable in the inference hot path.
@@ -136,18 +164,37 @@ class Agent(nn.Module):
         self.last_raw_logits: Optional[torch.Tensor] = None
 
     def forward(
-        self, obs: Dict[str, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, obs: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return policy logits [B,A] and acting-viewer signed values [B]."""
+        logits, raw_value = self.forward_distribution(obs)
+        if self.hypers.value_kind == "categorical_wdl":
+            probabilities = raw_value.softmax(dim=-1)
+            value = probabilities[:, 2] - probabilities[:, 0]
+        else:
+            value = raw_value.squeeze(-1)
+        return logits, value
+
+    def forward_distribution(
+        self, obs: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return policy logits and raw critic output from one shared encoding.
+
+        Categorical output [B,3] contains loss/draw/win logits from the acting
+        viewer's perspective; scalar output [B,1] is an unconstrained value.
+        Neither output is detached: categorical supervision can train the
+        critic and shared encoder directly without passing through its mean.
+        A distributional head alone does not select a categorical loss.
+        """
+        if self.compound_decoder is not None:
+            raise ValueError(
+                "compound checkpoint requires authoritative offers; use Agent.compound"
+            )
         objects, is_agent, validity = self._gather_object_embeddings(obs)
 
-        key_padding_mask = validity == 0
-
-        if self.hypers.attention_on:
-            post_attention_objects = self.attention(
-                objects, is_agent, key_padding_mask=key_padding_mask
-            )
-        else:
-            post_attention_objects = objects
+        encoded = self._attend_objects(objects, is_agent, validity)
+        # The optional trailing token is a critic input, never an action focus.
+        post_attention_objects = encoded[:, : validity.shape[1]]
 
         informed_actions = self._gather_informed_actions(obs, post_attention_objects)
 
@@ -156,8 +203,92 @@ class Agent(nn.Module):
             # Save raw logits for offline diagnosis (scripts/diagnose_*).
             self.last_raw_logits = logits_before_mask.detach().cpu()
         logits = logits_before_mask.masked_fill(obs["actions_valid"] == 0, -1e8)
-        value = self.value_head(post_attention_objects).squeeze(-1)
-        return logits, value
+        return logits, self._value_from_objects(encoded, validity)
+
+    def _attend_objects(
+        self,
+        objects: torch.Tensor,
+        is_agent: torch.Tensor,
+        validity: torch.Tensor,
+    ) -> torch.Tensor:
+        """Encode real objects and, when configured, a trailing neutral value token."""
+        if (
+            self.hypers.value_aggregation != "historical_mean"
+            and (validity.sum(1) == 0).any()
+        ):
+            raise ValueError("value aggregation requires a valid object")
+        key_padding_mask = validity == 0
+        if self.value_token is not None:
+            objects = torch.cat(
+                (objects, self.value_token.expand(objects.shape[0], -1, -1)), dim=1
+            )
+            key_padding_mask = torch.cat(
+                (key_padding_mask, torch.zeros_like(key_padding_mask[:, :1])), dim=1
+            )
+        if self.hypers.attention_on:
+            objects = self.attention(
+                objects, is_agent, key_padding_mask=key_padding_mask
+            )
+            for layer in self.extra_attention:
+                objects = layer(objects, is_agent, key_padding_mask)
+        return objects
+
+    def _value_from_objects(
+        self, objects: torch.Tensor, validity: torch.Tensor
+    ) -> torch.Tensor:
+        """Read the critic while preserving historical value_head parameter names."""
+        if self.hypers.value_aggregation == "historical_mean":
+            return self.value_head(objects)
+        if self.value_token is not None:
+            objects = objects[:, -1]
+        projected = self.value_head[1](self.value_head[0](objects))
+        if self.hypers.value_aggregation == "masked_mean":
+            projected = projected.masked_fill((validity == 0).unsqueeze(-1), 0)
+            projected = projected.sum(1) / validity.sum(1, keepdim=True)
+        # Indexing avoids constructing temporary Sequential modules per decision.
+        return self.value_head[5](self.value_head[4](self.value_head[3](projected)))
+
+    def compound(
+        self,
+        obs: dict[str, torch.Tensor],
+        batch: RaggedOfferBatch,
+        *,
+        tokens: tuple[int, ...] | None = None,
+        prefix: tuple[int, ...] = (),
+        generator: torch.Generator | None = None,
+        deterministic: bool = False,
+    ) -> CompoundOutput:
+        """One viewer-safe root, one ragged action; no intermediate observation."""
+        if self.compound_decoder is None:
+            raise ValueError("checkpoint has no compound policy")
+        objects, ownership, valid = self._gather_object_embeddings(obs)
+        if objects.shape[0] != 1:
+            raise ValueError("compound decoding requires one root")
+        if self.hypers.attention_on:
+            objects = self.attention(objects, ownership, key_padding_mask=valid == 0)
+        context = (objects * valid.unsqueeze(-1)).sum(1) / valid.sum(
+            1, keepdim=True
+        ).clamp_min(1)
+        # Complete priority/fallback offers preserve the native action ordering.
+        # Complete declarations/payments instead have one set-valued offer;
+        # its first row must not inherit an unrelated microchoice embedding.
+        features = None
+        if not any(
+            offer["verb"] in {"declare_attackers", "declare_blockers", "pay_waterbend"}
+            for offer in batch.offers
+        ):
+            features = self._gather_informed_actions(obs, objects)[
+                0, : len(batch.offers)
+            ]
+        return self.compound_decoder(
+            context[0],
+            batch,
+            offer_features=features,
+            tokens=tokens,
+            prefix=prefix,
+            generator=generator,
+            deterministic=deterministic,
+        )
 
     def _add_focus(
         self,
@@ -201,6 +332,12 @@ class Agent(nn.Module):
         enc_opp_player = self.player_embedding(obs["opponent_player"])
         enc_agent_cards = self.card_embedding(obs["agent_cards"])
         enc_opp_cards = self.card_embedding(obs["opponent_cards"])
+        if self.semantic_cards is not None:
+            cards, known = self.semantic_cards(obs)
+            enc_agent_cards = enc_agent_cards + cards[:, 0]
+            enc_opp_cards = enc_opp_cards + cards[:, 1]
+            enc_agent_player = enc_agent_player + known[:, 0, None]
+            enc_opp_player = enc_opp_player + known[:, 1, None]
         enc_agent_perms = self.perm_embedding(obs["agent_permanents"])
         enc_opp_perms = self.perm_embedding(obs["opponent_permanents"])
         object_parts = [
@@ -384,12 +521,18 @@ class GameObjectAttention(nn.Module):
       - And returning the context-rich output.
     """
 
-    def __init__(self, embedding_dim: int, num_heads: int):
+    def __init__(
+        self, embedding_dim: int, num_heads: int, *, ownership: bool = True
+    ) -> None:
         super().__init__()
         self.embedding_dim = embedding_dim
         self.logger = getLogger(__name__).getChild("attention")
         self.logger.info(f"Creating perspective vector of size {embedding_dim}")
-        self.perspective = nn.Parameter(torch.randn(embedding_dim) / embedding_dim**0.5)
+        self.perspective = (
+            nn.Parameter(torch.randn(embedding_dim) / embedding_dim**0.5)
+            if ownership
+            else None
+        )
         self.mha = nn.MultiheadAttention(
             embedding_dim, num_heads=num_heads, batch_first=True
         )
@@ -407,8 +550,16 @@ class GameObjectAttention(nn.Module):
         is_agent: torch.Tensor,
         key_padding_mask: torch.BoolTensor,
     ) -> torch.Tensor:
-        perspective_scale = torch.where(is_agent.unsqueeze(-1), 1.0, -1.0)
-        owned_objects = objects + perspective_scale * self.perspective
+        owned_objects = objects
+        if self.perspective is not None:
+            perspective_scale = torch.where(is_agent.unsqueeze(-1), 1.0, -1.0)
+            # A trailing value token has no owner; real-object indexes stay fixed.
+            if objects.shape[1] > is_agent.shape[1]:
+                perspective_scale = torch.cat(
+                    (perspective_scale, torch.zeros_like(perspective_scale[:, :1])),
+                    dim=1,
+                )
+            owned_objects = objects + perspective_scale * self.perspective
 
         attn_out, _ = self.mha(
             owned_objects,

@@ -283,7 +283,7 @@ def test_checkpoint_observation_bounds_survive_selected_replay(tmp_path):
     from manabot.arena.models import PlayerRegistration, file_sha256
     from manabot.arena.replay import replay_environment
     from manabot.env import ObservationSpace
-    from manabot.infra.hypers import AgentHypers, ObservationSpaceHypers
+    from manabot.infra.hypers import AgentSpec, ObservationSpaceHypers
     from manabot.model.agent import Agent
     from manabot.sim.distill import save_bc_checkpoint
     from manabot.sim.teacher1_evidence import runtime_fingerprints
@@ -295,9 +295,13 @@ def test_checkpoint_observation_bounds_survive_selected_replay(tmp_path):
         )
     )
     torch.manual_seed(83)
-    agent = Agent(space, AgentHypers())
+    agent = Agent(space, AgentSpec(semantic_pack="ur-lessons-vs-gw-allies"))
     path = tmp_path / "fixture.pt"
-    save_bc_checkpoint(agent, space, path)
+    from manabot.env import Match
+
+    save_bc_checkpoint(
+        agent, space, path, player_configs=Match(selected_match()).to_rust()
+    )
     runtime = runtime_fingerprints(
         match_hypers=selected_match(), observation_space=space, world="w4"
     )
