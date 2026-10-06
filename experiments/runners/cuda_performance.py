@@ -21,7 +21,7 @@ from experiments.runners.model_capacity import regimes
 from manabot.arena.models import file_sha256
 from manabot.env import ObservationSpace
 from manabot.model.agent import Agent
-from manabot.model.architecture import architecture_receipt
+from manabot.model.architecture import ArchitectureReceipt, architecture_receipt
 from manabot.training.execution import atomic_json, execute_regime
 from manabot.training.models import TrainingRegime, TrainSelfPlay
 from manabot.verify.store import VerifyStore
@@ -30,8 +30,8 @@ from manabot.verify.store import VerifyStore
 class Cell(BaseModel):
     capacity: str
     kind: Literal["model", "loop"]
-    batch: int
-    streams: int = 0
+    batch: int = Field(gt=0)
+    streams: int = Field(default=0, ge=0)
 
     @property
     def name(self) -> str:
@@ -54,6 +54,63 @@ class Sweep(BaseModel):
     started_unix: float = Field(default_factory=time.time)
     seconds: float = 0
     attempts: list[Attempt] = Field(default_factory=list)
+    expected_cells: list[Cell] = Field(default_factory=list)
+
+
+class Window(BaseModel):
+    calls: int
+    observations: int
+    seconds: float
+
+
+class PhaseResult(BaseModel):
+    construction_seconds: float
+    first_call_seconds: float
+    windows: list[Window]
+    peak_allocated_bytes: int
+    peak_reserved_bytes: int
+
+
+class ModelResult(BaseModel):
+    batch: int
+    unique_input_rows_available: int
+    input_sha256: str
+    input_shapes: dict[str, list[int]]
+    valid_counts: dict[str, float]
+    padding: str
+    warmups: int = 2
+    windows: int = 3
+    target_window_seconds: float = 1
+    precision: str = "float32; TF32 disabled"
+    device: str
+    total_memory_bytes: int
+    torch: str
+    python: str
+    native_sha256: dict[str, str]
+    architecture: ArchitectureReceipt | None = None
+    attention_slots: int | None = None
+    inference: PhaseResult | None = None
+    optimizer: PhaseResult | None = None
+
+
+def load_observations(path: Path) -> dict[str, torch.Tensor]:
+    value: object = torch.load(path, weights_only=True, map_location="cpu")
+    if not isinstance(value, dict) or not value:
+        raise ValueError("observation artifact must contain named tensors")
+    result: dict[str, torch.Tensor] = {}
+    for key, tensor in value.items():
+        if (
+            not isinstance(key, str)
+            or not isinstance(tensor, torch.Tensor)
+            or tensor.ndim < 1
+        ):
+            raise ValueError("observation artifact contains a non-tensor row")
+        result[key] = tensor
+    if "actions_valid" not in result or len({t.shape[0] for t in result.values()}) != 1:
+        raise ValueError("observation rows are not aligned")
+    if result["actions_valid"].shape[0] == 0:
+        raise ValueError("observation artifact is empty")
+    return result
 
 
 def cells() -> list[Cell]:
@@ -91,29 +148,33 @@ def _model_step(
 
 
 def _model(recipe: TrainingRegime, input_path: Path, batch: int, out: Path) -> None:
-    cpu = torch.load(input_path, weights_only=True, map_location="cpu")
+    cpu = load_observations(input_path)
     available = cpu["actions_valid"].shape[0]
     indexes = torch.arange(batch) % available
     obs = {key: value[indexes].to("cuda") for key, value in cpu.items()}
-    result: dict[str, object] = {
-        "batch": batch,
-        "unique_input_rows_available": available,
-        "input_sha256": file_sha256(input_path),
-        "input_shapes": {k: list(v.shape) for k, v in obs.items()},
-        "valid_counts": {
-            k: float(v.sum()) for k, v in obs.items() if k.endswith("_valid")
-        },
-        "padding": "unchanged fixed slots; no packing; batches above available rows cycle exact real rows",
-        "warmups": 2,
-        "windows": 3,
-        "target_window_seconds": 1.0,
-        "precision": "float32; TF32 disabled",
-        "device": torch.cuda.get_device_name(),
-        "total_memory_bytes": torch.cuda.get_device_properties(0).total_memory,
-        "torch": torch.__version__,
-        "python": platform.python_version(),
-        "native_sha256": {p.name: file_sha256(p) for p in Path("managym").glob("*.so")},
-    }
+    result = ModelResult.model_validate(
+        {
+            "batch": batch,
+            "unique_input_rows_available": available,
+            "input_sha256": file_sha256(input_path),
+            "input_shapes": {k: list(v.shape) for k, v in obs.items()},
+            "valid_counts": {
+                k: float(v.sum()) for k, v in obs.items() if k.endswith("_valid")
+            },
+            "padding": "unchanged fixed slots; no packing; batches above available rows cycle exact real rows",
+            "warmups": 2,
+            "windows": 3,
+            "target_window_seconds": 1.0,
+            "precision": "float32; TF32 disabled",
+            "device": torch.cuda.get_device_name(),
+            "total_memory_bytes": torch.cuda.get_device_properties(0).total_memory,
+            "torch": torch.__version__,
+            "python": platform.python_version(),
+            "native_sha256": {
+                p.name: file_sha256(p) for p in Path("managym").glob("*.so")
+            },
+        }
+    )
     for phase in ("inference", "optimizer"):
         torch.manual_seed(10349)
         began = time.perf_counter()
@@ -126,7 +187,7 @@ def _model(recipe: TrainingRegime, input_path: Path, batch: int, out: Path) -> N
         agent.train(optimizer is not None)
         torch.cuda.synchronize()
         construction = time.perf_counter() - began
-        result["architecture"] = architecture_receipt(agent).model_dump(mode="json")
+        result.architecture = architecture_receipt(agent)
         lengths: list[int] = []
 
         def capture(module: torch.nn.Module, args: tuple[torch.Tensor, ...]) -> None:
@@ -140,10 +201,10 @@ def _model(recipe: TrainingRegime, input_path: Path, batch: int, out: Path) -> N
         torch.cuda.synchronize()
         cold_seconds = time.perf_counter() - cold
         hook.remove()
-        result["attention_slots"] = lengths[0]
+        result.attention_slots = lengths[0]
         for _ in range(2):
             _model_step(agent, obs, optimizer)
-        windows: list[dict[str, float | int]] = []
+        windows: list[Window] = []
         for _ in range(3):
             torch.cuda.synchronize()
             began, calls = time.perf_counter(), 0
@@ -154,20 +215,24 @@ def _model(recipe: TrainingRegime, input_path: Path, batch: int, out: Path) -> N
                 if time.perf_counter() - began >= 1:
                     break
             windows.append(
-                {
-                    "calls": calls,
-                    "observations": calls * batch,
-                    "seconds": time.perf_counter() - began,
-                }
+                Window(
+                    calls=calls,
+                    observations=calls * batch,
+                    seconds=time.perf_counter() - began,
+                )
             )
-        result[phase] = {
-            "construction_seconds": construction,
-            "first_call_seconds": cold_seconds,
-            "windows": windows,
-            "peak_allocated_bytes": torch.cuda.max_memory_allocated(),
-            "peak_reserved_bytes": torch.cuda.max_memory_reserved(),
-        }
-        atomic_json(out / "result.json", result)
+        measured = PhaseResult(
+            construction_seconds=construction,
+            first_call_seconds=cold_seconds,
+            windows=windows,
+            peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+            peak_reserved_bytes=torch.cuda.max_memory_reserved(),
+        )
+        if phase == "inference":
+            result.inference = measured
+        else:
+            result.optimizer = measured
+        atomic_json(out / "result.json", result.model_dump(mode="json"))
         del agent, optimizer
         torch.cuda.empty_cache()
 
@@ -223,6 +288,7 @@ def sweep(root: Path, seconds: float) -> None:
             ["git", "rev-parse", "HEAD"], text=True
         ).strip(),
         deadline_unix=started + seconds,
+        expected_cells=cells(),
     )
     try:
         for cell in cells():
@@ -254,6 +320,14 @@ def sweep(root: Path, seconds: float) -> None:
                     )
                 attempt.exit_code = process.returncode
                 attempt.status = "completed" if process.returncode == 0 else "failed"
+                if (
+                    process.returncode
+                    and "OutOfMemoryError" in (out / "worker.log").read_text()
+                ):
+                    attempt.status = "oom"
+                    attempt.error = (
+                        "CUDA allocation failed; partial phase results and log retained"
+                    )
             except subprocess.TimeoutExpired:
                 attempt.status, attempt.error = (
                     "timeout",
