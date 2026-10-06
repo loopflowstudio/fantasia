@@ -119,6 +119,7 @@ already exist. The fixed benchmark recipe selects historical mean and one layer;
 representative token measurements need configuration, not model implementation.
 Jack Heart authorized this research/software delivery with ETU-108 left open;
 no training or mini retry was authorized in the delivery pass.
+
 ## Focused value-model priority (ETU-106, 2026-10-05)
 
 Jack Heart authorized historical mean, validity-masked mean, one-layer value
