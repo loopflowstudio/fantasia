@@ -18,7 +18,9 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue
 import wandb
 
 from manabot.arena.models import canonical_sha256
+from manabot.infra.artifacts import verify_file
 from manabot.infra.experiment import flatten_config
+from manabot.training.artifacts import ArtifactManifest
 from manabot.training.execution import atomic_json
 from manabot.training.models import TrainingRun
 from manabot.training.monitor_evaluation import MonitorResult
@@ -411,10 +413,17 @@ def main() -> None:
     )
     parser.add_argument("--project", default="manabot")
     parser.add_argument("--entity")
+    parser.add_argument(
+        "--artifact-manifest",
+        type=Path,
+        help="S3 locations for this exact --run export; metadata only",
+    )
     parser.add_argument("--watch-seconds", type=float, default=0)
     args = parser.parse_args()
     if args.run_id and not args.store:
         parser.error("--run-id requires --store")
+    if args.artifact_manifest and not args.run:
+        parser.error("--artifact-manifest requires --run")
     if args.watch_seconds < 0 or not math.isfinite(args.watch_seconds):
         parser.error("--watch-seconds must be finite and nonnegative")
     args.out.mkdir(parents=True, exist_ok=True)
@@ -437,6 +446,18 @@ def main() -> None:
                     run = store.training_run(args.run_id)
                 dashboard = training_dashboard(run)
                 status = run.status
+            if args.artifact_manifest:
+                manifest = ArtifactManifest.model_validate_json(
+                    args.artifact_manifest.read_text()
+                )
+                verify_file(
+                    args.run, manifest.source_run.sha256, manifest.source_run.bytes
+                )
+                if manifest.training_run_id != run.id:
+                    raise ValueError(
+                        "artifact manifest belongs to another training run"
+                    )
+                dashboard.summary["artifact_storage"] = manifest.model_dump(mode="json")
             atomic_json(args.out / "dashboard.json", dashboard.model_dump(mode="json"))
             if args.online:
                 try:

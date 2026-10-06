@@ -1958,6 +1958,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+artifacts = [
+    { name = "boto3" },
+]
 dev = [
     { name = "boto3" },
     { name = "httpx" },
@@ -1996,6 +1999,7 @@ training-runtime = [
 
 [package.metadata]
 requires-dist = [
+    { name = "boto3", marker = "extra == 'artifacts'", specifier = ">=1.35.0" },
     { name = "boto3", marker = "extra == 'dev'", specifier = ">=1.35.0" },
     { name = "boto3", marker = "extra == 'ops'", specifier = ">=1.35.0" },
     { name = "fastapi", specifier = ">=0.116.0" },
@@ -2017,7 +2021,7 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
     { name = "wandb", specifier = ">=0.18.7" },
 ]
-provides-extras = ["play", "dev", "notebook", "ops"]
+provides-extras = ["artifacts", "play", "dev", "notebook", "ops"]
 
 [package.metadata.requires-dev]
 play-runtime = [
