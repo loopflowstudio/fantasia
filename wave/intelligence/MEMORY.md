@@ -1085,34 +1085,36 @@ The live W&B service was not exercised. These remain software fixtures.
 
 ## Capacity software receipt boundary (ETU-102, 2026-10-05)
 
-Jack Heart authorized independent software completion, publication and landing
-following the PR 222/223 audit. Their AgentSpec width/depth/head validation,
-baseline-preserving model and with_capacity ladder remain the sole configuration
-owner. ETU-102 adds derived versioned architecture identity, total/trainable
-parameter accounting by actual component, TrainingRun identity and ordinary
-checkpoint receipt admission. Present receipts reject contradictory equal-shaped
-pooling metadata; absent historical receipts retain existing world/weight checks.
-World/content, source/runtime and checkpoint bytes remain separate authorities.
-No weight port, forward-equation change or second recipe schema was introduced.
+Jack Heart authorized independent software delivery. AgentSpec and with_capacity
+remain configuration owners; derived architecture receipts bind resolved model
+meaning and actual component parameter totals. Absent historical receipts retain
+world/weight checks; present contradictory metadata fails admission. World,
+source/runtime and checkpoint bytes remain separate. No weight port or changed
+forward equation was introduced. Trainable counts are export flags, not exposures.
 
-The existing calibration runner now freezes a bounded three-capacity CPU workflow
-and measures model construction, loading, first call, warmed inference, collection,
-optimizer, sampled RSS and total time. At `90c55627` the single retained ladder
-attempt completed in 212.56 seconds with six admitted raw checkpoints and 40
-exact-replayed games. Exact counts were 138,434 / 188,418 / 712,706 parameters
-for 64/1, 64/2 and 128/2 with four heads and selected-match semantic input.
-Host load was high; timings establish tooling, not scaling or strength. An earlier
-default-calibration test retained one 10-second game timeout; a 30-second per-game
-allowance fixed the workflow without raising its total cap. The focused checks
-passed with one optional notebook skip. Full records and interpretation limits
-live in [calibration documentation](../../docs/training-calibration.md).
-ETU-91 remained untouched; no scientific capacity study, paid compute, demo or
-chapter acceptance follows. The declarative-recipe follow-up should continue to
-use AgentSpec and these derived receipts rather than add an architecture owner.
-Trainable counts describe export-time flags, not optimizer exposures. Calibration
-inference batches are identified per checkpoint but need not match across arms;
-their timings cannot isolate capacity alone. Cold measurements mean fresh model
-construction/loading in an initialized process, not cold imports or OS caches.
+The retained `90c55627` CPU ladder completed in 212.56 seconds: six admitted raw
+checkpoints and 40 exact-replayed games. Semantic 64/1, 64/2, 128/2 models had
+138,434 / 188,418 / 712,706 parameters. High host load and differing inference
+batches prevent capacity-only timing claims. An earlier 10-second game timeout
+remains retained; 30 seconds fixed the workflow within the same total cap.
+Full timing definitions and integration evidence remain at `fd7437df` and in the
+[calibration guide](../../docs/training-calibration.md). These are software proofs;
+no scientific allocation, strength, demo or chapter acceptance follows. ETU-91
+remained untouched.
+
+## Larger-model planning findings (ETU-115, 2026-10-06)
+
+Jack Heart requested ordinary depth8/width384/feedforward1536 recipes and bounded
+laptop measurements, without rented hardware. Source inspection finds 202 visible
+attention slots at default capacity, 203 with the value token; actions/events are
+not attention rows. Naive padding removal changes historical mean pooling and
+focus indexes. No packing or capacity change is planned. New unset AgentSpec
+fields must be omitted from serialization to preserve architecture/recipe hashes.
+ETU-103's three-arm scientific plan needs an explicit ladder selection so adding
+a large rung cannot alter its cohort. ETU-107's typed-choice design is unapproved;
+attention constructor changes can remain separate from its decoder work. MPS
+model probes do not authorize changing ETU-114's stage device handling. These
+are planning findings, not completed implementation or measured throughput.
 
 ## Declarative experiment authoring (ETU-109, 2026-10-05)
 
