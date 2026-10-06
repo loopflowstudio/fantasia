@@ -1,5 +1,33 @@
 # Intelligence memory
 
+## Distributed RL research boundary (ETU-108, 2026-10-05)
+
+Jack Heart requested primary-source research and a disposable laptop/mini
+prototype where both hosts contribute to one model; speedup is not acceptance.
+The initial contribution prepares research and a bounded benchmark
+harness only. Value-token training remains the immediate priority; ETU-91 is
+untouched. No distributed training, hardware comparison or strength result
+exists from this pass. Mini access failed once on host name resolution; no
+access repair followed. Compute workloads remain unexecuted.
+
+Actor/inference placement and stale-data admission are separate decisions.
+Current PPO and the Ataraxos move rule retain collection behavior but do not
+implement V-trace; clipped ratios and reverse KL do not authorize arbitrary
+policy lag. Preserve same-viewer terminal/bootstrap boundaries, full behavior
+distributions, opponent versions, unique sample accounting and one optimizer
+owner before adding transport. Zero-lag collection is a compatibility baseline
+proposal, not reinstatement of the superseded synchronous-round decision.
+Synchronization and placement await measurements and an explicit estimator
+contract. The [research report](../../docs/distributed-rl.md) retains primary sources,
+code seams, proposed retry semantics and outstanding prototype acceptance;
+`experiments/runners/distributed_benchmark.py` owns the bounded supervisor.
+Full forward-path review corrected the contribution's mistaken claim that the
+base lacks value-token support: token/masked aggregation and extra attention
+already exist. The fixed benchmark recipe selects historical mean and one layer;
+representative token measurements need configuration, not model implementation.
+Jack Heart authorized this research/software delivery with ETU-108 left open;
+no training or mini retry was authorized in the delivery pass.
+
 ## Focused value-model priority (ETU-106, 2026-10-05)
 
 Jack Heart authorized historical mean, validity-masked mean, one-layer value
@@ -936,3 +964,31 @@ Trainable counts describe export-time flags, not optimizer exposures. Calibratio
 inference batches are identified per checkpoint but need not match across arms;
 their timings cannot isolate capacity alone. Cold measurements mean fresh model
 construction/loading in an initialized process, not cold imports or OS caches.
+
+## Declarative experiment authoring (ETU-109, 2026-10-05)
+
+Jack Heart authorized the declarative follow-up to merged PR #223, including
+publication and landing without another interactive gate. Experiment declarations
+now use typed components, immutable baseline snapshots, ordered cases/matrices
+and explicit overrides. Resolution uses existing TrainingRegime admission without
+constructing a model or starting execution. Every effective setting has a component
+owner and origin; overlapping explicit writes fail even when their values agree.
+A configuration digest retains the executor's meaning, while a separate receipt
+identity binds labels, baseline bytes and provenance. Run seeds remain outside
+recipe authoring; EvaluationProtocol and ResolvedStudy retain cohort authority.
+
+`ataraxos-mtg-v1` pins a complete categorical move-learning configuration with the
+supported small two-layer value-token model. The token and post-normalization are
+local architecture choices; history, setup learning and belief/search stages are
+not supplied by that name. New preset meanings require new versions. This is a
+paper-inspired MTG baseline, not reproduction or strength evidence. The value
+study retains its separate historical baseline: all eight regime digests and its
+entire protocol are unchanged. Three capacity example identities also remain
+unchanged; ETU-102 accounting/calibration and ETU-91's checkout were not modified.
+
+The [authoring guide and technical walkthrough](../../docs/training-experiments.md)
+own usage, ownership and fidelity limits. Configuration/provenance exports and
+packaged preset checks passed. The affected checks passed after rebuilding this
+checkout's stale native extension; one notebook-dependent check remains skipped.
+No scientific campaign or paid compute ran. Software acceptance does not establish
+training, calibration, demo admission or chapter outcomes.
