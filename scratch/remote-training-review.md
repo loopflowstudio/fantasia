@@ -1,35 +1,64 @@
 # Remote training delivery review — 2026-10-06
 
-Walkthrough: [pr-review.html](pr-review.html). Intent and prior evidence:
-[remote-training-design.md](remote-training-design.md),
-[remote contract](../docs/remote-training.md).
+[Walkthrough](pr-review.html) · [Design](remote-training-design.md) ·
+[Live evidence and contract](../docs/remote-training.md).
 
-Scope: local comparison fd7437dfd84cd1e24785a6d7febee78fceff3d80 to
- d830760603c0bfe277937b17768bc4c33139272c. GitHub returned no PR for the
-current branch; the checkout was clean before review artifacts were added.
+Refreshed for PR #252, base d7b69fc016c9b9d90c48190a414eb0cff6fe94f9,
+head 6d718f770b4be0064ca300f9558a3fb3f8f4d6d8. This review refresh is local.
 
-Agent review feedback: the software connects declared-resource compilation,
-private deployment receipts, guardian admission, existing self-play execution,
-immutable artifact relocation and explicit cleanup recovery. The ordinary run
-command admits policies through the loader; it does not play arena games.
-The separate live acceptance helper owns that proof. No live deployment,
-CUDA optimizer run, pod self-deletion or returned-checkpoint game was observed
-in this review. The dated zero-pod inventory is prior evidence, not a fresh
-inventory query. Complete mocked deployment and training/transfer timeout
-coverage also remain open per the design.
+## Command naming feedback
 
-Agreed design changes: none recorded. Jack Heart's supplied direction remains
-accepted; no approval of agent-selected implementation choices is inferred.
-No product code was changed and no navigation or merge decision was made.
+Jack Heart suggested `cloud` in place of `remote`, then raised `manabot deploy`
+and requested an updated review. The proposed public surface is:
 
-New check: local compile at d8307606 succeeded, wrote
-`.runs/pr-review-plan.json`, and displayed a $0.310 projected ceiling including
-reserves. No provider request or rental occurred. Prior 50-pass / one-CUDA-skip
-results are attributed to the design rather than presented as rerun evidence.
+- `uv run manabot deploy --regime recipe.json --mix hardware.json --out .runs/deployment`
+- `uv run manabot deploy plan --regime recipe.json --mix hardware.json --out plan.json`
+- `uv run manabot deploy --plan plan.json --out .runs/deployment`
+- `uv run manabot deploy status`
+- `uv run manabot deploy cleanup --deployment receipt.json`
 
-Next useful action: Jack Heart reviews the walkthrough; retain any feedback here.
-The following authorized delivery work still needs complete lifecycle checks and,
-after exact source publication, the all-attempt under-$5 live helper with returned
-raw/EMA evidence, four terminal replayed arena legs and final inventory. Unknown
-billing or unproved scoped deletion must remain explicit failures. Larger-model
-and distributed-RL work remain separate.
+Default invocation deploys; `plan` previews placement and price. RunPod remains
+in the hardware mix. Current implementation still uses `remote run` and
+`remote compile`. No product code changed. Compatibility aliases and internal
+module naming remain unresolved; the review update does not imply full design
+approval or a merge/navigation decision.
+
+## Deployment type naming
+
+Jack Heart flagged `Attempt` and `Receipt` as vague. Proposed replacements:
+`RentalAttempt` for each intended guardian or training pod rental, and
+`DeploymentReceipt` for the full operation's plan binding, attempts, returned
+policies, cost and outcome. These names distinguish pod-level state from the
+whole deployment and from existing training receipts. The walkthrough retains
+real source under its current names; no implementation rename has been made.
+
+## Evidence refresh
+
+The prior review's unproved-live status is superseded by the current remote
+contract: attempts 004–006 retain CUDA work, returned policies and four terminal
+replayed arena games with deletion; 007 proves two-run setup reuse separately.
+Total recorded Task cost is $1.6591 estimated/reported including prior failures
+and shakedown. Zero pods is a dated observation, not a new inventory query.
+Reports were inspected, not rerun; no rental occurred in this review update.
+The original local compile at d8307606 produced the $0.310 projection retained
+in the walkthrough. Full mocked default success/timeout coverage is still not
+claimed. No strength or chapter acceptance follows.
+
+Next useful action: review the proposed command surface, then carry accepted
+feedback into the CLI, help, cleanup hints and documentation together. Keep
+recorded transcripts and frozen receipts unchanged. No Flow navigation is chosen.
+
+## Jack Heart's approval
+
+Jack Heart approved the review in this conversation: “yeah loos fine approved”.
+This includes the proposed `manabot deploy` command surface and the
+`RentalAttempt` / `DeploymentReceipt` names. Apply those changes together across
+CLI help, cleanup hints, imports, tests and documentation; preserve frozen
+receipts and historical transcripts. The naming changes are not yet implemented.
+This is human review approval; the following Flow step owns navigation and
+remaining delivery work.
+
+Review completion could not be recorded in Loopflow: both `lf session ready`
+and the supplied `lf session complete` command failed because the configured
+custom Home's development store is incompatible. Approval is retained here;
+Session completion remains pending. No Home migration or replacement attempted.
