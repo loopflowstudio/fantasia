@@ -50,6 +50,9 @@ def test_safe_pause_restores_current_games_and_exact_learning(
             return run
 
         with monkeypatch.context() as patch:
+            # The pause request is injected through an exported update boundary.
+            patch.setattr(execution, "PROGRESS_EXPORT_SECONDS", 0.0)
+            patch.setattr(execution, "PROGRESS_EXPORT_SHARE", float("inf"))
             patch.setattr(execution, "export_training_run", request_pause)
             # An arbitrarily advanced continuous clock must not spend active time.
             patch.setattr(execution, "watchdog_seconds", lambda: 1e20)

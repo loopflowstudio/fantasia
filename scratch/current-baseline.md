@@ -132,3 +132,5 @@ Task completion. `experiments/current-baseline.md` and its hash-bound calibratio
 archive own exact costs, failures and evidence limits.
 
 Check: `uv run pytest -q tests/training/test_current_baseline.py tests/training/test_worker_deadline.py tests/training/test_checkpoint_queue.py tests/training/test_experiment_report.py` — 13 passed after compression; broader gate/native results remain in `experiments/current-baseline.md`. Storage compaction and sustained calibration remain follow-up work.
+
+Sync check: preserved checkpoint cadence and safe pause with main's progress-export throttling; `uv run pytest -q tests/training/test_active_recovery.py::test_safe_pause_restores_current_games_and_exact_learning` — 1 passed.
