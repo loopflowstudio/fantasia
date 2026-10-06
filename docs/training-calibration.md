@@ -66,3 +66,45 @@ ETU-99 owns uncontended independent-seed measurements as policies
 change, supported CPU/MPS comparisons, cloning/sampling micro-costs, and
 conservative complete-cohort projections. Those measurements require a separate
 frozen protocol within the retained cap; rented hardware needs explicit funding.
+
+## Capacity ladder software calibration
+
+```bash
+uv run -m experiments.runners.calibrate_training --capacity --out .runs/capacity-calibration
+```
+
+This freezes the existing `model_capacity.regimes` ladder: width64/depth1,
+width64/depth2 and width128/depth2, all with four heads. `AgentSpec` remains the
+only model configuration; `with_capacity` changes those fields without changing
+pooling, information inputs or learning. The calibration holds historical mean
+pooling and scalar output fixed on the semantic Allies/Lessons setup. It runs
+one seed, two updates of 256 learner transitions per capacity, two raw exports
+per capacity and the shared arena at both checkpoints. The protocol is a
+workflow smoke, not a capacity study or strength comparison.
+
+The total allowance is 900 seconds: the existing study has a 780-second deadline
+and probes use only the remaining allowance. Each training run has 120 seconds,
+with 60 seconds per stage and 30 seconds per arena game. No retry occurs; a fresh output directory retains the
+resolved plan, canonical attempts, artifacts, traces and failures. The active
+ETU-91 campaign is not opened or changed. Its scientific allocation is not
+inherited. This software check does not authorize a later scientific run.
+
+`calibration.json` includes the existing collection, learning, export, sampled
+process-tree RSS, evaluation/replay and total elapsed costs. Its `inference`
+rows add a probe of each final raw checkpoint: model construction time, ordinary
+checkpoint loading time (including construction/admission), first forward on a
+freshly loaded model, three unmeasured warmups, and ten timed batch-four forwards.
+The reported steady time is the total for ten forwards; divide by 40 for seconds
+per observation. Native collection supplies an identified real observation batch;
+its separate probe cost does not add training samples. Each row binds the exact
+checkpoint bytes, tensor-batch digest and architecture receipt. Probe seeds come
+from the recorded run's collection stream. Construction/loading and first forward
+are cold model operations in an already initialized process, not cold OS caches
+or import startup. These costs overlap conceptually; do not add construction time
+to loading time. Outer elapsed time includes all probe overhead.
+
+Inference RSS is sampled before/after calls and training RSS at executor checks;
+these are observed lower bounds on peak resident memory, not allocator peaks.
+Host load snapshots disclose possible contention but cannot attribute it. A
+concurrent run establishes software/accounting behavior only; use an independently
+approved uncontended protocol before drawing scaling or laptop-throughput conclusions.
