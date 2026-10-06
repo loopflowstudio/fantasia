@@ -7,8 +7,8 @@ fetching; PR review/readiness and landing remain prohibited. ETU-108/larger mode
 stay separate. Attempt 004 completed 700 CUDA updates in 27.73 minutes, returned
 raw/EMA and authoritative records, and exact-replayed four ordinary arena games.
 Inventory was empty; rented CUDA smoke passed.
-Prior failures and the shakedown bring expenditure to $1.0701 estimated/reported,
-not invoiced. The [remote contract](../../docs/remote-training.md) owns evidence.
+Including failures/shakedown: $1.0701 estimated/reported, not invoiced.
+Evidence: [remote contract](../../docs/remote-training.md).
 
 Jack Heart then authorized immediate 600-update stages with wider deadlines;
 attempt 005 is running. ETU-119 owns persistence fixes; frozen runs stay unchanged.
@@ -34,9 +34,8 @@ demo remains intact beside a separately named revised generator. Cells only read
 retained data. Interpretation, ledger updates and next-experiment choices belong
 to a skill. Landing and auto-merge remain forbidden pending Jack Heart's review.
 
-Tiny fixtures prove scheduling/reporting only; timeouts remain retained and
-incomplete cohorts never become rates. No strength claim or live ETU-103/106
-change follows. [Execution guide](../../docs/experiment-execution.md): launch, recovery, costs and reporting.
+Tiny fixtures prove scheduling/reporting only; retain timeouts, omit incomplete-cohort
+rates. No strength claim or live ETU-103/106 change. [Execution guide](../../docs/experiment-execution.md): launch, recovery, costs and reporting.
 
 ## History input (ETU-106, 2026-10-06)
 
