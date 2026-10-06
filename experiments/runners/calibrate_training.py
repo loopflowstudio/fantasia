@@ -104,8 +104,8 @@ class InferenceProbe(BaseModel):
     cold_load_seconds: float
     collection_seconds: float
     first_forward_seconds: float
-    warmup_forwards: int = 3
-    measured_forwards: int = 10
+    warmup_forwards: int
+    measured_forwards: int
     batch_size: int
     steady_forward_seconds: float
     sampled_peak_rss_bytes: int
@@ -238,14 +238,15 @@ def _inference_probe(run: TrainingRun) -> InferenceProbe:
     # The collector has already called the model. Reload for a first-forward
     # measurement on these same identified tensors; this is not cold OS cache.
     agent, _ = load_checkpoint_agent(str(checkpoint))
+    warmup_forwards, measured_forwards = 3, 10
     with torch.inference_mode():
         tick = time.perf_counter()
         agent(obs)
         first = time.perf_counter() - tick
-        for _ in range(3):
+        for _ in range(warmup_forwards):
             agent(obs)
         tick = time.perf_counter()
-        for _ in range(10):
+        for _ in range(measured_forwards):
             agent(obs)
         steady = time.perf_counter() - tick
     peak = max(peak, psutil.Process().memory_info().rss)
@@ -258,10 +259,24 @@ def _inference_probe(run: TrainingRun) -> InferenceProbe:
         cold_load_seconds=cold,
         collection_seconds=collection,
         first_forward_seconds=first,
-        batch_size=4,
+        warmup_forwards=warmup_forwards,
+        measured_forwards=measured_forwards,
+        batch_size=collector.num_envs,
         steady_forward_seconds=steady,
         sampled_peak_rss_bytes=peak,
     )
+
+
+def _recorded_runs(out: Path) -> list[TrainingRun]:
+    """Include failed canonical attempts even when their JSON export failed."""
+    database = out / "training.sqlite"
+    if not database.exists():
+        return []
+    with VerifyStore(database) as store:
+        ids = store.con.execute(
+            "SELECT id FROM training_runs ORDER BY rowid"
+        ).fetchall()
+        return [store.training_run(run_id) for (run_id,) in ids]
 
 
 def _collect_records(out: Path, report: CalibrationReport) -> None:
@@ -271,26 +286,18 @@ def _collect_records(out: Path, report: CalibrationReport) -> None:
     study = _Study.model_validate_json(study_path.read_text())
     if report.error is None:
         report.status = study.status
-    database = out / "training.sqlite"
-    if database.exists():
-        with VerifyStore(database) as store:
-            # Include failed canonical attempts even when their JSON export failed.
-            ids = store.con.execute(
-                "SELECT id FROM training_runs ORDER BY rowid"
-            ).fetchall()
-            for (run_id,) in ids:
-                run: TrainingRun = store.training_run(run_id)
-                report.runs.append(
-                    CalibrationRun(
-                        run_id=run.id,
-                        seed=run.seed,
-                        status=run.status,
-                        run_seconds=run.seconds,
-                        watchdog_seconds=run.watchdog_seconds,
-                        setup_seconds=run.setup_seconds,
-                        stages=run.stages,
-                    )
-                )
+    report.runs = [
+        CalibrationRun(
+            run_id=run.id,
+            seed=run.seed,
+            status=run.status,
+            run_seconds=run.seconds,
+            watchdog_seconds=run.watchdog_seconds,
+            setup_seconds=run.setup_seconds,
+            stages=run.stages,
+        )
+        for run in _recorded_runs(out)
+    ]
     for cell in study.comparisons:
         report.evaluation_including_replay_seconds += cell.evaluation_seconds
         if report.replay_seconds is not None:
@@ -330,26 +337,21 @@ def calibrate(
         run_study(plan.protocol.study, out, plan, render_report=False)
         if capacity:
 
-            def deadline(signum: int, frame: object) -> None:
-                raise TimeoutError("capacity calibration exceeded 900 seconds")
+            def deadline(*_: object) -> None:
+                raise TimeoutError(
+                    f"capacity calibration exceeded {plan.allocation_seconds:g} seconds"
+                )
 
-            remaining = 900 - (time.perf_counter() - start)
+            remaining = plan.allocation_seconds - (time.perf_counter() - start)
             if remaining <= 0:
-                raise TimeoutError("capacity calibration exceeded 900 seconds")
+                deadline()
             signal.signal(signal.SIGALRM, deadline)
             signal.setitimer(signal.ITIMER_REAL, remaining)
-            with VerifyStore(out / "training.sqlite") as store:
-                ids = store.con.execute(
-                    "SELECT id FROM training_runs ORDER BY rowid"
-                ).fetchall()
-                for (run_id,) in ids:
-                    run = store.training_run(run_id)
-                    if run.status != "completed":
-                        raise ValueError("capacity probe requires completed training")
-                    report.inference.append(_inference_probe(run))
-                    atomic_json(
-                        out / "calibration.json", report.model_dump(mode="json")
-                    )
+            for run in _recorded_runs(out):
+                if run.status != "completed":
+                    raise ValueError("capacity probe requires completed training")
+                report.inference.append(_inference_probe(run))
+                atomic_json(out / "calibration.json", report.model_dump(mode="json"))
         report.status = "completed"
     except BaseException as error:
         report.status = "failed"
