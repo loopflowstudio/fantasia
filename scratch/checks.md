@@ -1,0 +1,1 @@
+2026-10-06: `uv run pytest tests/training/test_pooling_filter.py tests/training/test_value_screen.py tests/training/test_study.py tests/training/test_capacity_study.py -q` — 36 passed; focused Ruff, format and `git diff --check` passed. No scientific execution before landing.
