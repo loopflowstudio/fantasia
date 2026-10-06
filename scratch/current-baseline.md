@@ -26,7 +26,7 @@ unknown restart charges separate. Storage admission currently blocks launch.
 
 ## Candidate and coordination
 
-Inspect the unchanged masked-mean scalar recipe from the first value-model
+The candidate is the unchanged masked-mean scalar recipe from the first value-model
 screen (400→800 updates improved fixed-greedy score in three seeds). The later
 pooling/filter follow-up was flat. These are candidate evidence, not validation.
 Keep architecture/learning fixed; distinguish any opponent or source migration.
@@ -48,30 +48,27 @@ the single allocation, and retain every failed/interrupted attempt. No automatic
 fresh-week restart. Calibration remains bounded; the short full-game timing is
 not calibration of current-self learning.
 
-The existing recovery journal grows with lifetime microsteps and saves every
-update. Its continuous watchdog and orphan settlement charge sleep/calendar gaps.
-Those contracts cannot be represented as seven active days with bounded restart
-cost. Before launch, extend the existing owners rather than add a second trainer:
+Reconciled 2026-10-06 against `b4b9913e`: the opt-in recovery path now bounds
+native replay to each stream's current game and preserves learner/Adam/EMA,
+RNGs, counters, schedules and committed exports. The candidate checkpoints every
+128 updates, at stage completion and on a requested pause. Work after the last
+committed snapshot can repeat; committed updates and exports cannot. The canonical
+store and original source/recipe retain recovery authority.
 
-- Bound native replay by each stream's current game, preserving exact reset seed,
-  next seed, legal action prefix and current observation. Preserve learner,
-  optimizer, EMA, all RNGs, counters, run-wide schedules and committed exports.
-- Use explicit opt-in active-clock accounting; keep existing wall-clock recipes
-  unchanged. Retain calendar elapsed, known sleep/pause time and uncertain abrupt
-  interruption charges separately. Never label estimated cost measured compute.
-- Checkpoint at bounded intervals and on pause; an interrupted update may repeat
-  but committed updates/exports may not. A pause finishes and commits a boundary;
-  resume uses the canonical store, original source/recipe and remaining allocation.
-- Exercise interruption and recovery against uninterrupted state, including
-  episode boundaries, no-update steps, continuation and restart accounting before
-  the serious allocation. No sleep-prevention tool substitutes for recovery.
-- Expose last update/checkpoint/evaluation time, evaluation lag, throughput, costs,
-  failures and strength versus active time with uncertainty. Operational stalls
-  are distinct from statistical plateaus. Initially use human-requested pause;
-  no automatic statistical plateau rule is authorized by a noisy score or RL loss.
+Active-clock accounting separates known downtime and conservatively charges
+unobserved restart intervals, including reboot gaps. These estimates are not
+measured compute. Bounded interruption, continuation and complete-state equality
+checks passed; physical lid closure remains untested. Existing wall-clock recipes
+retain their original semantics.
 
-The sustained learner has not started. Recovery semantics and their tests are
-launch prerequisites, not reasons to spend the allocation on a known failure.
+The shared dashboard exposes update/evaluation freshness, checkpoint lag,
+throughput, costs, failures and strength uncertainty. Manual pause commits a
+learner boundary and waits for the current bounded evaluation cohort. No automatic
+statistical plateau rule exists. Main's progress-export throttling is integrated;
+it does not replace recovery checkpoints or eliminate snapshot duplication.
+
+The remaining launch prerequisite is retained-storage admission followed by a
+complete exact-recipe calibration, not another implementation of recovery.
 
 ## Existing work preserved
 
@@ -101,18 +98,14 @@ VerifyStore retain execution authority. The explicit diagnostic driver adds
 initialization/no-update controls and root replay. The sustained run must use
 the shared Experiment scheduling/notebook path and its phase accounting.
 
-Delete — do not maintain: short full-game promotion/graduation wording is removed;
-its frozen thresholds and outcomes remain debugging criteria. The executor and
+Short full-game thresholds and outcomes remain debugging criteria. The executor and
 report share typed Result/Attempt/Score evidence. Learner/evaluator deadlines use
 one clock helper, and notebook sections are authored directly instead of patched
 by cell index and string matching. Retained evidence bytes remain unchanged.
 
-Current-game recovery, safe pause and active-clock accounting now extend the shared
-owners. Real pause/resume matched uninterrupted learner/optimizer/EMA/RNG and native
-observations; seven native debug checks passed. The shared Experiment supervisor
-preserved interrupted attempts and remaining allowance. Physical lid closure was
-not exercised. The affected gate passed. A source bundle inside this checkout
-will keep long-run imports immutable through later review commits.
+The source-bundle builder exists, but no execution bundle has been created.
+The sustained declaration and endpoint analysis exist through the shared runner;
+their presence does not imply an admitted horizon or an executed cohort.
 
 Remaining: resolve storage admission, finish exact-recipe calibration, then freeze
 horizon/source/plan and launch within the remaining original week allocation.
@@ -122,15 +115,19 @@ one seed in 200.78 seconds before disk crossed the 4 GiB reserve. Both stopped;
 A provisional 12,800-update three-seed storage projection is 29.879 GiB plus reserve,
 mostly repeated historical diagnostics in snapshots. Current-game replay does not
 bound that duplication. Free space fell to about 1.5 GiB. No unrelated data was
-removed. Compacting snapshot diagnostics is unimplemented follow-up requiring
-recovery validation; a shorter toy endpoint is not a substitute.
+removed. The archive separately records 6.77 GiB free at projection time; neither
+historical observation is a current capacity check. Compacting snapshot diagnostics
+is unimplemented follow-up requiring recovery validation; a shorter toy endpoint
+is not a substitute. `save_update` copies current and completed StageRecords,
+and resume derives the update offset from diagnostic length. Any compaction must
+preserve those coordinates, immutable exports and canonical diagnostic evidence;
+dropping diagnostic rows would change recovery semantics. Storage projection must
+then be measured again against the changed format before another launch.
 
-Publish the retained software/evidence with this blocker explicit. No sustained
+Software/evidence delivery must retain this blocker explicitly. No sustained
 learner, calibrated plan or immutable execution bundle exists. Sustained improvement
 and independently validated daily testing remain open; no baseline promotion or
 Task completion. `experiments/current-baseline.md` and its hash-bound calibration
 archive own exact costs, failures and evidence limits.
 
-Check: `uv run pytest -q tests/training/test_current_baseline.py tests/training/test_worker_deadline.py tests/training/test_checkpoint_queue.py tests/training/test_experiment_report.py` — 13 passed after compression; broader gate/native results remain in `experiments/current-baseline.md`. Storage compaction and sustained calibration remain follow-up work.
-
-Sync check: preserved checkpoint cadence and safe pause with main's progress-export throttling; `uv run pytest -q tests/training/test_active_recovery.py::test_safe_pause_restores_current_games_and_exact_learning` — 1 passed.
+Check (retained at `b4b9913e`): `uv run pytest -q tests/training/test_active_recovery.py::test_safe_pause_restores_current_games_and_exact_learning` — 1 passed after progress-export integration; broader gate/native results remain in `experiments/current-baseline.md`.

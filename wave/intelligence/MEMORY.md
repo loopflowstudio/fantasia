@@ -18,7 +18,9 @@ completed one seed in 200.78 seconds before disk crossed the 4 GiB reserve.
 Both attempts stopped; total experimental preparation is 2788.716979166954 seconds.
 A provisional minimum sustained cohort projects 29.879 GiB plus reserve, dominated
 by repeated snapshot diagnostics. Current-game replay does not bound total retained
-storage. Storage admission blocks further launch; compaction remains unimplemented.
+storage. Progress-export throttling also leaves snapshot duplication intact.
+Compaction remains unimplemented; it must preserve resume offsets and canonical evidence;
+storage admission blocks launch until retention fits and calibration completes.
 No unrelated evidence or mini campaign changed. No sustained learner or frozen plan
 exists. The [protocol and hash-bound evidence](../../experiments/current-baseline.md)
 own failures, costs and checks. Seven-day authorization persists; sustained learning,
