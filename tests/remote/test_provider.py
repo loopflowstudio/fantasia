@@ -104,9 +104,7 @@ def test_ssh_does_not_inherit_account_environment(
 
 
 def test_pending_pod_requested_ports_are_not_ssh_mappings() -> None:
-    from manabot.remote.provider import Pod
-
-    pending = dict(
+    pending: dict[str, object] = dict(
         id="pending",
         name="probe",
         gpuCount=1,
@@ -115,6 +113,6 @@ def test_pending_pod_requested_ports_are_not_ssh_mappings() -> None:
         memoryInGb=62,
         ports=["22/tcp"],
     )
-    assert Pod.model_validate(pending).ports == {}
+    assert provider.Pod.model_validate(pending).ports == {}
     pending["portMappings"] = {"22": 12345}
-    assert Pod.model_validate(pending).ports == {"22": 12345}
+    assert provider.Pod.model_validate(pending).ports == {"22": 12345}
