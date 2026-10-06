@@ -92,7 +92,7 @@ heartbeat for the completed legacy study.
 
 Headless notebook execution and HTML structure/link validation are software checks.
 No rendering environment was supplied, so visual presentation awaits Jack Heart's
-review. Publication is authorized; landing remains forbidden pending that review.
+review. Jack Heart subsequently accepted the W&B version and authorized shipping; see below.
 
 A broader inherited pytest selection accidentally ran tiny training fixtures and
 started a live monitoring attempt. It was interrupted after 18 checks passed;
@@ -141,3 +141,19 @@ The reporting extra installs `wandb-workspaces`; its dependency updates W&B to
 0.30.0. No training or evaluation ran. Headless screenshot capture returned a blank
 W&B page, so browser rendering and interaction remain for Jack Heart's review;
 successful API verification is not visual approval.
+
+
+## Review and artifact delivery — 2026-10-06
+
+Jack Heart responded “good enough” to the new W&B report and requested shipping.
+This is product acceptance and landing authorization, not a claim of particular
+browser interactions or new scientific evidence.
+
+The private, versioned `etudefantasia` bucket in `us-west-2` holds six archived
+history runs under `manabot/`: 48 objects / 93,001,518 bytes, including 36 artifact
+blobs, exact producer exports and manifests. Full readback verified every upload;
+all references pin version IDs. An independently downloaded raw checkpoint passed
+ordinary world/schema/model admission. Six W&B training streams retain 500 history
+rows each and matching S3 metadata. No model bytes were uploaded to W&B.
+Receipts remain in `.runs/etu117-demo/s3/`, including bucket, roundtrip and W&B
+reference verification. Publication remains explicit; originals are preserved.

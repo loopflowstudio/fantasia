@@ -2,29 +2,31 @@
 
 ## Reading learning trends (ETU-117, 2026-10-06)
 
-Jack Heart requested saved-data-only reporting, publication and a review demo;
-landing remains forbidden pending review. The editable create-once notebook now
-leads with checkpoint scores, separate scientific and monitoring cohorts, seed
-variation and descriptive seed/deal intervals. Missing initialization stays
-unavailable. Per-regime diagnostics separate the KL-inclusive policy objective,
-value loss, entropy and unweighted KL, with labeled trailing smoothing, gaps,
-selection counts and raw downloads. No historical minibatch averages are invented.
+Jack Heart accepted the W&B report as sufficient and authorized shipping on
+2026-10-06. W&B `loopflow-studio/etude` owns metric projections and native graphs;
+TrainingRun/VerifyStore remain authoritative. Create-once notebooks preserve edits.
+Scientific three-seed scores and saved paired intervals lead; earlier single-seed
+monitoring stays separate. Initialization remains unavailable. Native EMA 0.8 is
+labeled; W&B can bridge missing samples. No historical averages are reconstructed.
 
-The completed history exports contain 1,044/2,965 entropy values within .001 nat
-of ln(2), plus 35 empty-filter updates. The trainer retains only the last optimized
-timestep minibatch. Binary near-uniform choices remain a hypothesis: its support
-sizes/probabilities were not saved. Entropy is not competence. The three-seed
-scientific endpoint effect is 0 [−11,+9.33] points, unresolved; both scientific
-and earlier one-seed monitoring lack evaluated initialization. Monitoring ABIs
-differ, so its histories remain separate per run. Pipeline/replay smoke does not
-supply a positive learning control; that design remains separate work.
+The completed history exports contain 1,044/2,965 entropy values near ln(2) and
+35 empty-filter updates. Diagnostics retain the last optimized timestep minibatch;
+binary near-uniform support remains a hypothesis. Entropy is not competence.
+The endpoint effect is 0 [−11,+9.33] points, unresolved. Pipeline/replay smoke is
+not a positive learning control; that design remains separate work.
 
-The [report and reproduction guide](../../docs/evidence/history-report-learning-2026-10-06.md)
-owns evidence, costs and limits. Originals/user notebooks remain untouched. An
-accidentally broad validation selection ran tiny training fixtures and started a
-monitor attempt, then was interrupted with no completed monitoring rows; retained
-separately under `.runs/etu117-interrupted-validation`, never scientific evidence.
-Subsequent validation is offline-only. No substantive campaign allocation follows.
+Model/artifact bytes live in versioned, private `s3://etudefantasia/manabot/`,
+with content hashes, full readback and ordinary checkpoint admission. W&B retains
+references only. Publication is explicit for stopped/completed runs, not automatic
+live archival or portable recovery. Six history runs are archived and verified.
+
+The [report guide](../../docs/evidence/history-report-learning-2026-10-06.md) and
+[storage contract](../../docs/training-monitoring.md#s3-model-and-artifact-storage)
+own reproduction and limits. Originals remain retained. The accidentally broad
+validation attempt remains in `.runs/etu117-interrupted-validation`, with no
+completed monitoring rows; later checks were offline-only. Browser capture was
+blank; Jack Heart's shipping acceptance does not imply specific visual findings.
+No substantive campaign allocation follows.
 
 ## Experiment execution and notebook boundary (ETU-113, 2026-10-06)
 
