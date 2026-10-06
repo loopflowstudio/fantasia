@@ -3,8 +3,8 @@
 Jack Heart revised ETU-118 on 2026-10-06: WEEKLY → DAILY. This supersedes the
 original positive-control-first completion framing. Jack Heart subsequently authorized a week on the current laptop, then required
 sleep/restart recovery and checkpoint-safe pause/resume before launch. No recipe
-is validated yet. The proposed allocation is seven days active runtime, with
-calendar downtime shown separately; exact accounting must be tested and frozen.
+is validated yet. The allocation is at most seven active days, with known downtime and conservative
+unknown restart charges separate. Storage admission currently blocks launch.
 
 ## Accepted outcome and order
 
@@ -112,11 +112,21 @@ preserved interrupted attempts and remaining allowance. Physical lid closure was
 not exercised. The affected gate passed. A source bundle inside this checkout
 will keep long-run imports immutable through later review commits.
 
-Remaining: calibrate the exact sustained
-recipe; select a common horizon from time and retained storage with the fixed
-reserves; freeze source/plan and start the actual learner; publish without claiming
-Task completion. Sustained improvement and independently validated daily testing
-remain empirical outcomes, not software deliverables. Seven-day laptop authorization exists; calibrated horizon remains unselected,
-no daily test validated, no current-baseline promotion or Task completion.
+Remaining: resolve storage admission, finish exact-recipe calibration, then freeze
+horizon/source/plan and launch within the remaining original week allocation.
+The 64-update timing attempt timed out; the amended 32-update attempt completed
+one seed in 200.78 seconds before disk crossed the 4 GiB reserve. Both stopped;
+2788.716979166954 seconds of total experimental preparation remain charged.
+A provisional 12,800-update three-seed storage projection is 29.879 GiB plus reserve,
+mostly repeated historical diagnostics in snapshots. Current-game replay does not
+bound that duplication. Free space fell to about 1.5 GiB. No unrelated data was
+removed. Compacting snapshot diagnostics is unimplemented follow-up requiring
+recovery validation; a shorter toy endpoint is not a substitute.
+
+Publish the retained software/evidence with this blocker explicit. No sustained
+learner, calibrated plan or immutable execution bundle exists. Sustained improvement
+and independently validated daily testing remain open; no baseline promotion or
+Task completion. `experiments/current-baseline.md` and its hash-bound calibration
+archive own exact costs, failures and evidence limits.
 
 Check: affected gate 39 passed; follow-up monitor/report/authoring and abrupt-restart checks 44 passed; allocation checks 2 passed; native debug 7 passed and all-target Clippy passed.

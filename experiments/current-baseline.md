@@ -1,6 +1,7 @@
 # Current learning baseline — ETU-118
 
-Status: debugging evidence only; sustained baseline and daily-test validation remain open. Jack Heart authorized
+Status: sustained launch blocked by storage admission; debugging evidence only.
+The sustained learner has not started; daily-test validation remains open. Jack Heart authorized
 bounded local CPU evidence on 2026-10-06. No self-play, architecture superiority,
 full-matchup improvement or chapter acceptance follows from this fixture.
 
@@ -11,9 +12,9 @@ serious sustained improving trajectory first, then validate a short daily test
 against it. This supersedes any baseline-promotion wording in the original debug
 protocol below. Its frozen thresholds still score that debug cohort; they cannot
 promote a baseline, choose a recipe for fast early gains, or complete ETU-118.
-The running cohort stays intact. Sustained hardware/horizon/budget require exact
+The original debugging cohort and its thresholds remain intact. Sustained hardware/horizon/budget require exact
 recipe calibration and coordination with ETU-116. Jack Heart subsequently
-authorized a week on the laptop, subject to the recovery requirements below. The working design is `scratch/current-baseline.md`.
+authorized a week on the laptop, subject to the recovery requirements below. The current executable protocol and retained outcomes are below.
 
 ## Frozen positive control
 
@@ -79,12 +80,12 @@ Allies/Lessons games, so this root evaluator is explicit rather than relabeling
 fixture outcomes as arena games. Retained JSON binds checkpoint hashes, every
 root/action/terminal digest, failures and elapsed cost.
 
-## Remaining acceptance
+## Debugging acceptance and remaining outcome
 
-Run the frozen positive control, diagnose any failure, then freeze and execute
-a small complete-game fixed-opponent comparison with initialization and frozen
-controls. Produce the editable read-only evidence notebook/HTML and publish the
-reviewable result. Software tests alone cannot promote this candidate.
+The original positive-control and short full-game cohorts completed; their results
+are retained below. The editable notebook generates the debugging evidence HTML.
+These checks cannot promote the candidate. Sustained learning, followed by an
+independently validated daily test, remains the main outcome.
 
 ## Prospective full-game graduation
 
@@ -110,7 +111,7 @@ original 3,600-second exploratory ceiling. Stop without replacements on failure.
 These are conservative execution allowances, not measured throughput promises.
 
 Prediction: the mean paired trained-minus-initialized score is at least 10 points.
-Promotion requires that mean gain, positive gain in every seed, identical paired
+The original debugging criterion requires that mean gain, positive gain in every seed, identical paired
 frozen/initial outputs, all games replaying, and a positive lower 95% paired-seed
 bootstrap bound. Report every seed and seat/deck leg regardless of the result.
 Three seeds and one scripted reference are only a reproducible small-matchup
@@ -322,3 +323,42 @@ with 300 seconds reserved for six bounded four-game evaluator cohorts. Debugging
 plus failure plus this maximum totals 3523.511931040989 seconds, within 3,600.
 This shortens a throughput probe, not the sustained endpoint or learning criteria.
 No fresh allocation or claim follows from the failed timing attempt.
+
+### Storage admission failure and current boundary (2026-10-06)
+
+The amended calibration at `784dcedd` completed seed11841's 32 updates in
+200.77795141597744 training seconds, then stopped the second learner when disk
+space crossed the shared 4 GiB reserve. The third seed did not run. The retained
+attempt used 269.494022333005 elapsed seconds and 315.2050481259648 additive
+learner/evaluator seconds. Its incomplete cohort cannot freeze a sustained plan.
+The first timeout's partial update work remains uncommitted; neither attempt is
+silently resumed, replaced or treated as successful calibration.
+
+All experimental preparation so far is **2788.716979166954 seconds**, charging the
+larger elapsed/process total per calibration attempt and retaining prior debugging.
+The [calibration archive](data/current-baseline-calibration.zip) and
+[hash/cost manifest](data/current-baseline-calibration.json) preserve 23 original
+records/logs/notebooks. Full SQLite, model and recovery files remain in
+`.runs/etu118-calibration-{1,2}`. Both coordinators and their workers stopped.
+The amended attempt's editable notebook regenerated its HTML from retained data.
+
+A timing-only projection from the single completed seed puts the smallest planned
+12,800-update × three-seed cohort at **29.879 GiB**, plus the 4 GiB free-space
+reserve. This is provisional, not admitted calibration. Repeating the growing
+historical diagnostics inside every immutable recovery snapshot dominates the
+projection; compressed current-game prefixes alone do not bound total retained
+storage. Free space was approximately 1.5 GiB when execution stopped. No unrelated
+files, campaign evidence or mini processes were changed.
+
+Before another calibration or sustained launch, storage must satisfy admission.
+Reducing repeated snapshot diagnostics while retaining the canonical evidence and
+exact recovery is a possible software follow-up, not implemented or measured here.
+Merely freeing enough for another short probe would not admit the full projected
+cohort. The seven-day authorization remains valid; no frozen sustained plan,
+source bundle or sustained learner has been created. Do not shorten the main
+horizon into a toy test, reset spent budget or claim baseline/daily acceptance.
+
+Verification: affected Python gate 39 passed; focused monitoring/report/authoring
+and abrupt-restart checks 44 passed; allocation checks 2 passed. Seven native
+debug checks and all-target/all-feature Clippy passed. These bounded proofs do not
+establish a physical lid-close test, sustained throughput or learning success.

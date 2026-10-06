@@ -2,30 +2,27 @@
 
 ## Weekly-first current baseline (ETU-118, 2026-10-06)
 
-Jack Heart prioritized a sustained improving trajectory before a daily regression
-test and authorized seven days on the current laptop, with calibrated seed horizons
-and evaluation/report reserves. ETU-103→116's mini sequence stays untouched; share
-compatible evidence without duplicate long runs. Positive controls remain debugging
-prerequisites only. No daily test or current-baseline promotion is established.
+Jack Heart authorized seven active days on the laptop: sustained improvement before
+an independently validated daily regression test. Preserve ETU-103→116's mini
+sequence and share compatible evidence. Positive controls are debugging only.
+Complete-state pause/restart checks preserve learner/Adam/EMA/RNG and native current
+games. Known sleep/pause is separate; unobserved restart gaps are conservatively
+charged, especially across reboot. Physical lid closure was not tested. Show
+strength/uncertainty and freshness; no automatic statistical plateau stop exists.
 
-Jack Heart required complete-state sleep/restart recovery and safe pause/resume.
-Current-game native replay bounds the journal; learner/Adam/EMA/RNG and schedules
-resume at committed boundaries. The real pause/recovery fixture matched uninterrupted
-learning and the shared supervisor retained costs/attempts. Seven native debug
-checks passed. Active time excludes known sleep/pause; unobserved abrupt-restart
-intervals are conservatively charged as uncertainty, especially across reboot.
-Physical lid closure was not tested. No automatic statistical plateau rule exists;
-show strength/uncertainty, freshness and lag separately from operational failures.
-
-The lethal-target control retained a 52.37-second root failure; its corrected
-three-seed cohort rose from 50% to 100%, frozen controls unchanged, with 1,152
-exact-replayed evaluations in 137.39 seconds. The short random-opponent full-game
-cohort completed 432 replayed games in 2028.40 seconds: gains +6.25/+8.33/+6.25
-points missed the frozen +10-point mean criterion. This is negative debugging
-evidence, not sustained self-play acceptance. Exact calibration, source-frozen
-launch, sustained improvement and independent daily validation remain open.
-The [protocol, notebook and retained evidence](../../experiments/current-baseline.md)
-own receipts and limits; no sustained learner has started.
+The corrected three-seed lethal-target cohort rose 50→100%, frozen controls unchanged,
+after a retained root failure. The short full-game cohort's +6.25/+8.33/+6.25-point
+gains missed its +10-point mean criterion. Neither establishes sustained strength.
+Exact-recipe calibration timed out at 64 updates; the amended 32-update probe
+completed one seed in 200.78 seconds before disk crossed the 4 GiB reserve.
+Both attempts stopped; total experimental preparation is 2788.716979166954 seconds.
+A provisional minimum sustained cohort projects 29.879 GiB plus reserve, dominated
+by repeated snapshot diagnostics. Current-game replay does not bound total retained
+storage. Storage admission blocks further launch; compaction remains unimplemented.
+No unrelated evidence or mini campaign changed. No sustained learner or frozen plan
+exists. The [protocol and hash-bound evidence](../../experiments/current-baseline.md)
+own failures, costs and checks. Seven-day authorization persists; sustained learning,
+daily validation and Task acceptance remain open.
 
 ## Experiment execution and notebook boundary (ETU-113, 2026-10-06)
 
