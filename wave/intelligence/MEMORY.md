@@ -1047,8 +1047,7 @@ the landing pass reviewed the diff and retained evidence, with 64 focused checks
 passing. This is agent technical review, not human code review. Required CI and
 verified merge remain delivery conditions.
 
-Earlier architecture inspection remains at `ccb6538c`: equal shapes do not
-establish semantic or weight compatibility.
+Inspection at `ccb6538c`: equal shapes do not establish weight compatibility.
 
 Recipe composition uses regime IDs as the single cell-label source and rejects
 duplicates before crossing value outputs. Every variation snapshots and validates
