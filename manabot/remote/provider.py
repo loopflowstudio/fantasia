@@ -16,6 +16,7 @@ from pydantic import (
     ConfigDict,
     Field,
     ValidationError,
+    field_validator,
 )
 
 
@@ -40,6 +41,15 @@ class Pod(BaseModel):
     memory_gb: float = Field(alias="memoryInGb", gt=0)
     public_ip: str | None = Field(default=None, alias="publicIp")
     ports: dict[str, int] = Field(default_factory=dict, alias="portMappings")
+
+    @field_validator("ports", mode="before")
+    @classmethod
+    def _published_ports(cls, value: object) -> object:
+        # Pending pods return requested container ports, not public mappings.
+        # They are not SSH endpoints; wait for portMappings on a later GET.
+        if isinstance(value, list) and all(isinstance(p, str) for p in value):
+            return {}
+        return value
 
 
 class RunPod:
