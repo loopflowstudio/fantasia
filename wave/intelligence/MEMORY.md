@@ -1,19 +1,19 @@
 # Intelligence memory
 
-## Remote regime software (ETU-114, 2026-10-06)
+## Remote regime live proof (ETU-114, 2026-10-06)
 
-Jack Heart authorized RunPod software, then raised total Task spend to $50 across
-all attempts and required tens of minutes of CUDA self-play before review.
-ETU-108/larger-model work remain separate.
+Jack Heart authorized $50 across all attempts and branch pushes for exact-source
+fetching; PR review/readiness and landing remain prohibited. ETU-108/larger models
+stay separate. Attempt 004 completed 700 CUDA updates in 27.73 minutes, returned
+raw/EMA and authoritative records, and exact-replayed four ordinary arena games.
+Inventory was empty; rented CUDA smoke passed.
+Prior failures and the shakedown bring expenditure to $1.0701 estimated/reported,
+not invoiced. The [remote contract](../../docs/remote-training.md) owns evidence.
 
-The first live command at `d8307606` failed before create: zero-priced unrelated
-GPU entries invalidated a valid L4 quote. The repair excludes zero-price entries
-without admitting free rentals; live price admission then passed. Retained attempt
-000 cost $0; prior shakedown reported $0.29. Final inventory was zero pods.
-CUDA, guardian self-deletion and returned-checkpoint play remain unproved.
-Retry requires publicly fetchable corrected source; Jack Heart prohibited publication.
-The [remote contract](../../docs/remote-training.md) owns evidence and limits.
-No strength or chapter acceptance follows.
+Jack Heart then authorized immediate 600-update stages with wider deadlines;
+attempt 005 is running. ETU-119 owns persistence fixes; frozen runs stay unchanged.
+Growing update intervals do not isolate save cost. Wider budgets also change the
+elapsed-budget schedule. No strength or chapter acceptance follows.
 
 ## History input (ETU-106, 2026-10-06)
 

@@ -7,9 +7,10 @@ float32 ordinary PPO/Ataraxos self-play, including raw/EMA and live continuation
 Compound, supervised, belief/search, external opponents and process recovery are
 rejected before rental. No distributed-learning or strength claim follows.
 
-**Live status, 2026-10-06:** guardian self-deletion and the rented L4 CUDA
-continuation/export smoke have passed. The first long self-play attempt hit its stage watchdog after 567 updates;
-returned-checkpoint arena acceptance remains open.
+**Live status, 2026-10-06:** the complete 350-update-per-stage proof passed:
+CUDA self-play, raw/EMA return and reload, four terminal exact-replayed arena
+games, and confirmed empty inventory. A separately authorized 600-update-per-stage
+run with wider deadlines is in progress. No PR review or landing was performed.
 
 ## Live attempts, 2026-10-06
 
@@ -28,7 +29,9 @@ not a provider invoice. The prior shakedown's $0.29 is reported expenditure.
 | 000 | `d8307606` | No create: unrelated zero-price GPU quotes rejected admission | $0.0000 |
 | 001 | `46c80fd2` | Pending-pod port list rejected; exact owned probe manually deleted | $0.0193 |
 | 002 | `5f1c34d6` | Guardian passed; bootstrap exceeded the eight-minute setup deadline; deleted | $0.0686 |
-| 003 | `5f1c34d6` | Guardian and CUDA smoke passed; first stage interrupted at its watchdog | pending |
+| 003 | `5f1c34d6` | Guardian and CUDA smoke passed; first stage interrupted; all 21 bundle files verified; deleted | $0.3260 |
+| 004 | `62fc7e15` | 350 updates/stage completed; records/checkpoints returned; four replayed arena games; deleted | $0.3661 |
+| 005 | `62fc7e15` | 600 updates/stage with wider watchdogs; in progress | pending |
 
 Attempt 001 retains the original unresolved receipt plus explicit manual
 reconciliation. An authenticated query observed the unique receipt-owned pod at
@@ -55,8 +58,35 @@ before bundling; all underlying artifact bytes remain intact.
 
 The first main stage stopped after 567 updates / 290,304 optimizer exposures
 in 1,354 recorded seconds. It is an interrupted run, not a completed deployment.
-The next proposed attempt reduces each stage to 350 updates, retaining the
-original controls and watchdogs; no active run is edited.
+Attempt 004 reduced each stage to 350 updates without editing an active run.
+It completed in **1,663.91 seconds (27.73 minutes)**: 2,213 self-play games,
+369,748 native decisions, 179,200 learner transitions and 358,400 optimizer
+exposures. Both stages used `cuda:0` and exported raw, EMA and Adam artifacts.
+The selected raw checkpoint SHA-256 is
+`d380bc42de41402411a608656d06a21762c9e794d0b65ee3e73a48f417d0ce1a`.
+The original run/SQLite and all 12 declared bundle files verified. Four ordinary
+arena games covered both seats/deck assignments and completed with exact replay
+in 11.75 seconds. Final authenticated inventory was empty. Prior Task expenditure,
+including the shakedown and all failures, is **$1.0701 estimated/reported**.
+
+Jack Heart then requested an immediate longer run after confirmed deletion.
+Attempt 005 restores 600 updates per stage, with one-hour stage watchdogs,
+a two-hour run allowance and a 150-minute rental allowance ($1.55 projected
+ceiling). The elapsed-budget schedule uses the larger denominator too; this is
+a feasibility run, not a controlled timing-only or strength comparison.
+ETU-119 owns the separate persistence fix; no such change enters these attempts.
+
+Saved update coordinates provide wall intervals without changing training.
+Attempt 003's median interval rose from 1.69 seconds over early updates to
+2.24 seconds over updates 500–567. In attempt 004, stage-one medians over
+successive blocks were 1.58, 1.64, 1.77 and 1.91 seconds; stage two was 1.78,
+2.03, 3.10 and 2.36 seconds. Blocks use diagnostics [1,100), [100,200),
+[200,300), [300,350), differencing adjacent cumulative coordinates.
+These intervals include ordinary work and preceding persistence; they do not
+isolate the save cost. On failure, the executor assigns unaccounted time to its
+last active phase, so failed-run `learning_seconds` is not pure optimizer time.
+Jack Heart's separately reported laptop persist timings identify a plausible
+contributor, not a measured complete explanation of pod slowdown.
 
 Local checks: **405 passed, 3 skipped** across remote, training and net-opponent
 tests. These checks do not substitute for the live deployment. No strength,
@@ -104,8 +134,7 @@ Training cannot start unless the probe disappears at its deadline without laptop
 DELETE. Both rentals share the same command budget and absolute outer deadline;
 there is never more than one active rental. The startup guardian is independent
 of Python/bootstrap/SSH. It uses the image's provider-supplied pod-scoped
-runpodctl configuration, never the laptop account key. That credential's live
-self-delete capability remains unproven until the gate runs.
+runpodctl configuration, never the laptop account key. That credential's self-delete capability was observed in the retained live probes.
 
 The laptop bounds API/SSH operations and attempts deletion in `finally`, including
 interruptions. Provider DELETE must be followed by confirmed absence. A failed
@@ -164,8 +193,10 @@ doppler run --project etude --config prd -- uv run python -m tests.remote.live_a
   --regime .runs/remote-proof-regime.json --mix ops/mixes/runpod-small.json
 ```
 
-It charges all retained attempts under `.runs/remote-acceptance` to one $4.90
-allocation and refuses unresolved prior cost/deletion. Success requires CUDA
+It conservatively limits retained deployments under `.runs/remote-acceptance` to
+$4.90 and refuses unresolved prior cost/deletion. The Task totals above separately
+include the earlier $0.29 shakedown; the authorized $50 total is not a spending
+target. Success requires CUDA
 optimizer exposures, raw/EMA reload, complete returned records, and one four-leg
 paired-deal arena block through the existing evaluator: both decks/seats,
 terminal completion and exact Command replay. Arena cost is separate from rental
