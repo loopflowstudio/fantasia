@@ -195,3 +195,35 @@ with no useful difference mean inconclusive, not a throughput-based winner.
 Repeat a promising or important-negative learning idea at the next capacity in
 a separately frozen follow-up, leaving its architecture-feature owner unchanged.
 No such follow-up or empirical default selection has run in this software pass.
+
+## Authorized CUDA comparison — 2026-10-06
+
+Jack Heart authorized a separate pure-capacity CUDA cohort: at most two hours
+complete-loop calibration, then twelve hours total comparison across arms/seeds,
+including evaluation, transfers and reporting. The initial all-in ceiling is $15;
+a higher working ceiling up to $30 requires a retained calibration-based reason.
+Every individual deployment remains below $5 with pod/client deadlines and
+confirmed deletion. ETU-114's historical allowance is not transferred. The mini
+depth cohort and ETU-91 evidence remain unchanged.
+
+Calibration first compares width64/depth2/heads4 to width384/depth8/heads4 with
+feedforward width1536, scalar value-token, no history, identical current-self
+Ataraxos learning and selected-match inputs. Sixteen updates per arm (two linked
+eight-update stages), seed10350, establish memory, end-to-end timing, artifact
+return and CPU arena feasibility. Predictions: the large arm fits 24 GiB GPU
+memory, costs at least twice as much per update, and scores no more than five
+percentage points above the small arm in the early window. The latter is a
+scientific prediction, not a calibration selection rule. Calibration inspects
+no strength aggregates. Allocation/VRAM/admission failure stops that attempt;
+a smaller width128/depth2 fallback needs explicit timing-based admission and
+retains the large-arm failure. No score-based capacity choice or retry.
+
+Three paired scientific seeds are 10351–10353 if complete-loop calibration admits
+them. Exact counts and clocks must be committed before scoring. Initialization
+and scored milestones each receive at least 100 balanced greedy games; random
+diagnostics have their own schedule, and final deals stay untouched until endpoint
+scoring. Evaluation must run during training. A flat curve prompts review, not an
+automatic failure verdict. Full-budget means the frozen affordable endpoint;
+it does not mean convergence. The current source's remote CLI returns artifacts
+only after training, so live-export/evaluator admission remains a prerequisite to
+the scientific cohort, alongside the calibration-derived allocation.
