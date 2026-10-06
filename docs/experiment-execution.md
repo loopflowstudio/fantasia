@@ -112,11 +112,14 @@ A missing/failed/truncated/replay-failed leg makes aggregate rates unavailable.
 Intervals resample whole four-leg deals conditional on the checkpoint; they are
 not independent-training-seed uncertainty or evidence of general strength.
 
-The notebook separates incompatible cohort/opponent/world panels and compares the
-last available checkpoint only over overlapping observed costs. It never
-interpolates or invents missing coordinates. Per-run local dashboard exports reuse
-ETU-101 APIs; existing W&B backfill remains optional. Neptune and other tracker
-choices are unresolved, and none owns evidence or blocks local analysis.
+The notebook generates one read-only HTML dashboard from editable loading and
+plotting cells. Its default page starts with current progress, freshness, latest
+applicable loss and evaluation, hardware, costs and failures, then shows matched
+milestone strength curves and two diagnostics. No inline plots are emitted.
+Compatible stage/update milestones are compared across every expected run;
+unmatched latest checkpoints remain status only. Metric links explain definitions,
+units, uncertainty and deeper library analysis in [the metric guide](experiment-metrics.md).
+ETU-101 owns the source diagnostics; W&B remains an optional projection.
 
 ## Failures and explicit continuation
 
@@ -177,13 +180,12 @@ uv run --extra notebook python -m experiments.runners.experiment_demo \
 uv run --extra notebook jupyter lab .runs/experiment-demo/comparison.ipynb
 ```
 
-The notebook is the editable comparison, not a list of dashboard links. Its
-execution acceptance runs all cells headlessly and checks rendered plots, live
-evaluation admission, cost receipts, resume without repeated work and unchanged
-user edits. A timeout remains a failed attempt even if the arena finished its
-last game just before the evaluator process was stopped.
+The notebook is the editable report generator; `comparison.html` is the default
+read-only viewing surface. Headless execution checks HTML figures and absence of
+inline notebook plots. Refresh preserves existing notebook bytes and edits.
 
-The [retained editable demo notebook](../experiments/study/experiment-demo/comparison.ipynb)
-contains 35 headlessly executed plots and exact-byte compact inputs from the final
-gate fixture. Its [evidence note](../experiments/study/experiment-demo/README.md)
-records measured costs, retained timeout attempts and interpretation limits.
+The [revised retained generator](../experiments/study/experiment-demo/report-generator.ipynb)
+writes the [HTML demo](../experiments/study/experiment-demo/comparison.html).
+Jack Heart's original edited notebook and checkpoint copy remain unchanged.
+The [evidence note](../experiments/study/experiment-demo/README.md) records the
+original fixture costs, failures and limits. This revision reruns reporting only.

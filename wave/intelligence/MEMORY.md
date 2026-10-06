@@ -11,17 +11,19 @@ TrainingRun and VerifyStore retain learning and execution authority. Monitoring
 reuses ETU-101, keeps original checkpoint coordinates, retains failures and charges
 evaluator process time separately. Resume grants no budget or silent retries.
 
-The primary report is one create-once editable comparison notebook containing
-all learning/resource metrics, milestone uncertainty, compatible cost comparisons,
-failures and evidence links. Rerunning cells only reads retained data; report
-refresh preserves edits. Interpretation, ledger updates and next-experiment choices
-belong to an experiment skill, not automatic software knowledge rewriting.
+Jack Heart revised the viewing contract after the demo: one create-once editable
+notebook generates a concise read-only HTML dashboard. Graphs render in HTML,
+with progress/freshness, applicable loss, latest evaluation, costs and failures
+first; comparisons use shared milestones. Metric docs and reusable functions own
+deeper analysis. Notebook edits survive refresh; Jack Heart's original edited
+demo remains intact beside a separately named revised generator. Cells only read
+retained data. Interpretation, ledger updates and next-experiment choices belong
+to a skill. Landing and auto-merge remain forbidden pending Jack Heart's review.
 
-Tiny multi-regime/seed fixtures prove scheduling and notebook mechanics only.
-Retained process/game timeouts informed bounded fixture allowances; incomplete
-cohorts never become rates. No substantive science, strength conclusion or live
-ETU-103/106 checkout change follows. The [execution guide](../../docs/experiment-execution.md)
-owns launch, placement, recovery, cost and notebook contracts.
+Tiny fixtures prove scheduling/reporting only; timeouts remain retained and
+incomplete cohorts never become rates. No strength claim or live ETU-103/106
+change follows. The [execution guide](../../docs/experiment-execution.md) owns
+launch, recovery, costs and reporting. 
 
 ## History input (ETU-106, 2026-10-06)
 
@@ -1032,18 +1034,16 @@ eight regime digests and the evaluation protocol. Capacity examples use the
 merged width/depth fields and allocate no ETU-102/103 study. Feedforward expansion,
 post-normalization and ownership injection stay with the delivered model.
 
-The retained ETU-104 bounded run at `486739d5` completed eight regimes, 32
-admitted raw/EMA exports and 120 exact-replayed games in 348.04 charged seconds.
-It first failed reporting because the notebook extra was absent; ordinary resume
-retained the failure and completed reporting without retraining or replacing
-arena rows. Offline report/metrics regeneration was byte-identical. This proves
+ETU-104 at `486739d5` completed eight regimes, 32 admitted exports and 120
+exact-replayed games in 348.04 seconds. Missing-notebook-dependency recovery
+retained failure evidence without retraining; offline regeneration was identical.
+Full details remain at `a3b22009`. This proves
 software composition and reload/evaluation, not strength or chapter acceptance.
 PR #223 is published. Jack Heart explicitly requested completion through landing;
 the landing pass reviewed the diff and retained evidence, with 64 focused checks
 passing. This is agent technical review, not human code review. Required CI and
 verified merge remain delivery conditions.
 
-Inspection at `ccb6538c`: equal shapes do not establish weight compatibility.
 
 Recipe composition uses regime IDs as the single cell-label source and rejects
 duplicates before crossing value outputs. Every variation snapshots and validates

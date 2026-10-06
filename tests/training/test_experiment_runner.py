@@ -127,8 +127,9 @@ def test_tiny_comparison_evaluates_live_and_notebook_refresh_preserves_edits(
             for cell in notebook.cells
             for output in cell.get("outputs", [])
         )
-        >= 5
+        == 0
     )
+    assert "<svg" in (out / "comparison.html").read_text()
     assert not any(
         output.output_type == "error"
         for cell in notebook.cells
@@ -186,6 +187,8 @@ def test_failed_learner_restart_retains_attempts_without_retraining(
     def stop(process: object) -> None:
         pass
 
+    runtime = runner._runtime()
+    monkeypatch.setattr(runner, "_runtime", lambda: runtime)
     monkeypatch.setattr(runner.subprocess, "Popen", launch)
     monkeypatch.setattr(runner, "_stop", stop)
     experiment = demo_declaration()

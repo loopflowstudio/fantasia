@@ -163,6 +163,6 @@ Historical schemas still need to be readable by the ordinary TrainingRun model.
 
 New comparisons can schedule stage and periodic monitoring through the shared
 [Experiment execution interface](experiment-execution.md). Its primary report is
-one editable Jupyter notebook with all learning, milestone, comparison and cost
-plots. The existing evaluator and dashboard APIs remain the evidence projection
+one editable Jupyter report generator for learning, milestone, comparison and cost
+plots in a read-only HTML dashboard. The existing evaluator and dashboard APIs remain the evidence projection
 owners; trackers are optional. Frozen live campaigns are not retrofitted.
