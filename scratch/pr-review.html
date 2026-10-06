@@ -1,0 +1,375 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ETU-115 · Larger ordinary models</title><style>
+*{box-sizing:border-box}body{margin:0;background:#faf9f6;color:#252b2d;font:17px/1.55 system-ui,sans-serif}main{max-width:1080px;margin:auto;padding:50px 28px 90px}h1{font-size:36px;font-weight:600;letter-spacing:-1px;line-height:1.15}h2{font-size:25px;margin:54px 0 16px}h3{font-size:19px}p{max-width:850px}a{color:#205c69;text-underline-offset:3px}nav{display:flex;flex-wrap:wrap;gap:22px;margin:26px 0}.meta,figcaption{font-size:13px;color:#596366}figure{margin:24px 0}pre{background:#eeefec;padding:22px;overflow:auto;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:4}figcaption{margin-bottom:8px;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;margin:24px 0}th,td{text-align:left;vertical-align:top;border-bottom:1px solid #d6dbd7;padding:13px 12px}th{font-size:14px}details{margin:22px 0}summary{cursor:pointer}a:focus-visible,summary:focus-visible,pre:focus-visible{outline:3px solid #b56e25;outline-offset:4px}.note{border-left:3px solid #aa7c40;padding-left:18px}section{scroll-margin-top:22px}@media(max-width:650px){main{padding:28px 18px}h1{font-size:29px}pre{font-size:13px;padding:15px}.map thead{display:none}.map tr,.map td{display:block}.map tr{margin-bottom:18px}.map td{border:0;padding:5px 0}.map td:before{content:attr(data-label);display:block;font-weight:600;font-size:13px}.data{overflow:auto}}@media print{body{background:white}main{max-width:none;padding:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:10px}nav{display:none}h2{break-after:avoid}a{color:inherit}}
+</style><main><header><p class="meta">ETU-115 · PR #247 · Review prepared 2026-10-06</p><h1>Larger models, through ordinary recipes</h1><p>Declare an eight-layer, width-384 manabot, retain existing model identities, and inspect bounded laptop costs. The delivered large model has 16,815,746 parameters. This page follows authoring → construction and identity → measurement and recovery.</p><p class="meta"><a href="https://github.com/loopflowstudio/etude/pull/247">Published PR #247</a> · base fd7437df → head 20c5581c. Local HEAD matches the published head; the tree was clean before this review. This HTML and review notes are local additions.</p><nav aria-label="Reading route"><a href="#declare">1. Declare a size</a><a href="#identity">2. Build and reload</a><a href="#measure">3. Measure and recover</a><a href="#limits">Review questions</a></nav></header>
+<table class="map"><thead><tr><th>When you…</th><th>What happens</th><th>Where the code controls this</th></tr></thead><tbody>
+<tr><td data-label="When you…">Choose a larger model in a recipe</td><td data-label="What happens">Depth and feedforward width pass ordinary validation; the opt-in ladder adds 384/8 without changing the existing three cases.</td><td data-label="Code"><a href="#declare">AgentSpec owns model settings; with_capacity returns a validated TrainingRegime.</a></td></tr>
+<tr><td data-label="When you…">Build or reload a model</td><td data-label="What happens">Every block receives the selected expansion. Default and explicitly equivalent expansion retain the same architecture identity.</td><td data-label="Code"><a href="#identity">GameObjectAttention builds each block; architecture_identity hashes resolved meaning.</a></td></tr>
+<tr><td data-label="When you…">Run the scale probe or inspect a failed fixture</td><td data-label="What happens">Separate children save timing and training records. Completed exports can be checked again without training again.</td><td data-label="Code"><a href="#measure">scale retains attempts; verify_fixture reloads existing TrainingRun artifacts.</a></td></tr></tbody></table>
+<section id="declare"><h2>1. Declare a larger model</h2><p>The base limited depth to 1 or 2. The new fields accept positive depth and expansion; the existing compound-model depth restriction remains. Unset expansion stays absent from serialization.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/manabot/infra/hypers.py#L119-L161">manabot/infra/hypers.py · AgentSpec fields and validation · 20c5581c · L119–161</a></figcaption><pre tabindex="0"><code>    semantic_pack: str | None = None
+    # Serialized architecture choice; categorical logits are loss/draw/win.
+    value_kind: Literal[&quot;scalar&quot;, &quot;categorical_wdl&quot;] = &quot;scalar&quot;
+    value_aggregation: Literal[&quot;historical_mean&quot;, &quot;masked_mean&quot;, &quot;value_token&quot;] = (
+        &quot;historical_mean&quot;
+    )
+    attention_layers: int = Field(default=1, ge=1)
+    # Omitted defaults preserve historical recipe and checkpoint identities.
+    attention_feedforward_dim: int | None = Field(
+        default=None, ge=1, exclude_if=lambda value: value is None
+    )
+    # Shared embedding space for game objects and actions.
+    hidden_dim: int = 64
+    # Number of attention heads used in the GameObjectAttention layer.
+    num_attention_heads: int = 4
+    attention_on: bool = True
+    # Canonical belief rows are an opt-in checkpoint ABI. A positive bucket
+    # count requires explicit belief tensors on every forward pass; there is
+    # no neutral or positional-condition fallback on this path.
+    belief_count_buckets: int = 0
+    belief_card_vocab_size: int = 0
+    belief_owner_role_vocab_size: int = 2
+    belief_hidden_zone_vocab_size: int = 7
+
+    @model_validator(mode=&quot;after&quot;)
+    def validate_value_architecture(self) -&gt; &quot;AgentSpec&quot;:
+        if self.hidden_dim &lt; 1 or self.num_attention_heads &lt; 1:
+            raise ValueError(&quot;embedding width and head count must be positive&quot;)
+        if self.attention_on and self.hidden_dim % self.num_attention_heads:
+            raise ValueError(&quot;embedding width must be divisible by attention heads&quot;)
+        if not self.attention_on and (
+            self.value_aggregation == &quot;value_token&quot;
+            or self.attention_layers != 1
+            or self.attention_feedforward_dim is not None
+        ):
+            raise ValueError(&quot;value token and stacked layers require attention&quot;)
+        if self.compound_decisions and (
+            self.value_aggregation != &quot;historical_mean&quot; or self.attention_layers != 1
+        ):
+            raise ValueError(
+                &quot;compound critic does not support value aggregation variants&quot;
+            )
+        return self</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/manabot/training/recipes.py#L72-L100">manabot/training/recipes.py · with_capacity · 20c5581c · L72–100</a></figcaption><pre tabindex="0"><code>def with_capacity(
+    regime: TrainingRegime,
+    *,
+    id: str,
+    width: int,
+    depth: int,
+    heads: int,
+    feedforward_dim: int | None | _Unset = _UNSET,
+) -&gt; TrainingRegime:
+    &quot;&quot;&quot;Select delivered width/depth/head fields without changing information inputs.
+
+    Omission preserves the baseline expansion; None restores heads × width.
+    Invalid head divisibility and compound combinations fail ordinary AgentSpec validation.
+    &quot;&quot;&quot;
+    expansion = (
+        {}
+        if isinstance(feedforward_dim, _Unset)
+        else {&quot;attention_feedforward_dim&quot;: feedforward_dim}
+    )
+    agent = AgentSpec.model_validate(
+        {
+            **regime.agent.model_dump(),
+            **expansion,
+            &quot;hidden_dim&quot;: width,
+            &quot;attention_layers&quot;: depth,
+            &quot;num_attention_heads&quot;: heads,
+        }
+    )
+    return with_agent(regime, id=id, agent=agent)</code></pre></figure><p class="note">Omitting <code>feedforward_dim</code> preserves a baseline’s explicit expansion; passing <code>None</code> resets it to heads × width. A width-64 variant of an explicit 1536-wide baseline therefore keeps 1536 unless reset. This is an intentional recipe distinction callers need to understand.</p><details><summary>The opt-in ladder declaration</summary><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/experiments/runners/model_capacity.py#L12-L45">experiments/runners/model_capacity.py · experiment / regimes · 20c5581c · L12–45</a></figcaption><pre tabindex="0"><code>def experiment(base: TrainingRegime, *, include_ataraxos: bool = False) -&gt; Experiment:
+    models = [
+        AgentSpec(hidden_dim=64, attention_layers=1, num_attention_heads=4),
+        AgentSpec(hidden_dim=64, attention_layers=2, num_attention_heads=4),
+        AgentSpec(hidden_dim=128, attention_layers=2, num_attention_heads=4),
+    ]
+    if include_ataraxos:
+        models.append(
+            AgentSpec(
+                hidden_dim=384,
+                attention_layers=8,
+                num_attention_heads=4,
+                attention_feedforward_dim=1536,
+            )
+        )
+    return Experiment(
+        name=&quot;&quot;,
+        baseline=Baseline.capture(&quot;capacity-control-v1&quot;, base),
+        cases=tuple(
+            Case(
+                f&quot;w{model.hidden_dim}-d{model.attention_layers}&quot;,
+                (Model(model),),
+                f&quot;{model.hidden_dim} × {model.attention_layers}&quot;,
+            )
+            for model in models
+        ),
+    )
+
+
+def regimes(
+    base: TrainingRegime, *, include_ataraxos: bool = False
+) -&gt; dict[str, TrainingRegime]:
+    &quot;&quot;&quot;Hold information, pooling, learning and budget fixed across capacities.&quot;&quot;&quot;
+    return experiment(base, include_ataraxos=include_ataraxos).resolve().regimes</code></pre></figure></details></section><section id="identity"><h2>2. Build all eight blocks and preserve identity</h2><p>The first attention block receives the same feedforward setting as the extra blocks. Extra blocks are constructed after the historical parameters, preserving initialization order. Existing forward traversal already loops over all extra blocks.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/manabot/model/agent.py#L163-L178">manabot/model/agent.py · Agent.__init__ extra blocks · 20c5581c · L163–178</a></figcaption><pre tabindex="0"><code>        # Construct optional parameters after the historical model to preserve
+        # its initialization order and state-dict names.
+        self.extra_attention = nn.ModuleList(
+            GameObjectAttention(
+                embed_dim,
+                hypers.num_attention_heads,
+                ownership=False,
+                feedforward_dim=hypers.attention_feedforward_dim,
+            )
+            for _ in range(hypers.attention_layers - 1)
+        )
+        self.value_token = (
+            nn.Parameter(torch.randn(1, 1, embed_dim) / embed_dim**0.5)
+            if hypers.value_aggregation == &quot;value_token&quot;
+            else None
+        )</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/manabot/model/agent.py#L564-L596">manabot/model/agent.py · GameObjectAttention.__init__ · 20c5581c · L564–596</a></figcaption><pre tabindex="0"><code>    def __init__(
+        self,
+        embedding_dim: int,
+        num_heads: int,
+        *,
+        ownership: bool = True,
+        feedforward_dim: int | None = None,
+    ) -&gt; None:
+        super().__init__()
+        self.embedding_dim = embedding_dim
+        self.logger = getLogger(__name__).getChild(&quot;attention&quot;)
+        self.logger.info(f&quot;Creating perspective vector of size {embedding_dim}&quot;)
+        self.perspective = (
+            nn.Parameter(torch.randn(embedding_dim) / embedding_dim**0.5)
+            if ownership
+            else None
+        )
+        self.mha = nn.MultiheadAttention(
+            embedding_dim, num_heads=num_heads, batch_first=True
+        )
+        self.norm1 = nn.LayerNorm(embedding_dim)
+        expansion = (
+            feedforward_dim
+            if feedforward_dim is not None
+            else num_heads * embedding_dim
+        )
+        self.mlp = nn.Sequential(
+            layer_init(nn.Linear(embedding_dim, expansion)),
+            nn.ReLU(),
+            layer_init(nn.Linear(expansion, embedding_dim)),
+        )
+        self.norm2 = nn.LayerNorm(embedding_dim)
+</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/manabot/model/architecture.py#L38-L57">manabot/model/architecture.py · architecture_identity · 20c5581c · L38–57</a></figcaption><pre tabindex="0"><code>def architecture_identity(spec: AgentSpec, space: ObservationSpace) -&gt; str:
+    &quot;&quot;&quot;Hash resolved meaning, not recipe labels, device, seeds or weight bytes.
+
+    Increment layout_version when equations or parameter ownership change, even
+    if tensor shapes stay equal. Source/runtime receipts additionally bind code.
+    &quot;&quot;&quot;
+    resolved = AgentSpec.model_validate(spec.model_dump())
+    payload = resolved.model_dump(mode=&quot;json&quot;)
+    if (
+        resolved.attention_feedforward_dim
+        == resolved.hidden_dim * resolved.num_attention_heads
+    ):
+        payload.pop(&quot;attention_feedforward_dim&quot;, None)
+    return canonical_sha256(
+        {
+            &quot;layout_version&quot;: 1,
+            &quot;agent&quot;: payload,
+            &quot;observation&quot;: space.encoder.hypers.model_dump(mode=&quot;json&quot;),
+        }
+    )</code></pre></figure><p>Only an explicitly equivalent default expansion is removed from the architecture hash. Recipe provenance still records the authored value. The existing loader validates world/setup, model state and any saved architecture receipt; this PR adds no weight port.</p><details><summary>Compatibility evidence and existing forward traversal</summary><p>Inspected regression: six frozen pre-change model receipts and the default capacity-plan digest must match. Initial weight hashes are checked only on the captured Darwin/arm64/Torch runtime. Prior publication notes record 65 affected passing tests; this review did not rerun training or tests.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/tests/model/test_capacity_compatibility.py#L18-L43">tests/model/test_capacity_compatibility.py · test_frozen_capacity_contract · 20c5581c · L18–43</a></figcaption><pre tabindex="0"><code>    frozen = json.loads(
+        (Path(__file__).parent / &quot;fixtures/capacity_base.json&quot;).read_text()
+    )
+    torch.set_num_threads(1)
+    for row in frozen[&quot;models&quot;]:
+        torch.manual_seed(115)
+        agent = Agent(
+            ObservationSpace(),
+            AgentSpec(attention_layers=row[&quot;depth&quot;], value_aggregation=row[&quot;pooling&quot;]),
+        )
+        digest = hashlib.sha256()
+        for name, value in agent.state_dict().items():
+            digest.update(name.encode())
+            digest.update(value.numpy().tobytes())
+        # QR initialization can differ across backend/platform implementations.
+        if frozen[&quot;weight_runtime&quot;] == {
+            &quot;system&quot;: platform.system(),
+            &quot;machine&quot;: platform.machine(),
+            &quot;torch&quot;: torch.__version__,
+        }:
+            assert digest.hexdigest() == row[&quot;weights&quot;]
+        assert architecture_receipt(agent).model_dump(mode=&quot;json&quot;) == row[&quot;receipt&quot;]
+    plan = json.dumps(
+        capacity_plan().model_dump(mode=&quot;json&quot;), sort_keys=True, separators=(&quot;,&quot;, &quot;:&quot;)
+    )
+    assert hashlib.sha256(plan.encode()).hexdigest() == frozen[&quot;plan_sha256&quot;]</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/manabot/model/agent.py#L245-L259">manabot/model/agent.py · existing attention traversal · 20c5581c · L245–259</a></figcaption><pre tabindex="0"><code>        key_padding_mask = validity == 0
+        if self.value_token is not None:
+            objects = torch.cat(
+                (objects, self.value_token.expand(objects.shape[0], -1, -1)), dim=1
+            )
+            key_padding_mask = torch.cat(
+                (key_padding_mask, torch.zeros_like(key_padding_mask[:, :1])), dim=1
+            )
+        if self.hypers.attention_on:
+            objects = self.attention(
+                objects, is_agent, key_padding_mask=key_padding_mask
+            )
+            for layer in self.extra_attention:
+                objects = layer(objects, is_agent, key_padding_mask)
+        return objects</code></pre></figure></details></section><section id="measure"><h2>3. Measure costs, retain failures, reuse exports</h2><p>Illustrative invocation from the published CLI; not executed during this review. The command writes reports and child logs rather than a summary table to the terminal. Use a new output directory.</p><pre tabindex="0"><code>uv run -m experiments.runners.calibrate_training --scale --out .runs/scale-probe</code></pre><p>The CLI calls <code>scale(args.out)</code>. Each rung runs one ordinary CPU update (eight learner transitions, two streams) plus separate CPU and MPS diagnostic probes. The parent retains every child result or failure.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/experiments/runners/scale_probe.py#L275-L330">experiments/runners/scale_probe.py · scale child supervision and report status · 20c5581c · L275–330</a></figcaption><pre tabindex="0"><code>        torch.save(obs, out / &quot;input.pt&quot;)
+        report.input_sha256 = file_sha256(out / &quot;input.pt&quot;)
+        for folder in (&quot;manabot&quot;, &quot;experiments/runners&quot;):
+            for path in sorted(Path(folder).rglob(&quot;*.py&quot;)):
+                report.source[str(path)] = file_sha256(path)
+        for case, recipe in recipes.items():
+            atomic_json(out / f&quot;{case}.json&quot;, recipe.model_dump(mode=&quot;json&quot;))
+            for mode in (&quot;fixture&quot;, &quot;cpu&quot;, &quot;mps&quot;):
+                tick = watchdog_seconds()
+                remaining = 900 - (tick - start)
+                error = None
+                status = &quot;completed&quot;
+                result = out / f&quot;{case}-{mode}&quot; / &quot;result.json&quot;
+                try:
+                    if remaining &lt;= 0:
+                        raise TimeoutError(&quot;total attempt budget exhausted&quot;)
+                    with (out / f&quot;{case}-{mode}.log&quot;).open(&quot;w&quot;) as log:
+                        subprocess.run(
+                            [
+                                sys.executable,
+                                &quot;-m&quot;,
+                                &quot;experiments.runners.scale_probe&quot;,
+                                &quot;--out&quot;,
+                                str(out),
+                                &quot;--case&quot;,
+                                case,
+                                &quot;--mode&quot;,
+                                mode,
+                            ],
+                            stdout=log,
+                            stderr=subprocess.STDOUT,
+                            timeout=min(90, remaining),
+                            check=True,
+                            env={**os.environ, &quot;PYTORCH_ENABLE_MPS_FALLBACK&quot;: &quot;0&quot;},
+                        )
+                except (subprocess.SubprocessError, TimeoutError) as exc:
+                    status, error = &quot;failed&quot;, str(exc)
+                report.attempts.append(
+                    Attempt(
+                        case=case,
+                        mode=mode,
+                        status=status,
+                        error=error,
+                        seconds=watchdog_seconds() - tick,
+                        result=str(result) if result.exists() else None,
+                    )
+                )
+                report.elapsed_seconds = watchdog_seconds() - start
+                report.load_after = os.getloadavg()
+                atomic_json(out / &quot;scale.json&quot;, report.model_dump(mode=&quot;json&quot;))
+        report.status = (
+            &quot;completed&quot;
+            if all(a.status == &quot;completed&quot; for a in report.attempts)
+            else &quot;failed&quot;
+        )
+        return report</code></pre></figure><h3>Observed output: exports survived verification failure</h3><p class="meta">Retained local log: .runs/etu115-scale/w384-d8-fixture.log, original pre-repair attempt; exact source hashes are retained in scale.json and bound by the published evidence. This traceback predates the current verifier. Leading stack frames omitted.</p><pre tabindex="0"><code>AssertionError: Tensor-likes are not equal!
+
+Mismatched elements: 9 / 256 (3.5%)
+Greatest absolute difference: 5.587935447692871e-09 at index (2, 1)
+Greatest relative difference: 4.0590103367321717e-07 at index (2, 1)</code></pre><p>The verifier compared evaluation mode against training mode. The current verifier sets both models to evaluation mode, checks positive optimizer exposures and changed weights, then compares exact reloaded outputs. The four original failures remain recorded.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/experiments/runners/scale_probe.py#L203-L238">experiments/runners/scale_probe.py · _fixture / verify_fixture · 20c5581c · L203–238</a></figcaption><pre tabindex="0"><code>def _fixture(recipe: TrainingRegime, obs: dict[str, torch.Tensor], out: Path) -&gt; None:
+    with VerifyStore(out / &quot;training.sqlite&quot;) as store:
+        run = execute_regime(recipe, 115, out / &quot;run&quot;, store)
+    verify_fixture(run, obs, out)
+
+
+def verify_fixture(run: TrainingRun, obs: dict[str, torch.Tensor], out: Path) -&gt; None:
+    &quot;&quot;&quot;Verify retained exports without training again; keep the failed attempt.&quot;&quot;&quot;
+    assert run.status == &quot;completed&quot;
+    exposures = sum(stage.optimizer_exposures for stage in run.stages)
+    assert exposures &gt; 0
+    checkpoint = Path(run.stages[-1].artifacts[&quot;raw&quot;][&quot;path&quot;])
+    agent, space = load_checkpoint_agent(str(checkpoint))
+    torch.manual_seed(run.seed_streams[&quot;initialization&quot;])
+    initial = Agent(space, run.regime.agent).eval()
+    assert any(
+        not torch.equal(p, q)
+        for p, q in zip(agent.parameters(), initial.parameters(), strict=True)
+    )
+    saved = torch.load(checkpoint, weights_only=False)
+    initial.load_state_dict(saved[&quot;model_state_dict&quot;])
+    with torch.inference_mode():
+        for a, b in zip(agent(obs), initial(obs), strict=True):
+            torch.testing.assert_close(a, b, atol=0, rtol=0)
+    atomic_json(
+        out / &quot;result.json&quot;,
+        {
+            &quot;run_id&quot;: run.id,
+            &quot;checkpoint&quot;: str(checkpoint),
+            &quot;sha256&quot;: file_sha256(checkpoint),
+            &quot;optimizer_exposures&quot;: exposures,
+            &quot;architecture&quot;: architecture_receipt(agent).model_dump(mode=&quot;json&quot;),
+            &quot;weight_change&quot;: True,
+            &quot;reload_equal&quot;: True,
+        },
+    )</code></pre></figure><details><summary>Read-only recovery example and retained result</summary><p>Illustrative command using the current public helper; not a captured command and not executed in this review. It writes only a separate verification result for an already completed TrainingRun. It does not resume a failed training run.</p><pre tabindex="0"><code>uv run python - &lt;&lt;&#x27;PYCODE&#x27;
+from pathlib import Path
+import torch
+from experiments.runners.scale_probe import verify_fixture
+from manabot.training.models import TrainingRun
+root = Path(&#x27;.runs/etu115-scale&#x27;)
+fixture = root / &#x27;w384-d8-fixture&#x27;
+run = TrainingRun.model_validate_json((fixture / &#x27;run/run.json&#x27;).read_text())
+obs = torch.load(root / &#x27;input.pt&#x27;, weights_only=True)
+out = fixture / &#x27;review-verification&#x27;
+out.mkdir(exist_ok=False)
+verify_fixture(run, obs, out)
+PYCODE</code></pre><p>Retained recovery receipt (local .runs/etu115-scale/verification-recovery.json):</p><pre tabindex="0"><code>{
+  &quot;cause&quot;: &quot;Original verifier compared eval-mode reload to train-mode model; both now eval.&quot;,
+  &quot;results&quot;: [
+    &quot;.runs/etu115-scale/w128-d2-fixture/verification-recovery/result.json&quot;,
+    &quot;.runs/etu115-scale/w384-d8-fixture/verification-recovery/result.json&quot;,
+    &quot;.runs/etu115-scale/w64-d1-fixture/verification-recovery/result.json&quot;,
+    &quot;.runs/etu115-scale/w64-d2-fixture/verification-recovery/result.json&quot;
+  ],
+  &quot;retraining&quot;: false,
+  &quot;seconds&quot;: 1.5777388330025133
+}
+</code></pre></details><h3>Observed costs at batch 4</h3><p>Apple M4 Max, float32, one CPU thread, history off, scalar value token, semantic Allies/Lessons input. All four rungs expose 203 attention slots. Values below are medians in samples/s from the retained report.</p><div class="data"><table><thead><tr><th>Model</th><th>Parameters</th><th>CPU forward / update</th><th>MPS forward / update</th></tr></thead><tbody>
+<tr><td>64 × 1</td><td>138,498</td><td>234.6 / 77.2</td><td>137.0 / 22.0</td></tr><tr><td>64 × 2</td><td>188,482</td><td>556.9 / 93.3</td><td>138.8 / 14.4</td></tr><tr><td>128 × 2</td><td>712,834</td><td>271.7 / 45.2</td><td>139.4 / 21.2</td></tr><tr><td>384 × 8</td><td>16,815,746</td><td>53.2 / 11.3</td><td>117.1 / 15.8</td></tr></tbody></table></div>
+<p>“Update” uses diagnostic cross-entropy + scalar-value square + Adam, not the RL learner. Load fell from 49.60 to 18.83; the smaller model’s lower CPU rate exposes contention. These numbers cannot rank capacities or hardware.</p><p>The large model uses 64.15 MiB of parameters plus an estimated 192.44 MiB for gradients and Adam moments. Activations are additional. Sampled RSS and MPS allocator observations are not peak memory or a large-batch fit guarantee.</p><p><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/docs/evidence/ataraxos-scale-2026-10-06.md">Pinned results, ranges, memory table and recovery accounting</a> · <a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/docs/evidence/ataraxos-scale-2026-10-06.json">Compact source-bound evidence</a></p><details><summary>How the diagnostic loss and token count are measured</summary><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/experiments/runners/scale_probe.py#L144-L179">experiments/runners/scale_probe.py · _probe step and observed attention slots · 20c5581c · L144–179</a></figcaption><pre tabindex="0"><code>            if optimizer is None:
+                with torch.inference_mode():
+                    agent(obs)
+            else:
+                optimizer.zero_grad(set_to_none=True)
+                logits, value = agent(obs)
+                # Uniform legal-action cross entropy plus scalar value square.
+                # All samples contribute; this is a diagnostic, not an RL loss.
+                valid = obs[&quot;actions_valid&quot;].bool()
+                logp = logits.log_softmax(-1)
+                loss = (
+                    -(logp.masked_fill(~valid, 0).sum(-1) / valid.sum(-1)).mean()
+                    + value.square().mean()
+                )
+                if not torch.isfinite(loss):
+                    raise ValueError(&quot;nonfinite diagnostic loss&quot;)
+                loss.backward()
+                optimizer.step()
+
+        _sync(device)
+        tick = time.perf_counter()
+        step()
+        _sync(device)
+        report.first_forward_seconds.append(time.perf_counter() - tick)
+        report.attention_slots = slots[0]
+        expected = (
+            2
+            + 2 * space.encoder.cards_per_player
+            + 2 * space.encoder.perms_per_player
+            + 1
+        )
+        assert set(slots) == {expected}
+        hook.remove()
+        for _ in range(2):
+            step()
+        windows = report.forward if phase == &quot;forward&quot; else report.update</code></pre></figure></details></section><section id="limits"><h2>Decisions and evidence limits</h2><p><strong>Operational mismatch to consider:</strong> caught child failures set <code>scale.json.status = "failed"</code>, but the CLI discards the returned report and returns normally. For example, unavailable MPS produces a retained failed child while the shell can still receive exit status zero. Automation must inspect the report. Whether the CLI should also return nonzero remains a review question; no product code was changed here.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/20c5581cdbd9087e88d8dd99347f48594e47caf2/experiments/runners/calibrate_training.py#L390-L395">experiments/runners/calibrate_training.py · main scale dispatch · 20c5581c · L390–395</a></figcaption><pre tabindex="0"><code>    if args.scale:
+        if args.capacity or args.device != &quot;cpu&quot;:
+            parser.error(&quot;--scale cannot be combined with --capacity or --device&quot;)
+        scale(args.out)
+        return
+    calibrate(args.out, args.device, capacity=args.capacity)</code></pre></figure><p><strong>Padding finding:</strong> the measured input is two players + 120 cards + 80 permanents + one value token. Actions and events are not extra attention rows. Trimming padding requires index remapping and preservation of historical pooling contributions; naive trimming changes the model. No packing was delivered.</p><p><strong>Scope:</strong> the opt-in ladder preserves ETU-103’s cohort. ETU-107’s decoder/policy-scoring work and ETU-114’s stage-device execution remain separate. The retained 208.09-second attempt and recovery establish bounded software feasibility; they do not establish useful learning, complete-game improvement or chapter acceptance.</p><p><strong>Review status:</strong> source and retained logs inspected, prior test results attributed above. No new benchmark, scientific cohort, approval or merge decision. The next useful action is Jack Heart’s review of this implementation and the CLI failure-reporting question.</p></section></main></html>
