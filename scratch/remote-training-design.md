@@ -3,7 +3,43 @@
 2026-10-06. Draft design from Jack Heart's direction in conversation. The
 direction and constraints below are Jack's; the data model, command names and
 file layout were agent-selected and remain unreviewed by Jack. Reconciled against
-implementation `eab86deb` on 2026-10-06; live acceptance remains open.
+implementation and live evidence on 2026-10-06; the bounded proof passed.
+
+## Live execution update — 2026-10-06
+
+Jack Heart authorized $50 across failures and successes, exact-source branch
+pushes, and real CUDA self-play before review. PR review/readiness and landing
+remain prohibited. The [remote contract](../docs/remote-training.md) owns exact
+attempts, costs, artifact identities and limits.
+
+Attempts 004 and 005 completed 700 and 1,200 CUDA updates in 27.73 and 42.96
+minutes. Both returned verified raw/EMA/Adam and authoritative records, and each
+played four terminal exact-replayed arena games. All failed attempts remain.
+The rented-hardware CUDA suite passed two tests. Inventory was empty afterward.
+Main's ETU-119 persistence fix is merged; neither completed run was rewritten.
+
+Jack Heart then required local-disk setup and a small worked reuse example.
+Attempt 006 put source/environment/cache under /opt/manabot, keeping returned
+evidence on /workspace. Bootstrap took 90 seconds (uv sync 53, native build 20);
+the comparable environment-to-toolchain interval fell from 486 to 71 seconds.
+This is one observation per placement, not a controlled performance claim.
+Sixteen CUDA updates and four replayed arena games passed; inventory was empty.
+Total including shakedown through 006 is $1.6160 estimated/reported, not invoiced.
+The existing five-minute example setup reserve is supported by this bounded run.
+
+The two-experiment example passed at f4189656. Both seeds returned verified
+records/raw/EMA exports and ordinary loader admission. Training took 30.06/25.58 s;
+setup was 114.57/0 s, charged once. The pod was deleted and inventory was empty.
+Total including every failure and shakedown is $1.6591 estimated/reported. It sets up one pod once,
+runs seeds 197/198 at the same pinned commit with --no-sync, returns separate
+records and deletes under one hard deadline. No public API, reuse mode or flag
+was added; the default remains one self-deleting deployment. The earlier idle
+reuse abstraction requirement was superseded. ETU-120 is folded/cancelled;
+prebuilt images remain ETU-121. ETU-108/larger-model work stays separate.
+
+Check: remote suite 45 passed/one local CUDA skip; merged persistence/continuation
+checks 3 passed; worked-example success/failure checks 2 passed. Real two-run
+example passed; the final remote suite passed 47 checks with one local CUDA skip. No strength or chapter acceptance follows.
 
 ## Direction from Jack Heart (accepted)
 
@@ -85,7 +121,7 @@ doppler run --project etude --config prd -- uv run manabot remote run --plan pla
 Also permit `remote run --regime ... --mix ... --seed ... --out ...` to compile,
 write and display the same plan before provisioning, with no interactive prompt.
 `remote status` lists current rentals and hourly charges; `remote cleanup
---deployment ...` retries deletion for an owned deployment. These commands are now implemented; live acceptance remains open.
+--deployment ...` retries deletion for an owned deployment. These commands are implemented and attempt 004 supplies the bounded live proof.
 
 Success prints the evidence directory, verified checkpoint paths, estimated
 dollars and confirmed deletion. Receipt timestamps retain observed rental
@@ -266,7 +302,8 @@ per-deployment key beneath ignored `.runs`, a dedicated known-hosts file, and fi
 host-key binding; unexpected subsequent keys fail closed. Do not disable host-key
 checking globally. Runtime pod/address handles stay in private receipts only.
 
-Bootstrap with `uv sync --locked --python 3.12 --extra play`, then from repository
+Clone source to `/opt/manabot/repo` and set `UV_CACHE_DIR=/opt/manabot/uv-cache`;
+keep only evidence/recipes on `/workspace`. Bootstrap with `uv sync --locked --python 3.12 --extra play`, then from repository
 root `uv run maturin develop --release --features python --manifest-path
 managym/Cargo.toml`. Pin/record uv, Rust and image identity; keep all Python
 commands under uv. Execute `uv run manabot train --regime ... --seed ... --out ...`
@@ -334,9 +371,8 @@ keys. First-use host keys stay in the private deployment directory.
 The explicit `tests.remote.live_acceptance` helper accounts all retained attempts
 under `.runs/remote-acceptance` against $4.90, requires raw/EMA optimizer work,
 verifies returned TrainingRun/SQLite and artifacts, and uses the existing arena
-monitor evaluator for one four-leg terminal/replayed block. It has not run.
-Gate owns the real probe/deployment and broader affected checks after source
-publication; no live success is inferred from mocked lifecycle checks.
+monitor evaluator for one four-leg terminal/replayed block. It passed in attempt 004; real hardware and local checks are recorded above.
+Mocked checks alone do not establish this result.
 
 A read-only authenticated inventory query on 2026-10-06 found zero pods. The
 initial urllib request returned HTTP 403; supplying a User-Agent resolved it.
@@ -397,20 +433,20 @@ actual/estimated cost distinction. If auth, availability, scoped
 self-deletion or compatible local native runtime prevents the proof, retain the
 precise failure and leave live acceptance open.
 
-Live gate remains unexecuted. Review's cleanup-cost and inventory gaps were
+The bounded live gate passed in attempt 004. Earlier cleanup-cost and inventory gaps were
 repaired in `4348b5a0`; `eab86deb` then corrected complete-record admission and
 simplified transfer. The focused regressions cover retained/observed rates,
 missing evidence, duplicate rentals, changed plans, repeated cleanup, and
 initial/final inventory combinations without deleting unrelated pods. These
-resolve the two requested implementation gaps, not live acceptance. Complete
+resolved those two implementation gaps; live proof subsequently passed. Complete
 mocked deployment and training/transfer failure/timeout coverage remain open.
 
 The selected Intelligence scope has no child MEMORY.md files; its metrics
 subdirectory retains historical evidence contracts. Current chapter limits and
-ETU-108/larger-model ownership remain unchanged. No new product decision is
-needed for the remaining bounded proof.
+ETU-108/larger-model ownership remain unchanged. The requested bounded proofs are complete; no framework reuse API is authorized.
+Review/landing remain prohibited in this execution. Preserve ignored run evidence.
 
-Focused check: `uv run --extra dev pytest tests/remote tests/training/test_regimes.py -q` — 50 passed, one CUDA-host skip; focused Ruff and `git diff --check` passed. Broader lifecycle verification and paid proof remain with gate.
+Historical focused check: `uv run --extra dev pytest tests/remote tests/training/test_regimes.py -q` — 50 passed, one CUDA-host skip. Later checks and real-hardware results are recorded above and in the remote contract.
 
 ## Explicitly not in this Task
 

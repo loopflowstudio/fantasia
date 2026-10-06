@@ -1,13 +1,16 @@
-# Remote training assumptions — 2026-10-06
+# Remote training decisions — 2026-10-06
 
-- First remote capability is ordinary self-play on one CUDA GPU, float32, one
-  worker. Other stage kinds and cloud recovery reject before rental. This is a
-  reversible implementation boundary, not a change to local CPU capabilities.
-- The under-&#36;5 acceptance allocation covers the short guardian probe plus the
-  trained-checkpoint deployment and every failed attempt; it is not &#36;5 per retry.
-- Pod-scoped self-deletion needs live proof. Its advertised scoped key alone is
-  insufficient evidence. If the probe fails, terminate from the laptop and leave
-  this acceptance requirement unresolved; do not copy the account key to the pod.
-- Provider create has no inspected atomic maximum-price guard. Price checking
-  before/after rental, both deadlines and cleanup reserve limit ordinary spend;
-  provider/laptop failures can leave unconfirmed billing, which must be reported.
+- Jack Heart authorized $50 total across all attempts and source branch pushes;
+  PR review/readiness and landing remain prohibited. The helper/example retain
+  a smaller $4.90 deployment ledger ceiling; add the reported $0.29 shakedown.
+- CUDA self-play is float32, one worker, declared rental thread limits. Other
+  stages and CUDA recovery remain rejected, preserving local CPU capabilities.
+- Pod-side self-deletion is now live-proven. Provider outage can still prevent
+  deletion; unknown billing remains unknown and cleanup must be confirmed.
+- ETU-119's persistence fix is merged. Earlier frozen runs remain unchanged;
+  observed update intervals do not identify all causes of slowdown.
+- Jack Heart authorized local-disk setup, then a small worked two-experiment
+  example. No public reuse API, mode, flag or idle-policy abstraction is wanted.
+  ETU-120 is folded/cancelled; prebuilt images remain separate under ETU-121.
+- The example reuses one exact source/lock/native build for two seeds. Changing
+  dependency/native inputs needs a fresh environment and is outside this example.
