@@ -108,3 +108,38 @@ these are observed lower bounds on peak resident memory, not allocator peaks.
 Host load snapshots disclose possible contention but cannot attribute it. A
 concurrent run establishes software/accounting behavior only; use an independently
 approved uncontended protocol before drawing scaling or laptop-throughput conclusions.
+
+### Retained software proof (2026-10-05)
+
+At source `90c55627`, `.runs/etu102-capacity-smoke` completed the documented
+command in **212.56 seconds** on w4: three runs, 512 learner transitions per
+run, six admitted raw checkpoints and 40 exact-replayed arena games. All three
+inference probes completed. The resolved plan, run/source/world/setup identities,
+checkpoint digests, collection seeds, architecture/component receipts and complete
+arena attempts remain in that directory. No EMA, demo admission, strength or
+human-challenger claim follows.
+
+| Width / depth / heads | Trainable parameters | Collection seconds | Optimizer seconds | Observed training RSS (bytes) |
+| --- | ---: | ---: | ---: | ---: |
+| 64 / 1 / 4 | 138,434 | 3.20 | 0.62 | 585,646,080 |
+| 64 / 2 / 4 | 188,418 | 4.02 | 0.96 | 623,181,824 |
+| 128 / 2 / 4 | 712,706 | 5.66 | 1.68 | 974,766,080 |
+
+The parameter counts are exact for this resolved configuration; time and RSS are
+single-run observations. Host one-minute load was 50.46 before and 32.52 after;
+contention was uncontrolled. These values cannot establish scaling efficiency.
+Inference batches are identified separately per checkpoint, not guaranteed equal
+across arms. Construction/load/first-call/warmed costs remain separate in
+`calibration.json`. Arena time was 193.59 seconds including 16.82 seconds of
+replay; it is not an additional training cost.
+
+The gate also retained a failed default-calibration attempt under
+`.runs/etu102-check-failures/calibration-timeout`: one game exceeded the original
+10-second per-game allowance, while its partial command trace replayed exactly.
+This is an archived copy of test artifacts; original absolute temporary paths in
+its records are preserved. The software protocol now allows 30 seconds per game
+without raising the total deadline. The affected check passed on rerun. Initial
+collection failed because this fresh checkout lacked its native extension; the
+local rebuild and a missing test-import repair preceded final verification.
+The focused/gate checks passed with one optional notebook-dependency skip. The
+single capacity attempt completed; no scientific capacity allocation was launched.
