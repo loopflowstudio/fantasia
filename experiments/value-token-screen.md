@@ -1,7 +1,7 @@
 # Scalar value-token screen — ETU-106
 
-Jack Heart requested this prospective screen on 2026-10-05 after PR #222 merged.
-This preparation does not launch training. The separate `value-token-screen` /
+Jack Heart requested this screen on 2026-10-05 after PR #222 merged.
+The frozen cohort completed on 2026-10-06; results and retained evidence follow below. The separate `value-token-screen` /
 `screening` profile preserves the eight-arm value-model smoke and the existing
 three-anchor scientific protocols. ETU-91's checkout, cohort and allocation are
 untouched. No paid compute is included.
@@ -108,15 +108,16 @@ plan; loading it after source or native-extension drift fails before training.
 It does not certify another machine's installed dependencies. Keep this checkout's
 imported sources and native extension stable throughout a launched cohort.
 
-From the repository root, the eventual launch command is:
+From the repository root, the executed launch command was:
 
 ```bash
 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m experiments.runners.run_value_screen --plan experiments/plans/value-token-screen.json --out .runs/etu106-value-token-screen
 ```
 
-This command is delivered to the repository session; **it was not run during
-preparation**. The output directory must not exist. Do not launch alongside a
-new competing campaign. Do not move, restart or modify ETU-91 to make room.
+The command ran at source commit `2bc013da0f442997d33d1219878d85a048ea23c6`.
+The existing output is immutable evidence, not a restart destination. The frozen
+plan is retained unchanged; integration changes its bound sources, so it is not
+a launchable plan on the delivery head. No additional campaign is authorized.
 
 To resolve a new prospective plan without training after a deliberate source
 change (retain the previous plan and review its changed identities first):
@@ -135,9 +136,117 @@ Software validation uses bounded fixtures: plan rejection, unchanged legacy
 restrictions, full 18-cell scheduling, early arena failure, source-drift rejection,
 two-hour forecast stop/continue and repeatable executed report/notebook outputs.
 Fixture games and checkpoints are synthetic; they supply no strength or timing
-measurement. Scientific execution remains unrun.
+measurement. The completed real cohort is distinguished below.
 
 Gate (2026-10-05): the affected screen/value/study/architecture-recipe suites
 passed **31 tests**; focused Ruff checks/format and `git diff --check` passed.
 The committed resolved plan reproduces current source/runtime identities without
 training. CI owns its broader matrix; no Rust or model code changed here.
+
+
+## Completed screen (2026-10-06)
+
+All nine runs completed both 400-update stages: three paired training seeds,
+1,843,200 learner transitions, 18 raw-checkpoint evaluations of 100 games each.
+Inspection of every saved arena row and comparison receipt confirms all **1,800
+terminal games passed exact replay**, with zero failures, truncations or recorded
+integrity violations. Every stage has 400 diagnostics and 102,400 transitions;
+optimizer exposure totals agree with the sum of retained samples. No replacement
+attempt, additional training or evaluation was run during delivery.
+
+Scores below are percentages against the fixed scripted opponent; columns list
+seeds 10611, 10612, 10613. The same 25 deals and all four deck/seat legs are reused
+at both checkpoints, as frozen above.
+
+| Aggregation | Midpoint scores | Endpoint scores | Endpoint mean | Paired endpoint difference vs historical |
+| --- | --- | --- | ---: | --- |
+| Historical | 37, 28, 28 | 43, 33, 43 | 39.67% | — |
+| Masked | 35, 28, 29 | 41, 44, 41 | 42.00% | −2, +11, −2 points; mean +2.33 |
+| Token | 27, 36, 29 | 30, 35, 39 | 34.67% | −13, +2, −4 points; mean −5.00 |
+
+Post-run descriptive paired seed/common-deal bootstrap 95% intervals for the
+endpoint differences are **[−6, +12] points** (masked) and **[−14, +3.33] points**
+(token). These resample three training seeds and 25 common deal blocks, keeping
+four legs together and pairing arms; 10,000 draws use NumPy default_rng seed
+10606. This analysis choice is post-run, not an added prospective criterion.
+The retained notebook's per-arm intervals are not paired-difference intervals.
+Three seeds cannot establish a general architecture effect.
+
+The masked prediction (absolute mean gap below 3 points) held; the token
+prediction (strictly below 5 points) missed at the boundary. Neither candidate
+meets the frozen promotion criterion. Token's mean loss reaches 5 points, but
+one seed is positive, so the all-negative-seeds rejection criterion also fails.
+**Keep both unresolved; promote neither and change no default.**
+
+### Cost and optimizer exposure investigation
+
+The study receipt charges **18,467.19 seconds (5.13 hours)**, within eight hours:
+15,230.85 seconds for run receipts and 3,224.35 seconds for evaluation, with
+11.99 seconds of remaining orchestration/reporting overhead. Replay is 187.97
+seconds within evaluation, not additional cost. The two-hour diagnostic continued
+at 3,334/7,200 updates with a conservative 19,219.34-second training projection
+and without inspecting strength. Actual training remained below six hours.
+
+The common observed training-cost interval is 995.43–1,364.68 seconds. At its
+upper cutoff, last-available checkpoint scores average historical 31.00%, masked
+30.67%, token 34.00% (only token seed 10613 has reached its endpoint). Thus the
+endpoint ordering is not an equal-cost ordering; sparse checkpoints do not allow
+interpolation or a general speed claim. Measured pooled candidate latency across
+both checkpoints is historical 7.553, masked 7.697, token 7.508 ms/decision.
+The token/historical ratio is 0.994, within the 1.25 screen threshold, but these
+are observed mixed-decision costs on this host, not matched FLOPs or controlled
+microbenchmarks. The retained notebook includes transition and training-hour curves.
+
+| Aggregation | Total optimizer sample exposures per seed | Empty-filter updates per seed |
+| --- | --- | --- |
+| Historical | 50,569; 50,718; 50,441 | 0; 0; 0 |
+| Masked | 45,763; 46,237; 48,378 | 0; 0; 0 |
+| Token | 15,339; 20,940; 21,853 | 14; 7; 10 |
+
+These are samples used by the optimizer, not optimizer calls or collected
+transitions. Every arm still collects 204,800 transitions. Frozen
+`ataraxos.py::update_move_iteration` trains both actor and critic only on retained
+rows and skips empty timesteps. `selection.py::selected_moves` retains absolute
+advantages at or above `max(75th percentile, 0.01)`. With 256 rows, the quantile
+alone retains at least 64; lower counts establish that the minimum threshold
+binds. Saved diagnostics match exposures exactly and record 31 empty token
+updates. The token therefore receives substantially fewer actor **and** critic
+sample exposures under this fixed rule, alongside lower learning time.
+
+This identifies the accounting path, not why token advantages are smaller or
+why endpoint scores differ. Changed shared policy representations, critic scale,
+visited states and stochastic trajectories remain possible contributors. The
+receipts do not retain full per-update advantage tensors for counterfactual
+refiltering. No filter intervention or matched-exposure experiment was conducted;
+do not claim a proven architectural defect, better calibration, causal starvation,
+or a cheaper equivalent learner. A separately authorized diagnostic could freeze
+rollout batches and compare advantage distributions and floor sensitivity before
+another architecture claim. History, categorical/depth contrasts and remaining
+ETU-106 science remain open.
+
+### Provenance and preservation
+
+The compact [result receipt](data/value-token-screen-result.json) retains all 18
+checkpoint digests and metrics, per-run exposure counts, source/runtime identities,
+paired analysis method and a SHA-256 manifest of all **142 evidence files**.
+The protocol digest is
+`b1d9e7a0a7c21b1a2dfd6c7bd68c4c2fff1b0d195dfb8a289f2e35dcf295ec80`.
+The frozen world is w4, with exact engine/content/setup/ABI identities in that
+receipt and `resolved-plan.json`; no measurements transfer to integrated sources.
+
+The full evidence remains at
+`/Users/jack/src/etude.test-ataraxos-inspired-model-representations/.runs/etu106-value-token-screen`:
+VerifyStore SQLite, every run receipt, raw/EMA exports, arena registrations,
+compressed command traces, resolved plan/recipes/protocol, diagnostic, executed
+notebook, plots and reports. Before integration, all 142 files were copied and
+SHA-256 verified at `/Users/jack/etu106-evidence/value-token-screen-20261006`;
+the sibling `value-token-screen-20261006.sha256.json` records those hashes.
+Keep the original checkout and absolute paths usable; the backup does not rewrite
+embedded paths. No original evidence was regenerated, pruned or deleted.
+
+This single scripted-opponent screen does not establish general strength,
+exploitability, control competence, human-play success or an isolated critic
+mechanism. ETU-91 is unchanged. Jack Heart authorized delivery; that is not human
+code-review approval or completion of ETU-106's remaining scientific work.
+
+Delivery check (2026-10-06): `uv run pytest tests/training/test_value_screen.py tests/training/test_value_models.py tests/training/test_study.py tests/training/test_architecture_recipes.py tests/training/test_capacity_study.py -q` — 39 passed; focused Ruff/format and `git diff --check` passed. CI verifies the integrated head.

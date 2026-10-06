@@ -80,3 +80,173 @@ class EvaluationProtocol(BaseModel):
             self.early_progress_seconds is None or self.progress_score is None
         ):
             raise ValueError("capacity requires an early window and threshold")
+        expected_selection = (
+            "all-completed-cutoffs-raw-and-ema"
+            if "ema" in self.evaluation_variants
+            else "all-completed-cutoffs-raw"
+        )
+        if self.selection != expected_selection:
+            raise ValueError("selection label must agree with evaluation variants")
+        if not self.evaluation_variants or len(set(self.evaluation_variants)) != len(
+            self.evaluation_variants
+        ):
+            raise ValueError("evaluation variants must be nonempty and unique")
+        if self.study != "omitted-controls" and self.evaluation_variants != ("raw",):
+            raise ValueError("existing frozen studies evaluate raw only")
+        if (
+            any(c <= 0 for c in self.cost_cutoffs_seconds)
+            or tuple(sorted(set(self.cost_cutoffs_seconds)))
+            != self.cost_cutoffs_seconds
+        ):
+            raise ValueError("cost cutoffs must be positive and strictly increasing")
+        if self.purpose == "scientific" and not self.cost_cutoffs_seconds:
+            raise ValueError("scientific profiles require declared cost cutoffs")
+        if not self.training_seeds or len(set(self.training_seeds)) != len(
+            self.training_seeds
+        ):
+            raise ValueError("training seeds must be nonempty and unique")
+        if any(seed < 0 or seed >= 100000 for seed in self.training_seeds):
+            raise ValueError("training seeds must be in [0, 100000)")
+        if self.purpose == "workflow-smoke" and (
+            self.process_seconds > 900 or len(self.training_seeds) != 1
+        ):
+            raise ValueError("smoke is limited to 900 seconds and one seed")
+        if self.purpose == "scientific" and (
+            len(self.training_seeds) < 3
+            or self.uncertainty != "paired-seed-descriptive"
+        ):
+            raise ValueError(
+                "scientific profiles require at least three seeds and declared uncertainty"
+            )
+        if not self.anchors or len(set(self.anchors)) != len(self.anchors):
+            raise ValueError("anchors must be nonempty and unique")
+        if self.purpose == "scientific":
+            if not self.endpoint_paired_deals or not self.endpoint_anchor_deals:
+                raise ValueError("scientific profiles require untouched endpoint deals")
+            if set(self.anchors) != {"random", "scripted-greedy", "puct-64"}:
+                raise ValueError(
+                    "scientific profiles require all three fixed baselines"
+                )
+            expected_pairs = (
+                {(a, b) for a in self.training_seeds for b in self.training_seeds}
+                if self.study == "learning-speed"
+                else {(s, s) for s in self.training_seeds}
+            )
+            if set(self.endpoint_seed_pairs) != expected_pairs or len(
+                self.endpoint_seed_pairs
+            ) != len(expected_pairs):
+                raise ValueError(
+                    "endpoint seed schedule must cover the declared cross-seed comparison"
+                )
+        families = (
+            self.paired_deals,
+            self.anchor_deals,
+            self.endpoint_paired_deals,
+            self.endpoint_anchor_deals,
+        )
+        flat = [s for family in families for s in family]
+        if len(flat) != len(set(flat)):
+            raise ValueError(
+                "development and endpoint deal families must be disjoint and unique"
+            )
+        if any(s < 900000 for s in flat):
+            raise ValueError("evaluation deals must use reserved family >=900000")
+        expected_counts = {
+            "learning-speed": {2},
+            "ataraxos-ablations": {5},
+            "compound-decisions": {4},
+            "omitted-controls": {1, 2},
+            "training-calibration": {1},
+            "capacity-calibration": {3},
+            "model-capacity": {3},
+            "value-models": {8},
+            "value-token-screen": {3},
+        }[self.study]
+        if len(self.regime_digests) not in expected_counts or any(
+            len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest)
+            for digest in self.regime_digests
+        ):
+            raise ValueError("protocol must bind every resolved recipe digest")
+        if (
+            not self.paired_deals and self.purpose != "screening"
+        ) or not self.anchor_deals:
+            raise ValueError("evaluation deal families must be nonempty")
+        return self
+
+
+class ResolvedStudy(BaseModel):
+    """Explicit recipes and allocation; the runner never scales smoke implicitly."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    protocol: EvaluationProtocol
+    recipes: tuple[dict, ...]
+    allocation_seconds: float = Field(gt=0, le=168 * 3600)
+    prior_campaign_seconds: float = Field(ge=0)
+    runtime_identities: dict[str, str] = Field(default_factory=dict)
+    projected_disk_bytes: int = Field(default=0, ge=0)
+    disk_reserve_bytes: int = Field(default=4 * 1024**3, ge=0)
+    calibration_evidence: str
+
+    @model_validator(mode="after")
+    def allocation(self) -> "ResolvedStudy":
+        from manabot.arena.models import canonical_sha256
+        from manabot.training.models import TrainingRegime, TrainSelfPlay
+
+        recipes = [TrainingRegime.model_validate(r) for r in self.recipes]
+        if (
+            tuple(canonical_sha256(r.model_dump(mode="json")) for r in recipes)
+            != self.protocol.regime_digests
+        ):
+            raise ValueError("resolved plan recipe digests do not match")
+        if self.protocol.purpose == "screening":
+            from experiments.runners.value_screen import validate_screen_recipes
+
+            validate_screen_recipes(recipes)
+            required = {
+                "engine_extension_sha256",
+                "engine_source_sha256",
+                "content_manifest_sha256",
+                "observation_abi_sha256",
+                "action_abi_sha256",
+                "matchup_sha256",
+                "training_source_sha256",
+                "study_source_sha256",
+            }
+            if set(self.runtime_identities) != required or any(
+                len(v) != 64 or any(c not in "0123456789abcdef" for c in v)
+                for v in self.runtime_identities.values()
+            ):
+                raise ValueError("screen must bind all runtime and study sources")
+            if self.allocation_seconds != 28800 or self.prior_campaign_seconds != 0:
+                raise ValueError("screen owns a separate eight-hour allocation")
+        if "ema" in self.protocol.evaluation_variants and any(
+            not isinstance(s, TrainSelfPlay) or s.learning.ema is None
+            for r in recipes
+            for s in r.stages
+        ):
+            raise ValueError("EMA evaluation requires EMA at every checkpoint")
+        if len({r.id for r in recipes}) != len(recipes):
+            raise ValueError("recipe IDs must be unique")
+        if any(
+            sum(s.operation != "collect_search" for s in r.stages)
+            != self.protocol.checkpoint_count
+            for r in recipes
+        ):
+            raise ValueError("every recipe must export the declared checkpoint count")
+        if self.protocol.process_seconds > self.allocation_seconds:
+            raise ValueError("process deadline exceeds study allocation")
+        if self.prior_campaign_seconds + self.allocation_seconds > 168 * 3600:
+            raise ValueError(
+                "campaign exceeds 168 laptop hours including prior attempts"
+            )
+        if (
+            sum(r.wall_seconds for r in recipes) * len(self.protocol.training_seeds)
+            >= self.allocation_seconds
+        ):
+            raise ValueError("allocation must leave time for evaluation and reports")
+        if (
+            self.protocol.purpose == "scientific"
+            and not self.calibration_evidence.strip()
+        ):
+            raise ValueError("scientific execution requires calibration evidence")
+        return self
