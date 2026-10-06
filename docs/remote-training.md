@@ -10,9 +10,41 @@ rejected before rental. No distributed-learning or strength claim follows.
 **Implementation status, 2026-10-06:** local compilation, relocation and failure
 checks pass. CUDA execution and the paid end-to-end proof remain live gate work.
 The authenticated provider inventory reported **zero rented pods** on this date.
-No pod was created during implementation. The example image is pinned to the
+No pod was created during implementation or the first live-gate attempt. The example image is pinned to the
 Docker Hub manifest digest resolved on this date from RunPod's PyTorch 2.8.0 /
 CUDA 12.8.1 Ubuntu 22.04 image; the locked project supplies its own Python/Torch.
+
+## Live attempt, 2026-10-06
+
+Jack Heart raised the Task's total RunPod allowance to **$50 across all attempts**
+and required tens of minutes of CUDA self-play before review. The earlier $4.90
+all-attempt acceptance allocation is superseded by this authorization; the helper
+still enforces that smaller limit, and each deployment remains capped below $5.
+The prior shakedown reported $0.29; retain it in Task accounting. Weekly budgets
+are not additional allocation for this proof.
+
+The first live helper invocation at source `d8307606` stopped before any create
+request: seven unrelated catalog entries had zero prices, causing the client to
+reject the valid L4 quote of $0.49/hour. The retained receipt at
+`.runs/remote-acceptance/attempt-000/deployment.json` has no rental attempts,
+`complete=false`, `ProviderError`, and $0.00 rental cost. No billed pod interval
+exists for this attempt; no invoice claim is needed. Task expenditure remains
+$0.29 as previously reported for the shakedown, with $0.00 added here.
+
+The repair excludes zero-price entries from admission while still rejecting
+negative, nonfinite and implausible prices. A fresh authenticated query admitted
+43 positive quotes, including the L4 at $0.49/hour. Final authenticated inventory
+on 2026-10-06 reported **zero pods**. Local remote tests passed 43 checks with one
+CUDA-host skip; this does not establish rented-hardware smoke success.
+
+The proposed retained inputs in `.runs/remote-proof-{regime,mix}.json` specify
+1,200 updates across two live stages, EMA exports, a 45-minute training watchdog,
+and a one-hour rental allowance ($0.62 projected ceiling). Actual training duration
+is unmeasured; these counts do not yet establish the requested tens of minutes.
+Guardian self-deletion, CUDA training, returned artifacts and normal arena play
+remain unexecuted. Deployment requires its exact source commit/tree to be publicly
+fetchable. The repair must reach that source boundary before retrying; this session
+was explicitly instructed not to publish and did not bypass admission or publish.
 
 ## Compile and deploy
 

@@ -2,18 +2,17 @@
 
 ## Remote regime software (ETU-114, 2026-10-06)
 
-Jack Heart authorized RunPod software and an under-&#36;5 proof, not larger training.
-`manabot remote` supplies declared-resource CUDA deployment, deadlines, cleanup
-and immutable artifact relocation. ETU-108/larger-model work stay independent.
-SQLite admission needs VerifyStore's complete run/stage reader.
+Jack Heart authorized RunPod software, then raised total Task spend to $50 across
+all attempts and required tens of minutes of CUDA self-play before review.
+ETU-108/larger-model work remain separate.
 
-Inventory reported zero pods. CUDA, self-deletion and returned-checkpoint play
-remain unproved; implementation rented nothing.
-The [remote contract](../../docs/remote-training.md) owns the &#36;4.90 all-attempt
-helper. Cleanup recovers costs only from retained/observed evidence; unknown
-billing blocks retries. Initial-empty inventory requires final-empty inventory;
-unrelated pods are never deleted. Review regressions at `4348b5a0` cover both repairs; broader lifecycle checks
-and live proof remain gate work.
+The first live command at `d8307606` failed before create: zero-priced unrelated
+GPU entries invalidated a valid L4 quote. The repair excludes zero-price entries
+without admitting free rentals; live price admission then passed. Retained attempt
+000 cost $0; prior shakedown reported $0.29. Final inventory was zero pods.
+CUDA, guardian self-deletion and returned-checkpoint play remain unproved.
+Retry requires publicly fetchable corrected source; Jack Heart prohibited publication.
+The [remote contract](../../docs/remote-training.md) owns evidence and limits.
 No strength or chapter acceptance follows.
 
 ## History input (ETU-106, 2026-10-06)

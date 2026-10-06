@@ -114,8 +114,11 @@ class RunPod:
                 for row in rows
                 if row["securePrice"] is not None
             }
-            if any(not 0 < rate < 1000 for rate in result.values()):
+            if any(not 0 <= rate < 1000 for rate in result.values()):
                 raise ValueError
-            return result
+            # RunPod includes zero-priced catalog entries alongside rentable
+            # GPUs. They supply no usable quote, but must not invalidate other
+            # GPUs' positive quotes or be admitted as free rentals.
+            return {gpu: rate for gpu, rate in result.items() if rate > 0}
         except (KeyError, TypeError, ValueError):
             raise ProviderError("RunPod GPU prices unavailable") from None

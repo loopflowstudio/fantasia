@@ -11,6 +11,44 @@ import manabot.remote.provider as provider
 from manabot.remote.transport import Transport
 
 
+def test_zero_price_catalog_entries_do_not_block_quoted_gpu(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RUNPOD_API_KEY", "fixture")
+
+    def request(
+        self: provider.RunPod, method: str, url: str, payload: object = None
+    ) -> object:
+        return {
+            "data": {
+                "gpuTypes": [
+                    {"id": "NVIDIA L4", "securePrice": 0.49},
+                    {"id": "unquoted", "securePrice": 0},
+                    {"id": "unavailable", "securePrice": None},
+                ]
+            }
+        }
+
+    monkeypatch.setattr(provider.RunPod, "_request", request)
+    assert provider.RunPod().prices() == {"NVIDIA L4": 0.49}
+
+
+@pytest.mark.parametrize("rate", [-1, float("nan"), float("inf"), 1000])
+def test_invalid_prices_still_fail_admission(
+    monkeypatch: pytest.MonkeyPatch, rate: float
+) -> None:
+    monkeypatch.setenv("RUNPOD_API_KEY", "fixture")
+
+    def request(
+        self: provider.RunPod, method: str, url: str, payload: object = None
+    ) -> object:
+        return {"data": {"gpuTypes": [{"id": "invalid", "securePrice": rate}]}}
+
+    monkeypatch.setattr(provider.RunPod, "_request", request)
+    with pytest.raises(provider.ProviderError, match="GPU prices unavailable"):
+        provider.RunPod().prices()
+
+
 def test_http_rejection_does_not_include_response_or_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
