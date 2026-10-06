@@ -1,9 +1,9 @@
 # Intelligence memory
 
-## History-input software delivery (ETU-106, 2026-10-06)
+## History input (ETU-106, 2026-10-06)
 
 Jack Heart authorized [history-screen delivery](../../experiments/history-input.md).
-Off/on ABIs stay distinct. Native history fixtures and eight fixed-weight replayed games pass; the old
+Off/on ABIs differ. Native fixtures and eight fixed-weight replayed games pass; the old
 extension and campaign bytes remain preserved. No calibration or campaign ran; delivered source,
 exclusive-host/cohort audit and prospective cost admission precede execution.
 History adds information and parameters; fixed-update scores cannot establish
