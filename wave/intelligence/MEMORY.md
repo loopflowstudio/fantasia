@@ -1,5 +1,25 @@
 # Intelligence memory
 
+## Prospective scalar value-token screen (ETU-106, 2026-10-05)
+
+Jack Heart requested preparation after PR #222 merged. The Task remains open;
+its old review is stale. LF rotated a follow-up PR onto current main, which now
+contains the merged recipe helpers. The separate `value-token-screen` screening
+profile preserves the eight-arm smoke and three-anchor scientific contracts.
+Three width-64/depth-1/scalar aggregation arms share all other settings, three
+seeds, two linked 400-update stages and 100 scripted games per checkpoint:
+1,800 fixed four-leg games. The eight-hour ceiling reserves six training/two
+evaluation hours; a two-hour conservative throughput diagnostic can stop without
+looking at scores. Counts are prospective smoke extrapolation, not measured
+long-run feasibility. Source drift rejects launch; failed cohorts retain all
+attempts and cannot silently resume or resize. Shared-cost evidence and inference
+cost remain necessary; the token changes policy representations too.
+The protocol and exact unexecuted command live in
+[the screen plan](../../experiments/value-token-screen.md). Only bounded fixtures
+ran during preparation. ETU-91 and its frozen checkout remain untouched. No
+scientific result, model promotion or new training authorization follows from
+software delivery.
+
 ## Focused value-model priority (ETU-106, 2026-10-05)
 
 Jack Heart authorized historical mean, validity-masked mean, one-layer value
