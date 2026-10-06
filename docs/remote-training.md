@@ -7,51 +7,67 @@ float32 ordinary PPO/Ataraxos self-play, including raw/EMA and live continuation
 Compound, supervised, belief/search, external opponents and process recovery are
 rejected before rental. No distributed-learning or strength claim follows.
 
-**Implementation status, 2026-10-06:** local compilation, relocation and failure
-checks pass. CUDA execution and the paid end-to-end proof remain live gate work.
-The authenticated provider inventory reported **zero rented pods** on this date.
-No pod was created during implementation or the first live-gate attempt. The example image is pinned to the
-Docker Hub manifest digest resolved on this date from RunPod's PyTorch 2.8.0 /
-CUDA 12.8.1 Ubuntu 22.04 image; the locked project supplies its own Python/Torch.
+**Live status, 2026-10-06:** guardian self-deletion and the rented L4 CUDA
+continuation/export smoke have passed. The first long self-play attempt hit its stage watchdog after 567 updates;
+returned-checkpoint arena acceptance remains open.
 
-## Live attempt, 2026-10-06
+## Live attempts, 2026-10-06
 
-Jack Heart raised the Task's total RunPod allowance to **$50 across all attempts**
-and required tens of minutes of CUDA self-play before review. The earlier $4.90
-all-attempt acceptance allocation is superseded by this authorization; the helper
-still enforces that smaller limit, and each deployment remains capped below $5.
-The prior shakedown reported $0.29; retain it in Task accounting. Weekly budgets
-are not additional allocation for this proof.
+Jack Heart authorized **$50 total across every Task attempt**, including the
+previous $0.29 shakedown, and required tens of minutes of CUDA self-play before
+review. Normal non-force pushes of this Task branch are authorized to make exact
+source commits fetchable; opening/readying a PR, landing and completing review
+remain prohibited. Each command retains its own smaller cost/deadline limits.
 
-The first live helper invocation at source `d8307606` stopped before any create
-request: seven unrelated catalog entries had zero prices, causing the client to
-reject the valid L4 quote of $0.49/hour. The retained receipt at
-`.runs/remote-acceptance/attempt-000/deployment.json` has no rental attempts,
-`complete=false`, `ProviderError`, and $0.00 rental cost. No billed pod interval
-exists for this attempt; no invoice claim is needed. Task expenditure remains
-$0.29 as previously reported for the shakedown, with $0.00 added here.
+Evidence stays under `.runs/remote-acceptance`; failed directories are retained.
+Dollar estimates use observed rental intervals and the declared storage allowance,
+not a provider invoice. The prior shakedown's $0.29 is reported expenditure.
 
-The repair excludes zero-price entries from admission while still rejecting
-negative, nonfinite and implausible prices. A fresh authenticated query admitted
-43 positive quotes, including the L4 at $0.49/hour. Final authenticated inventory
-on 2026-10-06 reported **zero pods**. Local remote tests passed 43 checks with one
-CUDA-host skip; this does not establish rented-hardware smoke success.
+| Attempt | Source | Result | Estimated rental cost |
+| --- | --- | --- | --- |
+| 000 | `d8307606` | No create: unrelated zero-price GPU quotes rejected admission | $0.0000 |
+| 001 | `46c80fd2` | Pending-pod port list rejected; exact owned probe manually deleted | $0.0193 |
+| 002 | `5f1c34d6` | Guardian passed; bootstrap exceeded the eight-minute setup deadline; deleted | $0.0686 |
+| 003 | `5f1c34d6` | Guardian and CUDA smoke passed; first stage interrupted at its watchdog | pending |
 
-The proposed retained inputs in `.runs/remote-proof-{regime,mix}.json` specify
-1,200 updates across two live stages, EMA exports, a 45-minute training watchdog,
-and a one-hour rental allowance ($0.62 projected ceiling). Actual training duration
-is unmeasured; these counts do not yet establish the requested tens of minutes.
-Guardian self-deletion, CUDA training, returned artifacts and normal arena play
-remain unexecuted. Deployment requires its exact source commit/tree to be publicly
-fetchable. The repair must reach that source boundary before retrying; this session
-was explicitly instructed not to publish and did not bypass admission or publish.
+Attempt 001 retains the original unresolved receipt plus explicit manual
+reconciliation. An authenticated query observed the unique receipt-owned pod at
+$0.49/hour, 6 vCPUs and 62 GB; the corrected client deleted that exact name and
+confirmed empty inventory. Its cost conservatively ends at the later reconciliation
+confirmation. Pending `ports=["22/tcp"]` declarations now mean no public mapping;
+only published `portMappings` supplies an SSH endpoint. The regression covers both.
+
+Attempt 002 demonstrated real pod-side deletion without laptop DELETE, then hit
+its setup deadline during dependency installation. Attempt 003 preserves the same
+1,200-update/two-stage recipe and 45-minute training allowance, increasing setup
+to 20 minutes and the total command allowance to 75 minutes ($0.775 projected
+ceiling). Setup completed in roughly ten minutes. Network-backed `/workspace`
+and uv's cross-filesystem copy warning were observed; no isolated throughput
+explanation is claimed.
+
+The rented-hardware command `uv run --locked --extra dev pytest
+tests/remote/test_device.py -q` passed **2 tests in 189.74 seconds**, including
+actual CUDA optimizer work, continuation and raw/EMA CPU reload. It overlapped
+main training and is functionality evidence, not a performance benchmark.
+Its logs, exit status and fixture artifacts are retained inside the returned
+bundle. Pytest's two convenience symlinks were recorded separately and removed
+before bundling; all underlying artifact bytes remain intact.
+
+The first main stage stopped after 567 updates / 290,304 optimizer exposures
+in 1,354 recorded seconds. It is an interrupted run, not a completed deployment.
+The next proposed attempt reduces each stage to 350 updates, retaining the
+original controls and watchdogs; no active run is edited.
+
+Local checks: **405 passed, 3 skipped** across remote, training and net-opponent
+tests. These checks do not substitute for the live deployment. No strength,
+scientific comparison or chapter acceptance follows.
 
 ## Compile and deploy
 
 Commit source first. Compilation reads source identity but makes no provider
 request. Deployment additionally checks that the exact commit/tree are publicly
-fetchable from this repository before renting. Publish through the normal
-Loopflow delivery step before the live gate.
+fetchable from this repository before renting. Push the exact commit to the Task branch before the live gate. A source push
+does not require opening or readying a PR for review.
 
 ```bash
 uv run manabot remote compile --regime experiments/regimes/direct-self-play.json \
@@ -132,7 +148,7 @@ consumers are not supported.
 ## Explicit live gate
 
 The helper is not collected by pytest. Prepare a bounded version of the existing
-recipe with EMA enabled, then invoke it after publication:
+recipe with EMA enabled, then invoke it after the source push:
 
 ```bash
 uv run python - <<'PY'
