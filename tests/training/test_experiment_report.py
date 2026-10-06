@@ -93,3 +93,31 @@ def test_failed_evaluation_suppresses_rates_and_remains_visible(tmp_path: Path) 
     assert "retained timeout" in html
     assert "<script>unsafe" not in html
     assert "pending / unavailable" in html
+
+
+def test_missing_observation_times_and_resources_are_unavailable(
+    tmp_path: Path,
+) -> None:
+    evidence = load_evidence(DEMO)
+    runs = tuple(
+        r.model_copy(
+            update={
+                "stages": [
+                    s.model_copy(
+                        update={"diagnostics": [], "sampled_peak_rss_bytes": None}
+                    )
+                    for s in r.stages
+                ]
+            }
+        )
+        for r in evidence.runs
+    )
+    report = write_dashboard(
+        replace(evidence, runs=runs),
+        tmp_path / "missing.html",
+        question="Missing diagnostics",
+        docs="metrics.md",
+        sections=[],
+    ).read_text()
+    assert "lag unavailable training s" in report
+    assert "RSS unavailable MiB" in report

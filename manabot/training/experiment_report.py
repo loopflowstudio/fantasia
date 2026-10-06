@@ -300,7 +300,12 @@ def write_dashboard(
                 for row in evidence.metrics(run)
                 if isinstance(row.get("progress/training_seconds"), (int, float))
             ),
-            default=0,
+            default=None,
+        )
+        lag = (
+            _number(max(0, latest_seconds - c.training_seconds))
+            if latest_seconds is not None
+            else "unavailable"
         )
         win = result.win
         rate = (
@@ -311,7 +316,7 @@ def write_dashboard(
         eval_rows.append(
             [
                 evidence.label(run.id),
-                f"{c.updates} updates; {c.learner_transitions} transitions; lag {max(0, latest_seconds - c.training_seconds):.2f} training s",
+                f"{c.updates} updates; {c.learner_transitions} transitions; lag {lag} training s",
                 f"{result.opponent.display_name}; {sum(r.valid for r in result.rows)}/{result.expected_games} games",
                 rate,
             ]
@@ -334,9 +339,16 @@ def write_dashboard(
         '<p class="muted">Intervals resample complete deals for one checkpoint, not training seeds. A one-deal fixture can have a zero-width interval; this is not precision or strength evidence.</p>'
     )
     parts.append(f"<h2>{link('Costs, resources and failures', 'costs')}</h2>")
+    rss = [
+        s.sampled_peak_rss_bytes
+        for r in evidence.runs
+        for s in r.stages
+        if s.sampled_peak_rss_bytes is not None
+    ]
+    peak_mib = max(rss) / 1024**2 if rss else None
     for e in evidence.executions:
         parts.append(
-            f"<p>{e.elapsed_seconds:.2f} elapsed wall s · {e.process_seconds:.2f} additive worker-process s (includes {e.evaluator_seconds:.2f} evaluator s) · host cost {_number(e.host_dollars)} USD<br>Latest host load {escape(str(e.host_load))}; sampled training peak RSS {_number(max((s.sampled_peak_rss_bytes or 0 for r in evidence.runs for s in r.stages), default=0) / 1024**2)} MiB (not a whole-host peak)</p>"
+            f"<p>{e.elapsed_seconds:.2f} elapsed wall s · {e.process_seconds:.2f} additive worker-process s (includes {e.evaluator_seconds:.2f} evaluator s) · host cost {_number(e.host_dollars)} USD<br>Latest host load {escape(str(e.host_load))}; sampled training peak RSS {_number(peak_mib)} MiB (not a whole-host peak)</p>"
         )
     failures = [f"{e.id}: {e.error}" for e in evidence.executions if e.error]
     failures += [
