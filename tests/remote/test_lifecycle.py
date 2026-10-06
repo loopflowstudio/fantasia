@@ -160,3 +160,65 @@ def test_delayed_unobserved_create_stays_unconfirmed(
     assert not lifecycle.confirm_delete(provider, attempt, 1010)
     assert clock.now == 1010
     assert attempt.deleted_time is None
+
+
+@pytest.mark.parametrize(
+    "evidence", ["retained", "observed", "missing", "duplicate", "changed-plan"]
+)
+def test_cleanup_recovers_only_evidenced_cost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, evidence: str
+) -> None:
+    clock = Clock()
+    provider = Provider(clock)
+    monkeypatch.setattr(lifecycle, "time", clock)
+    monkeypatch.setattr(lifecycle, "RunPod", lambda: provider)
+    monkeypatch.setattr(lifecycle.Path, "home", lambda: tmp_path)
+    plan = compile_plan(
+        (ROOT / "experiments/regimes/direct-self-play.json").read_text(),
+        HardwareMix.model_validate_json(
+            (ROOT / "ops/mixes/runpod-small.json").read_text()
+        ),
+        SOURCE,
+        197,
+    )
+    attempt = lifecycle.Attempt(
+        name="owned",
+        purpose="training",
+        intent_time=900,
+        deadline=990,
+        hourly_rate=0.49 if evidence in ("retained", "changed-plan") else None,
+        create_ambiguous=evidence in ("observed", "duplicate"),
+    )
+    if evidence in ("observed", "duplicate"):
+        provider.create({"name": "owned"})
+    if evidence == "duplicate":
+        provider.create({"name": "owned"})
+    unrelated = provider.create({"name": "unrelated"})
+    path = tmp_path / "deployment.json"
+    receipt = lifecycle.Receipt(
+        plan_sha256=lifecycle.digest(plan.model_dump_json().encode()),
+        started=900,
+        deadline=990,
+        attempts=[attempt],
+        phase="cleanup-unconfirmed",
+    )
+    lifecycle.save(path, receipt)
+    if evidence == "changed-plan":
+        plan = plan.model_copy(update={"seed": 198})
+    path.with_name("plan.json").write_text(plan.model_dump_json())
+    recovered = lifecycle.cleanup(path)
+    assert recovered.phase == "deleted"
+    assert not recovered.complete
+    assert [p.id for p in provider.pods] == [unrelated.id]
+    if evidence in ("retained", "observed"):
+        assert recovered.estimated_dollars == pytest.approx(
+            (recovered.attempts[0].deleted_time - 900)
+            * (0.49 + plan.mix.storage_hourly_allowance)
+            / 3600
+        )
+    else:
+        assert recovered.estimated_dollars is None
+    clock.now += 60
+    repeated = lifecycle.cleanup(path)
+    assert repeated.estimated_dollars == recovered.estimated_dollars
+    assert repeated.attempts[0].deleted_time == recovered.attempts[0].deleted_time

@@ -123,3 +123,14 @@ paired-deal arena block through the existing evaluator: both decks/seats,
 terminal completion and exact Command replay. Arena cost is separate from rental
 cost. This proves the workflow, not strength or chapter acceptance. Do not delete
 that directory between retries or infer live acceptance from local fixture tests.
+
+Cleanup recovers estimates from retained or newly observed rental rates, the
+original hash-bound plan's storage allowance and intent-to-confirmed-absence
+elapsed time. Missing rates, unobserved creates, conflicting rental evidence or
+missing/changed plans leave billing unresolved. Repeated cleanup preserves the
+first confirmed deletion time; deletion alone never supplies a zero cost.
+The helper records initial inventory and requires final inventory to be empty
+when it started empty. Otherwise it requires no owned pods; unrelated rentals
+are counted and never deleted. Its arena input uses checkpoint training coordinates.
+Complete mocked deployment and training/transfer failure and timeout coverage
+remain gate work alongside the paid proof.

@@ -5,16 +5,16 @@
 Jack Heart authorized RunPod software and an under-$5 proof, not larger training.
 `manabot remote` replaces parked AWS deployment with reviewable declared-resource
 plans, CUDA self-play wiring, two deadline guards, cleanup and hash-bound artifact
-relocation. Producer TrainingRun/SQLite bytes remain unchanged. Unsupported stages
-and CUDA recovery fail before rental; ETU-108/larger-model work stay independent.
+relocation. Producer bytes remain unchanged. Unsupported stages and CUDA recovery fail
+before rental; ETU-108/larger-model work stay independent.
 
-The authenticated inventory reported zero pods; no rental/training ran here.
-Local checks pass; CUDA execution,
-scoped guardian self-deletion and returned-checkpoint arena play remain the live
-gate after source publication. The [remote contract](../../docs/remote-training.md)
-owns commands, exact limits and the $4.90 all-attempt acceptance helper. An
-unobserved timed-out create remains unsettled despite an empty inventory. No
-strength or chapter acceptance follows from software checks.
+The dated inventory reported zero pods; no implementation rental/training ran.
+CUDA execution, self-deletion and returned-checkpoint play remain unproved.
+The [remote contract](../../docs/remote-training.md) owns the $4.90 all-attempt
+helper. Cleanup recovers costs only from retained/observed evidence; unknown
+billing blocks retries. Initial-empty inventory requires final-empty inventory;
+unrelated pods are never deleted. Lifecycle coverage and live proof remain gate
+work. No strength or chapter acceptance follows.
 
 ## History input (ETU-106, 2026-10-06)
 

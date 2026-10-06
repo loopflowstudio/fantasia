@@ -8,6 +8,7 @@ short-lived pod has demonstrated its startup guardian's scoped self-deletion.
 from contextlib import contextmanager
 import fcntl
 import json
+import math
 from pathlib import Path
 import signal
 import subprocess
@@ -39,6 +40,8 @@ class Attempt(BaseModel):
     guardian_proven: bool = False
     # An interrupted create cannot be proved absent by an immediate empty list.
     create_ambiguous: bool = False
+    # Multiple pods or conflicting rates cannot be priced as one rental.
+    cost_ambiguous: bool = False
 
 
 class Receipt(BaseModel):
@@ -148,8 +151,22 @@ def confirm_delete(provider: RunPod, attempt: Attempt, until: float) -> bool:
                     # Keep watching the entire reserve for delayed provisioning.
                     time.sleep(min(2, max(0, until - time.time())))
                     continue
-                attempt.deleted_time = time.time()
+                if attempt.deleted_time is None:
+                    attempt.deleted_time = time.time()
                 return True
+            if len(pods) != 1:
+                attempt.cost_ambiguous = True
+            for pod in pods:
+                if attempt.pod_id not in (None, pod.id) or (
+                    attempt.hourly_rate is not None and attempt.hourly_rate != pod.rate
+                ):
+                    attempt.cost_ambiguous = True
+            if len(pods) == 1 and not attempt.cost_ambiguous:
+                pod = pods[0]
+                attempt.pod_id = pod.id
+                attempt.hourly_rate = pod.rate
+                attempt.assigned_vcpus = pod.vcpus
+                attempt.assigned_memory_gb = pod.memory_gb
             for pod in pods:
                 provider.delete(pod.id)
             # Once a delayed create is observed, subsequent absence is evidence.
@@ -158,6 +175,37 @@ def confirm_delete(provider: RunPod, attempt: Attempt, until: float) -> bool:
             pass
         time.sleep(min(2, max(0, until - time.time())))
     return False
+
+
+def _estimate_cost(receipt: Receipt, plan: DeploymentPlan) -> float | None:
+    """Price intent-to-confirmed-absence time, never infer missing rental rates."""
+    if digest(plan.model_dump_json().encode()) != receipt.plan_sha256:
+        return None
+    total = 0.0
+    for attempt in receipt.attempts:
+        if (
+            attempt.create_ambiguous
+            or attempt.cost_ambiguous
+            or attempt.hourly_rate is None
+            or attempt.deleted_time is None
+            or not all(
+                math.isfinite(v)
+                for v in (
+                    attempt.hourly_rate,
+                    attempt.intent_time,
+                    attempt.deleted_time,
+                )
+            )
+            or attempt.hourly_rate < 0
+            or attempt.deleted_time < attempt.intent_time
+        ):
+            return None
+        total += (
+            (attempt.deleted_time - attempt.intent_time)
+            * (attempt.hourly_rate + plan.mix.storage_hourly_allowance)
+            / 3600
+        )
+    return total
 
 
 def _create(
@@ -385,15 +433,7 @@ exit 0
                     _save_cleanup(path, receipt)
             receipt.phase = "cleanup-unconfirmed" if unsettled else "deleted"
             receipt.complete = receipt.complete and not unsettled
-            if not unsettled and all(
-                a.hourly_rate is not None for a in receipt.attempts
-            ):
-                receipt.estimated_dollars = sum(
-                    (a.deleted_time - a.intent_time)
-                    * (a.hourly_rate + plan.mix.storage_hourly_allowance)
-                    / 3600
-                    for a in receipt.attempts
-                )
+            receipt.estimated_dollars = _estimate_cost(receipt, plan)
             _save_cleanup(path, receipt)
             signal.signal(signal.SIGINT, previous_int)
             signal.signal(signal.SIGTERM, previous_signal)
@@ -417,5 +457,21 @@ def cleanup(path: Path) -> Receipt:
                     )
                 save(path, receipt)
         receipt.phase = "deleted"
+        # A missing or changed plan must not block deletion or supply a guessed
+        # storage allowance. Leave cost unresolved for the all-attempt gate.
+        receipt.estimated_dollars = None
+        try:
+            plan = DeploymentPlan.model_validate_json(
+                path.with_name("plan.json").read_text()
+            )
+        except (OSError, ValueError):
+            pass
+        else:
+            receipt.estimated_dollars = _estimate_cost(receipt, plan)
         save(path, receipt)
+        if receipt.estimated_dollars is None:
+            print(
+                "BILLING UNRESOLVED; deletion confirmed but cost evidence is incomplete",
+                file=sys.stderr,
+            )
     return receipt

@@ -44,6 +44,15 @@ def main() -> None:
         raise ValueError("acceptance requires raw and EMA self-play exports")
     plan = compile_plan(args.regime.read_text(), mix, current_source(root), 197)
     destination = out / f"attempt-{len(previous):03d}"
+    initial_pods = RunPod().list()
+    if any(p.name.startswith("manabot-") for p in initial_pods):
+        raise ValueError("an owned pod already exists; reconcile before acceptance")
+    # Keep counts even if deployment fails; no account or pod identities enter
+    # the acceptance summary. Unrelated rentals are observed, never removed.
+    atomic_json(
+        out / f"{destination.name}-inventory.json",
+        {"observed_at": time.time(), "initial_inventory_pods": len(initial_pods)},
+    )
     result = deploy(plan, destination, root)
     bundle = Bundle.model_validate_json((destination / "bundle.json").read_text())
     evidence = destination / "evidence"
@@ -60,11 +69,22 @@ def main() -> None:
     path = bundle.resolve(evidence, selected["path"])
     # This is a local evaluation input, not a rewrite of producer evidence.
     local_artifact = {**selected, "path": str(path)}
+    final_stage = run.stages[-1]
+    if final_stage.cumulative_seconds is None:
+        raise ValueError("final checkpoint lacks its elapsed coordinate")
     start = time.perf_counter()
     arena = evaluate_checkpoint(
         run,
         local_artifact,
-        TrainingCoordinates(stage_id=run.stages[-1].id, training_seconds=run.seconds),
+        TrainingCoordinates(
+            stage_id=final_stage.id,
+            updates=run.updates_through(final_stage.id),
+            training_seconds=final_stage.cumulative_seconds,
+            environment_decisions=sum(s.environment_decisions for s in run.stages),
+            learner_transitions=sum(s.learner_transitions for s in run.stages),
+            optimizer_exposures=sum(s.optimizer_exposures for s in run.stages),
+            games=sum(s.games for s in run.stages),
+        ),
         destination / "arena",
         protocol=MonitorProtocol(deal_seeds=(1_910_114_000,), game_seconds=120),
     )
@@ -77,11 +97,16 @@ def main() -> None:
             "rental_estimated_dollars_including_prior_attempts": spent
             + result.estimated_dollars,
             "inventory_pods": len(pods),
+            "initial_inventory_pods": len(initial_pods),
             "owned_pods": sum(p.name.startswith("manabot-") for p in pods),
             "strength_claim": False,
         },
     )
-    if arena.status != "completed" or any(p.name.startswith("manabot-") for p in pods):
+    if (
+        arena.status != "completed"
+        or any(p.name.startswith("manabot-") for p in pods)
+        or (not initial_pods and pods)
+    ):
         raise ValueError("live acceptance incomplete")
     print(
         "Returned CUDA raw/EMA exports verified; four terminal replayed arena games; no owned pods."
