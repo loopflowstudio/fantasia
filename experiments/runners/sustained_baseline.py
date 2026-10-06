@@ -47,6 +47,7 @@ from manabot.verify.store import VerifyStore
 
 SEEDS = (11851, 11852, 11853)
 CALIBRATION_SEEDS = (11841, 11842, 11843)
+CALIBRATION_UPDATES = 32
 MONITORING_DEALS = tuple(range(1_911_183_000, 1_911_183_025))
 ENDPOINT_DEALS = tuple(range(1_911_184_000, 1_911_184_100))
 MAX_ACTIVE_SECONDS = 7 * 86400
@@ -152,23 +153,25 @@ def declaration(regime: TrainingRegime, schedule: ExperimentSchedule) -> Experim
 
 
 def calibration(out: Path) -> ExperimentRun:
-    """Three timing seeds, 64 exact-recipe updates each; at most 1,200 seconds total."""
+    """Three timing seeds, 32 exact-recipe updates each; at most 1,050 seconds total."""
     schedule = ExperimentSchedule(
         seeds=CALIBRATION_SEEDS,
         hardware="etu118-laptop",
-        wall_seconds=1200,
-        process_seconds=1200,
+        wall_seconds=1050,
+        process_seconds=1050,
         active_runtime=True,
         monitoring=MonitoringBudget(
-            seconds=450,
-            attempt_seconds=75,
+            seconds=300,
+            attempt_seconds=50,
             active_runtime=True,
             include_initial=True,
             protocol=MonitorProtocol(deal_seeds=(1_911_182_000,), game_seconds=30),
         ),
         checkpoint_seconds=3600,
     )
-    return run_experiment(declaration(recipe((64,), 240), schedule), hardware(), out)
+    return run_experiment(
+        declaration(recipe((CALIBRATION_UPDATES,), 240), schedule), hardware(), out
+    )
 
 
 def freeze(
@@ -206,7 +209,7 @@ def freeze(
         raise ValueError("complete current-source calibration required")
     expected = (
         declaration(
-            recipe((64,), 240),
+            recipe((CALIBRATION_UPDATES,), 240),
             ExperimentSchedule.model_validate(record.intent["schedule"]),
         )
         .resolve()
@@ -216,7 +219,7 @@ def freeze(
     if tuple(r.seed for r in runs) != CALIBRATION_SEEDS or any(
         r.status != "completed"
         or r.regime != expected
-        or r.updates_through() != 64
+        or r.updates_through() != CALIBRATION_UPDATES
         or sum(s.optimizer_exposures for s in r.stages) == 0
         for r in runs
     ):
@@ -238,7 +241,12 @@ def freeze(
         )
         # Whole-run average includes startup/snapshots; upper-tail windows protect
         # against short calibration optimism. Later phase changes remain a risk.
-        per_update.extend((run.seconds / 64, float(np.quantile(np.diff(costs), 0.95))))
+        per_update.extend(
+            (
+                run.seconds / CALIBRATION_UPDATES,
+                float(np.quantile(np.diff(costs), 0.95)),
+            )
+        )
         assert run.recovery_artifact is not None
         state_path = Path(run.recovery_artifact["path"])
         final_size = state_path.stat().st_size
@@ -253,7 +261,7 @@ def freeze(
         # One MiB per snapshot additionally covers the bounded current-game journal.
         snapshot_sizes.append(final_size + 1024**2)
         snapshot_growth.append(
-            len(gzip.compress(json.dumps(diagnostics).encode())) / 64
+            len(gzip.compress(json.dumps(diagnostics).encode())) / CALIBRATION_UPDATES
         )
         json_sizes.append((Path(attempt.path) / "run.json").stat().st_size)
     conservative = 1.5 * max(per_update)
@@ -267,7 +275,7 @@ def freeze(
     for updates in candidates:
         # Conservative linear growth of diagnostics inside each retained private
         # snapshot plus immutable evaluator job copies; never assume pruning.
-        ratio = updates / 64
+        ratio = updates / CALIBRATION_UPDATES
         checkpoints = math.ceil(updates / 128) + 30
         projected = int(
             3

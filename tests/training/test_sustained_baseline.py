@@ -31,7 +31,9 @@ def calibration_fixture(root: Path) -> ExperimentRun:
         ),
     )
     regime = (
-        baseline.declaration(baseline.recipe((64,), 240), schedule)
+        baseline.declaration(
+            baseline.recipe((baseline.CALIBRATION_UPDATES,), 240), schedule
+        )
         .resolve()
         .cases[0]
         .regime
@@ -61,7 +63,7 @@ def calibration_fixture(root: Path) -> ExperimentRun:
                 seed_streams={},
                 identities={},
                 status="completed",
-                seconds=128,
+                seconds=2 * baseline.CALIBRATION_UPDATES,
                 recovery_artifact={
                     "path": str(state),
                     "sha256": file_sha256(state),
@@ -74,7 +76,7 @@ def calibration_fixture(root: Path) -> ExperimentRun:
                         optimizer_exposures=64,
                         diagnostics=[
                             {"coordinates": {"training_seconds": 2 * update}}
-                            for update in range(1, 65)
+                            for update in range(1, baseline.CALIBRATION_UPDATES + 1)
                         ],
                     )
                 ],
@@ -88,7 +90,7 @@ def calibration_fixture(root: Path) -> ExperimentRun:
                     seed=seed,
                     path=str(out),
                     allowance_seconds=240,
-                    process_seconds=128,
+                    process_seconds=2 * baseline.CALIBRATION_UPDATES,
                     run_id=run.id,
                     status="completed",
                 )

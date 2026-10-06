@@ -222,10 +222,10 @@ uv run --extra notebook python -m experiments.runners.current_baseline_report ex
 The serious candidate keeps the masked-mean scalar architecture and Ataraxos
 move-learning controls above, with current-self collection. Absolute iteration
 learning schedules do not stretch with the selected horizon. Three new independent
-seeds are 11851, 11852 and 11853. Timing-only calibration uses 11841–11843, 64
-updates each, one learner thread, one evaluator and a 1,200-second total cap;
-per-learner attempts are capped at 240 seconds. This cap plus retained experimental
-debugging fits the original 3,600-second exploration ceiling. Calibration scores
+seeds are 11851, 11852 and 11853. Timing-only calibration uses 11841–11843, 32
+updates each, one learner thread, one evaluator and a 1,050-second total cap;
+per-learner attempts are capped at 240 seconds. This cap plus retained debugging and the failed timing attempt below fits the
+original 3,600-second exploration ceiling. Calibration scores
 cannot select a recipe or horizon. Recovery and restart checks precede it.
 
 `experiments.runners.sustained_baseline` constructs an ordinary Experiment and
@@ -306,3 +306,19 @@ suppress acceptance. A later `finalize PLAN RUN --resume` retains existing attem
 and budget; it does not silently replace failed games. The derived conclusion
 reports criteria met/not met, leaving human-challenger and daily-test acceptance
 explicitly separate. No result has yet established either.
+
+### Timing-only calibration amendment (2026-10-06)
+
+The original 64-update probe at `975ee9dd` exceeded its first 240-second learner
+cap before a complete update checkpoint was committed. No subsequent seeds ran.
+The failed attempt remains in `.runs/etu118-calibration-1`: 240.11953008300043
+seconds elapsed and 255.35032220798894 additive learner/evaluator seconds. Charge
+the larger amount once; retain incomplete training state and the initial evaluation.
+No score was used to choose this amendment.
+
+The fresh timing cohort uses the same three calibration seeds and exact recipe,
+32 updates each, unchanged 240-second learner caps and a 1,050-second total cap
+with 300 seconds reserved for six bounded four-game evaluator cohorts. Debugging
+plus failure plus this maximum totals 3523.511931040989 seconds, within 3,600.
+This shortens a throughput probe, not the sustained endpoint or learning criteria.
+No fresh allocation or claim follows from the failed timing attempt.
