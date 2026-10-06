@@ -9,7 +9,7 @@ relocation. Producer TrainingRun/SQLite bytes remain unchanged. Unsupported stag
 and CUDA recovery fail before rental; ETU-108/larger-model work stay independent.
 
 The authenticated inventory reported zero pods; no rental/training ran here.
-Local placement, relocation, failure/cleanup and CPU checks pass; CUDA execution,
+Local checks pass; CUDA execution,
 scoped guardian self-deletion and returned-checkpoint arena play remain the live
 gate after source publication. The [remote contract](../../docs/remote-training.md)
 owns commands, exact limits and the $4.90 all-attempt acceptance helper. An
