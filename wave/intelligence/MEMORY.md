@@ -2,18 +2,18 @@
 
 ## Remote proof (ETU-114, 2026-10-06)
 
-Jack Heart authorized $50 across all attempts and branch pushes for exact-source
-fetching; PR review/readiness and landing remain prohibited. ETU-108/larger models
-stay separate. Attempt 004 completed 700 CUDA updates in 27.73 minutes, returned
-raw/EMA and authoritative records, and exact-replayed four ordinary arena games.
-Empty inventory; CUDA smoke passed.
-Including failures/shakedown: $1.0701 estimated/reported, not invoiced.
-Evidence: [remote contract](../../docs/remote-training.md).
+Jack Heart authorized $50 and exact-source pushes, not PR review or landing.
+Two CUDA runs returned raw/EMA records and replayed arena games;
+rented CUDA checks passed.
+Local-disk setup cut the observed environment/build interval from 486 to 71 s;
+a two-seed worked example reused setup, returned both runs
+and deleted. No public reuse mode; ETU-120 folded, images remain ETU-121.
+Inventory empty; all attempts plus shakedown cost $1.6591 estimated/reported,
+not invoiced. [Remote contract](../../docs/remote-training.md) owns receipts.
 
-Jack Heart then authorized immediate 600-update stages with wider deadlines;
-attempt 005 is running. ETU-119 owns persistence fixes; frozen runs stay unchanged.
-Growing update intervals do not isolate save cost. Wider budgets also change the
-elapsed-budget schedule. No strength or chapter acceptance follows.
+ETU-119's save fix is merged; frozen runs remain unchanged. Budget changes also
+change elapsed schedules. No strength/chapter claim. Preserve ignored evidence;
+ETU-108/larger models stay separate.
 
 ## Experiments/notebooks (ETU-113, 2026-10-06)
 

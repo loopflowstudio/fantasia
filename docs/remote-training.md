@@ -10,7 +10,10 @@ rejected before rental. No distributed-learning or strength claim follows.
 **Live status, 2026-10-06:** the complete 350-update-per-stage proof passed:
 CUDA self-play, raw/EMA return and reload, four terminal exact-replayed arena
 games, and confirmed empty inventory. The separately authorized 600-update-per-stage
-run with wider deadlines also completed: 42.96 minutes of CUDA training. No PR review or landing was performed.
+run with wider deadlines also completed: 42.96 minutes of CUDA training. Local-disk
+setup and the two-experiment reuse example also passed. **Current rental inventory:
+zero pods. Total Task cost: $1.6591 estimated/reported of the $50 allowance.**
+No PR review or landing was performed.
 
 ## Live attempts, 2026-10-06
 
@@ -33,6 +36,7 @@ not a provider invoice. The prior shakedown's $0.29 is reported expenditure.
 | 004 | `62fc7e15` | 350 updates/stage completed; records/checkpoints returned; four replayed arena games; deleted | $0.3661 |
 | 005 | `62fc7e15` | 600 updates/stage completed; four replayed arena games; deleted | $0.5010 |
 | 006 | `88375ad0` | Local-disk setup; 16 CUDA updates; four replayed arena games; deleted | $0.0450 |
+| 007 | `f4189656` | Two experiments on one pod; setup once; both returned and loaded; deleted | $0.0430 |
 
 Attempt 001 retains the original unresolved receipt plus explicit manual
 reconciliation. An authenticated query observed the unique receipt-owned pod at
@@ -203,7 +207,28 @@ rental and the example retains its conservative $4.90 ledger ceiling.
 Use `remote status` to inspect live count/hourly compute and `remote cleanup`
 with the recorded deployment receipt if cleanup is unconfirmed.
 
-Real two-experiment timing and teardown evidence remains to be recorded.
+The example ran on 2026-10-06 as attempt 007 at `f4189656`. Both experiments
+completed 16 CUDA updates / 8,192 optimizer exposures and returned hash-verified
+TrainingRun/SQLite plus raw/EMA/Adam exports. Ordinary policy admission passed.
+The second command performed no dependency sync or native build.
+
+| Seed | Setup including provisioning | TrainingRun time | Command time | Transfer/admission |
+| --- | ---: | ---: | ---: | ---: |
+| 197 | 114.57 s | 30.06 s | 40.64 s | 54.25 s |
+| 198 | **0 s** | 25.58 s | 34.14 s | 55.64 s |
+
+Bootstrap itself was 77 s (uv sync 36 s, native build 22 s). Recorded idle gaps
+were below 1 ms; this back-to-back run is not an idle-throughput benchmark.
+Command time includes CLI startup/bundling; TrainingRun time is a subset, not an
+additional cost. Laptop cleanup confirmed deletion and a fresh provider query
+found **zero pods**. The rental estimate was **$0.0430**. Including every retained
+failure and the earlier $0.29 shakedown, Task expenditure is **$1.6591**; no
+provider invoice has been obtained. No stopped pod or persistent volume remains.
+
+The final remote suite passed 47 checks (one local CUDA-host skip); focused merged
+persistence/continuation checks passed three. The two-run example also has local
+success/second-run-failure cleanup coverage. These are workflow proofs, not
+scientific comparisons. PR review and landing remain outside this execution.
 
 ## Deadlines and cleanup
 
@@ -289,5 +314,5 @@ first confirmed deletion time; deletion alone never supplies a zero cost.
 The helper records initial inventory and requires final inventory to be empty
 when it started empty. Otherwise it requires no owned pods; unrelated rentals
 are counted and never deleted. Its arena input uses checkpoint training coordinates.
-Complete mocked deployment and training/transfer failure and timeout coverage
-remain gate work alongside the paid proof.
+The paid proofs above are complete. A full mocked default-deployment success and
+training/transfer timeout matrix is not claimed by the existing tests.
