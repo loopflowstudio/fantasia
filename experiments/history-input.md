@@ -22,7 +22,9 @@ a public standalone command: a failed campaign stops and retains its evidence.
 The current implementation takes the simpler no-recovery path allowed by the
 protocol; a later recovery requires a separately reviewed remaining-time receipt.
 
-Fixture validation (no optimizer or scientific cohort):
+Combined fixture validation passed 50 checks with one unsupported-configuration
+skip; CI invocation collection passed all 376 tests without module-name collisions.
+Lint, formatting and diff checks passed. No optimizer or scientific cohort ran:
 
 ```bash
 uv run pytest tests/training/test_history_input.py tests/training/test_pooling_filter.py tests/training/test_value_screen.py -q

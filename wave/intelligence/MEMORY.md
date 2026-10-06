@@ -471,14 +471,12 @@ separate claim boundaries, irrespective of a task's completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-The historical planning reconciliation remains in git
-(`59f16e0d` and `60e2f897`). GOAL.md owns current dispositions: ETU-21 is
-abandoned, ETU-31 deferred, ETU-34 merged/completed. Bounded belief demos do not
-establish conditional student flips, live advice, full-game calibration or arena
-strength. The ed2 address/replay exists; the fixture-backed `/api/advice` finish
-line and unavailable historical checkpoints remain subject to
-[the live-advice plan](../../docs/plans/live-belief-advice.md). Check current Tasks
-before creating overlapping work; preserve Rules ownership of history semantics.
+Planning detail remains at `59f16e0d` and `60e2f897`. GOAL.md owns dispositions:
+ETU-21 abandoned, ETU-31 deferred, ETU-34 completed. Bounded demos establish
+neither conditional student flips, live advice, full-game calibration nor strength.
+The ed2 replay exists; fixture-backed advice and unavailable checkpoints remain
+subject to [the live-advice plan](../../docs/plans/live-belief-advice.md).
+Check existing Tasks before overlapping work; Rules owns history semantics.
 
 ## Corrected-world training binding (2026-09-29)
 
