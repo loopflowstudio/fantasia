@@ -8,7 +8,7 @@ short-lived pod has demonstrated its startup guardian's scoped self-deletion.
 from contextlib import contextmanager
 import fcntl
 import json
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import signal
 import subprocess
 import sys
@@ -350,7 +350,7 @@ cd /workspace/repo
 uv run manabot train --regime /workspace/regime.json --seed {plan.seed} --out /workspace/evidence/run > /workspace/evidence/training.log 2>&1
 status=$?
 printf '%s\\n' "$status" > /workspace/evidence/training-exit.txt
-uv run python -m manabot.remote.pack /workspace/evidence
+uv run python -m manabot.remote.bundle /workspace/evidence
 exit 0
 """)
             receipt.phase = "transfer"
@@ -361,20 +361,7 @@ exit 0
             destination = out / "evidence"
             destination.mkdir()
             for item in bundle.files:
-                # Validate names before passing a path to scp or creating files.
-
-                relative = PurePosixPath(item.relative_path)
-                if (
-                    relative.is_absolute()
-                    or ".." in relative.parts
-                    or any(
-                        c
-                        not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/"
-                        for c in item.relative_path
-                    )
-                ):
-                    raise ValueError("unsafe returned artifact path")
-                target = destination / item.relative_path
+                target = item.destination(destination)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 transport.get(f"/workspace/evidence/{item.relative_path}", target)
             policies = verify_training_bundle(destination, bundle)

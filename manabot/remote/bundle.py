@@ -7,8 +7,9 @@ metadata, not a rewritten TrainingRun or a portable recovery checkpoint.
 import json
 from pathlib import Path, PurePosixPath
 import sqlite3
+import sys
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from manabot.sim.flat_mc import load_checkpoint_agent
 from manabot.training.models import TrainingRun
@@ -22,25 +23,20 @@ class BundleFile(Frozen):
     size: int = Field(ge=0)
     sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
-
-class Bundle(Frozen):
-    files: tuple[BundleFile, ...]
-
-    def verify(self, root: Path) -> None:
-        relative = [item.relative_path for item in self.files]
-        producer = [item.producer_path for item in self.files]
-        if len(relative) != len(set(relative)) or len(producer) != len(set(producer)):
-            raise ValueError("duplicate bundle paths")
-        for item in self.files:
-            self.resolve(root, item.producer_path)
-
-    def resolve(self, root: Path, producer_path: str) -> Path:
-        matches = [item for item in self.files if item.producer_path == producer_path]
-        if len(matches) != 1:
-            raise ValueError("producer artifact missing or ambiguous")
-        item = matches[0]
-        relative = PurePosixPath(item.relative_path)
-        if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+    def destination(self, root: Path) -> Path:
+        """Validate before download as well as before reading returned bytes."""
+        relative = PurePosixPath(self.relative_path)
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or not relative.parts
+            or relative.as_posix() != self.relative_path
+            or any(
+                c
+                not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/"
+                for c in self.relative_path
+            )
+        ):
             raise ValueError("invalid bundle path")
         path = root
         if path.is_symlink():
@@ -49,11 +45,37 @@ class Bundle(Frozen):
             path = path / part
             if path.is_symlink():
                 raise ValueError("bundle contains a symlink")
-        if not path.is_file() or path.stat().st_size != item.size:
+        return path
+
+    def verify(self, root: Path) -> Path:
+        path = self.destination(root)
+        if not path.is_file() or path.stat().st_size != self.size:
             raise ValueError("bundle file missing or size differs")
-        if digest(path.read_bytes()) != item.sha256:
+        if digest(path.read_bytes()) != self.sha256:
             raise ValueError("bundle digest differs")
         return path
+
+
+class Bundle(Frozen):
+    files: tuple[BundleFile, ...]
+
+    @model_validator(mode="after")
+    def unique_paths(self) -> "Bundle":
+        relative = [item.relative_path for item in self.files]
+        producer = [item.producer_path for item in self.files]
+        if len(relative) != len(set(relative)) or len(producer) != len(set(producer)):
+            raise ValueError("duplicate bundle paths")
+        return self
+
+    def verify(self, root: Path) -> None:
+        for item in self.files:
+            item.verify(root)
+
+    def resolve(self, root: Path, producer_path: str) -> Path:
+        for item in self.files:
+            if item.producer_path == producer_path:
+                return item.verify(root)
+        raise ValueError("producer artifact missing")
 
 
 def make_bundle(root: Path) -> Bundle:
@@ -77,10 +99,10 @@ def make_bundle(root: Path) -> Bundle:
 def verify_training_bundle(root: Path, bundle: Bundle) -> list[Path]:
     """Check all declared outputs; admit raw/EMA policies through the ordinary loader."""
     bundle.verify(root)
-    run = TrainingRun.model_validate(json.loads((root / "run/run.json").read_text()))
     required = {"training.sqlite", "run/run.json"}
     if not required.issubset({item.relative_path for item in bundle.files}):
         raise ValueError("bundle lacks authoritative run records")
+    run = TrainingRun.model_validate(json.loads((root / "run/run.json").read_text()))
     with sqlite3.connect(
         f"{(root / 'training.sqlite').absolute().as_uri()}?mode=ro", uri=True
     ) as database:
@@ -106,3 +128,15 @@ def verify_training_bundle(root: Path, bundle: Bundle) -> list[Path]:
     if not policies:
         raise ValueError("returned run has no policy exports")
     return policies
+
+
+def main() -> None:
+    """Write the producer manifest after the training CLI closes its evidence."""
+    root = Path(sys.argv[1]).resolve()
+    (root.parent / "bundle.json").write_text(
+        make_bundle(root).model_dump_json(indent=2)
+    )
+
+
+if __name__ == "__main__":
+    main()

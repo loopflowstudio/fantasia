@@ -42,3 +42,29 @@ def test_traversal_and_symlink_rejected(tmp_path: Path) -> None:
         )
         with pytest.raises(ValueError):
             bundle.verify(root)
+
+
+@pytest.mark.parametrize(
+    "relative", ["", ".", "dir/../file", "dir//file", "./file", "a b", "a\nb"]
+)
+def test_destination_rejects_unsafe_or_aliased_paths(
+    tmp_path: Path, relative: str
+) -> None:
+    item = BundleFile(
+        producer_path="/original", relative_path=relative, size=0, sha256=digest(b"")
+    )
+    with pytest.raises(ValueError, match="invalid bundle path"):
+        item.destination(tmp_path)
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("field", ["relative_path", "producer_path"])
+def test_duplicate_manifest_paths_fail_before_download(field: str) -> None:
+    first = BundleFile(
+        producer_path="/first", relative_path="first", size=0, sha256=digest(b"")
+    )
+    second = BundleFile(
+        producer_path="/second", relative_path="second", size=0, sha256=digest(b"")
+    ).model_copy(update={field: getattr(first, field)})
+    with pytest.raises(ValueError, match="duplicate bundle paths"):
+        Bundle(files=(first, second))
