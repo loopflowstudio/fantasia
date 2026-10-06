@@ -19,8 +19,8 @@ architecture/recipe identities are portable.
 `with_capacity` supports arbitrary positive depth and optional expansion;
 omission preserves the baseline and explicit None resets it. The existing
 ladder adds 384/8/1536 through `include_ataraxos=True`. ETU-103's three default
-cases and scientific cohort are unchanged. ETU-107's live Task file still says
-proposal awaiting review; no decoder, decision, or policy-scoring work changed.
+cases and scientific cohort are unchanged. ETU-107's implementation-time Task snapshot was a proposal awaiting review;
+this work changes no decoder, decision, or policy-scoring contract.
 ETU-114 retains device/stage execution ownership.
 
 The calibration CLI adds `--scale`: isolated child probes, ordinary CPU
@@ -33,7 +33,7 @@ No new training authority or device backend was introduced.
 
 The [durable report](../docs/evidence/ataraxos-scale-2026-10-06.md) and adjacent
 JSON own exact measurements, recipes, hashes and evidence limits. Full outputs
-remain under `.runs/etu115-scale`; preserve that directory. The large semantic
+remain retained under `.runs/etu115-scale`. The large semantic
 scalar-token model has 16,815,746 parameters and 203 attention slots. All four
 rungs trained/exported. All eight CPU/MPS batch-4 float32 probes completed.
 
@@ -50,22 +50,21 @@ Two streams replace the planned one because ordinary executor admission requires
 two; the fixture still has one update and eight learner transitions. Static
 parameter/gradient/Adam estimates are distinct from sampled RSS/MPS allocator
 readings. No activation-peak or large-batch fit guarantee. Default attention is
-202 visible slots plus one value token; actions/events are not attention rows.
+202 visible slots plus one value token, correcting the Task estimate of
+270–300; actions/events are not attention rows.
 Naive padding removal changes historical pooling and focus/ownership indexes.
 No packing or observation capacity/world change was implemented.
 
-## Delete — do not maintain
+## Reconciled status — 2026-10-06
 
-Removed the Literal[1, 2] depth restriction and obsolete depth-3 rejection tests.
-Preserved old presets/cases, checkpoint loader, TrainingRun, architecture receipts
-and all world/setup admission. Removed repeated capacity Case construction and
-unused Window.rate. Case IDs and labels now derive from their AgentSpec values;
-explicit field selection preserves recipe overrides. Probe windows use direct
-fields, with one optimizer-exposure total for verification and output. No remaining
-deletion targets or parallel configuration/persistence path.
+Implementation and bounded measurement acceptance have retained evidence. The
+large rung is opt-in to preserve ETU-103's default cohort and recipe identities.
+The four original verifier failures remain failures; recovery separately proves
+reload without replacing their records. MPS evidence covers model execution only;
+ETU-114 still owns training-stage device support. No new product decision is needed.
 
-Implementation is complete. Gate owns the broader affected-suite verification
-and review of retained evidence; do not rerun timings just to reproduce them.
-Publication and landing remain later Flow operations.
+Gate owns broader affected-suite verification and retained-evidence review.
+Publication and landing remain later Flow operations. Chapter strength and
+human-play outcomes remain outside this bounded software task.
 
-Check: `uv run pytest -q tests/model/test_capacity_compatibility.py tests/training/test_scale_probe.py tests/training/test_architecture_recipes.py` — 11 passed; focused Ruff checks passed. Gate owns broader verification. Timings and frozen evidence were not rerun or edited.
+Check: prior `uv run pytest -q tests/model/test_capacity_compatibility.py tests/training/test_scale_probe.py tests/training/test_architecture_recipes.py` — 11 passed; reconciliation inspected code and retained evidence without rerunning timings; broader verification remains with gate.

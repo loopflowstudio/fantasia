@@ -1102,17 +1102,16 @@ remained untouched.
 
 ## Larger ordinary models (ETU-115, 2026-10-06)
 
-Jack Heart authorized larger recipes and bounded laptop measurements. AgentSpec
-owns positive depth/expansion; omitted defaults preserve identities. The opt-in
-384/8/1536 rung leaves ETU-103's cohort unchanged. 
-The model has 16,815,746 parameters and 203 slots.
-All four sizes trained/exported. Train/eval mode mismatch caused verification
-failures; read-only recovery proved exact reload and changed weights without
-retraining. Eight CPU/MPS probes completed within budget. Changing host load prevents
-scaling claims; diagnostic Adam timings are not RL throughput or strength. Naive padding removal changes pooling/focus;
-no packing, ABI, defaults or scientific allocation changed. Preserve
-`.runs/etu115-scale`; the [report](../../docs/evidence/ataraxos-scale-2026-10-06.md)
-owns identities, failures, memory and limits. No chapter acceptance follows.
+Jack Heart authorized larger recipes and laptop probes. AgentSpec depth/expansion
+preserves default identities. Opt-in 384/8/1536 leaves ETU-103 unchanged:
+16,815,746 parameters, 203 slots rather than the estimated 270–300.
+Actions/events are not attention rows. Four sizes trained/exported; mode-mismatched verification failed. Read-only
+recovery proved changed weights and exact reload. Eight CPU/MPS probes completed.
+Contention prevents scaling claims; diagnostic Adam rates are not RL throughput. MPS model execution does not establish stage-device support (ETU-114).
+Padding removal changes pooling/focus; ABI/defaults remain unchanged.
+Preserve `.runs/etu115-scale`; the [report](../../docs/evidence/ataraxos-scale-2026-10-06.md)
+owns identities, failures, memory and limits. No scientific allocation, strength
+or chapter acceptance follows.
 
 ## Declarative experiment authoring (ETU-109, 2026-10-05)
 
