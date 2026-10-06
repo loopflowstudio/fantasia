@@ -170,9 +170,10 @@ owners; trackers are optional. Frozen live campaigns are not retrofitted.
 ## S3 model and artifact storage
 
 Jack Heart selected `s3://etudefantasia/manabot/` for retained bytes and
-`loopflow-studio/etude` for W&B metrics on 2026-10-06. The bucket's existence and
-live permissions still require verification after AWS authentication. No bucket
-creation, lifecycle deletion, or public access is performed by these commands.
+`loopflow-studio/etude` for W&B metrics on 2026-10-06. The bucket was created in
+`us-west-2` with bucket-owner-enforced ownership, all public-access blocks,
+AES256 default encryption and versioning enabled. No bucket creation, lifecycle
+deletion, or public access is performed by the publication commands below.
 
 Use the standard AWS credential chain (`AWS_PROFILE` or `--profile`); never put
 keys in recipes or manifests. Publish a completed or stopped TrainingRun:
@@ -222,3 +223,11 @@ chain. Downloads install atomically, and cache hits are rehashed before loading.
 Corruption fails closed. S3 locations do not relax world, architecture, setup or
 belief admission. Only load manifests/checkpoints from trusted producers; digest
 integrity does not make arbitrary Torch serialization safe.
+
+The first live backfill archived the six retained history runs: 36 model/optimizer
+artifacts plus six exact producer exports and six manifests, totaling 48 objects
+and 93,001,518 bytes. All uploads passed full readback; every reference includes
+an S3 version ID. One separately downloaded trained checkpoint passed the ordinary
+loader without training or games. All six W&B training runs expose matching S3
+metadata; scientific scores remain in the separate scientific report. Local
+receipts are under `.runs/etu117-demo/s3/` in the reporting checkout.

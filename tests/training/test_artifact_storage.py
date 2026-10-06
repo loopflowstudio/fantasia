@@ -39,6 +39,7 @@ def _respond(client: MagicMock, data: bytes) -> None:
     client.get_object.side_effect = lambda **kwargs: {
         "Body": io.BytesIO(data),
         "ContentLength": len(data),
+        "VersionId": "version-1",
     }
 
 
@@ -100,12 +101,11 @@ def test_existing_remote_object_must_match(
         "PutObject",
     )
     _respond(client, data)
-    assert (
-        store.publish(
-            source, "s3://bucket/prefix", sha256=reference.sha256, size=reference.bytes
-        ).sha256
-        == reference.sha256
+    retried = store.publish(
+        source, "s3://bucket/prefix", sha256=reference.sha256, size=reference.bytes
     )
+    assert retried.sha256 == reference.sha256
+    assert retried.version_id == "version-1"
     _respond(client, b"tampered")
     with pytest.raises(ValueError, match="differ"):
         store.publish(
@@ -183,7 +183,7 @@ def test_run_publication_preserves_export_and_all_roles(
 
     client.put_object.side_effect = put
     client.get_object.side_effect = get
-    output = tmp_path / "manifest.json"
+    output = tmp_path / "nested" / "manifest.json"
     manifest = publish_run(source, "s3://bucket/prefix", output, store)
     assert len(manifest.artifacts) == 2
     assert (

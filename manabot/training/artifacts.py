@@ -69,6 +69,7 @@ def publish_run(
     references = retained_artifacts(run)
     for reference in references.values():
         verify_file(Path(reference.path), reference.sha256, reference.bytes)
+    output.parent.mkdir(parents=True, exist_ok=True)
     source_sha = hashlib.sha256(payload).hexdigest()
     if output.exists():
         previous = ArtifactManifest.model_validate_json(output.read_text())
