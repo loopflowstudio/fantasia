@@ -54,16 +54,18 @@ readings. No activation-peak or large-batch fit guarantee. Default attention is
 Naive padding removal changes historical pooling and focus/ownership indexes.
 No packing or observation capacity/world change was implemented.
 
-## Deletions and remaining work
+## Delete — do not maintain
 
 Removed the Literal[1, 2] depth restriction and obsolete depth-3 rejection tests.
 Preserved old presets/cases, checkpoint loader, TrainingRun, architecture receipts
-and all world/setup admission. No parallel configuration or persistence path.
+and all world/setup admission. Removed repeated capacity Case construction and
+unused Window.rate. Case IDs and labels now derive from their AgentSpec values;
+explicit field selection preserves recipe overrides. Probe windows use direct
+fields, with one optimizer-exposure total for verification and output. No remaining
+deletion targets or parallel configuration/persistence path.
 
 Implementation is complete. Gate owns the broader affected-suite verification
 and review of retained evidence; do not rerun timings just to reproduce them.
 Publication and landing remain later Flow operations.
 
-Check: focused model compatibility, scale deadline/recipe and architecture checks
-passed; exact suite totals are recorded in the final Session response. Native
-extension rebuilt from pinned root environment; no Rust source changed.
+Check: `uv run pytest -q tests/model/test_capacity_compatibility.py tests/training/test_scale_probe.py tests/training/test_architecture_recipes.py` — 11 passed; focused Ruff checks passed. Gate owns broader verification. Timings and frozen evidence were not rerun or edited.

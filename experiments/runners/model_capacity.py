@@ -10,63 +10,30 @@ from manabot.training.models import TrainingRegime
 
 
 def experiment(base: TrainingRegime, *, include_ataraxos: bool = False) -> Experiment:
+    models = [
+        AgentSpec(hidden_dim=64, attention_layers=1, num_attention_heads=4),
+        AgentSpec(hidden_dim=64, attention_layers=2, num_attention_heads=4),
+        AgentSpec(hidden_dim=128, attention_layers=2, num_attention_heads=4),
+    ]
+    if include_ataraxos:
+        models.append(
+            AgentSpec(
+                hidden_dim=384,
+                attention_layers=8,
+                num_attention_heads=4,
+                attention_feedforward_dim=1536,
+            )
+        )
     return Experiment(
         name="",
         baseline=Baseline.capture("capacity-control-v1", base),
-        cases=(
+        cases=tuple(
             Case(
-                "w64-d1",
-                (
-                    Model(
-                        AgentSpec(
-                            hidden_dim=64, attention_layers=1, num_attention_heads=4
-                        )
-                    ),
-                ),
-                "64 × 1",
-            ),
-            Case(
-                "w64-d2",
-                (
-                    Model(
-                        AgentSpec(
-                            hidden_dim=64, attention_layers=2, num_attention_heads=4
-                        )
-                    ),
-                ),
-                "64 × 2",
-            ),
-            Case(
-                "w128-d2",
-                (
-                    Model(
-                        AgentSpec(
-                            hidden_dim=128, attention_layers=2, num_attention_heads=4
-                        )
-                    ),
-                ),
-                "128 × 2",
-            ),
-        )
-        + (
-            (
-                Case(
-                    "w384-d8",
-                    (
-                        Model(
-                            AgentSpec(
-                                hidden_dim=384,
-                                attention_layers=8,
-                                num_attention_heads=4,
-                                attention_feedforward_dim=1536,
-                            )
-                        ),
-                    ),
-                    "384 × 8",
-                ),
+                f"w{model.hidden_dim}-d{model.attention_layers}",
+                (Model(model),),
+                f"{model.hidden_dim} × {model.attention_layers}",
             )
-            if include_ataraxos
-            else ()
+            for model in models
         ),
     )
 

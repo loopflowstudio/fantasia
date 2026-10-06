@@ -41,10 +41,6 @@ class Window(BaseModel):
     samples: int
     seconds: float
 
-    @property
-    def rate(self) -> float:
-        return self.samples / self.seconds
-
 
 class Probe(BaseModel):
     architecture: ArchitectureReceipt
@@ -122,7 +118,7 @@ def _probe(recipe: TrainingRegime, obs: dict[str, torch.Tensor], device: str) ->
         agent = Agent(space, recipe.agent).to(device)
         _sync(device)
         construction = time.perf_counter() - tick
-        agent.eval() if phase == "forward" else agent.train()
+        agent.train(phase == "update")
         slots: list[int] = []
 
         def capture(module: torch.nn.Module, args: tuple[torch.Tensor, ...]) -> None:
@@ -180,6 +176,7 @@ def _probe(recipe: TrainingRegime, obs: dict[str, torch.Tensor], device: str) ->
         hook.remove()
         for _ in range(2):
             step()
+        windows = report.forward if phase == "forward" else report.update
         for _ in range(3):
             _sync(device)
             tick = time.perf_counter()
@@ -190,7 +187,7 @@ def _probe(recipe: TrainingRegime, obs: dict[str, torch.Tensor], device: str) ->
                 count += 1
                 if time.perf_counter() - tick >= 2:
                     break
-            getattr(report, phase).append(
+            windows.append(
                 Window(samples=count * 4, seconds=time.perf_counter() - tick)
             )
             report.sampled_rss_bytes = max(
@@ -212,7 +209,8 @@ def _fixture(recipe: TrainingRegime, obs: dict[str, torch.Tensor], out: Path) ->
 def verify_fixture(run: TrainingRun, obs: dict[str, torch.Tensor], out: Path) -> None:
     """Verify retained exports without training again; keep the failed attempt."""
     assert run.status == "completed"
-    assert sum(s.optimizer_exposures for s in run.stages) > 0
+    exposures = sum(stage.optimizer_exposures for stage in run.stages)
+    assert exposures > 0
     checkpoint = Path(run.stages[-1].artifacts["raw"]["path"])
     agent, space = load_checkpoint_agent(str(checkpoint))
     torch.manual_seed(run.seed_streams["initialization"])
@@ -232,7 +230,7 @@ def verify_fixture(run: TrainingRun, obs: dict[str, torch.Tensor], out: Path) ->
             "run_id": run.id,
             "checkpoint": str(checkpoint),
             "sha256": file_sha256(checkpoint),
-            "optimizer_exposures": sum(s.optimizer_exposures for s in run.stages),
+            "optimizer_exposures": exposures,
             "architecture": architecture_receipt(agent).model_dump(mode="json"),
             "weight_change": True,
             "reload_equal": True,
