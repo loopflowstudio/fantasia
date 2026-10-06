@@ -13,6 +13,7 @@ import numpy as np
 from manabot.env import Env, Match, ObservationSpace, Reward
 from manabot.infra.hypers import RewardHypers
 from manabot.verify.competency import _find_cast_action, _pass_index
+import managym
 
 
 def target_root(match: Match, space: ObservationSpace, seed: int, seat: int) -> Env:
@@ -22,8 +23,25 @@ def target_root(match: Match, space: ObservationSpace, seed: int, seat: int) -> 
     seeded library/visible land count vary; absolute target index is not a label.
     Preparation is outside the learner trajectory, like tactical evaluation roots.
     """
-    env = Env(match if seat == 0 else match.swapped(), space, Reward(RewardHypers()), seed=seed)
+    env = Env(
+        match if seat == 0 else match.swapped(),
+        space,
+        Reward(RewardHypers()),
+        seed=seed,
+    )
     env.reset()
+    # skip_trivial can surface cleanup Discard before the first priority offer.
+    # Preserve the sampled deal; execute its ordinary choice instead of reseeding.
+    for _ in range(100):
+        if int(env.last_raw_obs.action_space.action_space_type) == int(
+            managym.ActionSpaceEnum.PRIORITY
+        ):
+            break
+        _, _, ended, truncated, _ = env.step(0)
+        if ended or truncated:
+            raise RuntimeError(f"root preparation ended before priority: {seed}")
+    else:
+        raise RuntimeError(f"root preparation never reached priority: {seed}")
     for player in (0, 1):
         env._engine.scenario_clear_hand(player)
         env._engine.scenario_set_life(player, 1 + seed % 3)

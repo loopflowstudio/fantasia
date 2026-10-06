@@ -12,7 +12,6 @@ from pathlib import Path
 import signal
 import time
 
-import numpy as np
 from pydantic import JsonValue
 import torch
 
@@ -23,14 +22,24 @@ from manabot.env.target_practice import resolve_target, target_root
 from manabot.sim.flat_mc import AgentMatchupPlayer, load_checkpoint_agent
 from manabot.training.execution import atomic_json, execute_regime
 from manabot.training.experiments import Baseline, Experiment
-from manabot.training.models import TrainingRegime, TrainSelfPlay
+from manabot.training.models import (
+    TrainingCoordinates,
+    TrainingRegime,
+    TrainingRun,
+    TrainSelfPlay,
+)
+from manabot.training.monitor_evaluation import (
+    MonitorProtocol,
+    evaluate_checkpoint,
+    stage_checkpoint,
+)
 from manabot.verify.store import VerifyStore
 
 SEEDS = (11801, 11802, 11803)
 DEALS = tuple(range(1_911_180_000, 1_911_180_064))
 
 
-def declaration(*, frozen: bool = False) -> Experiment:
+def declaration(*, frozen: bool = False, full_game: bool = False) -> Experiment:
     base = smoke_baseline()
     base.id = "lethal-target-frozen" if frozen else "lethal-target-learning"
     base.agent.value_aggregation = "masked_mean"
@@ -42,6 +51,14 @@ def declaration(*, frozen: bool = False) -> Experiment:
     stage.updates = 100
     stage.transitions = 16
     stage.execution.wall_seconds = 760
+    if full_game:
+        base.id = "full-game-frozen" if frozen else "full-game-learning"
+        base.wall_seconds = 600
+        stage.root = None
+        stage.behavior = "random"
+        stage.updates = 128
+        stage.transitions = 64
+        stage.execution.wall_seconds = 580
     base.stages = [stage]
     base = TrainingRegime.model_validate(base.model_dump())
     return Experiment(name=base.id, baseline=Baseline.capture(base.id, base))
@@ -98,26 +115,101 @@ def _expire(signum: int, frame: object) -> None:
     raise TimeoutError("ETU-118 declared attempt allowance exhausted")
 
 
-def run(out: Path) -> None:
+def score(
+    run: TrainingRun, kind: str, out: Path, full_game: bool
+) -> list[dict[str, JsonValue]]:
+    artifact = run.stages[0].artifacts[kind]
+    if not full_game:
+        return evaluate(Path(artifact["path"]), run.regime)
+    final = stage_checkpoint(run, run.stages[0].id)
+    assert final is not None
+    coordinates = (
+        final.coordinates
+        if kind == "raw"
+        else TrainingCoordinates(
+            stage_id="initialization", updates=0, training_seconds=0
+        )
+    )
+    measured = evaluate_checkpoint(
+        run,
+        artifact,
+        coordinates,
+        out,
+        protocol=MonitorProtocol(
+            deal_seeds=tuple(range(1_911_181_000, 1_911_181_012)), game_seconds=30
+        ),
+    )
+    if measured.status != "completed":
+        raise RuntimeError(f"full-game evaluation incomplete: {measured.error}")
+    return [
+        {
+            "deal": row.deal_seed,
+            "leg": row.leg,
+            "win": row.score_a,
+            "replay": row.replay_passed,
+        }
+        for row in measured.rows
+    ]
+
+
+def run(out: Path, prior: Path | None = None, *, full_game: bool = False) -> None:
     out.mkdir(parents=True, exist_ok=False)
     torch.set_num_threads(1)
     started = time.monotonic()
+    prior_seconds = 0.0
+    if prior is not None:
+        previous = json.loads(prior.read_text())
+        if previous["status"] != ("completed" if full_game else "failed"):
+            raise ValueError("explicit recovery requires retained failure")
+        prior_seconds = float(previous["seconds"]) + float(
+            previous.get("prior_seconds", 0)
+        )
+        if full_game:
+            for attempt in previous["attempts"]:
+                if not attempt["frozen"]:
+                    initial = sum(row["win"] for row in attempt["initial"]) / len(
+                        attempt["initial"]
+                    )
+                    trained = sum(row["win"] for row in attempt["rows"]) / len(
+                        attempt["rows"]
+                    )
+                    if trained < 0.85 or trained - initial < 0.25:
+                        raise ValueError(
+                            "positive control failed; full-game graduation forbidden"
+                        )
+    elif full_game:
+        raise ValueError(
+            "full-game graduation requires completed positive-control evidence"
+        )
     result: dict[str, JsonValue] = {"status": "running", "attempts": [], "seconds": 0.0}
     attempts: list[dict[str, JsonValue]] = []
     result["attempts"] = attempts
+    result["prior_seconds"] = prior_seconds
+    result["prior_sha256"] = file_sha256(prior) if prior is not None else None
+    result["full_game"] = full_game
     signal.signal(signal.SIGALRM, _expire)
     try:
         with VerifyStore(out / "verify.sqlite") as store:
-            for seed in SEEDS:
+            for seed in (11821, 11822, 11823) if full_game else SEEDS:
                 initial_state: dict[str, torch.Tensor] | None = None
                 initial_rows: list[dict[str, JsonValue]] | None = None
                 for frozen in (False, True):
-                    remaining = 3600 - (time.monotonic() - started)
+                    allowance = (
+                        min(2700, 3600 - prior_seconds)
+                        if full_game
+                        else 3600 - prior_seconds
+                    )
+                    remaining = allowance - (time.monotonic() - started)
                     if remaining <= 0:
                         raise TimeoutError("ETU-118 aggregate allowance exhausted")
                     signal.setitimer(signal.ITIMER_REAL, min(900, remaining))
                     tick = time.monotonic()
-                    regime = declaration(frozen=frozen).resolve().cases[0].regime
+                    regime = (
+                        declaration(frozen=frozen, full_game=full_game)
+                        .resolve()
+                        .cases[0]
+                        .regime
+                    )
                     attempt: dict[str, JsonValue] = {
                         "seed": seed,
                         "frozen": frozen,
@@ -142,7 +234,12 @@ def run(out: Path) -> None:
                         final_agent, _ = load_checkpoint_agent(str(final))
                         if initial_state is None:
                             initial_state = deepcopy(init_agent.state_dict())
-                            initial_rows = evaluate(initial, regime)
+                            initial_rows = score(
+                                training,
+                                "initial_raw",
+                                out / f"{seed}-initial-eval",
+                                full_game,
+                            )
                             attempt["initial"] = initial_rows
                         if any(
                             not torch.equal(value, initial_state[key])
@@ -157,7 +254,12 @@ def run(out: Path) -> None:
                             raise ValueError(
                                 "unexpected frozen/learned weight identity"
                             )
-                        scored = evaluate(final, regime)
+                        scored = score(
+                            training,
+                            "raw",
+                            out / f"{seed}-{'frozen' if frozen else 'trained'}-eval",
+                            full_game,
+                        )
                         if frozen and scored != initial_rows:
                             raise ValueError(
                                 "frozen control differs from initialization"
@@ -191,24 +293,30 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--run", type=Path)
+    parser.add_argument("--prior-result", type=Path)
+    parser.add_argument("--full-game", action="store_true")
     args = parser.parse_args()
     if args.plan:
         atomic_json(
             args.plan,
             {
-                "seeds": list(SEEDS),
-                "held_out_deals": list(DEALS),
+                "seeds": [11821, 11822, 11823] if args.full_game else list(SEEDS),
+                "held_out_deals": list(range(1_911_181_000, 1_911_181_012))
+                if args.full_game
+                else list(DEALS),
                 "attempt_seconds": 900,
-                "aggregate_seconds": 3600,
-                "minimum_win_rate_each_seed": 0.85,
-                "minimum_gain_each_seed": 0.25,
+                "aggregate_seconds": 2700 if args.full_game else 3600,
+                "minimum_win_rate_each_seed": None if args.full_game else 0.85,
+                "minimum_gain_each_seed": 0.0 if args.full_game else 0.25,
+                "minimum_mean_gain": 0.10 if args.full_game else 0.25,
                 "recipes": [
-                    declaration(frozen=f).resolve().receipt() for f in (False, True)
+                    declaration(frozen=f, full_game=args.full_game).resolve().receipt()
+                    for f in (False, True)
                 ],
             },
         )
     elif args.run:
-        run(args.run)
+        run(args.run, args.prior_result, full_game=args.full_game)
     else:
         parser.error("select --plan or --run")
 

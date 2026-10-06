@@ -14,7 +14,7 @@ from manabot.sim.net_opponent import SeatRoutedCollector, transition_gae
 def test_targets_reverse_with_seat_and_resolve_in_engine() -> None:
     regime = declaration().resolve().cases[0].regime
     space = ObservationSpace(regime.observation)
-    for seed in (118, 119):
+    for seed in (118, 119, 22243):
         for seat in (0, 1):
             for action in (0, 1):
                 env = target_root(Match(regime.match), space, seed, seat)
@@ -26,15 +26,26 @@ def test_real_collector_terminal_rewards_and_advantages() -> None:
     regime = declaration().resolve().cases[0].regime
     space = ObservationSpace(regime.observation)
     agent = Agent(space, regime.agent)
-    collector = SeatRoutedCollector(space, Match(regime.match), Reward(RewardHypers()),
-        num_envs=4, seed=118, root="lethal-target-v1")
+    collector = SeatRoutedCollector(
+        space,
+        Match(regime.match),
+        Reward(RewardHypers()),
+        num_envs=4,
+        seed=118,
+        root="lethal-target-v1",
+    )
     batch = collector.collect(agent, 4)
     assert batch.dones.all()
     expected = np.where(1 - batch.actions == np.arange(4) % 2, 1, -1)
     np.testing.assert_array_equal(batch.rewards, expected)
-    advantages, returns = transition_gae(torch.tensor(batch.rewards),
-        torch.zeros_like(torch.tensor(batch.values)), torch.tensor(batch.dones),
-        torch.full((4,), 100.0), 1.0, 0.5)
+    advantages, returns = transition_gae(
+        torch.tensor(batch.rewards),
+        torch.zeros_like(torch.tensor(batch.values)),
+        torch.tensor(batch.dones),
+        torch.full((4,), 100.0),
+        1.0,
+        0.5,
+    )
     torch.testing.assert_close(advantages, torch.tensor(batch.rewards))
     torch.testing.assert_close(returns, torch.tensor(batch.rewards))
     assert np.all(batch.probabilities[:, :, 2:] == 0)

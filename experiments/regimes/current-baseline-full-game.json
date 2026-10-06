@@ -1,83 +1,31 @@
 {
-  "aggregate_seconds": 3600,
+  "aggregate_seconds": 2700,
   "attempt_seconds": 900,
   "held_out_deals": [
-    1911180000,
-    1911180001,
-    1911180002,
-    1911180003,
-    1911180004,
-    1911180005,
-    1911180006,
-    1911180007,
-    1911180008,
-    1911180009,
-    1911180010,
-    1911180011,
-    1911180012,
-    1911180013,
-    1911180014,
-    1911180015,
-    1911180016,
-    1911180017,
-    1911180018,
-    1911180019,
-    1911180020,
-    1911180021,
-    1911180022,
-    1911180023,
-    1911180024,
-    1911180025,
-    1911180026,
-    1911180027,
-    1911180028,
-    1911180029,
-    1911180030,
-    1911180031,
-    1911180032,
-    1911180033,
-    1911180034,
-    1911180035,
-    1911180036,
-    1911180037,
-    1911180038,
-    1911180039,
-    1911180040,
-    1911180041,
-    1911180042,
-    1911180043,
-    1911180044,
-    1911180045,
-    1911180046,
-    1911180047,
-    1911180048,
-    1911180049,
-    1911180050,
-    1911180051,
-    1911180052,
-    1911180053,
-    1911180054,
-    1911180055,
-    1911180056,
-    1911180057,
-    1911180058,
-    1911180059,
-    1911180060,
-    1911180061,
-    1911180062,
-    1911180063
+    1911181000,
+    1911181001,
+    1911181002,
+    1911181003,
+    1911181004,
+    1911181005,
+    1911181006,
+    1911181007,
+    1911181008,
+    1911181009,
+    1911181010,
+    1911181011
   ],
-  "minimum_gain_each_seed": 0.25,
-  "minimum_mean_gain": 0.25,
-  "minimum_win_rate_each_seed": 0.85,
+  "minimum_gain_each_seed": 0.0,
+  "minimum_mean_gain": 0.1,
+  "minimum_win_rate_each_seed": null,
   "recipes": [
     {
       "cases": [
         {
-          "baseline": "lethal-target-learning",
-          "baseline_digest": "4ef52742c8ffcda83f3f28cf6cf16c11214594d5a032fad163e3e70583e8c045",
-          "label": "lethal-target-learning",
-          "name": "lethal-target-learning",
+          "baseline": "full-game-learning",
+          "baseline_digest": "8019e85953181ca3ae02844a9636f3c1c9e92ec9de414e466a8ad9b5cdc7f821",
+          "label": "full-game-learning",
+          "name": "full-game-learning",
           "regime": {
             "agent": {
               "attention_layers": 1,
@@ -92,7 +40,7 @@
               "value_aggregation": "masked_mean",
               "value_kind": "scalar"
             },
-            "id": "lethal-target-learning",
+            "id": "full-game-learning",
             "match": {
               "hero": "arena-seat-0",
               "hero_deck": {
@@ -152,13 +100,13 @@
             "selection": "last-complete-raw",
             "stages": [
               {
-                "behavior": "current-self",
+                "behavior": "random",
                 "execution": {
                   "device": "cpu",
                   "memory_bytes": 34359738368,
                   "precision": "float32",
                   "threads": 1,
-                  "wall_seconds": 760.0,
+                  "wall_seconds": 580.0,
                   "workers": 1
                 },
                 "id": "policy-0",
@@ -186,18 +134,17 @@
                 "operation": "train_self_play",
                 "opponent": null,
                 "optimizer": "adam",
-                "root": "lethal-target-v1",
                 "streams": 4,
                 "trainable": "policy_value",
                 "trainer": "net_opponent",
-                "transitions": 16,
-                "updates": 100
+                "transitions": 64,
+                "updates": 128
               }
             ],
-            "wall_seconds": 780.0,
+            "wall_seconds": 600.0,
             "world": "w4"
           },
-          "regime_digest": "4ef52742c8ffcda83f3f28cf6cf16c11214594d5a032fad163e3e70583e8c045",
+          "regime_digest": "8019e85953181ca3ae02844a9636f3c1c9e92ec9de414e466a8ad9b5cdc7f821",
           "schema_version": 1,
           "settings": [
             {
@@ -207,7 +154,7 @@
                 "agent",
                 "attention_layers"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -217,7 +164,7 @@
                 "agent",
                 "attention_on"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": true
             },
             {
@@ -227,7 +174,7 @@
                 "agent",
                 "belief_card_vocab_size"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0
             },
             {
@@ -237,7 +184,7 @@
                 "agent",
                 "belief_count_buckets"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0
             },
             {
@@ -247,7 +194,7 @@
                 "agent",
                 "belief_hidden_zone_vocab_size"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 7
             },
             {
@@ -257,7 +204,7 @@
                 "agent",
                 "belief_owner_role_vocab_size"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -267,7 +214,7 @@
                 "agent",
                 "compound_decisions"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": false
             },
             {
@@ -277,7 +224,7 @@
                 "agent",
                 "hidden_dim"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 64
             },
             {
@@ -287,7 +234,7 @@
                 "agent",
                 "num_attention_heads"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 4
             },
             {
@@ -297,7 +244,7 @@
                 "agent",
                 "semantic_pack"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "ur-lessons-vs-gw-allies"
             },
             {
@@ -307,7 +254,7 @@
                 "agent",
                 "value_aggregation"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "masked_mean"
             },
             {
@@ -317,7 +264,7 @@
                 "agent",
                 "value_kind"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "scalar"
             },
             {
@@ -327,7 +274,7 @@
                 "id"
               ],
               "source": "experiment-name",
-              "value": "lethal-target-learning"
+              "value": "full-game-learning"
             },
             {
               "component": "environment",
@@ -336,7 +283,7 @@
                 "match",
                 "hero"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "arena-seat-0"
             },
             {
@@ -347,7 +294,7 @@
                 "hero_deck",
                 "Accumulate Wisdom"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -358,7 +305,7 @@
                 "hero_deck",
                 "Divide by Zero"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -369,7 +316,7 @@
                 "hero_deck",
                 "Dragonfly Swarm"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -380,7 +327,7 @@
                 "hero_deck",
                 "Fire Nation Cadets"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -391,7 +338,7 @@
                 "hero_deck",
                 "Firebending Lesson"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 4
             },
             {
@@ -402,7 +349,7 @@
                 "hero_deck",
                 "First-Time Flyer"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -413,7 +360,7 @@
                 "hero_deck",
                 "Forecasting Fortune Teller"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -424,7 +371,7 @@
                 "hero_deck",
                 "Igneous Inspiration"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -435,7 +382,7 @@
                 "hero_deck",
                 "Island"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 9
             },
             {
@@ -446,7 +393,7 @@
                 "hero_deck",
                 "It'll Quench Ya!"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -457,7 +404,7 @@
                 "hero_deck",
                 "Mountain"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 8
             },
             {
@@ -468,7 +415,7 @@
                 "hero_deck",
                 "Otter-Penguin"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -479,7 +426,7 @@
                 "hero_deck",
                 "Pop Quiz"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -490,7 +437,7 @@
                 "hero_deck",
                 "Tiger-Seal"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -501,7 +448,7 @@
                 "hero_sideboard",
                 "Accumulate Wisdom"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -512,7 +459,7 @@
                 "hero_sideboard",
                 "Firebending Lesson"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -523,7 +470,7 @@
                 "hero_sideboard",
                 "It'll Quench Ya!"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -533,7 +480,7 @@
                 "match",
                 "villain"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "arena-seat-1"
             },
             {
@@ -544,7 +491,7 @@
                 "villain_deck",
                 "Allies at Last"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -555,7 +502,7 @@
                 "villain_deck",
                 "Badgermole Cub"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -566,7 +513,7 @@
                 "villain_deck",
                 "Compassionate Healer"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -577,7 +524,7 @@
                 "villain_deck",
                 "Earth King's Lieutenant"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -588,7 +535,7 @@
                 "villain_deck",
                 "Earth Kingdom Jailer"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -599,7 +546,7 @@
                 "villain_deck",
                 "Fancy Footwork"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -610,7 +557,7 @@
                 "villain_deck",
                 "Forest"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 8
             },
             {
@@ -621,7 +568,7 @@
                 "villain_deck",
                 "Invasion Reinforcements"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -632,7 +579,7 @@
                 "villain_deck",
                 "Kyoshi Warriors"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -643,7 +590,7 @@
                 "villain_deck",
                 "Plains"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 9
             },
             {
@@ -654,7 +601,7 @@
                 "villain_deck",
                 "South Pole Voyager"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -665,7 +612,7 @@
                 "villain_deck",
                 "Suki, Kyoshi Warrior"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -676,7 +623,7 @@
                 "villain_deck",
                 "Water Tribe Rallier"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -687,7 +634,7 @@
                 "villain_deck",
                 "White Lotus Reinforcements"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -698,7 +645,7 @@
                 "villain_deck",
                 "Yip Yip!"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -709,7 +656,7 @@
                 "villain_sideboard",
                 "Fancy Footwork"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -720,7 +667,7 @@
                 "villain_sideboard",
                 "Yip Yip!"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -730,7 +677,7 @@
                 "observation",
                 "max_actions"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 64
             },
             {
@@ -740,7 +687,7 @@
                 "observation",
                 "max_cards_per_player"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 60
             },
             {
@@ -750,7 +697,7 @@
                 "observation",
                 "max_events"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 32
             },
             {
@@ -760,7 +707,7 @@
                 "observation",
                 "max_focus_objects"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 2
             },
             {
@@ -770,7 +717,7 @@
                 "observation",
                 "max_permanents_per_player"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 40
             },
             {
@@ -779,7 +726,7 @@
               "path": [
                 "recovery_max_microsteps"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": null
             },
             {
@@ -788,7 +735,7 @@
               "path": [
                 "schedule_clock"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "run_elapsed_budget"
             },
             {
@@ -797,7 +744,7 @@
               "path": [
                 "schema_version"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -806,7 +753,7 @@
               "path": [
                 "selection"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "last-complete-raw"
             },
             {
@@ -817,8 +764,8 @@
                 "0",
                 "behavior"
               ],
-              "source": "lethal-target-learning",
-              "value": "current-self"
+              "source": "full-game-learning",
+              "value": "random"
             },
             {
               "component": "resources",
@@ -829,7 +776,7 @@
                 "execution",
                 "device"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "cpu"
             },
             {
@@ -841,7 +788,7 @@
                 "execution",
                 "memory_bytes"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 34359738368
             },
             {
@@ -853,7 +800,7 @@
                 "execution",
                 "precision"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "float32"
             },
             {
@@ -865,7 +812,7 @@
                 "execution",
                 "threads"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -877,8 +824,8 @@
                 "execution",
                 "wall_seconds"
               ],
-              "source": "lethal-target-learning",
-              "value": 760.0
+              "source": "full-game-learning",
+              "value": 580.0
             },
             {
               "component": "resources",
@@ -889,7 +836,7 @@
                 "execution",
                 "workers"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1
             },
             {
@@ -900,7 +847,7 @@
                 "0",
                 "id"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "policy-0"
             },
             {
@@ -911,7 +858,7 @@
                 "0",
                 "initial"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": null
             },
             {
@@ -923,7 +870,7 @@
                 "learning",
                 "advantage_quantile"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.75
             },
             {
@@ -935,7 +882,7 @@
                 "learning",
                 "clip"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.2
             },
             {
@@ -947,7 +894,7 @@
                 "learning",
                 "collection_kl"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.1
             },
             {
@@ -959,7 +906,7 @@
                 "learning",
                 "ema"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.999
             },
             {
@@ -971,7 +918,7 @@
                 "learning",
                 "filter_kind"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "quantile"
             },
             {
@@ -983,7 +930,7 @@
                 "learning",
                 "filter_scope"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "actor_critic"
             },
             {
@@ -995,7 +942,7 @@
                 "learning",
                 "gradient"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "ataraxos_move"
             },
             {
@@ -1007,7 +954,7 @@
                 "learning",
                 "learning_rate_max"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.0001
             },
             {
@@ -1019,7 +966,7 @@
                 "learning",
                 "learning_rate_min"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 5e-06
             },
             {
@@ -1031,7 +978,7 @@
                 "learning",
                 "learning_rate_power"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 1.1
             },
             {
@@ -1043,7 +990,7 @@
                 "learning",
                 "learning_rate_scale"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.5
             },
             {
@@ -1055,7 +1002,7 @@
                 "learning",
                 "max_grad_norm"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.267
             },
             {
@@ -1067,7 +1014,7 @@
                 "learning",
                 "min_advantage"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.01
             },
             {
@@ -1079,7 +1026,7 @@
                 "learning",
                 "policy_lambda"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.5
             },
             {
@@ -1091,7 +1038,7 @@
                 "learning",
                 "reference"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "action_type_uniform"
             },
             {
@@ -1103,7 +1050,7 @@
                 "learning",
                 "tau_power"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.3
             },
             {
@@ -1115,7 +1062,7 @@
                 "learning",
                 "tau_scale"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.05
             },
             {
@@ -1127,7 +1074,7 @@
                 "learning",
                 "value_lambda"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 0.8
             },
             {
@@ -1138,7 +1085,7 @@
                 "0",
                 "operation"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "train_self_play"
             },
             {
@@ -1149,7 +1096,7 @@
                 "0",
                 "opponent"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": null
             },
             {
@@ -1160,19 +1107,8 @@
                 "0",
                 "optimizer"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "adam"
-            },
-            {
-              "component": "pipeline",
-              "origin": "baseline",
-              "path": [
-                "stages",
-                "0",
-                "root"
-              ],
-              "source": "lethal-target-learning",
-              "value": "lethal-target-v1"
             },
             {
               "component": "pipeline",
@@ -1182,7 +1118,7 @@
                 "0",
                 "streams"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": 4
             },
             {
@@ -1193,7 +1129,7 @@
                 "0",
                 "trainable"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "policy_value"
             },
             {
@@ -1204,7 +1140,7 @@
                 "0",
                 "trainer"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "net_opponent"
             },
             {
@@ -1215,8 +1151,8 @@
                 "0",
                 "transitions"
               ],
-              "source": "lethal-target-learning",
-              "value": 16
+              "source": "full-game-learning",
+              "value": 64
             },
             {
               "component": "pipeline",
@@ -1226,8 +1162,8 @@
                 "0",
                 "updates"
               ],
-              "source": "lethal-target-learning",
-              "value": 100
+              "source": "full-game-learning",
+              "value": 128
             },
             {
               "component": "resources",
@@ -1235,8 +1171,8 @@
               "path": [
                 "wall_seconds"
               ],
-              "source": "lethal-target-learning",
-              "value": 780.0
+              "source": "full-game-learning",
+              "value": 600.0
             },
             {
               "component": "environment",
@@ -1244,22 +1180,22 @@
               "path": [
                 "world"
               ],
-              "source": "lethal-target-learning",
+              "source": "full-game-learning",
               "value": "w4"
             }
           ]
         }
       ],
-      "name": "lethal-target-learning",
+      "name": "full-game-learning",
       "schema_version": 1
     },
     {
       "cases": [
         {
-          "baseline": "lethal-target-frozen",
-          "baseline_digest": "2d4fe92f1eff304d9871819c09d5ef70ae6285721b70a07cb0018786ab98cfde",
-          "label": "lethal-target-frozen",
-          "name": "lethal-target-frozen",
+          "baseline": "full-game-frozen",
+          "baseline_digest": "b1c180f398f72f26fea8563944f0bed766cdf2501915a5cf6e912e82acc0d7d7",
+          "label": "full-game-frozen",
+          "name": "full-game-frozen",
           "regime": {
             "agent": {
               "attention_layers": 1,
@@ -1274,7 +1210,7 @@
               "value_aggregation": "masked_mean",
               "value_kind": "scalar"
             },
-            "id": "lethal-target-frozen",
+            "id": "full-game-frozen",
             "match": {
               "hero": "arena-seat-0",
               "hero_deck": {
@@ -1334,13 +1270,13 @@
             "selection": "last-complete-raw",
             "stages": [
               {
-                "behavior": "current-self",
+                "behavior": "random",
                 "execution": {
                   "device": "cpu",
                   "memory_bytes": 34359738368,
                   "precision": "float32",
                   "threads": 1,
-                  "wall_seconds": 760.0,
+                  "wall_seconds": 580.0,
                   "workers": 1
                 },
                 "id": "policy-0",
@@ -1368,18 +1304,17 @@
                 "operation": "train_self_play",
                 "opponent": null,
                 "optimizer": "adam",
-                "root": "lethal-target-v1",
                 "streams": 4,
                 "trainable": "none",
                 "trainer": "net_opponent",
-                "transitions": 16,
-                "updates": 100
+                "transitions": 64,
+                "updates": 128
               }
             ],
-            "wall_seconds": 780.0,
+            "wall_seconds": 600.0,
             "world": "w4"
           },
-          "regime_digest": "2d4fe92f1eff304d9871819c09d5ef70ae6285721b70a07cb0018786ab98cfde",
+          "regime_digest": "b1c180f398f72f26fea8563944f0bed766cdf2501915a5cf6e912e82acc0d7d7",
           "schema_version": 1,
           "settings": [
             {
@@ -1389,7 +1324,7 @@
                 "agent",
                 "attention_layers"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1399,7 +1334,7 @@
                 "agent",
                 "attention_on"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": true
             },
             {
@@ -1409,7 +1344,7 @@
                 "agent",
                 "belief_card_vocab_size"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0
             },
             {
@@ -1419,7 +1354,7 @@
                 "agent",
                 "belief_count_buckets"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0
             },
             {
@@ -1429,7 +1364,7 @@
                 "agent",
                 "belief_hidden_zone_vocab_size"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 7
             },
             {
@@ -1439,7 +1374,7 @@
                 "agent",
                 "belief_owner_role_vocab_size"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1449,7 +1384,7 @@
                 "agent",
                 "compound_decisions"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": false
             },
             {
@@ -1459,7 +1394,7 @@
                 "agent",
                 "hidden_dim"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 64
             },
             {
@@ -1469,7 +1404,7 @@
                 "agent",
                 "num_attention_heads"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 4
             },
             {
@@ -1479,7 +1414,7 @@
                 "agent",
                 "semantic_pack"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "ur-lessons-vs-gw-allies"
             },
             {
@@ -1489,7 +1424,7 @@
                 "agent",
                 "value_aggregation"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "masked_mean"
             },
             {
@@ -1499,7 +1434,7 @@
                 "agent",
                 "value_kind"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "scalar"
             },
             {
@@ -1509,7 +1444,7 @@
                 "id"
               ],
               "source": "experiment-name",
-              "value": "lethal-target-frozen"
+              "value": "full-game-frozen"
             },
             {
               "component": "environment",
@@ -1518,7 +1453,7 @@
                 "match",
                 "hero"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "arena-seat-0"
             },
             {
@@ -1529,7 +1464,7 @@
                 "hero_deck",
                 "Accumulate Wisdom"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1540,7 +1475,7 @@
                 "hero_deck",
                 "Divide by Zero"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1551,7 +1486,7 @@
                 "hero_deck",
                 "Dragonfly Swarm"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1562,7 +1497,7 @@
                 "hero_deck",
                 "Fire Nation Cadets"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1573,7 +1508,7 @@
                 "hero_deck",
                 "Firebending Lesson"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 4
             },
             {
@@ -1584,7 +1519,7 @@
                 "hero_deck",
                 "First-Time Flyer"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1595,7 +1530,7 @@
                 "hero_deck",
                 "Forecasting Fortune Teller"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1606,7 +1541,7 @@
                 "hero_deck",
                 "Igneous Inspiration"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1617,7 +1552,7 @@
                 "hero_deck",
                 "Island"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 9
             },
             {
@@ -1628,7 +1563,7 @@
                 "hero_deck",
                 "It'll Quench Ya!"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1639,7 +1574,7 @@
                 "hero_deck",
                 "Mountain"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 8
             },
             {
@@ -1650,7 +1585,7 @@
                 "hero_deck",
                 "Otter-Penguin"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1661,7 +1596,7 @@
                 "hero_deck",
                 "Pop Quiz"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1672,7 +1607,7 @@
                 "hero_deck",
                 "Tiger-Seal"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1683,7 +1618,7 @@
                 "hero_sideboard",
                 "Accumulate Wisdom"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1694,7 +1629,7 @@
                 "hero_sideboard",
                 "Firebending Lesson"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1705,7 +1640,7 @@
                 "hero_sideboard",
                 "It'll Quench Ya!"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1715,7 +1650,7 @@
                 "match",
                 "villain"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "arena-seat-1"
             },
             {
@@ -1726,7 +1661,7 @@
                 "villain_deck",
                 "Allies at Last"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1737,7 +1672,7 @@
                 "villain_deck",
                 "Badgermole Cub"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1748,7 +1683,7 @@
                 "villain_deck",
                 "Compassionate Healer"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1759,7 +1694,7 @@
                 "villain_deck",
                 "Earth King's Lieutenant"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1770,7 +1705,7 @@
                 "villain_deck",
                 "Earth Kingdom Jailer"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1781,7 +1716,7 @@
                 "villain_deck",
                 "Fancy Footwork"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1792,7 +1727,7 @@
                 "villain_deck",
                 "Forest"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 8
             },
             {
@@ -1803,7 +1738,7 @@
                 "villain_deck",
                 "Invasion Reinforcements"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1814,7 +1749,7 @@
                 "villain_deck",
                 "Kyoshi Warriors"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1825,7 +1760,7 @@
                 "villain_deck",
                 "Plains"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 9
             },
             {
@@ -1836,7 +1771,7 @@
                 "villain_deck",
                 "South Pole Voyager"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1847,7 +1782,7 @@
                 "villain_deck",
                 "Suki, Kyoshi Warrior"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1858,7 +1793,7 @@
                 "villain_deck",
                 "Water Tribe Rallier"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1869,7 +1804,7 @@
                 "villain_deck",
                 "White Lotus Reinforcements"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1880,7 +1815,7 @@
                 "villain_deck",
                 "Yip Yip!"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1891,7 +1826,7 @@
                 "villain_sideboard",
                 "Fancy Footwork"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1902,7 +1837,7 @@
                 "villain_sideboard",
                 "Yip Yip!"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1912,7 +1847,7 @@
                 "observation",
                 "max_actions"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 64
             },
             {
@@ -1922,7 +1857,7 @@
                 "observation",
                 "max_cards_per_player"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 60
             },
             {
@@ -1932,7 +1867,7 @@
                 "observation",
                 "max_events"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 32
             },
             {
@@ -1942,7 +1877,7 @@
                 "observation",
                 "max_focus_objects"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 2
             },
             {
@@ -1952,7 +1887,7 @@
                 "observation",
                 "max_permanents_per_player"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 40
             },
             {
@@ -1961,7 +1896,7 @@
               "path": [
                 "recovery_max_microsteps"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": null
             },
             {
@@ -1970,7 +1905,7 @@
               "path": [
                 "schedule_clock"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "run_elapsed_budget"
             },
             {
@@ -1979,7 +1914,7 @@
               "path": [
                 "schema_version"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -1988,7 +1923,7 @@
               "path": [
                 "selection"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "last-complete-raw"
             },
             {
@@ -1999,8 +1934,8 @@
                 "0",
                 "behavior"
               ],
-              "source": "lethal-target-frozen",
-              "value": "current-self"
+              "source": "full-game-frozen",
+              "value": "random"
             },
             {
               "component": "resources",
@@ -2011,7 +1946,7 @@
                 "execution",
                 "device"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "cpu"
             },
             {
@@ -2023,7 +1958,7 @@
                 "execution",
                 "memory_bytes"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 34359738368
             },
             {
@@ -2035,7 +1970,7 @@
                 "execution",
                 "precision"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "float32"
             },
             {
@@ -2047,7 +1982,7 @@
                 "execution",
                 "threads"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -2059,8 +1994,8 @@
                 "execution",
                 "wall_seconds"
               ],
-              "source": "lethal-target-frozen",
-              "value": 760.0
+              "source": "full-game-frozen",
+              "value": 580.0
             },
             {
               "component": "resources",
@@ -2071,7 +2006,7 @@
                 "execution",
                 "workers"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1
             },
             {
@@ -2082,7 +2017,7 @@
                 "0",
                 "id"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "policy-0"
             },
             {
@@ -2093,7 +2028,7 @@
                 "0",
                 "initial"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": null
             },
             {
@@ -2105,7 +2040,7 @@
                 "learning",
                 "advantage_quantile"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.75
             },
             {
@@ -2117,7 +2052,7 @@
                 "learning",
                 "clip"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.2
             },
             {
@@ -2129,7 +2064,7 @@
                 "learning",
                 "collection_kl"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.1
             },
             {
@@ -2141,7 +2076,7 @@
                 "learning",
                 "ema"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.999
             },
             {
@@ -2153,7 +2088,7 @@
                 "learning",
                 "filter_kind"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "quantile"
             },
             {
@@ -2165,7 +2100,7 @@
                 "learning",
                 "filter_scope"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "actor_critic"
             },
             {
@@ -2177,7 +2112,7 @@
                 "learning",
                 "gradient"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "ataraxos_move"
             },
             {
@@ -2189,7 +2124,7 @@
                 "learning",
                 "learning_rate_max"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.0001
             },
             {
@@ -2201,7 +2136,7 @@
                 "learning",
                 "learning_rate_min"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 5e-06
             },
             {
@@ -2213,7 +2148,7 @@
                 "learning",
                 "learning_rate_power"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 1.1
             },
             {
@@ -2225,7 +2160,7 @@
                 "learning",
                 "learning_rate_scale"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.5
             },
             {
@@ -2237,7 +2172,7 @@
                 "learning",
                 "max_grad_norm"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.267
             },
             {
@@ -2249,7 +2184,7 @@
                 "learning",
                 "min_advantage"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.01
             },
             {
@@ -2261,7 +2196,7 @@
                 "learning",
                 "policy_lambda"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.5
             },
             {
@@ -2273,7 +2208,7 @@
                 "learning",
                 "reference"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "action_type_uniform"
             },
             {
@@ -2285,7 +2220,7 @@
                 "learning",
                 "tau_power"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.3
             },
             {
@@ -2297,7 +2232,7 @@
                 "learning",
                 "tau_scale"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.05
             },
             {
@@ -2309,7 +2244,7 @@
                 "learning",
                 "value_lambda"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 0.8
             },
             {
@@ -2320,7 +2255,7 @@
                 "0",
                 "operation"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "train_self_play"
             },
             {
@@ -2331,7 +2266,7 @@
                 "0",
                 "opponent"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": null
             },
             {
@@ -2342,19 +2277,8 @@
                 "0",
                 "optimizer"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "adam"
-            },
-            {
-              "component": "pipeline",
-              "origin": "baseline",
-              "path": [
-                "stages",
-                "0",
-                "root"
-              ],
-              "source": "lethal-target-frozen",
-              "value": "lethal-target-v1"
             },
             {
               "component": "pipeline",
@@ -2364,7 +2288,7 @@
                 "0",
                 "streams"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": 4
             },
             {
@@ -2375,7 +2299,7 @@
                 "0",
                 "trainable"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "none"
             },
             {
@@ -2386,7 +2310,7 @@
                 "0",
                 "trainer"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "net_opponent"
             },
             {
@@ -2397,8 +2321,8 @@
                 "0",
                 "transitions"
               ],
-              "source": "lethal-target-frozen",
-              "value": 16
+              "source": "full-game-frozen",
+              "value": 64
             },
             {
               "component": "pipeline",
@@ -2408,8 +2332,8 @@
                 "0",
                 "updates"
               ],
-              "source": "lethal-target-frozen",
-              "value": 100
+              "source": "full-game-frozen",
+              "value": 128
             },
             {
               "component": "resources",
@@ -2417,8 +2341,8 @@
               "path": [
                 "wall_seconds"
               ],
-              "source": "lethal-target-frozen",
-              "value": 780.0
+              "source": "full-game-frozen",
+              "value": 600.0
             },
             {
               "component": "environment",
@@ -2426,19 +2350,19 @@
               "path": [
                 "world"
               ],
-              "source": "lethal-target-frozen",
+              "source": "full-game-frozen",
               "value": "w4"
             }
           ]
         }
       ],
-      "name": "lethal-target-frozen",
+      "name": "full-game-frozen",
       "schema_version": 1
     }
   ],
   "seeds": [
-    11801,
-    11802,
-    11803
+    11821,
+    11822,
+    11823
   ]
 }
