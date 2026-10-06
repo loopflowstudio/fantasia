@@ -76,26 +76,20 @@ class Transport:
         )
 
     def put(self, local: Path, remote: str) -> None:
-        self._run(
-            [
-                "scp",
-                *self.options,
-                "-P",
-                str(self.port),
-                str(local),
-                f"{self.target}:{remote}",
-            ]
-        )
+        self._copy(str(local), f"{self.target}:{remote}")
 
     def get(self, remote: str, local: Path) -> None:
+        self._copy(f"{self.target}:{remote}", str(local))
+
+    def _copy(self, source: str, destination: str) -> None:
         self._run(
             [
                 "scp",
                 *self.options,
                 "-P",
                 str(self.port),
-                f"{self.target}:{remote}",
-                str(local),
+                source,
+                destination,
             ]
         )
 

@@ -4,8 +4,12 @@ from pathlib import Path
 
 import pytest
 
+import manabot.remote.bundle as bundles
 from manabot.remote.bundle import Bundle, BundleFile, make_bundle
 from manabot.remote.plan import digest
+from manabot.training.models import StageRecord, TrainingRegime, TrainingRun
+from manabot.verify.store import VerifyStore
+from tests.remote.test_compile import ROOT
 
 
 def test_relocated_bytes_and_corruption(tmp_path: Path) -> None:
@@ -68,3 +72,48 @@ def test_duplicate_manifest_paths_fail_before_download(field: str) -> None:
     ).model_copy(update={field: getattr(first, field)})
     with pytest.raises(ValueError, match="duplicate bundle paths"):
         Bundle(files=(first, second))
+
+
+@pytest.mark.parametrize("mismatch", [None, "path", "bytes", "sha256"])
+def test_verified_bundle_must_match_run_artifact_receipts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mismatch: str | None
+) -> None:
+    recipe = TrainingRegime.model_validate_json(
+        (ROOT / "experiments/regimes/direct-self-play.json").read_text()
+    )
+    policy = tmp_path / "raw.pt"
+    policy.write_bytes(b"policy-loader-fixture")
+    artifact = {
+        "path": str(policy),
+        "bytes": policy.stat().st_size,
+        "sha256": digest(policy.read_bytes()),
+    }
+    if mismatch is not None:
+        artifact[mismatch] = {"path": "/missing", "bytes": 0, "sha256": "0" * 64}[
+            mismatch
+        ]
+    run = TrainingRun(
+        id="bundle-fixture",
+        regime=recipe,
+        regime_digest=digest(recipe.model_dump_json().encode()),
+        seed=197,
+        seed_streams={},
+        identities={},
+        status="completed",
+        stages=[StageRecord(id="train", artifacts={"raw": artifact})],
+    )
+    (tmp_path / "run").mkdir()
+    (tmp_path / "run/run.json").write_text(run.model_dump_json())
+    with VerifyStore(tmp_path / "training.sqlite") as store:
+        store.save_training_run(run)
+    bundle = make_bundle(tmp_path)
+    loaded: list[str] = []
+    monkeypatch.setattr(bundles, "load_checkpoint_agent", loaded.append)
+    if mismatch is None:
+        assert bundles.verify_training_bundle(tmp_path, bundle) == [policy]
+        assert loaded == [str(policy)]
+    else:
+        with pytest.raises(ValueError, match="artifact"):
+            bundles.verify_training_bundle(tmp_path, bundle)
+        assert not loaded
+    bundle.verify(tmp_path)
