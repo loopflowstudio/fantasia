@@ -286,6 +286,22 @@ test('combat prompts submit only current offers by pointer and keyboard', async 
   expect(keyboardThenPointer.commands.map((command) => command.offer_id)).toEqual([101, 201]);
 });
 
+test('a taller decision sidebar does not stretch the board', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1200 });
+  await installCombatAuthority(page, [], combatSequence.events as PresentationEvent[]);
+  await page.goto('/');
+  await expect(page.getByTestId('connection-badge')).toHaveText('connected');
+  await page.getByRole('button', { name: 'New Game' }).first().click();
+  const board = page.getByTestId('game-board');
+  await expect(board).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  const initialHeight = (await board.boundingBox())!.height;
+  await page.getByTestId('current-decision').evaluate((status) => {
+    status.parentElement!.style.minHeight = '3000px';
+  });
+  expect((await board.boundingBox())!.height).toBe(initialHeight);
+});
+
 for (const reducedMotion of ['no-preference', 'reduce'] as const) {
   test(`consequences survive playback and Finish with ${reducedMotion}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion });

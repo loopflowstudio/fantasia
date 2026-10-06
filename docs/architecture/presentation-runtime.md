@@ -134,3 +134,15 @@ Validation on 2026-10-04: 49 focused presentation/store/socket/replay/protocol
 tests pass, Svelte check has zero errors/warnings, and the production build
 passes. Browser regressions were authored but not executed; the supplied run
 had no rendering environment. Visual and browser acceptance remain unverified.
+
+CI repair on 2026-10-05: PR #199 head
+`b4e026f5bc8a88611c65d2cf44e00ec130f786b7`, run `37189676719`, failed
+`board-combat` because the board grew from 1159 to 1419 pixels high. The
+live grid stretched the board to the taller decision/history sidebar. Aligning
+columns at the start preserves the board's content height without changing
+visual references. A headless production-build regression reproduced sidebar
+stretch (807 to 3000 pixels) before the fix and passes after it. Both narration
+motion-mode scenarios, Svelte check and the build also pass locally on macOS.
+The full release suite could not start without the local managym extension;
+the pointer/keyboard scenario also needs backend HTTP routes. Linux screenshot
+certification remains with CI, and human-play acceptance remains open.

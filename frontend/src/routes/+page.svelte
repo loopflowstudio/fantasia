@@ -366,7 +366,7 @@
     <p class="mt-3 text-sm text-ink-2">New games appear in shared <a href="/games" class="underline">Games history</a>, where you can set your player name. Completed replays are shared; feedback stays private.</p>
   {/if}
   {#if gameStore.observation && boardObservation}
-    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
+    <div class="grid grid-cols-1 items-start xl:grid-cols-[minmax(0,1fr)_300px]">
       <GameBoard
         observation={boardObservation}
         focusedIds={gameStore.focusIds}
