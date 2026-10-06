@@ -24,7 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .bundle import Bundle, verify_training_bundle
 from .plan import DeploymentPlan, Source, digest
 from .provider import Pod, ProviderError, RunPod
-from .transport import Transport, bootstrap, startup
+from .transport import REPO_DIR, Transport, bootstrap, startup
 
 
 class Attempt(BaseModel):
@@ -394,7 +394,7 @@ def deploy(plan: DeploymentPlan, out: Path, root: Path) -> Receipt:
             transport.deadline = train_deadline - plan.mix.transfer_seconds
             # Training errors are retained, then the closed output is bundled.
             transport.shell(f"""export PATH=/root/.local/bin:/root/.cargo/bin:$PATH
-cd /workspace/repo
+cd {REPO_DIR}
 uv run manabot train --regime /workspace/regime.json --seed {plan.seed} --out /workspace/evidence/run > /workspace/evidence/training.log 2>&1
 status=$?
 printf '%s\\n' "$status" > /workspace/evidence/training-exit.txt

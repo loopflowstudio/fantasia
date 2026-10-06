@@ -11,6 +11,8 @@ from .plan import DeploymentPlan
 from .provider import Pod
 
 REPOSITORY = "https://github.com/loopflowstudio/etude.git"
+REPO_DIR = "/opt/manabot/repo"
+UV_CACHE_DIR = "/opt/manabot/uv-cache"
 
 
 class Transport:
@@ -116,9 +118,11 @@ exec /usr/sbin/sshd -D
 def bootstrap(plan: DeploymentPlan) -> str:
     return f"""set -eu
 export PATH=/root/.local/bin:/root/.cargo/bin:$PATH
-cd /workspace
-git clone --quiet {REPOSITORY} repo
-cd repo
+bootstrap_start=$SECONDS
+export UV_CACHE_DIR={UV_CACHE_DIR}
+mkdir -p /opt/manabot /workspace/evidence
+git clone --quiet {REPOSITORY} {REPO_DIR}
+cd {REPO_DIR}
 git checkout --quiet {plan.source.commit}
 test "$(git rev-parse HEAD)" = {plan.source.commit}
 test "$(git rev-parse 'HEAD^{{tree}}')" = {plan.source.tree}
@@ -127,10 +131,17 @@ curl -LsSf https://astral.sh/uv/0.8.22/install.sh | sh
 command -v cargo >/dev/null || {{ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.98.1; }}
 rustup toolchain install 1.98.1 --profile minimal
 export RUSTUP_TOOLCHAIN=1.98.1
+sync_start=$SECONDS
 uv sync --locked --python 3.12 --extra play
+sync_seconds=$((SECONDS - sync_start))
+build_start=$SECONDS
 uv run maturin develop --release --features python --manifest-path managym/Cargo.toml
-mkdir -p /workspace/evidence
+build_seconds=$((SECONDS - build_start))
 uv --version > /workspace/evidence/toolchain.txt
 rustc --version >> /workspace/evidence/toolchain.txt
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv >> /workspace/evidence/toolchain.txt
+# Whole seconds; the mtime interval matches the retained pre-change observation.
+env_start=$(stat -c %Y .venv/pyvenv.cfg)
+env_end=$(stat -c %Y /workspace/evidence/toolchain.txt)
+printf '{{"bootstrap_seconds":%s,"uv_sync_seconds":%s,"native_build_seconds":%s,"environment_to_toolchain_seconds":%s}}\\n' "$((SECONDS - bootstrap_start))" "$sync_seconds" "$build_seconds" "$((env_end - env_start))" > /workspace/evidence/bootstrap-timing.json
 """

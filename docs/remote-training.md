@@ -9,8 +9,8 @@ rejected before rental. No distributed-learning or strength claim follows.
 
 **Live status, 2026-10-06:** the complete 350-update-per-stage proof passed:
 CUDA self-play, raw/EMA return and reload, four terminal exact-replayed arena
-games, and confirmed empty inventory. A separately authorized 600-update-per-stage
-run with wider deadlines is in progress. No PR review or landing was performed.
+games, and confirmed empty inventory. The separately authorized 600-update-per-stage
+run with wider deadlines also completed: 42.96 minutes of CUDA training. No PR review or landing was performed.
 
 ## Live attempts, 2026-10-06
 
@@ -31,7 +31,7 @@ not a provider invoice. The prior shakedown's $0.29 is reported expenditure.
 | 002 | `5f1c34d6` | Guardian passed; bootstrap exceeded the eight-minute setup deadline; deleted | $0.0686 |
 | 003 | `5f1c34d6` | Guardian and CUDA smoke passed; first stage interrupted; all 21 bundle files verified; deleted | $0.3260 |
 | 004 | `62fc7e15` | 350 updates/stage completed; records/checkpoints returned; four replayed arena games; deleted | $0.3661 |
-| 005 | `62fc7e15` | 600 updates/stage with wider watchdogs; in progress | pending |
+| 005 | `62fc7e15` | 600 updates/stage completed; four replayed arena games; deleted | $0.5010 |
 
 Attempt 001 retains the original unresolved receipt plus explicit manual
 reconciliation. An authenticated query observed the unique receipt-owned pod at
@@ -67,14 +67,18 @@ The selected raw checkpoint SHA-256 is
 The original run/SQLite and all 12 declared bundle files verified. Four ordinary
 arena games covered both seats/deck assignments and completed with exact replay
 in 11.75 seconds. Final authenticated inventory was empty. Prior Task expenditure,
-including the shakedown and all failures, is **$1.0701 estimated/reported**.
+including the shakedown and all failures through attempt 004, was **$1.0701 estimated/reported**.
 
 Jack Heart then requested an immediate longer run after confirmed deletion.
 Attempt 005 restores 600 updates per stage, with one-hour stage watchdogs,
 a two-hour run allowance and a 150-minute rental allowance ($1.55 projected
 ceiling). The elapsed-budget schedule uses the larger denominator too; this is
 a feasibility run, not a controlled timing-only or strength comparison.
-ETU-119 owns the separate persistence fix; no such change enters these attempts.
+It completed 1,200 updates, 3,131 games, 307,200 learner transitions and
+614,400 optimizer exposures in 2,577.73 seconds. All returned artifacts verified;
+four terminal arena games replayed exactly in 10.72 seconds. Inventory was empty.
+Total through attempt 005 is **$1.5710 estimated/reported**, including shakedown.
+ETU-119 owns the separate persistence fix; no such change entered these attempts.
 
 Saved update coordinates provide wall intervals without changing training.
 Attempt 003's median interval rose from 1.69 seconds over early updates to
