@@ -16,7 +16,14 @@ from typing import Any, Literal
 
 import numpy as np
 import psutil
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    field_validator,
+    model_validator,
+)
 
 from manabot.arena import players
 from manabot.arena.match import SELECTED_SUITE, play_cell, selected_match
@@ -64,7 +71,7 @@ class ArenaRow(BaseModel):
     player_b: str
     player_a_registration_sha256: str
     player_b_registration_sha256: str
-    score_a: Literal[0.0, 0.5, 1.0] | None
+    score_a: float | None = Field(strict=True)
     failure: str | None
     terminated: bool
     truncated: bool
@@ -72,6 +79,13 @@ class ArenaRow(BaseModel):
     trace_path: str
     game_seconds: float = Field(ge=0)
     integrity: dict[str, int]
+
+    @field_validator("score_a")
+    @classmethod
+    def valid_score(cls, value: float | None) -> float | None:
+        if value not in (None, 0.0, 0.5, 1.0):
+            raise ValueError("arena score must be loss, draw, win or unavailable")
+        return value
 
     @property
     def valid(self) -> bool:

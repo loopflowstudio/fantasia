@@ -148,7 +148,7 @@ def test_incomplete_cohort_never_emits_strength(tmp_path: Path, defect: str) -> 
     assert len(result.rows) == len(rows)
 
 
-@pytest.mark.parametrize("defect", ["duplicate", "identity", "foreign-deal"])
+@pytest.mark.parametrize("defect", ["duplicate", "identity", "foreign-deal", "score"])
 def test_saved_rows_admission(tmp_path: Path, defect: str) -> None:
     manifest = _manifest()
     rows = _rows(manifest)
@@ -156,6 +156,8 @@ def test_saved_rows_admission(tmp_path: Path, defect: str) -> None:
         rows.append(rows[0])
     elif defect == "identity":
         rows[0]["player_a_registration_sha256"] = "0" * 64
+    elif defect == "score":
+        rows[0]["score_a"] = 0.3
     else:
         rows[0]["deal_seed"] = 999
     source = tmp_path / "rows.json"
