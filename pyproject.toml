@@ -40,6 +40,7 @@ notebook = [
     "jupyterlab>=4.0",
     "nbclient>=0.10",
     "matplotlib>=3.9",
+    "wandb-workspaces>=0.4.13",
 ]
 ops = [
     "boto3>=1.35.0",

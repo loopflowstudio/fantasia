@@ -4,6 +4,7 @@ These narrow views validate the JSON boundary. Study/arena remain the evidence
 owners; the existing paired seed/deal bootstrap supplies descriptive intervals.
 """
 
+from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import Literal
@@ -87,20 +88,22 @@ def load_study(path: Path) -> ScientificStudy:
     return study
 
 
-def study_strength_figures(
-    study: ScientificStudy,
-    axis: Literal["learner_transitions", "training_seconds"] = "learner_transitions",
-) -> list[Figure]:
-    """Only complete common cutoffs; separate phase, weight variant and opponent.
+@dataclass(frozen=True)
+class StudyPanel:
+    phase: str
+    variant: str
+    opponent: str
+    measurements: list[StudyMeasurement]
+    cells: list[StudyCell]
 
-    Thin lines show independent fits. Thick intervals reuse the study's existing
-    training-seed/common-deal bootstrap, not game-level pseudo replication.
-    """
+
+def study_strength_panels(study: ScientificStudy) -> list[StudyPanel]:
+    """Admit complete common cutoffs against retained games for every renderer."""
     if study.status != "completed":
         return []
     expected = {(r.regime, seed) for r in study.runs for seed in study.seeds}
     panels = sorted({(m.phase, m.variant, m.opponent) for m in study.measurements})
-    figures: list[Figure] = []
+    admitted: list[StudyPanel] = []
     for phase, variant, opponent in panels:
         selected: list[StudyMeasurement] = []
         cells: list[StudyCell] = []
@@ -160,6 +163,19 @@ def study_strength_figures(
         }
         if not selected or len(identities) != 1:
             continue
+        admitted.append(StudyPanel(phase, variant, opponent, selected, cells))
+    return admitted
+
+
+def study_strength_figures(
+    study: ScientificStudy,
+    axis: Literal["learner_transitions", "training_seconds"] = "learner_transitions",
+) -> list[Figure]:
+    """Plot independent fits and descriptive training-seed/common-deal intervals."""
+    figures: list[Figure] = []
+    for panel in study_strength_panels(study):
+        selected, cells = panel.measurements, panel.cells
+        phase, variant, opponent = panel.phase, panel.variant, panel.opponent
         regimes = sorted({p.regime for p in selected})
         fig = Figure(figsize=(9, 3.2 * len(regimes)), layout="constrained")
         axes = fig.subplots(len(regimes), 1, squeeze=False)[:, 0]

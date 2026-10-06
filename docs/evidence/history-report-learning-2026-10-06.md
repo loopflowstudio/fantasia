@@ -100,3 +100,44 @@ that attempt has zero completed monitoring rows and is retained separately in
 `.runs/etu117-interrupted-validation`. This exceeded the intended saved-data-only
 validation scope. It supplies no scientific evidence and did not modify source
 experiments. Subsequent checks select only offline reporting tests.
+
+## W&B graph version
+
+Jack Heart requested a new version using W&B graphs after configuring
+`loopflow-studio/etude`. The native
+[W&B report](https://wandb.ai/loopflow-studio/etude/reports/History-input-%E2%80%94-learning-and-evidence--VmlldzoxODA2NzM3Ng==)
+leads with each arm's three scientific seed curves at matched transitions and
+recorded cost, then the saved paired effect with explicit 95% bounds. Cost plots
+do not imply matched-cost effects. Seven separate scientific projection streams
+contain fourteen retained score/effect rows; they do not rewrite the six training
+or two monitoring histories. API readback matched every projected scalar.
+
+Collapsed per-arm diagnostics use native W&B EMA smoothing 0.8 with original
+curves available; retention remains raw. W&B lines can bridge unavailable values,
+so the report states that limitation and keeps empty-filter retention visible.
+This differs from the earlier Matplotlib trailing-25-record view; neither
+reconstructs historical minibatch averages. Earlier monitoring remains separately
+labeled and filtered by exact run IDs. Default W&B aggregation is disabled;
+saved statistical bounds are explicit series, not automatic standard-error bands.
+
+The separate create-once notebook owns editable report choices. Run All only
+reads saved data and writes `report-plan.json` plus a read-only HTML viewer;
+network publication is an explicit step. The HTML embeds the native report with
+a direct link if authentication or embedding prevents display. Project visibility
+was not changed. Original notebooks and reports remain untouched.
+
+```bash
+uv run --extra notebook python -m experiments.runners.report_history_wandb \
+  .runs/etu117-demo .runs/etu117-demo/wandb-report
+# Run All in the new report-generator.ipynb, then publish its saved plan:
+uv run --extra notebook python -m experiments.runners.report_history_wandb \
+  .runs/etu117-demo .runs/etu117-demo/wandb-report --publish
+```
+
+Publication creates a new report, preserving manually edited prior reports.
+Scientific streams reuse content-bound IDs and prefix checks. Model bytes remain
+in S3; this operation uploads only metric projections and report configuration.
+The reporting extra installs `wandb-workspaces`; its dependency updates W&B to
+0.30.0. No training or evaluation ran. Headless screenshot capture returned a blank
+W&B page, so browser rendering and interaction remain for Jack Heart's review;
+successful API verification is not visual approval.

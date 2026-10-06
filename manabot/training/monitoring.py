@@ -258,6 +258,7 @@ def publish_dashboard(
     *,
     project: str = "manabot",
     entity: str | None = None,
+    job_type: str = "training-monitor",
 ) -> str | None:
     """Resume one remote projection. Caller holds a single publisher lease.
 
@@ -271,7 +272,7 @@ def publish_dashboard(
         resume="allow",
         group=str(dashboard.config.get("regime_digest", dashboard.run_id)),
         name=f"{dashboard.config.get('training_run_id', dashboard.run_id)}",
-        job_type="training-monitor",
+        job_type=job_type,
         dir=str(out),
         config=flatten_config(dashboard.config),
         mode="online",
