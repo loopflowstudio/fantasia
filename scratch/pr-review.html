@@ -1,0 +1,220 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review: reports that reveal learning evidence</title><style>
+body{font:17px/1.55 system-ui;color:#233137;background:#fafbf9;max-width:1050px;margin:48px auto;padding:0 24px}h1{font-size:30px}h2{margin-top:56px;font-size:23px}a{color:#126577;text-underline-offset:3px}nav{display:flex;gap:20px;flex-wrap:wrap}table{border-collapse:collapse;width:100%}td,th{padding:12px;text-align:left;vertical-align:top;border-bottom:1px solid #cbd4d5}pre{font:14px/1.5 ui-monospace,monospace;overflow:auto;background:#edf1ef;padding:20px}figure{margin:24px 0}figcaption,small{font-size:13px;color:#526369}code{tab-size:4}@media(max-width:650px){body{padding:0 14px;margin:24px auto}table,tbody,tr,td{display:block}thead{display:none}td{padding:8px 0}pre{font-size:13px}}@media print{body{max-width:none}pre{white-space:pre-wrap;overflow-wrap:anywhere}}
+</style><main><h1>Read playing strength before reading loss</h1><p>ETU-117 builds on PR #248's editable notebook and read-only HTML contract. Open the completed history experiment, see the independent training seeds and missing initialization, then inspect the diagnostic sampling limits.</p><p><small>Base 33bce999414092768f7144428e8889ec8d140719; review head 6d8b644d356714aa01666bcded44abb2c49a7c1d. <a href="https://github.com/loopflowstudio/etude/pull/249">PR #249</a> is open for review. Local walkthrough; source links pin the implementation commit. Jack Heart's product/visual review is pending. No merge is authorized.</small></p><nav><a href="../.runs/etu117-demo/scientific/comparison.html">Scientific demo</a><a href="../.runs/etu117-demo/monitoring/comparison.html">Separate monitoring demo</a><a href="#refresh">Refresh</a><a href="#strength">Strength</a><a href="#diagnostics">Diagnostics</a></nav>
+<table><thead><tr><th>When you…</th><th>What happens</th><th>Where the code controls this</th></tr></thead><tbody>
+<tr><td>Run the saved report notebook again</td><td>Your edits remain; saved JSON produces HTML and a raw scalar download.</td><td><a href="#refresh">_execute reads an existing generator without rewriting it; write_comparison_notebook creates only absent files.</a></td></tr>
+<tr><td>Compare history-off with history-on</td><td>The scientific chart shows three fits per arm at two matched milestones; development and monitoring games stay separate.</td><td><a href="#strength">ScientificStudy represents the existing export; study_strength_figures checks complete cells and uses the existing seed/deal bootstrap.</a></td></tr>
+<tr><td>Inspect the entropy plateau</td><td>Per-regime panels show raw data and labeled smoothing. Missing/skipped updates remain gaps.</td><td><a href="#diagnostics">diagnostic_figures resets its window at missing records and stage boundaries; sampling counts retain their actual denominator.</a></td></tr>
+</tbody></table>
+<h2 id="refresh">Refresh preserves notebook edits and source artifacts</h2><p>Observed headless command (no browser rendering available):</p><pre><code>uv run python -m experiments.runners.report_history \
+  /Users/jack/src/etude.test-ataraxos-inspired-model-representations/.runs/etu106-history-input-continuation \
+  .runs/etu117-demo \
+  --monitoring /Users/jack/src/etude.test-ataraxos-inspired-model-representations/.runs/etu106-live-monitor
+
+.../.runs/etu117-demo/scientific/comparison.html
+.../.runs/etu117-demo/monitoring/comparison.html</code></pre><p>The driver copies JSON and hashes it. If retained bytes differ from a prior copy, it fails and asks for a fresh output directory; it does not overwrite the snapshot. Existing notebook edits survive refresh. The prototype notebooks in the other checkout are untouched.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/6d8b644d356714aa01666bcded44abb2c49a7c1d/experiments/runners/report_history.py#L65-L74">experiments/runners/report_history.py · _copy · 6d8b644d · lines 65–74</a></figcaption><pre><code>def _copy(source: Path, target: Path) -&gt; _CopiedEvidence:
+    payload = source.read_bytes()
+    if target.exists() and target.read_bytes() != payload:
+        raise ValueError(
+            f&quot;Retained copy differs: {target}; choose a fresh output directory&quot;
+        )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        target.write_bytes(payload)
+    return {&quot;source&quot;: str(source), &quot;copy&quot;: str(target), &quot;sha256&quot;: file_sha256(source)}</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/6d8b644d356714aa01666bcded44abb2c49a7c1d/experiments/runners/report_history.py#L77-L107">experiments/runners/report_history.py · _execute · 6d8b644d · lines 77–107</a></figcaption><pre><code>def _execute(root: Path, notes: str) -&gt; None:
+    path = root / &quot;report-generator.ipynb&quot;
+    fresh = not path.exists()
+    write_comparison_notebook(root, path)
+    notebook = nbformat.read(path, as_version=4)
+    if fresh:
+        notebook.cells[1].source += f&quot;\nNOTES += {notes!r}&quot;
+        if (root / &quot;supervisor.json&quot;).exists():
+            notebook.cells[1].source += (
+                &quot;\nevidence = replace(evidence, paths=(*evidence.paths, &quot;
+                &quot;DATA_ROOT / &#x27;supervisor.json&#x27;, DATA_ROOT / &#x27;study/history-contrast.json&#x27;))&quot;
+            )
+        if not (root / &quot;study/study.json&quot;).exists():
+            notebook.cells[3].source = (
+                notebook.cells[3]
+                .source.replace(
+                    &quot;strength_figures(evidence, &#x27;training_seconds&#x27;)&quot;,
+                    &quot;strength_figures(evidence, &#x27;training_seconds&#x27;, per_run=True)&quot;,
+                )
+                .replace(
+                    &quot;strength_figures(evidence, &#x27;environment_decisions&#x27;)&quot;,
+                    &quot;strength_figures(evidence, &#x27;environment_decisions&#x27;, per_run=True)&quot;,
+                )
+            )
+        nbformat.write(notebook, path)
+    before = path.read_bytes()
+    NotebookClient(
+        notebook, timeout=120, resources={&quot;metadata&quot;: {&quot;path&quot;: str(root)}}
+    ).execute()
+    assert path.read_bytes() == before
+    print(root / &quot;comparison.html&quot;)</code></pre></figure><h2 id="strength">Matched scientific milestones retain independent fits</h2><p>The scientific endpoint effect is 0 points [−11, +9.33], unresolved. Both scientific and monitoring evidence lack initialization. The earlier single-seed monitoring registrations differ in observation ABI, so their histories appear in separate per-run panels. Monitoring cannot fill a scientific baseline.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/6d8b644d356714aa01666bcded44abb2c49a7c1d/manabot/training/report_study.py#L68-L77">manabot/training/report_study.py · ScientificStudy · 6d8b644d · lines 68–77</a></figcaption><pre><code>class ScientificStudy(_Saved):
+    study: str
+    protocol_sha256: str | None = None
+    status: str
+    seeds: list[int]
+    seconds: float
+    accounting: str = &quot;Evaluation time; training costs are separate.&quot;
+    runs: list[StudyRun]
+    measurements: list[StudyMeasurement]
+    comparisons: list[StudyCell]</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/6d8b644d356714aa01666bcded44abb2c49a7c1d/manabot/training/report_study.py#L90-L162">manabot/training/report_study.py · study_strength_figures · 6d8b644d · lines 90–162</a></figcaption><pre><code>def study_strength_figures(
+    study: ScientificStudy,
+    axis: Literal[&quot;learner_transitions&quot;, &quot;training_seconds&quot;] = &quot;learner_transitions&quot;,
+) -&gt; list[Figure]:
+    &quot;&quot;&quot;Only complete common cutoffs; separate phase, weight variant and opponent.
+
+    Thin lines show independent fits. Thick intervals reuse the study&#x27;s existing
+    training-seed/common-deal bootstrap, not game-level pseudo replication.
+    &quot;&quot;&quot;
+    if study.status != &quot;completed&quot;:
+        return []
+    expected = {(r.regime, seed) for r in study.runs for seed in study.seeds}
+    panels = sorted({(m.phase, m.variant, m.opponent) for m in study.measurements})
+    figures: list[Figure] = []
+    for phase, variant, opponent in panels:
+        selected: list[StudyMeasurement] = []
+        cells: list[StudyCell] = []
+        for cutoff in sorted({m.cutoff for m in study.measurements}):
+            points = [
+                m
+                for m in study.measurements
+                if (m.phase, m.variant, m.opponent, m.cutoff)
+                == (phase, variant, opponent, cutoff)
+            ]
+            cohort = [
+                c
+                for c in study.comparisons
+                if (c.phase, c.variant, c.b, c.cutoff)
+                == (phase, variant, opponent, cutoff)
+            ]
+            if (
+                len(points) != len(expected)
+                or len(cohort) != len(expected)
+                or {(m.regime, m.seed) for m in points} != expected
+                or {(c.a, c.training_seed) for c in cohort} != expected
+                or not all(m.complete and m.score is not None for m in points)
+                or not all(c.complete for c in cohort)
+            ):
+                continue
+            identities = {
+                canonical_sha256(r.arena_key.model_dump(mode=&quot;json&quot;))
+                for c in cohort
+                for r in c.rows
+            }
+            deals = [{(r.deal_seed, r.leg) for r in c.rows} for c in cohort]
+            if len(identities) != 1 or any(d != deals[0] for d in deals):
+                continue
+            # Measurement summaries must agree with their retained terminal games.
+            for point in points:
+                cell = next(
+                    c
+                    for c in cohort
+                    if (c.a, c.training_seed) == (point.regime, point.seed)
+                )
+                score = sum(
+                    r.score_a for r in cell.rows if r.score_a is not None
+                ) / len(cell.rows)
+                if point.score is None or abs(score - point.score) &gt; 1e-9:
+                    raise ValueError(
+                        &quot;study measurement differs from retained arena rows&quot;
+                    )
+            selected.extend(points)
+            cells.extend(cohort)
+        identities = {
+            (
+                canonical_sha256(r.arena_key.model_dump(mode=&quot;json&quot;)),
+                r.player_b_registration_sha256,
+            )
+            for c in cells
+            for r in c.rows
+        }
+        if not selected or len(identities) != 1:
+            continue</code></pre></figure><p>Excerpt ends before plotting. Complete shared cutoffs are required; duplicate, failed or missing cells cannot become a comparative point. A summary score inconsistent with retained games fails explicitly. Thin lines show each fit; black intervals reuse <code>paired_uncertainty</code>, with no aggregate interval placed at an invented mean cost. Reading the export does not re-run admission, training or arena games.</p>
+<h2 id="diagnostics">Smoothing exposes trends without inventing averages</h2><p>1,044 of 2,965 saved entropy values are within .001 nat of ln(2); 35 updates have empty filters. The trainer retains the last optimized timestep minibatch, not an update-wide average. Binary near-uniform choices remain a hypothesis because last-minibatch support sizes were not saved. Policy objective already includes KL; the unregularized surrogate is unavailable.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/6d8b644d356714aa01666bcded44abb2c49a7c1d/manabot/training/experiment_report.py#L214-L298">manabot/training/experiment_report.py · diagnostic_figures · 6d8b644d · lines 214–298</a></figcaption><pre><code>def diagnostic_figures(evidence: ReportEvidence, *, window: int = 25) -&gt; list[Figure]:
+    &quot;&quot;&quot;One regime per figure; trailing means reset at missing values/stage boundaries.
+
+    A window counts retained diagnostic records, not games or minibatch samples.
+    Faint raw lines remain visible; no smoothing across unavailable observations.
+    &quot;&quot;&quot;
+    if window &lt; 1:
+        raise ValueError(&quot;smoothing window must be positive&quot;)
+    metrics = (
+        (&quot;rl/policy_loss&quot;, &quot;Policy objective (Ataraxos includes KL penalties)&quot;),
+        (&quot;rl/value_loss&quot;, &quot;Value loss (recipe-specific units)&quot;),
+        (&quot;rl/entropy&quot;, &quot;Last optimized minibatch entropy (nats)&quot;),
+        (&quot;rl/collection_kl&quot;, &quot;Collection reverse KL (nats, unweighted)&quot;),
+        (&quot;rl/reference_kl&quot;, &quot;Reference reverse KL (nats, unweighted)&quot;),
+        (&quot;rl/retained_fraction&quot;, &quot;Filter retention (selected / collected rows)&quot;),
+    )
+    figures: list[Figure] = []
+    saved = {r.id: evidence.metrics(r) for r in evidence.runs}
+    for regime in sorted({r.regime.id for r in evidence.runs}):
+        fig = Figure(figsize=(9, 10), layout=&quot;constrained&quot;)
+        axes = fig.subplots(3, 2).flat
+        for ax, (metric, title) in zip(axes, metrics, strict=True):
+            for run in (r for r in evidence.runs if r.regime.id == regime):
+                rows = saved[run.id]
+                x: list[float] = []
+                raw: list[float] = []
+                smooth: list[float] = []
+                history: list[float] = []
+                previous_stage: Scalar | None = None
+                previous_update: int | float | None = None
+                for row in rows:
+                    stage = row.get(&quot;stage/id&quot;)
+                    if stage != previous_stage:
+                        history.clear()
+                    previous_stage = stage
+                    update = row.get(&quot;progress/updates&quot;)
+                    if isinstance(update, (int, float)):
+                        if previous_update is not None and update &gt; previous_update + 1:
+                            history.clear()
+                            x.append(math.nan)
+                            raw.append(math.nan)
+                            smooth.append(math.nan)
+                        previous_update = update
+                    time = row.get(&quot;progress/training_seconds&quot;)
+                    value = row.get(metric)
+                    if not isinstance(time, (int, float)):
+                        history.clear()
+                        x.append(math.nan)
+                        raw.append(math.nan)
+                        smooth.append(math.nan)
+                        continue
+                    x.append(float(time))
+                    if not isinstance(value, (int, float)) or not math.isfinite(value):
+                        history.clear()
+                        raw.append(math.nan)
+                        smooth.append(math.nan)
+                    else:
+                        raw.append(float(value))
+                        history.append(float(value))
+                        history = history[-window:]
+                        smooth.append(mean(history))
+                (line,) = ax.plot(x, smooth, label=f&quot;seed {run.seed}&quot;)
+                ax.plot(x, raw, color=line.get_color(), alpha=0.16, linewidth=0.6)
+            if not any(math.isfinite(y) for line in ax.lines for y in line.get_ydata()):
+                ax.text(
+                    0.5,
+                    0.5,
+                    &quot;Unavailable in retained records&quot;,
+                    ha=&quot;center&quot;,
+                    transform=ax.transAxes,
+                )
+            if metric == &quot;rl/entropy&quot;:
+                ax.axhline(
+                    math.log(2),
+                    color=&quot;gray&quot;,
+                    linestyle=&quot;:&quot;,
+                    label=&quot;ln(2), not competence&quot;,
+                )
+            ax.set(title=title, xlabel=&quot;Recorded training seconds&quot;)
+            ax.legend(fontsize=7)
+        fig.suptitle(
+            f&quot;{regime} · trailing mean ≤{window} records / faint raw · gaps stay missing&quot;
+        )
+        figures.append(fig)
+    return figures</code></pre></figure><h2>Evidence and review boundary</h2><p>Eight focused offline report checks passed. Both real retained-data notebooks executed headlessly; SVG presence, HTML links, raw downloads and original/copy hashes passed validation. Generated charts are real, but no desktop or narrow-screen screenshot was possible in this environment.</p><p>An accidentally broad inherited test selection ran tiny training fixtures and started monitoring. It was interrupted after 18 checks passed, with no completed monitoring rows. Receipts remain in <code>.runs/etu117-interrupted-validation</code>; no source experiment or live campaign was modified. This does not count as scientific evidence.</p><p>Pipeline/replay smoke tests do not demonstrate learned behavior improves. A positive-control design is separate work. Jack Heart still needs to judge whether the default reading route and diagnostic panels are clear enough; no approval is inferred from headless execution.</p><p><a href="../docs/evidence/history-report-learning-2026-10-06.md">Evidence and reproduction</a> · <a href="../docs/experiment-metrics.md">Metric definitions and sampling</a></p></main></html>
