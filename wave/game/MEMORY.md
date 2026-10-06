@@ -141,3 +141,10 @@ fixture positions and scope. The original reported position is still unknown;
 Bolt-only spell projection remains a known coverage gap. Fixture regressions and
 automated checks do not close human-play or full-game recurrence acceptance.
 Keep ETU-76 open for those outcomes.
+
+Terminal visual captures must settle semantic narration explicitly: reduced
+motion preserves reading time, and CSS animation suppression leaves JavaScript
+beat timers running. PR #199's terminal failure was capture readiness, confirmed
+by narration-only artifact diffs and a clock-controlled browser regression.
+Keep the reference corpus and tolerances unchanged; focused macOS readiness
+checks do not certify the full Linux release matrix.

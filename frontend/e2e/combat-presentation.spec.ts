@@ -12,6 +12,8 @@ import type {
   RecoveryEnvelope,
 } from '../src/lib/types';
 
+import { finishBoardNarration } from './presentation-readiness';
+
 type InputMode = 'keyboard' | 'pointer';
 
 interface CombatPromptReceipt {
@@ -144,6 +146,7 @@ async function installCombatAuthority(
   page: Page,
   commands: Command[],
   events: PresentationEvent[] = [],
+  terminal = false,
 ): Promise<void> {
   await page.routeWebSocket('**/ws/play', (socket) => {
     socket.onMessage((raw) => {
@@ -153,6 +156,12 @@ async function installCombatAuthority(
       };
       if (message.type === 'new_game') {
         const frame = frameAt('attack');
+        if (terminal) {
+          frame.projection.game_over = true;
+          frame.winner = 1;
+          frame.prompt = null;
+          frame.offers = [];
+        }
         socket.send(JSON.stringify({
           type: 'observation',
           data: frame.projection,
@@ -336,3 +345,40 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
     await expect(page.getByTestId('action-option').first()).toBeEnabled();
   });
 }
+
+
+test('terminal capture finishes JavaScript narration and retains consequences', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installCombatAuthority(page, [], combatSequence.events as PresentationEvent[], true);
+  await page.goto('/');
+  await expect(page.getByTestId('connection-badge')).toHaveText('connected');
+  await page.clock.install({ time: 0 });
+  await page.clock.pauseAt(100);
+  await page.getByRole('button', { name: 'New Game' }).first().click();
+  const board = page.getByTestId('game-board');
+  const stage = page.getByTestId('presentation-stage');
+  const resultAction = page.getByTestId('game-result-action');
+  await expect(resultAction).toBeFocused();
+  await expect(page.getByTestId('action-option')).toHaveCount(0);
+  await page.evaluate(() => document.fonts.ready);
+
+  // Reproduce the capture hazard: reduced motion and disabled CSS animations
+  // still allow a pending semantic beat to change the terminal board pixels.
+  await expect(stage).toHaveAttribute('data-presentation-kind', 'attack_group');
+  const beforeBeat = await board.screenshot({ animations: 'disabled' });
+  await page.clock.runFor(500);
+  await expect(stage).toHaveAttribute('data-presentation-kind', 'blocked');
+  expect((await board.screenshot({ animations: 'disabled' })).equals(beforeBeat)).toBe(false);
+
+  await finishBoardNarration(page);
+  await expect(stage).toBeHidden();
+  await expect(resultAction).toBeFocused();
+  const history = page.getByTestId('presentation-history');
+  await expect(history.getByRole('listitem')).toHaveCount(6);
+  await expect(history).toContainText('Otter-Penguin, Badgermole Cub die.');
+  const settled = await board.screenshot({ animations: 'disabled' });
+  await page.clock.runFor(10000);
+  expect((await board.screenshot({ animations: 'disabled' })).equals(settled)).toBe(true);
+  await finishBoardNarration(page);
+  await expect(resultAction).toBeFocused();
+});
