@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "started_utc": "2026-10-06T17:42:01.462941+00:00",
+  "host": {
+    "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpu": "x86_64",
+    "memory_bytes": "unavailable",
+    "logical_cpus": 48,
+    "load_average": [
+      9.2646484375,
+      11.970703125,
+      11.58642578125
+    ]
+  },
+  "mode": "simulator",
+  "command": [
+    "uv",
+    "run",
+    "--no-sync",
+    "-m",
+    "experiments.runners.distributed_workloads",
+    "--mode",
+    "simulator",
+    "--out",
+    "/root/bench/sim-1/workload",
+    "--seconds",
+    "3.0",
+    "--timeout",
+    "110",
+    "--seed",
+    "108"
+  ],
+  "timeout_seconds": 110,
+  "threads": 1,
+  "device": "cpu",
+  "recipe_input_sha256": null,
+  "recipe_input_path": null,
+  "head": "fd7437dfd84cd1e24785a6d7febee78fceff3d80",
+  "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "files": {
+    "/workspace/etude/experiments/runners/distributed_benchmark.py": "1d34ed8199305ecb405e966356286c5c18fe2c1d705f98104018e68adb62ca0b",
+    "experiments/runners/distributed_workloads.py": "234b6665bbe977413f1f7e5fc42e9fe62f96874bc7474d8b50b2ac32e241feb5",
+    "uv.lock": "5c8026a984537e7f457e0b010edd433193f86f3f17c1fe66d0f2d3962274ff5f"
+  },
+  "status": "prepared",
+  "limits": [
+    "No energy or thermal measurement",
+    "Child rusage peak RSS is not aggregate process-tree peak",
+    "No hardware comparison under contention",
+    "No distributed contributions measured",
+    "Recipe memory_bytes is a requested budget, not an enforced memory limit",
+    "Timed-out child store may require reconciliation; summary is not TrainingRun authority"
+  ]
+}
