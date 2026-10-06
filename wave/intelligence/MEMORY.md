@@ -1,5 +1,26 @@
 # Intelligence memory
 
+## Distributed RL research boundary (ETU-108, 2026-10-05)
+
+Jack Heart requested primary-source research and a disposable laptop/mini
+prototype where both hosts contribute to one model; speedup is not acceptance.
+The initial contribution prepares research and a bounded scratch benchmark
+harness only. Value-token training remains the immediate priority; ETU-91 is
+untouched. No distributed training, hardware comparison or strength result
+exists from this pass. Mini access failed once on host name resolution; no
+access repair followed. Compute workloads remain unexecuted.
+
+Actor/inference placement and stale-data admission are separate decisions.
+Current PPO and the Ataraxos move rule retain collection behavior but do not
+implement V-trace; clipped ratios and reverse KL do not authorize arbitrary
+policy lag. Preserve same-viewer terminal/bootstrap boundaries, full behavior
+distributions, opponent versions, unique sample accounting and one optimizer
+owner before adding transport. Zero-lag collection is a compatibility baseline
+proposal, not reinstatement of the superseded synchronous-round decision.
+Synchronization and placement await measurements and an explicit estimator
+contract. The Task scratch retains primary sources, code seams, proposed retry
+semantics, benchmark entry points and outstanding prototype acceptance.
+
 ## Focused value-model priority (ETU-106, 2026-10-05)
 
 Jack Heart authorized historical mean, validity-masked mean, one-layer value
