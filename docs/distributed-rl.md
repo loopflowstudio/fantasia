@@ -1,10 +1,12 @@
-# Distributed RL: research and benchmark preparation (ETU-108)
+# Distributed RL: research and mini feasibility evidence (ETU-108)
 
-2026-10-05. Research contribution on base `be6260d9136e49069a12864514b849811f32b32d`.
-Jack Heart requested research and a disposable prototype in which laptop and mini
-contribute to one learner. This contribution prepares that work; it does not
-implement the distributed prototype or complete ETU-108. Speedup is an observation,
-not the acceptance condition. No scientific run, paid compute, or strength claim.
+Research began 2026-10-05 on `be6260d9136e49069a12864514b849811f32b32d`;
+mini receipts were reviewed on 2026-10-06. Jack Heart requested research and a
+disposable prototype in which laptop and mini contribute to one learner. Mini
+single-host probes now demonstrate collection, inference, training and a separate
+replay-verified workflow. They do not implement that distributed prototype or
+complete ETU-108. Speedup is an observation, not the acceptance condition.
+The evidence-report follow-up ran no benchmarks and accessed no ETU-106 checkout.
 
 ## Findings and immediate recommendation
 
@@ -22,16 +24,13 @@ The old synchronous-round proposal is not an accepted decision. Zero-lag batches
 are the conservative compatibility baseline; bounded-lag PPO and a separately
 implemented V-trace learner remain competing experimental choices.
 
-The actual comparison is not yet possible: mini name resolution failed and this
-checkout has no `.venv`. No native rebuild, environment installation, model run,
-network benchmark, or campaign mutation occurred. The earlier contribution
-incorrectly said this base predates value-token support.
-Full forward-path inspection on 2026-10-05 corrects that finding: the base already
-supports historical mean, validity-masked mean and value-token aggregation, plus
-one or two attention layers. The prepared `ataraxos-move.json` recipe omits the
-aggregation/depth fields, selecting historical mean and one layer by AgentSpec
-default. That recipe choice limits representativeness; missing implementation
-does not. No sync or model implementation is needed to select existing variants.
+Matched comparison remains unavailable: mini has completed feasibility probes,
+but laptop compute and transfer measurements remain outstanding. The original
+name-resolution failure is historical, not a current access diagnosis. The base
+already supported historical mean, masked mean and value-token aggregation plus
+extra attention layers. The initial fixed probe selected historical mean and one
+layer by default; the representative run selects width-64 masked mean explicitly.
+These are configuration choices, not missing model implementations.
 
 `Agent.forward` calls `forward_distribution`, which gathers visible/optional
 belief objects, appends a valid neutral value token when configured, and runs
@@ -177,24 +176,24 @@ and lag policy reversible. Defer multi-learner all-reduce, fault-tolerant shared
 storage, autoscaling, a general actor framework, remote recurrent-state migration
 and league scheduling until measurements require them.
 
-## Benchmark preparation and retained observations
+## Benchmark evidence and remaining measurements
 
-**Declared contribution budget:** no training runs; one name-resolution/access
-attempt; dependency-free inventory and syntax/guard checks only. Later harness
-invocations allow one CPU thread, at most 110 seconds per child with five seconds
-for kill/reap. Microbenchmark timing windows default to three seconds (maximum
-ten). This is a per-diagnostic cap, not an allocation for repeatedly benchmarking.
+**Original research-only budget (2026-10-05):** no training runs; one name-resolution/access
+attempt; dependency-free inventory and syntax/guard checks only. The supervisor
+defaults to 110 seconds and one CPU thread, with five seconds for kill/reap. Explicit `--timeout` admits at most 240 seconds, matching the
+retained representative probe ceiling; recipe budgets never raise this deadline.
+Microbenchmark timing windows default to three seconds (maximum ten). This is a per-diagnostic cap, not an allocation for repeatedly benchmarking.
 Value-token training keeps priority. No ETU-91 files or running services changed.
 
 | Observation | Result |
 | --- | --- |
 | Laptop inventory, `sysctl` and `uname` | Apple M4 Max; arm64; 16 logical CPUs; 137,438,953,472 bytes RAM (128 GiB) |
 | `lf home ssh mini home id`, one attempt | Exit 1: `ssh: Could not resolve hostname mini: nodename nor servname provided, or not known`; then `failed to write preamble to ssh`, broken pipe |
-| Mini hardware/device/runtime | Unknown; access failed before a remote command result |
+| Mini at initial research pass | Access failed before a remote result; superseded by the retained measurements below |
 | Tailscale RTT/bandwidth | Unmeasured; name-resolution failure is not a latency measurement |
 | Local environment | `.venv/bin/python` absent; no install or native build attempted |
 | Inventory host load | One/five/fifteen-minute load averages 62.20 / 58.99 / 48.41; this is contention context, not attribution to a particular job |
-| Compute workloads and two-host training | Not run; no speedup, update, export or evaluation evidence from this contribution |
+| Original research contribution | No compute workloads; subsequent mini results below remain single-host evidence |
 
 The original [inventory receipt](../experiments/data/etu108/inventory.json) and
 [missing-environment rejection](../experiments/data/etu108/missing-environment.json)
@@ -210,22 +209,101 @@ summary records child CPU seconds and OS-reported child max RSS, not a sampled
 aggregate memory peak, energy consumption or throttling estimate. No stored
 credentials or environment dump. Host load is context, not contention correction.
 
-Prepared modes:
+### Completed mini attempts (2026-10-06)
+
+The [compact evidence extract](../experiments/data/etu108/mini-20261006.json)
+retains exact source/runtime/world/ABI/configuration and artifact identities,
+per-stage counters, resource observations, the failed traceback and SHA-256 hashes
+of the supplied files. It was extracted from
+`/Users/jack/src/etude.agent-9039d61b/.runs/etu108-mini-20261006/`, including
+`summary.json`, all five initial attempt directories and
+`etu108-mini-representative-1/{result.json,recipe.json,run/run.json,verified-summary.json}`.
+Original remote paths remain provenance; raw checkpoints/tensors are not committed.
+Artifact verification is reported from the retained receipt, not rerun here.
+
+Mini is Apple M1, 8 logical CPUs, **16 GiB** (17,179,869,184 bytes),
+macOS 15.5 arm64; training records identify Torch 2.10.0. All probes use CPU,
+one thread. Initial attempts used `d154a4b27aaf11812125a5a1140d1ddf766dffcd`;
+inference retry and representative training used PR #237's merged source
+`1941b831d9f6a48e590fac68a91aef533453df45`. Initial supervisor caps were
+110 seconds each; timing windows were three seconds. The representative process
+cap was 240 seconds, with a 220-second regime and 100 seconds per stage.
+These receipts describe completed attempts, not a new allocation.
+
+| Attempt suffix | Observation / denominator | Attempt wall seconds | Child CPU seconds / max RSS bytes |
+| --- | --- | ---: | ---: |
+| simulator-1 | 100,564 surfaced decisions / 3.00004 s = 33,520.87/s | 12.455 | 6.536 / 317,128,704 |
+| inference-1 | Failed at collector cleanup; no timing measurement | 2.015 | 1.637 / 279,068,672 |
+| inference-2 | 9,216 forward observations / 3.01714 s = 3,054.55/s | 5.338 | 4.762 / 339,542,016 |
+| train-1 | 128 learner transitions; both collect/update iterations skipped optimization, zero exposures | 5.444 | 4.034 / 373,489,664 |
+| complete-1 | 8/8 complete replay-verified arena games; separate calibration recipe | 30.054 | 29.899 / 444,039,168 |
+
+The initial inference failure was `AttributeError` on
+`SeatRoutedCollector.close()`. PR #237 releases the collector reference in
+`finally`: its native environment follows object lifetime. The failed attempt
+remains intact; inference-2 is a new attempt, not replacement evidence.
+Simulator measurements include wrapper/random-sampling overhead, not pure Rust
+ticks. Forward timing excludes initialization and collection and repeats a fixed
+real batch of 64 on an untrained 11,316-parameter width-16 WDL model.
+
+Tiny train-1 used seed 108 and 4 streams × 16 transitions × 2 iterations,
+with 2.856 training seconds. Both filters were empty; it is not gradient-throughput
+evidence. Complete-1 used calibration seed 197, 512 learner transitions and 256
+optimizer exposures over two stages; training took 2.597 seconds. Evaluation
+including replay took 25.801 seconds, of which replay was 3.929 seconds (do not
+add it again). This different direct-self-play objective and tiny workflow do not
+measure the representative model's strength.
+
+### Representative single-host training
+
+Run `e0007af0847a4f45abbf42b12f937c63`, seed 10831, used w4 authored
+UR Lessons versus GW Allies with sideboards, semantic input, width 64, four
+attention heads, one layer, scalar value with masked mean pooling. Its Ataraxos
+move recipe uses current-self behavior, .75 quantile, zero advantage floor and
+actor_critic filtering. This is neither the tiny WDL probe nor a value-token run.
+
+Two linked stages each completed 10 updates × 4 streams × 64 transitions:
+**5,120 learner transitions in 68.60 training seconds / 70.73 process seconds**.
+There were 10,706 environment decisions, 51 completed training games and 1,280
+optimizer sample exposures, with no empty-filter skips. Collection used 26.760
+seconds; learning (including targets/filter/minibatch overhead) used 40.776;
+exports used 0.063. Summed stage CPU time was 68.134 seconds. The derived rate
+is 74.63 learner transitions per training second; it is not useful learning
+progress or a simulator rate. Six artifacts (raw, EMA and optimizer for each
+stage) appear in the verified receipt; optimizer artifacts are not playable
+policies. No representative arena evaluation was performed.
+
+Actual RAM was 16 GiB, while the inherited recipe declared **32 GiB** per-stage
+execution memory. This mismatch is retained: completion does not demonstrate
+memory enforcement or validate capacity for that budget. Maximum sampled stage
+RSS was 497,991,680 bytes (below 500 MB); it is not an exact aggregate peak.
+The representative supervisor did not record whole-process CPU/max-RSS fields;
+stage resource receipts must not be substituted for those missing quantities.
+
+One short run per successful workload gives no cross-run uncertainty, hardware
+ranking, speedup, learning-strength, GPU or distributed-training result. Mini can
+execute this bounded local path. Matched laptop workloads, transfer costs and
+both machines contributing to one learner remain necessary before placement or
+synchronization is selected. The tiny empty-filter result is a reason to inspect
+optimizer exposures rather than treat completed iterations as gradient work.
+
+Harness modes and their scopes:
 
 | Mode | Denominator and scope |
 | --- | --- |
 | `inventory` | No Torch/native imports or training; host and source receipt only |
 | `simulator` | Four native streams, random legal actions, current authored setup; surfaced decisions/s including wrapper/tensor/sampling overhead, not pure Rust ticks/s |
-| `inference` | Width-16 semantic WDL Agent; batch 64 drawn from a real 4-stream, 16-step self-play collection; forward observations/s, initialization and collection excluded |
-| `train` | Existing Ataraxos recipe narrowed to two updates, 4 streams × 16 transitions/update; executor phase clocks isolate actual gradient-update time and sample exposures; raw/EMA exports through ordinary admission |
+| `inference` | Defaults to width-16 semantic WDL, batch 64; an explicit recipe selects AgentSpec, match/observation and first self-play stage streams × transitions. Forward observations/s excludes initialization and collection; no weights are trained or loaded |
+| `train` | Defaults to two iterations, 4 streams × 16 transitions/iteration; an explicit recipe executes unchanged through TrainingRegime. Reports collection, learning and export clocks, completed iterations, learner transitions, optimizer exposures and empty-filter skips |
 | `complete` | Existing CPU calibration (its own direct-self-play recipe and seed), export plus eight exact-replayed arena games; outer cap can cut it short and is not relaxed on failure |
 
-The inference batch is one small, untrained trajectory sample, not a representative
+The inference batch is one untrained trajectory sample, not a representative
 state distribution for every checkpoint. It measures neither actor throughput nor
 useful learning. Train-mode learning time includes target/filter/minibatch
 overhead; a pure backward-kernel test is still missing. Complete mode uses a
 different objective from the Ataraxos micro workload and must be labeled as such.
-The harness is prepared, not runtime-certified against Torch/native dependencies.
+The retained mini attempts exercise these paths; their single-run coverage is not
+a general runtime or hardware certification.
 
 ### Reproduction and stopping
 
@@ -250,22 +328,66 @@ Ctrl-C stops its own child process group and retains an interrupted result;
 the deadline does the same for timeout. Use a new output path for every attempt.
 An external hard kill of the supervisor itself is outside this cleanup promise.
 
-No working remote launch is supplied: the host is unresolved. Once that external
-prerequisite is fixed, placement/remote task execution must use `lf`; run the same
+For a future authorized representative measurement, supply resolved TrainingRegime
+JSON with `--recipe` and a declared `--seed` (default 108). For example, after
+exporting the desired recipe to `.runs/representative-recipe.json`:
+
+```bash
+uv run --no-project --python 3.12 --no-python-downloads experiments/runners/distributed_benchmark.py \
+  --mode train --recipe .runs/representative-recipe.json --seed 10831 \
+  --timeout 240 --out .runs/etu108-representative-new
+```
+
+This is an unexecuted launch example, not an allocation. The exact representative
+mini recipe is retained in the compact evidence extract's
+`attempts[attempt="etu108-mini-representative-1"]["recipe.json"]`; it declares
+220 seconds overall and 100 per stage. It can be exported as JSON without
+importing its original ad hoc script. A new run binds current source/runtime
+identities; it cannot inherit the old measurement or source identity. Inference
+can use the same recipe and seed in another fresh attempt directory, but measures
+an untrained model and only the first stage's collection geometry. Remaining
+stages are provenance, not executed inference work.
+
+Only inference and train accept recipes. Admission uses the ordinary regime
+validator and requires current-self self-play stages, CPU float32, one worker
+and one thread; unsupported stages, belief input, EMA/frozen behavior, wrong
+worlds, malformed fields and budgets beyond the supervisor cap fail explicitly.
+PPO and Ataraxos move settings retain their existing validators. Simulator remains
+a fixed four-stream probe; complete retains calibration's own recipe and seed
+197. Neither silently consumes a supplied recipe or custom calibration seed.
+
+`input-recipe.json` preserves supplied bytes and their SHA-256 before the child
+launches. `workload/recipe.json` is the resolved recipe; `identity.json` binds its
+canonical regime digest, serialized recipe hash, training source bundle,
+Python/Torch/native runtime, world/setup/ABI, seed and requested memory by stage.
+The supervisor retains its source hashes, host RAM and actual deadline separately.
+Requested memory is **not enforced** by this harness. Raw/EMA checkpoint admission,
+TrainingRun and VerifyStore remain the training authorities.
+
+Train's `measurement.json` projects completed iterations, learner transitions,
+optimizer exposures and explicit empty-filter skips from TrainingRun; an iteration
+is not proof of a gradient update. Learning time includes target/filter overhead
+and may be positive with zero exposures. On executor exceptions, original store
+and run failure receipts plus supervisor logs remain authoritative; abrupt kill
+may leave no summary, which must not be treated as zero work. Per-stage resources
+and diagnostics remain in `training-result.json` on normal return.
+
+Remote mini execution succeeded in the retained receipts. Future placement/remote
+task execution must use `lf`; run the same
 harness at the pinned source on mini. Do not copy a Mac native extension blindly
 or infer the remote repository path. Do not launch another coding agent merely
 to obtain benchmark numbers. The local command above is the workload entry point,
 not a tested `lf` remote-execution recipe.
 
-### Measurement plan that still needs execution
+### Remaining matched measurement plan
 
 Measure both hosts independently with identical code/runtime/content, AgentSpec,
 batch/stream sizes and seeds; preserve cold startup separately from warm timing.
 Repeat only under a separately declared aggregate budget. Report device and thread
 counts, memory and host load beside the counters. Select intended value-token/depth
-variants through existing AgentSpec fields and
-add PPO recipe contrasts before representative comparisons; the current fixed
-harness exposes neither contrast. Do not retrofit any future results.
+variants and PPO/Ataraxos contrasts through existing AgentSpec and TrainingRegime
+fields. The explicit recipe path now
+exposes these choices without changing the learner. Do not retrofit future results.
 
 For transfer, measure application echo RTT (median/p95) on a persistent connection,
 then bidirectional uncompressed transfer of 1 KiB, 1 MiB and actual serialized
@@ -309,9 +431,10 @@ active ETU-91 campaign and its budget are not borrowed for this prototype.
 
 Reusable result: the estimator/transport distinction and explicit provenance,
 admission and accounting boundaries. Disposable result: the benchmark supervisor
-and fixed smoke workloads. Unresolved: machine placement, synchronization,
+and its smoke defaults; explicit recipes reuse the existing domain executor.
+Unresolved: machine placement, synchronization,
 safe nonzero lag for each rule, actor quotas under heterogeneity, representative
-model size, remote provisioning and the aggregate prototype budget.
+model size, matched runtime provisioning and the aggregate prototype budget.
 
 Prior contribution checks: Python 3.12 AST parsing passed; inventory and missing-venv guard passed;
 isolated subprocess fixtures passed success, exit-7 failure and timeout/SIGKILL
@@ -327,8 +450,8 @@ Recommend one optimizer/checkpoint owner with explicit actor, inference and froz
 evaluation boundaries. Actor-local batched inference is a useful first candidate:
 it avoids a network round trip per decision. Central inference becomes attractive
 only when measured batching/device gains exceed transfer and queue delay. Keep
-placement reversible and bind exact behavior artifacts in either design. No host
-placement has been selected or measured here.
+placement reversible and bind exact behavior artifacts in either design.
+Single-host mini costs are measured; two-host placement remains unselected.
 
 Policy lag is an independent algorithm decision. Zero-lag collection can exercise
 current PPO and Ataraxos contracts without changing their estimator, but does not
@@ -341,7 +464,8 @@ that either existing learner tolerates stale data.
 
 The review leaves placement, quotas and nonzero lag unresolved until measurements.
 The reusable deliverable is the ownership/data contract and bounded supervisor;
-the fixed workloads are disposable probes. Two-host contributions, updates,
+the smoke defaults are disposable probes, with explicit recipes available for later
+matched measurements. Two-host contributions, updates,
 checkpoint reload, replay evaluation and disconnect accounting still define the
 prototype finish line. ETU-108 remains open. This is agent technical review;
 no human architecture approval or completed distributed system is claimed.
@@ -352,6 +476,12 @@ Delivery checks (2026-10-05): six dependency-free supervisor tests pass via
 focused Ruff lint/format and Python 3.12 AST checks pass. Fixtures cover inventory,
 missing environment, successful child, exit-7 failure, launch failure and timeout
 with child reap. They do not import Torch/native code or certify its workloads.
-The existing CI Python unit job includes these tests; native/runtime certification
-of the benchmark remains future work. No model, training, remote access or
-scientific measurement ran during delivery review.
+The existing CI Python unit job includes these tests. These historical delivery
+checks were dependency-free; the subsequent mini runtime evidence is recorded
+above. The evidence-report pass only parsed and checked retained files.
+
+Software-only follow-up checks (2026-10-06): 25 supervisor/workload fixtures and
+seven rejection subtests passed, with focused Ruff lint/format checks. Executor,
+collector and forward work are replaced by fixtures; no training, games or
+benchmark measurements ran. CI includes the recipe fixtures in both native
+integration jobs. This establishes propagation and receipt handling, not throughput.
