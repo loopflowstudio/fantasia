@@ -932,3 +932,7 @@ live in [calibration documentation](../../docs/training-calibration.md).
 ETU-91 remained untouched; no scientific capacity study, paid compute, demo or
 chapter acceptance follows. The declarative-recipe follow-up should continue to
 use AgentSpec and these derived receipts rather than add an architecture owner.
+Trainable counts describe export-time flags, not optimizer exposures. Calibration
+inference batches are identified per checkpoint but need not match across arms;
+their timings cannot isolate capacity alone. Cold measurements mean fresh model
+construction/loading in an initialized process, not cold imports or OS caches.
