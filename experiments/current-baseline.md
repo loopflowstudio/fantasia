@@ -1,6 +1,6 @@
 # Current learning baseline — ETU-118
 
-Status: fresh storage admission passes; current-source calibration required; debugging evidence only.
+Status: storage admitted; third calibration timed out; no sustained launch.
 The sustained learner has not started; daily-test validation remains open. Jack Heart authorized
 bounded local CPU evidence on 2026-10-06. No self-play, architecture superiority,
 full-matchup improvement or chapter acceptance follows from this fixture.
@@ -412,3 +412,32 @@ Compact recovery verification: 28 selected recovery/allocation checks passed,
 including exact state, abrupt exit, multistage completion, setup-failure lineage
 and missing/changed diagnostic rejection. Three amended admission checks passed.
 These are software checks, separate from experimental preparation charges.
+
+
+### Format-3 calibration attempt 3 (2026-10-06)
+
+At committed source `221a7f74`, `.runs/etu118-calibration-3` acquired the shared
+evaluator lease and began the unchanged 32-update recipe. Initialization evaluation
+completed during training in 20.412291165994247 process seconds. The first learner
+hit its 220.2955432776862-second cap; the supervisor retained a failed attempt at
+220.48584691699943 process seconds and stopped with two seeds pending. There is
+no committed 32-update checkpoint. The pre-kill TrainingRun export says running;
+the completed supervisor failure receipt is authoritative for this process exit.
+This is incomplete timing evidence, not a live learner or permission to retry.
+
+The [attempt manifest](data/current-baseline-calibration-3.json) and
+[byte-preserving archive](data/current-baseline-calibration-3.zip) retain receipts,
+logs and editable notebook. Full SQLite and private state remain in the original
+directory. Charged cost is 240.89813808299368 seconds (additive process occupancy,
+larger than 220.5782599170052 elapsed). Preparation is now 3030.011508249935 seconds;
+569.9884917500649 remain under the original 3600-second exploration ceiling and
+601769.9884917501 under the seven-active-day total. Software tests remain separate.
+
+No complete current-source calibration means no frozen horizon, immutable execution
+bundle or sustained launch. The observed first-seed timeout makes a complete
+three-seed retry within the remaining exploration allocation unsupported. A revised
+calibration allocation/protocol must be explicitly fixed within the remaining week
+before another attempt; no cost reset or shortened toy endpoint is inferred.
+Sustained execution also needs the shared-evaluator coordination described in the
+working design, live random-diagnostic scheduling, and the existing S3 publication
+contract resolved. ETU-105 owns the next mini workload; no duration duplicate ran.

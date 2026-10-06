@@ -12,17 +12,15 @@ strength/uncertainty and freshness; no automatic statistical plateau stop exists
 
 Three lethal-target seeds rose 50→100% with unchanged controls after a retained
 root failure. Full-game gains +6.25/+8.33/+6.25 missed the +10-point mean criterion. Neither establishes sustained strength.
-Exact-recipe calibration timed out at 64 updates; the amended 32-update probe
-completed one seed in 200.78 seconds before disk crossed the 4 GiB reserve.
-Both attempts stopped; total experimental preparation is 2788.716979166954 seconds.
-Format 3 removes repeated snapshot diagnostics: count/digest references hydrate
-exact prefixes from the original writer's VerifyStore rows, preserving resume
-coordinates and exports. Retained snapshots stay unchanged. Offline re-encoding
-projects a provisional 6.361 GiB cohort plus 4 GiB reserve against 6.220 GiB free;
-run copies/evaluation still need storage. Fresh admission now passes at 195.33 GiB
-free; calibration remains required before launch.
-Storage measurement adds 0.396391 seconds to preparation; 810.887 seconds remain
-in the original exploration allowance. No sustained learner or frozen plan exists. The [protocol and hash-bound evidence](../../experiments/current-baseline.md)
+Calibration attempts remain retained: 64 updates timed out; a 32-update seed
+completed before disk exhaustion; format-3 attempt 3 timed out at 220.296 seconds.
+Its initialization evaluation completed live; two seeds stayed pending. Preparation
+is 3030.011508249935 seconds, leaving 569.988492 in the exploration cap. No retry.
+Format 3 binds diagnostic prefixes to VerifyStore, preserving offsets and exports;
+28 recovery/allocation checks passed. Storage readmission now passes at 195.33 GiB
+free versus 6.361 GiB projected plus reserve. Complete calibration still gates launch;
+an amended calibration allocation within the remaining week needs fixing first.
+No sustained learner or frozen plan exists. The [protocol and hash-bound evidence](../../experiments/current-baseline.md)
 own failures, costs and checks. Seven-day authorization persists; sustained learning,
 daily validation and Task acceptance remain open.
 
