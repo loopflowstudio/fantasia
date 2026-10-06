@@ -8,8 +8,6 @@ selection belongs to subsequent analysis, after sustained improvement exists.
 
 import argparse
 from copy import deepcopy
-import gzip
-import json
 import math
 from pathlib import Path
 import shutil
@@ -43,6 +41,7 @@ from manabot.training.models import (
     TrainSelfPlay,
 )
 from manabot.training.monitor_evaluation import MonitorProtocol
+from manabot.training.recovery import load_update
 from manabot.verify.store import VerifyStore
 
 SEEDS = (11851, 11852, 11853)
@@ -152,16 +151,22 @@ def declaration(regime: TrainingRegime, schedule: ExperimentSchedule) -> Experim
     )
 
 
-def calibration(out: Path) -> ExperimentRun:
-    """Three timing seeds, 32 exact-recipe updates each; at most 1,050 seconds total."""
+def calibration(out: Path, preparation_seconds: float) -> ExperimentRun:
+    """Three timing seeds, bounded by the original exploration allocation."""
+    if not math.isfinite(preparation_seconds) or preparation_seconds < 0:
+        raise ValueError("preparation cost must be finite and nonnegative")
+    allowance = min(1050.0, 3600.0 - preparation_seconds)
+    if allowance <= 150:
+        raise ValueError("remaining exploration budget cannot admit calibration")
+    learner_allowance = min(240.0, (allowance - 150) / len(CALIBRATION_SEEDS))
     schedule = ExperimentSchedule(
         seeds=CALIBRATION_SEEDS,
         hardware="etu118-laptop",
-        wall_seconds=1050,
-        process_seconds=1050,
+        wall_seconds=allowance,
+        process_seconds=allowance,
         active_runtime=True,
         monitoring=MonitoringBudget(
-            seconds=300,
+            seconds=150,
             attempt_seconds=50,
             active_runtime=True,
             include_initial=True,
@@ -170,7 +175,9 @@ def calibration(out: Path) -> ExperimentRun:
         checkpoint_seconds=3600,
     )
     return run_experiment(
-        declaration(recipe((CALIBRATION_UPDATES,), 240), schedule), hardware(), out
+        declaration(recipe((CALIBRATION_UPDATES,), learner_allowance), schedule),
+        hardware(),
+        out,
     )
 
 
@@ -207,10 +214,16 @@ def freeze(
         or record.hardware != hardware().resources[0]
     ):
         raise ValueError("complete current-source calibration required")
+    calibration_schedule = ExperimentSchedule.model_validate(record.intent["schedule"])
+    learner_allowance = min(
+        240.0,
+        (calibration_schedule.process_seconds - calibration_schedule.monitoring.seconds)
+        / len(CALIBRATION_SEEDS),
+    )
     expected = (
         declaration(
-            recipe((CALIBRATION_UPDATES,), 240),
-            ExperimentSchedule.model_validate(record.intent["schedule"]),
+            recipe((CALIBRATION_UPDATES,), learner_allowance),
+            calibration_schedule,
         )
         .resolve()
         .cases[0]
@@ -228,7 +241,6 @@ def freeze(
         raise ValueError("preparation must include calibration and prior experiments")
     per_update = []
     snapshot_sizes = []
-    snapshot_growth = []
     json_sizes = []
     for run, attempt in zip(runs, record.attempts, strict=True):
         costs = np.array(
@@ -255,14 +267,14 @@ def freeze(
             or file_sha256(state_path) != run.recovery_artifact["sha256"]
         ):
             raise ValueError("retained calibration recovery bytes changed")
-        diagnostics = [d for stage in run.stages for d in stage.diagnostics]
+        with VerifyStore(calibration_root / "experiment.sqlite") as store:
+            snapshot = load_update(run, store)
+        if snapshot.format_version != 3:
+            raise ValueError("compact-snapshot calibration required")
         # Stage-entry Adam is empty. Treat the entire admitted final snapshot as
-        # fixed cost; estimate only diagnostic growth, not optimizer initialization.
+        # fixed cost; diagnostics live once in the canonical run, not snapshots.
         # One MiB per snapshot additionally covers the bounded current-game journal.
         snapshot_sizes.append(final_size + 1024**2)
-        snapshot_growth.append(
-            len(gzip.compress(json.dumps(diagnostics).encode())) / CALIBRATION_UPDATES
-        )
         json_sizes.append((Path(attempt.path) / "run.json").stat().st_size)
     conservative = 1.5 * max(per_update)
     learning = (
@@ -273,16 +285,12 @@ def freeze(
     candidates = [12800, 25600, 51200, 102400]
     admitted: list[tuple[int, int]] = []
     for updates in candidates:
-        # Conservative linear growth of diagnostics inside each retained private
-        # snapshot plus immutable evaluator job copies; never assume pruning.
+        # Snapshots retain bounded current-game state and diagnostic references.
+        # Run/store/evaluator copies still grow; never assume evidence pruning.
         ratio = updates / CALIBRATION_UPDATES
         checkpoints = math.ceil(updates / 128) + 30
         projected = int(
-            3
-            * (
-                checkpoints * (max(snapshot_sizes) + 2 * max(snapshot_growth) * updates)
-                + 4 * max(json_sizes) * ratio
-            )
+            3 * (checkpoints * max(snapshot_sizes) + 4 * max(json_sizes) * ratio)
             + 2 * 1024**3
         )
         if conservative * updates <= per_seed and projected <= free:
@@ -358,6 +366,7 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     calibrate = commands.add_parser("calibrate")
     calibrate.add_argument("out", type=Path)
+    calibrate.add_argument("--preparation-seconds", required=True, type=float)
     select = commands.add_parser("freeze")
     select.add_argument("calibration", type=Path)
     select.add_argument("output", type=Path)
@@ -377,7 +386,7 @@ def main() -> None:
     pause.add_argument("out", type=Path)
     args = parser.parse_args()
     if args.command == "calibrate":
-        result = calibration(args.out)
+        result = calibration(args.out, args.preparation_seconds)
         print(result.status)
         if result.status != "completed":
             raise SystemExit(1)

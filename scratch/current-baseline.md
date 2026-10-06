@@ -4,7 +4,7 @@ Jack Heart revised ETU-118 on 2026-10-06: WEEKLY → DAILY. This supersedes the
 original positive-control-first completion framing. Jack Heart subsequently authorized a week on the current laptop, then required
 sleep/restart recovery and checkpoint-safe pause/resume before launch. No recipe
 is validated yet. The allocation is at most seven active days, with known downtime and conservative
-unknown restart charges separate. Storage admission currently blocks launch.
+unknown restart charges separate. Fresh storage admission now passes; complete current-source calibration still gates launch.
 
 ## Accepted outcome and order
 
@@ -30,14 +30,16 @@ The candidate is the unchanged masked-mean scalar recipe from the first value-mo
 screen (400→800 updates improved fixed-greedy score in three seeds). The later
 pooling/filter follow-up was flat. These are candidate evidence, not validation.
 Keep architecture/learning fixed; distinguish any opponent or source migration.
-ETU-116 owns overlapping total-step dynamics on the mini after ETU-103. Its
-planning item had no registered execution when inspected; an ordinary contribution
-request failed without starting work. An earlier proposal to consume only its
-trajectory is superseded by Jack Heart's explicit laptop authorization for ETU-118.
-Share compatible definitions and evidence; do not duplicate its long run merely
-for the same question or alter the reserved mini sequence. The laptop study owns
-baseline and daily-test acceptance; mini results can inform it with host/cost
-and protocol differences kept explicit.
+The updated Task consolidates ETU-116 fixed-capacity duration measurements and
+ETU-82 repeated training/export/play acceptance into ETU-118. Preserve the
+ETU-103 mini sequence and any separately authorized ETU-116 mini allocation;
+consolidation does not relocate it or authorize duplicate cohorts. Reuse one
+admitted trajectory for overlapping baseline/duration questions. At least three
+complete independent executions, ordinary demo loading and both deck assignments
+remain required. Experiment, VerifyStore, arena and notebook/W&B retain authority;
+model publication must use the S3 contract. This checkout has no located S3
+implementation/contract yet; resolve before publishing model bytes, not by inventing
+an unapproved bucket. ETU-85 retains demo-opponent/human comparison ownership.
 
 ## Sustained allocation and recovery prerequisite
 
@@ -107,22 +109,40 @@ The source-bundle builder exists, but no execution bundle has been created.
 The sustained declaration and endpoint analysis exist through the shared runner;
 their presence does not imply an admitted horizon or an executed cohort.
 
-Remaining: resolve storage admission, finish exact-recipe calibration, then freeze
-horizon/source/plan and launch within the remaining original week allocation.
+Remaining: finish exact-recipe format-3 calibration, then freeze horizon/source/plan and launch within the remaining original week allocation.
 The 64-update timing attempt timed out; the amended 32-update attempt completed
 one seed in 200.78 seconds before disk crossed the 4 GiB reserve. Both stopped;
 2788.716979166954 seconds of total experimental preparation remain charged.
-A provisional 12,800-update three-seed storage projection is 29.879 GiB plus reserve,
-mostly repeated historical diagnostics in snapshots. Current-game replay does not
-bound that duplication. Free space fell to about 1.5 GiB. No unrelated data was
-removed. The archive separately records 6.77 GiB free at projection time; neither
-historical observation is a current capacity check. Compacting snapshot diagnostics
-is unimplemented follow-up requiring recovery validation; a shorter toy endpoint
-is not a substitute. `save_update` copies current and completed StageRecords,
-and resume derives the update offset from diagnostic length. Any compaction must
-preserve those coordinates, immutable exports and canonical diagnostic evidence;
-dropping diagnostic rows would change recovery semantics. Storage projection must
-then be measured again against the changed format before another launch.
+The earlier provisional 12,800-update three-seed projection was 29.879 GiB plus reserve,
+mostly repeated historical diagnostics in snapshots. That historical projection
+remains evidence, not the current estimate. Format 3 now stores diagnostic counts
+and digests bound to the original writer's canonical VerifyStore rows. Resume
+hydrates and validates the exact prefixes before deriving update offsets; stage
+metadata and exports remain snapshot-bound. Setup-failed retries resolve the
+original writer. Missing/changed evidence rejects recovery. Historical snapshots
+and all scientific attempts remain unchanged.
+
+Offline re-encoding of the retained 32-update state measured 2,084,252 bytes for
+the compact snapshot. A reference-count-only 12,800-update stress adds two bytes;
+it is not training. The revised conservative minimum projects 6.361 GiB plus the
+4 GiB reserve, against 6.220 GiB free at measurement. Growing canonical run copies
+and evaluation evidence still need storage. That historical admission failed; no sustained launch followed. The 0.3963909999874886-second offline measurement
+brings total preparation including storage measurement to 2789.1133701669414 seconds;
+the original 2788.716979166954-second experimental ledger remains unchanged.
+`experiments/data/current-baseline-storage.json` and its reproduction archive own
+the exact observation and limits. Complete current-source three-seed calibration
+must use format 3; freeze rejects historical format-2 calibration.
+
+Jack Heart requested resumption after consolidation. Fresh recorded storage
+admission observes 209735249920 free bytes and passes the retained projection plus
+reserve. This enables bounded calibration, not an uncalibrated sustained launch.
+The next calibration deducts 2789.1133701669414 seconds from the original
+3600-second exploration ceiling, leaving 810.8866298330586 seconds. No new week.
+
+Delete — do not maintain: growing diagnostic payload copies inside new recovery
+snapshots. Preserve canonical rows, exact prefix counts/digests, stage metadata,
+immutable exports and historical snapshot readability; do not compact by dropping
+evidence or deleting prior attempts. No other artifact deletion is authorized.
 
 Software/evidence delivery must retain this blocker explicitly. No sustained
 learner, calibrated plan or immutable execution bundle exists. Sustained improvement
@@ -130,4 +150,40 @@ and independently validated daily testing remain open; no baseline promotion or
 Task completion. `experiments/current-baseline.md` and its hash-bound calibration
 archive own exact costs, failures and evidence limits.
 
-Check (retained at `b4b9913e`): `uv run pytest -q tests/training/test_active_recovery.py::test_safe_pause_restores_current_games_and_exact_learning` — 1 passed after progress-export integration; broader gate/native results remain in `experiments/current-baseline.md`.
+Check: `uv run pytest -q tests/training/test_active_recovery.py tests/training/test_recovery.py tests/training/test_sustained_baseline.py -x` — 28 passed; separate amended calibration admission checks — 3 passed; focused Ruff passed.
+
+Calibration readmission reserves 150 seconds for bounded evaluation and divides
+the remaining allowance across three learners (220.2955432776862 seconds each).
+The exact 32-update recipe and seed cohort stay fixed; monitoring is timing-only.
+Jack Heart selected ETU-105 filter scope after the completed ETU-103 mini screen;
+the separate mini duration proposal is superseded and will not run concurrently.
+
+## CPU evaluator coordination (2026-10-06)
+
+ETU-103 reports an independently allocated CUDA comparison requiring the shared
+CPU evaluator. ETU-118 reserves no evaluator now. With the existing campaign-wide
+lease, the safe serial schedule is ETU-103's four-game timing calibration and
+initialization/milestone scoring first, then ETU-118's bounded calibration after
+ETU-103 closes its evaluation owner. ETU-118's calibration needs at most
+810.8866298330586 active seconds including 150 evaluator seconds (three attempts
+capped at 50 seconds); its learner inherits the lease for that entire window.
+No experiment was launched for this coordination request and no allocation changed.
+
+Overlapping campaigns require a separate tested lease change before sustained
+launch: acquire per complete cohort, retain the inherited lease until its worker
+exits, release while idle, and stop passing the evaluator descriptor to learners.
+Preserve per-campaign ownership/crash accounting and yield fairly to waiting
+cohorts; simple release/reacquisition alone does not guarantee fair sharing.
+Until then, handoff requires a closed queue and exited inheriting processes, not
+an idle dashboard. Never unlink the lock or interrupt another campaign's cohort.
+
+Initialization and random-opponent monitoring support are committed in
+`975ee9ddc2e597b3126121e834e6922df0417704`; `9c088932872e07a3d73611a47d81b70d7fea8706`
+factors the shared worker deadline. Narrow reuse should extract the relevant
+queue/protocol hunks and tests, not import recovery/native changes wholesale.
+Initial checkpoint export already predates these commits. The shared protocol
+supports random monitoring, but ETU-118 currently schedules random scoring only
+in finalization; a live random diagnostic remains to be scheduled before freeze.
+
+Coordination check: `lsof` found no open owner for either shared lease at inspection;
+source review confirms campaign-wide ownership and learner descriptor inheritance.

@@ -22,8 +22,9 @@ without replaying or exporting those stages again.
 ## Same-host contract
 
 Private snapshots retain model parameters and buffers, Adam, evaluation EMA,
-Python/NumPy/Torch and minibatch/sampling RNGs, native collector state, diagnostics,
-collector count baselines, stage-local update progress and run-wide iteration.
+Python/NumPy/Torch and minibatch/sampling RNGs, native collector state, diagnostic
+prefix bindings, collector count baselines, stage-local update progress and
+run-wide iteration.
 Frozen-opponent identity is recipe-bound and its checkpoint digest is rechecked.
 The iteration clock continues across linked stages; a fresh stage resets it.
 Scientific schedules use the same update coordinates as uninterrupted execution.
@@ -38,6 +39,16 @@ Snapshots are published at stage entry, after each update, and after completed
 export/admission. VerifyStore commits the snapshot reference and stage records
 together. Completed prefixes retain their original artifact paths, digests,
 counts and cost receipts; they are not re-exported into the child directory.
+Format 3 snapshots keep each stage's diagnostic count and SHA-256 instead of
+copying its growing rows. `load_update` uses the canonical VerifyStore row of the
+snapshot's original writer, including when a later retry fails during setup.
+It verifies and restores precisely that prefix before deriving the stage-local
+update offset; later uncommitted diagnostics cannot advance recovery. Missing or
+changed prefixes fail admission. Snapshot metadata retains counters and artifact
+bindings at the original boundary. Preserve the canonical database as well as
+snapshot files. Historical format 2 bytes remain readable, without relaxing
+source/runtime admission or rewriting retained evidence.
+
 Uncommitted work may repeat, but its failed-attempt cost remains charged. Orphan
 files never become authoritative merely because they exist on disk.
 

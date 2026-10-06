@@ -1,6 +1,6 @@
 # Current learning baseline — ETU-118
 
-Status: sustained launch blocked by storage admission; debugging evidence only.
+Status: fresh storage admission passes; current-source calibration required; debugging evidence only.
 The sustained learner has not started; daily-test validation remains open. Jack Heart authorized
 bounded local CPU evidence on 2026-10-06. No self-play, architecture superiority,
 full-matchup improvement or chapter acceptance follows from this fixture.
@@ -274,7 +274,7 @@ is selected and independently validated only after this trajectory is establishe
 The public run controls are:
 
 ```bash
-uv run python -m experiments.runners.sustained_baseline calibrate .runs/etu118-calibration-1
+uv run python -m experiments.runners.sustained_baseline calibrate .runs/etu118-calibration-3 --preparation-seconds 2789.1133701669414
 uv run python -m experiments.runners.sustained_baseline freeze .runs/etu118-calibration-1 experiments/regimes/current-baseline-sustained.json --preparation-seconds ACTUAL_RETAINED_COST
 uv run python -m experiments.runners.sustained_baseline run experiments/regimes/current-baseline-sustained.json .runs/etu118-weekly-1
 uv run python -m experiments.runners.sustained_baseline pause .runs/etu118-weekly-1
@@ -351,8 +351,27 @@ storage. Free space was approximately 1.5 GiB when execution stopped. No unrelat
 files, campaign evidence or mini processes were changed.
 
 Before another calibration or sustained launch, storage must satisfy admission.
-Reducing repeated snapshot diagnostics while retaining the canonical evidence and
-exact recovery is a possible software follow-up, not implemented or measured here.
+Recovery format 3 now replaces diagnostic copies with count/digest bindings to
+the original writer's canonical VerifyStore prefixes. Loading verifies and restores
+those exact rows, preserving stage-local offsets, complete learning state and
+exports. Completed-stage diagnostics use the same references. Retained format 2
+snapshots remain unchanged; this does not admit old sources for new training.
+
+The [offline storage measurement](data/current-baseline-storage.json) and
+[reproduction script/receipt](data/current-baseline-storage.zip) re-encode the
+retained 32-update state without training or changing original artifacts. The
+snapshot falls from 2,134,089 re-encoded bytes to 2,084,252; changing just the
+reference count to 12,800 adds two bytes. The latter isolates format growth and
+is not a trained long-horizon state. Under the existing conservative allowances
+(130 snapshots per seed, 1 MiB current-game headroom each, four growing run-record
+copies, and 2 GiB evaluation reserve), 12,800 updates × three seeds now projects
+**6.361 GiB plus 4 GiB free-space reserve**. Measured free space was **6.220 GiB**;
+admission still fails. The original 29.879 GiB projection remains historical.
+Complete current-source three-seed calibration is still required, and freeze now
+rejects calibration using the old snapshot format. The 0.3963909999874886-second
+offline measurement is charged separately, bringing preparation including this
+measurement to **2789.1133701669414 seconds**; the original 2788.716979166954-second
+experimental ledger is unchanged. No calibration or sustained learner started.
 Merely freeing enough for another short probe would not admit the full projected
 cohort. The seven-day authorization remains valid; no frozen sustained plan,
 source bundle or sustained learner has been created. Do not shorten the main
@@ -362,3 +381,34 @@ Verification: affected Python gate 39 passed; focused monitoring/report/authorin
 and abrupt-restart checks 44 passed; allocation checks 2 passed. Seven native
 debug checks and all-target/all-feature Clippy passed. These bounded proofs do not
 establish a physical lid-close test, sustained throughput or learning success.
+
+
+### Consolidated continuation and storage readmission (2026-10-06)
+
+Jack Heart requested resumption after consolidating ETU-116 duration measurements
+and ETU-82 repeated training/export/play acceptance into ETU-118. Preserve the
+reserved mini sequence and separately authorized mini allocation; use one admitted
+trajectory for overlapping questions. Three complete independent executions must
+load through the ordinary demo and complete both deck assignments. Publish model
+bytes through the S3 contract and retain notebook/W&B reporting; the S3 contract
+has not been located in this checkout and remains a publication prerequisite.
+ETU-85 retains the demo-opponent and exploratory human comparison.
+
+[Fresh storage admission](data/current-baseline-storage-readmission.json) records
+209735249920 free bytes against 6830273768 projected plus 4294967296 reserve.
+It supersedes the capacity shortage, not the incomplete timing evidence. The
+format-3 calibration retains all three timing seeds and 32 updates, with a total
+cap of 810.8866298330586 seconds: the original 3600-second exploration ceiling
+minus 2789.1133701669414 already charged. It may fail within that bound; failures
+remain evidence and do not grant a new allowance. No sustained horizon is frozen.
+
+Calibration readmission reserves 150 seconds for bounded evaluation and divides
+the remaining allowance across three learners (220.2955432776862 seconds each).
+The exact 32-update recipe and seed cohort stay fixed; monitoring is timing-only.
+Jack Heart selected ETU-105 filter scope after the completed ETU-103 mini screen;
+the separate mini duration proposal is superseded and will not run concurrently.
+
+Compact recovery verification: 28 selected recovery/allocation checks passed,
+including exact state, abrupt exit, multistage completion, setup-failure lineage
+and missing/changed diagnostic rejection. Three amended admission checks passed.
+These are software checks, separate from experimental preparation charges.

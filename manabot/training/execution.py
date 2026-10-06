@@ -172,7 +172,7 @@ def execute_regime(
                 regime.model_dump(mode="json")
             ):
                 raise ValueError("recovery recipe or seed mismatch")
-            load_update(parent)
+            load_update(parent, store)
             if parent.identities != _runtime_identities(
                 seed, regime, ObservationSpace(regime.observation)
             ):
@@ -216,7 +216,7 @@ def _execute_regime(
             or parent.regime_digest != canonical_sha256(regime.model_dump(mode="json"))
         ):
             raise ValueError("recovery recipe or seed mismatch")
-    snapshot = load_update(parent) if parent is not None else None
+    snapshot = load_update(parent, store) if parent is not None else None
     # A retry can fail during setup before reaching its stage. Walk the retained
     # lineage so that failure cannot erase a stage allowance or completion receipt.
     prior_records: dict[str, StageRecord] = {}

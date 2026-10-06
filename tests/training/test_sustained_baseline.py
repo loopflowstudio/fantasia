@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import shutil
+from types import SimpleNamespace
 
 import pytest
 
@@ -16,6 +17,16 @@ from manabot.training.experiment_execution import (
 )
 from manabot.training.models import StageRecord, TrainingRun
 from manabot.verify.store import VerifyStore
+
+
+@pytest.fixture(autouse=True)
+def admitted_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Recovery admission has real-game coverage; these fixtures isolate allocation."""
+
+    def load(run: TrainingRun, store: VerifyStore) -> SimpleNamespace:
+        return SimpleNamespace(format_version=3)
+
+    monkeypatch.setattr(baseline, "load_update", load)
 
 
 def calibration_fixture(root: Path) -> ExperimentRun:
@@ -144,3 +155,27 @@ def test_insufficient_disk_does_not_shorten_into_a_toy_horizon(
     with pytest.raises(ValueError, match="no serious horizon"):
         baseline.freeze(root, tmp_path / "plan.json", 3000)
     assert not (tmp_path / "plan.json").exists()
+
+
+def test_calibration_charges_prior_exploration_before_launch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class ScheduleCaptured(Exception):
+        pass
+
+    def capture(
+        experiment: baseline.Experiment,
+        hardware: baseline.HardwareInventory,
+        out: Path,
+    ) -> ExperimentRun:
+        assert experiment.schedule is not None
+        assert experiment.schedule.process_seconds == pytest.approx(810.8866298330586)
+        assert experiment.schedule.wall_seconds == experiment.schedule.process_seconds
+        assert experiment.schedule.seeds == baseline.CALIBRATION_SEEDS
+        raise ScheduleCaptured
+
+    monkeypatch.setattr(baseline, "run_experiment", capture)
+    with pytest.raises(ScheduleCaptured):
+        baseline.calibration(tmp_path / "calibration", 2789.1133701669414)
+    with pytest.raises(ValueError, match="remaining exploration"):
+        baseline.calibration(tmp_path / "exhausted", 3600)

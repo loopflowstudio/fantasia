@@ -140,7 +140,7 @@ def test_real_interruption_restores_complete_learning_state(
         assert resumed.prior_watchdog_seconds == failed.watchdog_seconds
         assert resumed.recovery_seconds > 0
         assert resumed.stages[0].cumulative_seconds >= resumed.prior_seconds
-        a, b = load_update(whole), load_update(resumed)
+        a, b = load_update(whole, store), load_update(resumed, store)
         for name in (
             "learner",
             "optimizer",
@@ -282,8 +282,12 @@ with VerifyStore(Path(sys.argv[2])) as store:
         assert resumed.prior_seconds == parent.seconds
         assert (failed_out / "run.json").read_bytes() == evidence
         whole = execution.execute_regime(value, 197, tmp_path / "whole", store)
-        assert_state_equal(load_update(whole).learner, load_update(resumed).learner)
-        assert_state_equal(load_update(whole).optimizer, load_update(resumed).optimizer)
+        assert_state_equal(
+            load_update(whole, store).learner, load_update(resumed, store).learner
+        )
+        assert_state_equal(
+            load_update(whole, store).optimizer, load_update(resumed, store).optimizer
+        )
 
 
 def test_live_lease_rejects_recovery(
@@ -383,7 +387,7 @@ def test_multistage_boundaries_preserve_state_and_completed_work(
             assert Path(path).read_bytes() == data
         for row in completed:
             assert not list((tmp_path / "child").glob(f"{row.id}-*.pt"))
-        a, b = load_update(whole), load_update(child)
+        a, b = load_update(whole, store), load_update(child, store)
         for name in (
             "learner",
             "optimizer",

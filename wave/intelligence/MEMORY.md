@@ -3,28 +3,33 @@
 ## Weekly-first current baseline (ETU-118, 2026-10-06)
 
 Jack Heart authorized seven active days on the laptop: sustained improvement before
-an independently validated daily regression test. Preserve ETU-103→116's mini
-sequence and share compatible evidence. Positive controls are debugging only.
+an independently validated daily regression test. ETU-116 duration and ETU-82
+repeat-training outcomes now belong here; ETU-105 filter scope is next on mini. Positive controls are debugging only.
 Complete-state pause/restart checks preserve learner/Adam/EMA/RNG and native current
 games. Known sleep/pause is separate; unobserved restart gaps are conservatively
 charged, especially across reboot. Physical lid closure was not tested. Show
 strength/uncertainty and freshness; no automatic statistical plateau stop exists.
 
-The corrected three-seed lethal-target cohort rose 50→100%, frozen controls unchanged,
-after a retained root failure. The short full-game cohort's +6.25/+8.33/+6.25-point
-gains missed its +10-point mean criterion. Neither establishes sustained strength.
+Three lethal-target seeds rose 50→100% with unchanged controls after a retained
+root failure. Full-game gains +6.25/+8.33/+6.25 missed the +10-point mean criterion. Neither establishes sustained strength.
 Exact-recipe calibration timed out at 64 updates; the amended 32-update probe
 completed one seed in 200.78 seconds before disk crossed the 4 GiB reserve.
 Both attempts stopped; total experimental preparation is 2788.716979166954 seconds.
-A provisional minimum sustained cohort projects 29.879 GiB plus reserve, dominated
-by repeated snapshot diagnostics. Current-game replay does not bound total retained
-storage. Progress-export throttling also leaves snapshot duplication intact.
-Compaction remains unimplemented; it must preserve resume offsets and canonical evidence;
-storage admission blocks launch until retention fits and calibration completes.
-No unrelated evidence or mini campaign changed. No sustained learner or frozen plan
-exists. The [protocol and hash-bound evidence](../../experiments/current-baseline.md)
+Format 3 removes repeated snapshot diagnostics: count/digest references hydrate
+exact prefixes from the original writer's VerifyStore rows, preserving resume
+coordinates and exports. Retained snapshots stay unchanged. Offline re-encoding
+projects a provisional 6.361 GiB cohort plus 4 GiB reserve against 6.220 GiB free;
+run copies/evaluation still need storage. Fresh admission now passes at 195.33 GiB
+free; calibration remains required before launch.
+Storage measurement adds 0.396391 seconds to preparation; 810.887 seconds remain
+in the original exploration allowance. No sustained learner or frozen plan exists. The [protocol and hash-bound evidence](../../experiments/current-baseline.md)
 own failures, costs and checks. Seven-day authorization persists; sustained learning,
 daily validation and Task acceptance remain open.
+
+ETU-118 reserves no evaluator during ETU-103's CUDA comparison. Existing queues
+hold the shared lease across campaigns and pass it to learners; safe serial
+handoff requires owner closure and inherited-process exit. Concurrent campaigns
+need tested cohort-scoped leasing and fairness before ETU-118 sustained launch.
 
 ## Experiment execution and notebook boundary (ETU-113, 2026-10-06)
 
@@ -311,10 +316,8 @@ gate before integration.
   Its 512-game immutable snapshot trained both arms in 8.63 minutes; joint
   value supervision materially improved value calibration without reducing
   batch throughput. It is flat Monte Carlo evidence, not MCTS strength.
-- Rust vector stepping and zero-copy observation buffers moved environment-only
-  throughput from roughly 24k to 183k SPS at 16 environments. With inference
-  enabled, model inference consumed 97% of step time. Model layout is now a
-  first-order systems question.
+- Historical throughput evidence remains at `4ad09540`: inference dominated
+  environment stepping, making model layout a systems priority.
 
 ## Decisions
 
@@ -516,11 +519,9 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-Detail remains at `59f16e0d` / `60e2f897`; GOAL.md owns ETU-21's abandonment,
-ETU-31's deferral and ETU-34's completion. Bounded demos prove no strength or
-conditional student flips. ed2 survives; unavailable advice/checkpoints remain
-subject to [the live-advice plan](../../docs/plans/live-belief-advice.md).
-Rules owns history semantics; check existing Tasks before overlapping work.
+History: `59f16e0d` / `60e2f897`; GOAL.md owns Task dispositions. Bounded demos
+prove no strength. ed2 survives; [live-advice limits](../../docs/plans/live-belief-advice.md)
+and Rules' history ownership remain.
 
 ## Corrected-world training binding (2026-09-29)
 
