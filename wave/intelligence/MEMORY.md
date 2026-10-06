@@ -465,12 +465,11 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-Planning detail remains at `59f16e0d` and `60e2f897`. GOAL.md owns dispositions:
-ETU-21 abandoned, ETU-31 deferred, ETU-34 completed. Bounded demos establish
-neither conditional student flips, live advice, full-game calibration nor strength.
-The ed2 replay exists; fixture-backed advice and unavailable checkpoints remain
+Detail remains at `59f16e0d` / `60e2f897`; GOAL.md owns ETU-21's abandonment,
+ETU-31's deferral and ETU-34's completion. Bounded demos prove no strength or
+conditional student flips. ed2 survives; unavailable advice/checkpoints remain
 subject to [the live-advice plan](../../docs/plans/live-belief-advice.md).
-Check existing Tasks before overlapping work; Rules owns history semantics.
+Rules owns history semantics; check existing Tasks before overlapping work.
 
 ## Corrected-world training binding (2026-09-29)
 
@@ -1101,19 +1100,19 @@ Full timing definitions and integration evidence remain at `fd7437df` and in the
 no scientific allocation, strength, demo or chapter acceptance follows. ETU-91
 remained untouched.
 
-## Larger-model planning findings (ETU-115, 2026-10-06)
+## Larger ordinary models (ETU-115, 2026-10-06)
 
-Jack Heart requested ordinary depth8/width384/feedforward1536 recipes and bounded
-laptop measurements, without rented hardware. Source inspection finds 202 visible
-attention slots at default capacity, 203 with the value token; actions/events are
-not attention rows. Naive padding removal changes historical mean pooling and
-focus indexes. No packing or capacity change is planned. New unset AgentSpec
-fields must be omitted from serialization to preserve architecture/recipe hashes.
-ETU-103's three-arm scientific plan needs an explicit ladder selection so adding
-a large rung cannot alter its cohort. ETU-107's typed-choice design is unapproved;
-attention constructor changes can remain separate from its decoder work. MPS
-model probes do not authorize changing ETU-114's stage device handling. These
-are planning findings, not completed implementation or measured throughput.
+Jack Heart authorized larger recipes and bounded laptop measurements. AgentSpec
+owns positive depth/expansion; omitted defaults preserve identities. The opt-in
+384/8/1536 rung leaves ETU-103's cohort unchanged. 
+The model has 16,815,746 parameters and 203 slots.
+All four sizes trained/exported. Train/eval mode mismatch caused verification
+failures; read-only recovery proved exact reload and changed weights without
+retraining. Eight CPU/MPS probes completed within budget. Changing host load prevents
+scaling claims; diagnostic Adam timings are not RL throughput or strength. Naive padding removal changes pooling/focus;
+no packing, ABI, defaults or scientific allocation changed. Preserve
+`.runs/etu115-scale`; the [report](../../docs/evidence/ataraxos-scale-2026-10-06.md)
+owns identities, failures, memory and limits. No chapter acceptance follows.
 
 ## Declarative experiment authoring (ETU-109, 2026-10-05)
 

@@ -9,7 +9,7 @@ from manabot.training.experiments import Baseline, Case, Experiment, Model
 from manabot.training.models import TrainingRegime
 
 
-def experiment(base: TrainingRegime) -> Experiment:
+def experiment(base: TrainingRegime, *, include_ataraxos: bool = False) -> Experiment:
     return Experiment(
         name="",
         baseline=Baseline.capture("capacity-control-v1", base),
@@ -47,10 +47,32 @@ def experiment(base: TrainingRegime) -> Experiment:
                 ),
                 "128 × 2",
             ),
+        )
+        + (
+            (
+                Case(
+                    "w384-d8",
+                    (
+                        Model(
+                            AgentSpec(
+                                hidden_dim=384,
+                                attention_layers=8,
+                                num_attention_heads=4,
+                                attention_feedforward_dim=1536,
+                            )
+                        ),
+                    ),
+                    "384 × 8",
+                ),
+            )
+            if include_ataraxos
+            else ()
         ),
     )
 
 
-def regimes(base: TrainingRegime) -> dict[str, TrainingRegime]:
+def regimes(
+    base: TrainingRegime, *, include_ataraxos: bool = False
+) -> dict[str, TrainingRegime]:
     """Hold information, pooling, learning and budget fixed across capacities."""
-    return experiment(base).resolve().regimes
+    return experiment(base, include_ataraxos=include_ataraxos).resolve().regimes

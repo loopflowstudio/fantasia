@@ -1,10 +1,12 @@
 # ETU-115 assumptions — 2026-10-06
 
-The headless implementation plan uses four attention heads, scalar value-token
-and history-off at unchanged observation capacity for a clean size comparison.
-Ataraxos-sized means depth/width/feedforward parity, not architecture reproduction.
-The large rung is explicitly selected so ETU-103's existing scientific cohort
-remains unchanged. Short local proof is capped at 900 seconds including failures;
-MPS is a standalone probe and does not modify ETU-114's stage execution model.
-These reversible choices need no conversational answer. No scientific allocation
-or human-play acceptance is inferred.
+Four heads, scalar value-token, history-off and unchanged observation capacity
+hold the local size comparison fixed. Size parity is not architecture reproduction.
+The explicit large rung preserves ETU-103's cohort. MPS stays a standalone probe;
+ETU-114 owns stage devices. The executor requires two streams, replacing the
+planned one while retaining eight transitions and one update.
+
+The first verifier compared train/eval modes and failed after exporting. A
+read-only verification recovery reused those exact exports within the original
+900-second cap; no retraining or timing retry. Retain all original failures.
+No scientific allocation or human-play acceptance follows.
