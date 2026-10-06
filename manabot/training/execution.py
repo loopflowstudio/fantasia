@@ -847,7 +847,7 @@ def _execute_regime(
                 else:
                     torch.manual_seed(seeds["initialization"])
                     agent = Agent(space, regime.agent)
-                    if stage.opponent is not None and snapshot is None:
+                    if snapshot is None:
                         phase = "export_seconds"
                         tick = time.perf_counter()
                         target = out / f"{stage.id}-initial-raw.pt"
@@ -877,9 +877,12 @@ def _execute_regime(
                         seed=seeds["collection"],
                         opponent_mode="frozen"
                         if stage.opponent is not None
+                        else "random"
+                        if stage.behavior == "random"
                         else "self",
                         opponent_agent=opponent_agent,
                         recovery_max_microsteps=regime.recovery_max_microsteps,
+                        root=stage.root,
                     )
                     experiment = Experiment(
                         ExperimentHypers(
@@ -963,19 +966,29 @@ def _execute_regime(
                     check()
                     phase = "learning_seconds"
                     tick = time.perf_counter()
-                    diagnostic = update_iteration(
-                        trainer,
-                        batch,
-                        stage.learning,
-                        update_index / stage.updates
-                        if regime.schedule_clock == "iteration_fraction"
-                        else (
-                            time.perf_counter() - start - run.monitoring_export_seconds
+                    diagnostic = (
+                        update_iteration(
+                            trainer,
+                            batch,
+                            stage.learning,
+                            update_index / stage.updates
+                            if regime.schedule_clock == "iteration_fraction"
+                            else (
+                                time.perf_counter()
+                                - start
+                                - run.monitoring_export_seconds
+                            )
+                            / regime.wall_seconds,
+                            rng,
+                            iteration=iteration + 1,
+                            bootstrap_agent=behavior_agent,
                         )
-                        / regime.wall_seconds,
-                        rng,
-                        iteration=iteration + 1,
-                        bootstrap_agent=behavior_agent,
+                        if stage.trainable == "policy_value"
+                        else {
+                            "rows": stage.streams * stage.transitions,
+                            "optimizer_exposures": 0,
+                            "retained": 0,
+                        }
                     )
                     diagnostic["behavior"] = stage.behavior
                     diagnostic["behavior_iteration"] = iteration

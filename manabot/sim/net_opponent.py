@@ -167,6 +167,7 @@ class SeatRoutedCollector:
         opponent_agent: Agent | None = None,
         device: str = "cpu",
         recovery_max_microsteps: int | None = None,
+        root: str | None = None,
     ) -> None:
         if opponent_mode not in OPPONENT_MODES:
             raise ValueError(
@@ -193,6 +194,12 @@ class SeatRoutedCollector:
             skip_trivial=True,
             opponent_policy="none",
         )
+        if root is not None:
+            from manabot.env.target_practice import TargetPracticeVector
+
+            if root != "lethal-target-v1" or recovery_max_microsteps is not None:
+                raise ValueError("unsupported training root or root recovery")
+            self._env = TargetPracticeVector(observation_space, match, num_envs, seed)
         self._buffers = _allocate_buffers(observation_space, num_envs)
         self._env.set_buffers(self._buffers)
         self._env.reset_all_into_buffers(match.to_rust())

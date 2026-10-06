@@ -184,8 +184,12 @@ class TrainSelfPlay(Stage):
     operation: Literal["train_self_play"]
     trainer: Literal["net_opponent"] = "net_opponent"
     optimizer: Literal["adam"] = "adam"
-    trainable: Literal["policy_value"] = "policy_value"
-    behavior: Literal["current-self", "ema-self", "frozen"] = "current-self"
+    trainable: Literal["policy_value", "none"] = "policy_value"
+    behavior: Literal["current-self", "ema-self", "frozen", "random"] = "current-self"
+    # Omitted defaults preserve frozen historical regime identities.
+    root: Literal["lethal-target-v1"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     opponent: FrozenOpponent | None = None
     initial: str | None = None
     updates: int = Field(default=2, ge=1)
@@ -484,6 +488,8 @@ class TrainingRegime(Strict):
                     or parent.streams != stage.streams
                     or parent.learning.ema != stage.learning.ema
                     or parent.opponent != stage.opponent
+                    or parent.root != stage.root
+                    or parent.trainable != stage.trainable
                     or parent.learning.gradient != stage.learning.gradient
                 ):
                     raise ValueError(
