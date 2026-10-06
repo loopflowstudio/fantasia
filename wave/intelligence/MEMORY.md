@@ -1,5 +1,14 @@
 # Intelligence memory
 
+## Remote regime kickoff (ETU-114, 2026-10-06)
+
+Jack Heart authorized RunPod software and an under-$5 proof, not larger training.
+The kickoff plan (scratch/remote-training-design.md) proposes one-GPU self-play,
+explicit CUDA wiring and rejection of unsupported stages/recovery. Preserve
+producer receipts during relocation. Deletion must end billing; scoped pod-side
+deletion still needs live proof. No rental/training ran. ETU-108 and larger-model
+work remain independent; chapter acceptance stays open.
+
 ## History input (ETU-106, 2026-10-06)
 
 Jack Heart authorized [history-screen delivery and recovery](../../experiments/history-input.md).
@@ -285,24 +294,14 @@ gate before integration.
 
 ## Architecture convergence (accepted 2026-07-17)
 
-- managym owns the authoritative match, semantic Commands, canonical viewer
-  Observation stream, replay/forks, possible-world meaning, typed `WorldQuery`
-  grammar, compatible-deal measure, and materialization. Intelligence must not
-  create parallel meanings for hands or actions.
-- manabot owns agent memory, conditional priors and learned beliefs over the
-  managym world domain, planning, policy/value learning, teacher evidence,
-  datasets, checkpoints, opponents, arena evaluation, and Study evidence.
-- The product proof is a complete play distribution changing under typed
-  conditions such as `Has(Bolt)` without revealing actual truth. A
-  `ConditionalStrategyResult`, not one best action, is the primary result.
-- The accepted student architecture conditions policy and value on the canonical
-  compatible-deal prior restricted by curriculum queries. Actual hidden truth
-  supervises the belief head separately; policy is not trained as a clairvoyant
-  one-world model.
-- The original delivery order was: authoritative `PlanningProblem`, conditional
-  teacher/result, conditional trajectories/shards/student, supervised belief
-  head plus INT-9 adaptation, immutable self-play populations plus INT-6, and
-  conditional Study evidence.
+managym owns match/Commands, canonical viewer Observations, replay/forks, world
+meaning, typed queries, compatible-deal measure and materialization. manabot owns
+memory, conditional priors/beliefs, planning/learning, teacher evidence, datasets,
+checkpoints, opponents, arena and Study evidence. The product proof is a complete
+conditional play distribution changing without revealing actual truth. Students
+condition on canonical restricted priors; hidden truth supervises beliefs
+separately, never a clairvoyant one-world policy. Original ordering: README.md and this file at `fd7437df`.
+docs/ARCHITECTURE.md owns the contract; later reprioritizations below apply.
 
 ## Results-first reprioritization (2026-07-18)
 
@@ -465,12 +464,11 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-Planning detail remains at `59f16e0d` and `60e2f897`. GOAL.md owns dispositions:
-ETU-21 abandoned, ETU-31 deferred, ETU-34 completed. Bounded demos establish
-neither conditional student flips, live advice, full-game calibration nor strength.
-The ed2 replay exists; fixture-backed advice and unavailable checkpoints remain
-subject to [the live-advice plan](../../docs/plans/live-belief-advice.md).
-Check existing Tasks before overlapping work; Rules owns history semantics.
+GOAL.md owns dispositions: ETU-21 abandoned, ETU-31 deferred, ETU-34 completed.
+Historical detail: `59f16e0d` and `60e2f897`. Bounded demos establish neither
+student flips, live advice, full-game calibration nor strength. The ed2 replay
+survives; advice/checkpoint limits remain in
+[the live-advice plan](../../docs/plans/live-belief-advice.md). Rules owns history.
 
 ## Corrected-world training binding (2026-09-29)
 
