@@ -4,7 +4,7 @@
 
 Jack Heart requested primary-source research and a disposable laptop/mini
 prototype where both hosts contribute to one model; speedup is not acceptance.
-The initial contribution prepares research and a bounded scratch benchmark
+The initial contribution prepares research and a bounded benchmark
 harness only. Value-token training remains the immediate priority; ETU-91 is
 untouched. No distributed training, hardware comparison or strength result
 exists from this pass. Mini access failed once on host name resolution; no
@@ -18,8 +18,15 @@ distributions, opponent versions, unique sample accounting and one optimizer
 owner before adding transport. Zero-lag collection is a compatibility baseline
 proposal, not reinstatement of the superseded synchronous-round decision.
 Synchronization and placement await measurements and an explicit estimator
-contract. The Task scratch retains primary sources, code seams, proposed retry
-semantics, benchmark entry points and outstanding prototype acceptance.
+contract. The [research report](../../docs/distributed-rl.md) retains primary sources,
+code seams, proposed retry semantics and outstanding prototype acceptance;
+`experiments/runners/distributed_benchmark.py` owns the bounded supervisor.
+Full forward-path review corrected the contribution's mistaken claim that the
+base lacks value-token support: token/masked aggregation and extra attention
+already exist. The fixed benchmark recipe selects historical mean and one layer;
+representative token measurements need configuration, not model implementation.
+Jack Heart authorized this research/software delivery with ETU-108 left open;
+no training or mini retry was authorized in the delivery pass.
 
 ## Focused value-model priority (ETU-106, 2026-10-05)
 
