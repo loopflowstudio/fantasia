@@ -12,8 +12,8 @@ CUDA execution, self-deletion and returned-checkpoint play remain unproved.
 The [remote contract](../../docs/remote-training.md) owns the &#36;4.90 all-attempt
 helper. Cleanup recovers costs only from retained/observed evidence; unknown
 billing blocks retries. Initial-empty inventory requires final-empty inventory;
-unrelated pods are never deleted. Both review repairs have focused regressions
-at `4348b5a0`; broader lifecycle checks and live proof remain gate work.
+unrelated pods are never deleted. Review regressions at `4348b5a0` cover both repairs; broader lifecycle checks
+and live proof remain gate work.
 No strength or chapter acceptance follows.
 
 ## History input (ETU-106, 2026-10-06)
