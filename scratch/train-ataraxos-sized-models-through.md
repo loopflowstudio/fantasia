@@ -68,3 +68,5 @@ Publication and landing remain later Flow operations. Chapter strength and
 human-play outcomes remain outside this bounded software task.
 
 Check: prior `uv run pytest -q tests/model/test_capacity_compatibility.py tests/training/test_scale_probe.py tests/training/test_architecture_recipes.py` — 11 passed; reconciliation inspected code and retained evidence without rerunning timings; broader verification remains with gate.
+
+Publication check: 65 affected tests passed; CI integration grouping plus the new probe collected 421 tests; four retained checkpoint hashes matched. Whole-tree collection hits pre-existing test_match/test_competency basename collisions outside that CI grouping. No training or timings repeated.
