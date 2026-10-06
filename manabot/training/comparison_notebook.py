@@ -8,7 +8,9 @@ import os
 from pathlib import Path
 
 
-def write_comparison_notebook(data_root: Path, output: Path) -> Path:
+def write_comparison_notebook(
+    data_root: Path, output: Path, *, individual_progress: bool = False
+) -> Path:
     """Create once, including under races. Existing notebooks require explicit migration."""
     import nbformat
 
@@ -74,6 +76,11 @@ def write_comparison_notebook(data_root: Path, output: Path) -> Path:
             "language_info": {"name": "python", "version": "3.12"},
         },
     )
+    if individual_progress:
+        notebook.cells[3].source = notebook.cells[3].source.replace(
+            "sections = [\n",
+            "sections = [\n    ('Individual learning trajectories (unmatched)', 'comparisons', strength_figures(evidence, 'training_seconds', matched_only=False)),\n",
+        )
     try:
         with output.open("x") as stream:
             nbformat.write(notebook, stream)

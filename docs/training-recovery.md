@@ -83,3 +83,55 @@ calibration, seed/policy timing variation and cohort projections. The active
 ETU-91 campaign is unchanged and does not gain recovery retroactively. The
 [complete-loop calibration command](training-calibration.md) remains a separate
 CPU accounting instrument; no new scientific run is required for this contract.
+
+
+## Sustained CPU runs: bounded current-game recovery
+
+ETU-118 adds an explicit `recovery` policy on TrainingRegime, separate from the
+historical `recovery_max_microsteps` contract. Select only one. The new policy
+uses `max_game_microsteps` (default 40,000 across current vector streams) and
+`checkpoint_updates` (default 128). It requires current-self collection and
+iteration-based schedules. Diagnostic injected roots are unsupported.
+
+Native reset seeds and each unfinished game's legal prefix reconstruct collection;
+auto-reset discards the completed game's prefix. Native code owns both the root
+seed and subsequent deal stride. Every observation buffer must match before
+restored model/Adam/EMA/RNG state resumes learning. Terminal flags describing the
+preceding transition are restored separately from the already-reset observation.
+Snapshots remain private, source-bound compressed artifacts. Every created
+snapshot and failed attempt stays retained; the interval avoids serializing an
+unbounded lifetime journal at every update. Committed updates/exports are not
+repeated. Work after the latest recovery commit may repeat and its failed-attempt
+cost remains charged.
+
+For this opt-in contract, occupied elapsed time while the OS is awake is the
+allocation clock. It is not CPU time. macOS/Linux monotonic clocks exclude system
+suspend; the historical continuous watchdog stays unchanged for existing recipes.
+Saved calendar time and known downtime are separate. A safe pause has a measured
+end, so the intervening calendar gap is excluded. After an abrupt owner death on
+the same OS boot, the monotonic gap is conservatively charged as **uncertain awake
+time** (it can include time after process death); known suspend time is excluded.
+After reboot no common monotonic epoch exists: the unobserved calendar gap is
+conservatively charged as uncertain, rather than fabricated as measured compute.
+This can exhaust the remaining allowance; it never grants a fresh allocation.
+Exact active-time attribution across an unobserved reboot is not promised.
+
+ExperimentSchedule selects `active_runtime=True`, requires this recovery policy
+for every learner and an active-runtime MonitoringBudget. Isolated workers have
+sleep-excluding watchdogs that remain bounded if their supervisor exits. No
+sleep-prevention program is used. Retained evaluator crash allowances remain
+conservative process charges, not measured throughput.
+
+The Experiment's `pause.request` file requests a pause at the next complete
+learning boundary. The learner forces a recovery commit before returning
+`TrainingPaused`; the supervisor drains its currently running bounded evaluation
+without launching another, then records `paused=true`. Wait for that state before
+shutdown if an exact known pause is desired. Explicit `resume=True, recover=(N,)`
+continues attempt N before pending later seeds, subtracts consumed allowance and
+preserves the original schedule. A failed seed is never silently retried. The
+[ETU-118 runner](../experiments/current-baseline.md) exposes CLI controls.
+
+The 2026-10-06 focused checks compare uninterrupted and paused/resumed real native
+learning state, optimizer/EMA/RNGs, observations, diagnostics and counts; native
+debug tests compare restored reset sequences with independent scalar environments.
+Clock fault injection tests accounting, not physical lid closure or a host reboot.

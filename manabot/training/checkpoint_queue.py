@@ -23,6 +23,7 @@ from pydantic import Field
 import torch
 
 from manabot.arena.models import canonical_sha256
+from manabot.training.clock import arm_active_deadline
 from manabot.training.execution import atomic_json
 from manabot.training.models import (
     Strict,
@@ -45,9 +46,15 @@ class MonitoringBudget(Strict):
     seconds: float = Field(gt=0)
     attempt_seconds: float = Field(default=600, gt=0)
     protocol: MonitorProtocol = Field(default_factory=MonitorProtocol)
+    active_runtime: bool = Field(default=False, exclude_if=lambda value: not value)
+    include_initial: bool = Field(default=False, exclude_if=lambda value: not value)
+    include_monitoring: bool = Field(default=True, exclude_if=lambda value: value)
+    updates: tuple[int, ...] = Field(default=(), exclude_if=lambda value: not value)
 
 
-def checkpoints(run: TrainingRun) -> list[Checkpoint]:
+def checkpoints(
+    run: TrainingRun, *, include_initial: bool = False, include_monitoring: bool = True
+) -> list[Checkpoint]:
     """Admitted raw exports with their original cumulative training coordinates."""
     found = [
         Checkpoint(
@@ -57,9 +64,24 @@ def checkpoints(run: TrainingRun) -> list[Checkpoint]:
             ),
         )
         for c in run.monitoring_checkpoints
-        if c.artifact is not None and c.error is None
+        if include_monitoring and c.artifact is not None and c.error is None
     ]
     for stage in run.stages:
+        if include_initial and "initial_raw" in stage.artifacts:
+            found.append(
+                Checkpoint(
+                    artifact=stage.artifacts["initial_raw"],
+                    coordinates=TrainingCoordinates(
+                        stage_id=stage.id,
+                        updates=0,
+                        training_seconds=0,
+                        environment_decisions=0,
+                        learner_transitions=0,
+                        optimizer_exposures=0,
+                        games=0,
+                    ),
+                )
+            )
         checkpoint = stage_checkpoint(run, stage.id)
         if checkpoint is not None:
             found.append(checkpoint)
@@ -72,6 +94,7 @@ class EvaluationJob(Strict):
     protocol: MonitorProtocol
     allowance_seconds: float
     deadline_unix: float
+    active_runtime: bool = Field(default=False, exclude_if=lambda value: not value)
 
 
 class Attempt(Strict):
@@ -201,7 +224,16 @@ class CheckpointQueue:
                 run_dir / "training-dashboard.json",
                 training_dashboard(run).model_dump(mode="json"),
             )
-            for checkpoint in checkpoints(run):
+            for checkpoint in checkpoints(
+                run,
+                include_initial=self.config.include_initial,
+                include_monitoring=self.config.include_monitoring,
+            ):
+                if (
+                    self.config.updates
+                    and checkpoint.coordinates.updates not in self.config.updates
+                ):
+                    continue
                 artifact_binding = (
                     run_dir
                     / f"artifact-{canonical_sha256(checkpoint.artifact['path'])}.json"
@@ -216,7 +248,11 @@ class CheckpointQueue:
                     atomic_json(artifact_binding, checkpoint.model_dump(mode="json"))
                 identity = canonical_sha256(
                     {
-                        "run": run.id,
+                        "run": (
+                            f"{run.regime_digest}/{run.seed}"
+                            if run.regime.recovery
+                            else run.id
+                        ),
                         "checkpoint": checkpoint.model_dump(mode="json"),
                         "protocol": self.config.protocol.model_dump(mode="json"),
                     }
@@ -235,11 +271,21 @@ class CheckpointQueue:
         ):
             identity, run, checkpoint = queue[0]
             job = EvaluationJob(
-                run=run,
+                # The evaluator needs identity/recipe, not a duplicate learning
+                # ledger at every milestone. TrainingRun/VerifyStore retain all
+                # diagnostics; original coordinates are on the checkpoint.
+                run=run.model_copy(
+                    update={
+                        "stages": [],
+                        "monitoring_checkpoints": [],
+                        "fixed_validation": None,
+                    }
+                ),
                 checkpoint=checkpoint,
                 protocol=self.config.protocol,
                 allowance_seconds=self.config.attempt_seconds,
                 deadline_unix=time.time() + self.config.attempt_seconds,
+                active_runtime=self.config.active_runtime,
             )
             attempt = Attempt(
                 ordinal=len(self.attempts),
@@ -307,7 +353,9 @@ class CheckpointQueue:
         atomic_json(
             self.out / "dashboard.json",
             {
-                "purpose": "monitoring-not-scientific-evaluation",
+                "purpose": "predeclared-comparison-not-admission"
+                if self.config.protocol.comparison_sha256
+                else "monitoring-not-scientific-evaluation",
                 "allocation_seconds": self.config.seconds,
                 "charged_evaluator_process_seconds": self.charged_seconds,
                 "active_reserved_seconds": self.active.reserved_seconds
@@ -342,11 +390,14 @@ def main() -> None:
     def expire(signum: int, frame: object) -> None:
         os.killpg(os.getpgrp(), signal.SIGKILL)
 
-    signal.signal(signal.SIGALRM, expire)
-    remaining = job.deadline_unix - time.time()
-    if remaining <= 0:
-        expire(signal.SIGALRM, None)
-    signal.setitimer(signal.ITIMER_REAL, remaining)
+    if job.active_runtime:
+        arm_active_deadline(job.allowance_seconds)
+    else:
+        signal.signal(signal.SIGALRM, expire)
+        remaining = job.deadline_unix - time.time()
+        if remaining <= 0:
+            expire(signal.SIGALRM, None)
+        signal.setitimer(signal.ITIMER_REAL, remaining)
     torch.set_num_threads(1)
     result = evaluate_checkpoint(
         job.run,

@@ -31,6 +31,17 @@ class ReportEvidence:
     failed_directories: tuple[Path, ...]
     paths: tuple[Path, ...]
 
+    def logical_run_id(self, run_id: str) -> str:
+        """A recovery child extends its original seed, never another replicate."""
+        by_id = {run.id: run for run in self.runs}
+        seen: set[str] = set()
+        while run_id in by_id and by_id[run_id].parent_run_id is not None:
+            if run_id in seen:
+                raise ValueError("cyclic recovery lineage")
+            seen.add(run_id)
+            run_id = by_id[run_id].parent_run_id
+        return run_id
+
     def label(self, run_id: str) -> str:
         return next(
             (f"{r.regime.id} · seed {r.seed}" for r in self.runs if r.id == run_id),
@@ -93,10 +104,10 @@ def compatible_panels(evidence: ReportEvidence) -> dict[str, list[MonitorResult]
 
 def matched_milestones(evidence: ReportEvidence) -> dict[str, list[MonitorResult]]:
     """Intersect stage/update coordinates across all expected runs, without interpolation."""
-    expected = {r.id for r in evidence.runs}
+    expected = {evidence.logical_run_id(r.id) for r in evidence.runs}
     if any(
         a.status in {"pending", "running", "failed", "interrupted"}
-        and a.run_id not in expected
+        and a.run_id not in {r.id for r in evidence.runs}
         for e in evidence.executions
         for a in e.attempts
     ):
@@ -110,7 +121,8 @@ def matched_milestones(evidence: ReportEvidence) -> dict[str, list[MonitorResult
         rows = [
             r
             for group in by_coordinate.values()
-            if {r.run_id for r in group} == expected and len(group) == len(expected)
+            if {evidence.logical_run_id(r.run_id) for r in group} == expected
+            and len(group) == len(expected)
             for r in group
         ]
         if rows:
@@ -119,16 +131,22 @@ def matched_milestones(evidence: ReportEvidence) -> dict[str, list[MonitorResult
 
 
 def strength_figures(
-    evidence: ReportEvidence, axis: Literal["training_seconds", "environment_decisions"]
+    evidence: ReportEvidence,
+    axis: Literal["training_seconds", "environment_decisions"],
+    *,
+    matched_only: bool = True,
 ) -> list[Figure]:
     """Plot matched milestones per seed; bands are saved deal uncertainty, not seed CIs."""
     figures: list[Figure] = []
-    for panel, results in matched_milestones(evidence).items():
+    panels = (
+        matched_milestones(evidence) if matched_only else compatible_panels(evidence)
+    )
+    for panel, results in panels.items():
         fig = Figure(figsize=(9, 3.5), layout="constrained")
         ax = fig.subplots()
-        for run_id in sorted({r.run_id for r in results}):
+        for run_id in sorted({evidence.logical_run_id(r.run_id) for r in results}):
             rows = sorted(
-                (r for r in results if r.run_id == run_id),
+                (r for r in results if evidence.logical_run_id(r.run_id) == run_id),
                 key=lambda r: getattr(r.coordinates, axis),
             )
             x = [getattr(r.coordinates, axis) for r in rows]
@@ -251,6 +269,12 @@ def write_dashboard(
             f"{statuses['completed']}/{len(execution.attempts)} regime-seed runs complete · {statuses['running']} running · {statuses['pending']} pending · {statuses['failed'] + statuses['interrupted']} failed/interrupted<br>"
             f"{link('Evidence freshness', 'freshness')}: {as_of} · {age} s old · status {execution.status}</p>"
         )
+        schedule = execution.intent.get("schedule")
+        if isinstance(schedule, dict) and schedule.get("active_runtime") is True:
+            parts.append(
+                f"<p>Active allocation charged: {_number(execution.elapsed_seconds)} s; calendar: {_number(execution.calendar_seconds)} s; known downtime: {_number(execution.downtime_seconds)} s; uncertain restart charge: {_number(execution.uncertain_seconds)} s. "
+                f"{'Paused at a committed boundary.' if execution.paused else 'No automatic statistical plateau stop.'}</p>"
+            )
     rows: list[list[str]] = []
     for run in evidence.runs:
         metrics = evidence.metrics(run)
@@ -272,24 +296,61 @@ def write_dashboard(
                 f"{_number(updates)} / {planned or 'unavailable'} updates; {run.status}",
                 f"{_number(latest.get('throughput/learner_transitions_per_second'))} transitions/s",
                 loss,
+                datetime.fromtimestamp(
+                    run.last_recorded_wall_seconds, timezone.utc
+                ).isoformat(timespec="seconds")
+                if run.last_recorded_wall_seconds
+                else "unavailable",
+                str(
+                    max(
+                        0,
+                        run.updates_through()
+                        - max(
+                            (
+                                r.coordinates.updates
+                                for r in evidence.monitors
+                                if evidence.logical_run_id(r.run_id)
+                                == evidence.logical_run_id(run.id)
+                                and r.status == "completed"
+                            ),
+                            default=0,
+                        ),
+                    )
+                ),
             ]
         )
     parts.append(f"<h2>{link('Progress, throughput and latest loss', 'learning')}</h2>")
     parts.append(
         _table(
-            ["Variant / seed", "Recorded / planned", "SPS", "Latest applicable loss"],
+            [
+                "Variant / seed",
+                "Recorded / planned",
+                "SPS",
+                "Latest applicable loss",
+                "Last saved update (UTC)",
+                "Updates awaiting evaluation",
+            ],
             rows,
         )
     )
     parts.append(
         '<p class="muted">SPS = cumulative learner transitions / recorded training seconds. RL loss is the last optimized minibatch objective, never log loss. Updates include empty-filter skips.</p>'
     )
+    parts.append(
+        '<p class="muted">Missing updates or failed evaluations are operational signals, not evidence of a statistical plateau. Inspect repeated strength estimates and uncertainty before requesting a safe pause.</p>'
+    )
     eval_rows: list[list[str]] = []
     for run in evidence.runs:
         results = [r for r in evidence.monitors if r.run_id == run.id]
         if not results:
             eval_rows.append(
-                [evidence.label(run.id), "pending / unavailable", "—", "—"]
+                [
+                    evidence.label(run.id),
+                    "pending / unavailable",
+                    "—",
+                    "—",
+                    "unavailable",
+                ]
             )
             continue
         result = max(results, key=lambda r: r.coordinates.training_seconds)
@@ -319,6 +380,11 @@ def write_dashboard(
                 f"{c.updates} updates; {c.learner_transitions} transitions; lag {lag} training s",
                 f"{result.opponent.display_name}; {sum(r.valid for r in result.rows)}/{result.expected_games} games",
                 rate,
+                datetime.fromtimestamp(result.finished_unix, timezone.utc).isoformat(
+                    timespec="seconds"
+                )
+                if result.finished_unix
+                else "unavailable",
             ]
         )
     parts.append(
@@ -331,6 +397,7 @@ def write_dashboard(
                 "Checkpoint / age",
                 "Opponent / games",
                 "Win rate [95% interval]",
+                "Evaluation finished (UTC)",
             ],
             eval_rows,
         )

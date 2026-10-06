@@ -52,6 +52,14 @@ class MonitorProtocol(Strict):
     bootstrap_replicates: int = Field(default=2000, ge=1)
     game_seconds: float = Field(default=120, gt=0)
     max_commands: int = Field(default=10_000, ge=1)
+    opponent: Literal["scripted_greedy", "random"] = Field(
+        default="scripted_greedy", exclude_if=lambda value: value == "scripted_greedy"
+    )
+    # A frozen external comparison owns seeds, selection and analysis. This binds
+    # its exact bytes; the evaluator itself supplies no promotion decision.
+    comparison_sha256: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$", exclude_if=lambda value: value is None
+    )
 
     @model_validator(mode="after")
     def unique_deals(self) -> MonitorProtocol:
@@ -139,9 +147,9 @@ class RateInterval(Strict):
 
 class MonitorResult(Strict):
     schema_version: Literal[1] = 1
-    purpose: Literal["monitoring-not-scientific-evaluation"] = (
-        "monitoring-not-scientific-evaluation"
-    )
+    purpose: Literal[
+        "monitoring-not-scientific-evaluation", "predeclared-comparison-not-admission"
+    ] = "monitoring-not-scientific-evaluation"
     run_id: str
     regime_digest: str
     training_seed: int
@@ -161,6 +169,12 @@ class MonitorResult(Strict):
     draw: RateInterval | None = None
     score: RateInterval | None = None
     evaluation_seconds: float | None = None
+    started_unix: float | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    finished_unix: float | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     coordinator_cpu_seconds: float | None = None
     reaped_worker_cpu_seconds: float | None = None
     coordinator_rss_before_bytes: int | None = None
@@ -292,12 +306,14 @@ def _manifest(
     )
     opponent = PlayerRegistration(
         **common,
-        player_id="monitor-scripted-greedy",
-        display_name="Frozen scripted greedy",
+        player_id="monitor-" + protocol.opponent.replace("_", "-"),
+        display_name="Frozen scripted greedy"
+        if protocol.opponent == "scripted_greedy"
+        else "Uniform legal random",
         role="anchor",
         runner_kind="code",
-        player_spec={"kind": "scripted_greedy"},
-        compute_class_id="scripted-greedy-cpu-v1",
+        player_spec={"kind": protocol.opponent},
+        compute_class_id=protocol.opponent.replace("_", "-") + "-cpu-v1",
         source_sha256=file_sha256(Path(players.__file__)),
     )
     key = ArenaKey(
@@ -311,6 +327,9 @@ def _manifest(
         evaluation_compute_envelope_id="policy-cpu-one-thread-one-pass",
     )
     return MonitorResult(
+        purpose="predeclared-comparison-not-admission"
+        if protocol.comparison_sha256
+        else "monitoring-not-scientific-evaluation",
         run_id=run.id,
         regime_digest=run.regime_digest,
         training_seed=run.seed,
@@ -337,6 +356,7 @@ def evaluate_checkpoint(
     """Run bounded arena games. Use a new directory per attempt; never overwrite failures."""
     output_dir.mkdir(parents=True, exist_ok=False)
     start, cpu = time.perf_counter(), time.process_time()
+    started_unix = time.time()
     process = psutil.Process()
     child_start = resource.getrusage(resource.RUSAGE_CHILDREN)
     try:
@@ -354,6 +374,7 @@ def evaluate_checkpoint(
         )
         raise
     result.concurrent_activity = concurrent_activity
+    result.started_unix = started_unix
     result.coordinator_rss_before_bytes = process.memory_info().rss
     result.host_load_before = os.getloadavg()
     atomic_json(output_dir / "monitor.json", result.model_dump(mode="json"))
@@ -384,6 +405,7 @@ def evaluate_checkpoint(
         result.error = f"{type(exc).__name__}: {exc}"
     finally:
         result.evaluation_seconds = time.perf_counter() - start
+        result.finished_unix = time.time()
         result.coordinator_cpu_seconds = time.process_time() - cpu
         child_end = resource.getrusage(resource.RUSAGE_CHILDREN)
         result.reaped_worker_cpu_seconds = (

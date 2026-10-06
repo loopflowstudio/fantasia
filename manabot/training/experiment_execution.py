@@ -65,6 +65,7 @@ class ExperimentSchedule(Strict):
     # Case indexes per seed; empty means declaration order for every seed.
     order: tuple[tuple[int, ...], ...] = ()
     disk_reserve_bytes: int = Field(default=4 * 1024**3, ge=0)
+    active_runtime: bool = Field(default=False, exclude_if=lambda value: not value)
 
     @model_validator(mode="after")
     def valid(self) -> "ExperimentSchedule":
@@ -115,8 +116,20 @@ class ExperimentRun(Strict):
     host_dollars: float | None = None
     error: str | None = None
     notebook: str
+    paused: bool = False
+    calendar_seconds: float = 0
+    downtime_seconds: float = 0
+    uncertain_seconds: float = 0
+    boot_identity: str | None = None
+    last_seen_active: float | None = None
 
     def report(self, directory: Path) -> Path:
         from manabot.training.comparison_notebook import write_comparison_notebook
 
-        return write_comparison_notebook(directory, Path(self.notebook))
+        schedule = self.intent.get("schedule")
+        return write_comparison_notebook(
+            directory,
+            Path(self.notebook),
+            individual_progress=isinstance(schedule, dict)
+            and schedule.get("active_runtime") is True,
+        )

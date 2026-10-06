@@ -313,6 +313,17 @@ Operation = Annotated[
 ]
 
 
+class RecoveryPolicy(Strict):
+    """Bounded current-game replay and an awake elapsed-time allocation.
+
+    Recovery artifacts are private compressed snapshots. All created snapshots
+    remain retained; cadence bounds duplicated serialization and restart work.
+    """
+
+    max_game_microsteps: int = Field(default=40000, ge=1, le=1_000_000)
+    checkpoint_updates: int = Field(default=128, ge=1)
+
+
 class TrainingRegime(Strict):
     schema_version: Literal[1] = 1
     id: str
@@ -326,7 +337,14 @@ class TrainingRegime(Strict):
         "run_elapsed_budget"
     )
     recovery_max_microsteps: int | None = Field(default=None, ge=1, le=1_000_000)
+    recovery: RecoveryPolicy | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     selection: Literal["last-complete-raw"] = "last-complete-raw"
+
+    @property
+    def recoverable(self) -> bool:
+        return self.recovery is not None or self.recovery_max_microsteps is not None
 
     @model_validator(mode="after")
     def references(self) -> "TrainingRegime":
@@ -367,13 +385,17 @@ class TrainingRegime(Strict):
             raise ValueError(
                 "compound policies require compound policy stages throughout the run"
             )
-        if self.recovery_max_microsteps is not None and (
+        if self.recovery is not None and self.recovery_max_microsteps is not None:
+            raise ValueError("select one recovery contract")
+        if self.recoverable and (
             any(not isinstance(stage, TrainSelfPlay) for stage in self.stages)
             or self.schedule_clock != "iteration_fraction"
         ):
             raise ValueError(
                 "recovery requires only self-play stages and iteration_fraction schedule"
             )
+        if self.recoverable and any(stage.root is not None for stage in self.stages):
+            raise ValueError("diagnostic roots do not support recovery")
         previous: dict[str, Stage] = {}
         latest_self_play = None
         latest_compound = None
@@ -584,6 +606,14 @@ class TrainingRun(Strict):
     recovery_lock_path: str | None = None
     recovery_host: str | None = None
     last_recorded_wall_seconds: float | None = None
+    last_recorded_active_seconds: float | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    recovery_boot_identity: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    calendar_seconds: float = Field(default=0, exclude_if=lambda value: value == 0)
+    downtime_seconds: float = Field(default=0, exclude_if=lambda value: value == 0)
     unobserved_seconds: float = 0
     recovery_seconds: float = 0
     prior_seconds: float = 0

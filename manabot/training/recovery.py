@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
 import fcntl
+import gzip
 import os
 from pathlib import Path
 import random
@@ -28,7 +29,12 @@ from manabot.sim.net_opponent import (
     CollectorStats,
     NetOpponentTrainer,
 )
+from manabot.training.clock import boot_identity
 from manabot.training.models import StageRecord, TrainingRun
+
+
+class TrainingPaused(KeyboardInterrupt):
+    """A requested pause after a complete, store-committed learning boundary."""
 
 
 @dataclass
@@ -83,7 +89,11 @@ def save_update(
     )
     temporary = path.with_suffix(".tmp")
     with temporary.open("xb") as stream:
-        torch.save(state, stream)
+        if path.suffix == ".gz":
+            with gzip.GzipFile(fileobj=stream, mode="wb", mtime=0) as compressed:
+                torch.save(state, compressed)
+        else:
+            torch.save(state, stream)
         stream.flush()
         os.fsync(stream.fileno())
     # Hard link publishes without ever replacing a previous checkpoint.
@@ -99,7 +109,8 @@ def load_update(parent: TrainingRun) -> UpdateSnapshot:
     path = Path(artifact["path"])
     if file_sha256(path) != artifact["sha256"]:
         raise ValueError("recovery artifact digest mismatch")
-    state = torch.load(path, map_location="cpu", weights_only=False)
+    with gzip.open(path, "rb") if path.suffix == ".gz" else path.open("rb") as stream:
+        state = torch.load(stream, map_location="cpu", weights_only=False)
     if (
         not isinstance(state, UpdateSnapshot)
         or getattr(state, "format_version", None) != 2
@@ -178,10 +189,22 @@ def settle_orphan(parent: TrainingRun) -> TrainingRun:
         raise ValueError("calendar clock moved backwards; crash cost is unknown")
     settled = parent.model_copy(deep=True)
     settled.status = "interrupted"
-    settled.seconds += gap
-    settled.watchdog_seconds += gap
-    settled.unobserved_seconds += gap
+    charged = gap
+    if (
+        parent.regime.recovery is not None
+        and parent.recovery_boot_identity == boot_identity()
+    ):
+        if parent.last_recorded_active_seconds is None:
+            raise ValueError("active recovery lacks an awake-clock timestamp")
+        charged = max(0.0, time.monotonic() - parent.last_recorded_active_seconds)
+        settled.downtime_seconds += max(0.0, gap - charged)
+    # After reboot no shared monotonic epoch remains. Conservatively charge the
+    # unknown gap, and label it uncertainty rather than measured active compute.
+    settled.calendar_seconds += gap
+    settled.seconds += charged
+    settled.watchdog_seconds += charged
+    settled.unobserved_seconds += charged
     if settled.stages and settled.stages[-1].status != "completed":
-        settled.stages[-1].watchdog_seconds += gap
+        settled.stages[-1].watchdog_seconds += charged
     settled.error = "Writer lease released; unobserved interval charged conservatively"
     return settled

@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 import torch
@@ -215,8 +215,13 @@ def test_default_monitoring_cohort() -> None:
         monitor.MonitorProtocol(deal_seeds=(1, 1))
 
 
-@pytest.mark.parametrize("max_commands", [1, 10000])
-def test_real_arena_checkpoint_outcomes(tmp_path: Path, max_commands: int) -> None:
+@pytest.mark.parametrize(
+    "max_commands,opponent",
+    [(1, "scripted_greedy"), (10000, "scripted_greedy"), (10000, "random")],
+)
+def test_real_arena_checkpoint_outcomes(
+    tmp_path: Path, max_commands: int, opponent: Literal["scripted_greedy", "random"]
+) -> None:
     previous_threads = torch.get_num_threads()
     torch.set_num_threads(1)
     try:
@@ -271,8 +276,22 @@ def test_real_arena_checkpoint_outcomes(tmp_path: Path, max_commands: int) -> No
             ),
             tmp_path / "arena",
             protocol=monitor.MonitorProtocol(
-                deal_seeds=(1910101000,), max_commands=max_commands, game_seconds=30
+                deal_seeds=(1910101000,),
+                max_commands=max_commands,
+                game_seconds=30,
+                opponent=opponent,
+                comparison_sha256="a" * 64 if opponent == "random" else None,
             ),
+        )
+        assert (
+            result.started_unix is not None
+            and result.finished_unix >= result.started_unix
+        )
+        assert result.opponent.player_spec["kind"] == opponent
+        assert result.purpose == (
+            "predeclared-comparison-not-admission"
+            if opponent == "random"
+            else "monitoring-not-scientific-evaluation"
         )
         assert len(result.rows) == 4
         if max_commands == 1:
