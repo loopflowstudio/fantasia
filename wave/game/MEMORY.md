@@ -163,3 +163,10 @@ These new fixtures do not identify the original reported awkward position.
 Search versus grouping, the threshold and duplicate-copy clarity still require
 Jack Heart's play judgment; automated checks do not close ETU-77 or chapter KR2.
 Model-facing decision contracts remain ETU-107's separate responsibility.
+
+PR #231's Linux failure was the intended filter missing from the visual corpus:
+the eight-discard panel grew by 90 pixels while preserving every choice. Version
+appearance changes with the pinned Linux generation/comparison workflow; local
+runs with screenshots ignored cannot certify references. Preserve historical
+corpora and strict tolerances. The v6 reference provenance records the inspected
+diff; this is software evidence, not acceptance of filtering by Jack Heart.
