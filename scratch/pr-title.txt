@@ -1,1 +1,0 @@
-Make Ataraxos learning techniques independently testable
