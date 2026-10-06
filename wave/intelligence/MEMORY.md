@@ -468,11 +468,9 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-GOAL.md owns dispositions: ETU-21 abandoned, ETU-31 deferred, ETU-34 completed.
-Historical detail: `59f16e0d` and `60e2f897`. Bounded demos establish neither
-student flips, live advice, full-game calibration nor strength. The ed2 replay
-survives; advice/checkpoint limits remain in
-[the live-advice plan](../../docs/plans/live-belief-advice.md). Rules owns history.
+GOAL.md owns ETU-21/31/34 dispositions; history is at `59f16e0d`/`60e2f897`.
+[Live-advice limits](../../docs/plans/live-belief-advice.md) remain; demos do not
+establish strength or full-game calibration. Rules owns history.
 
 ## Corrected-world training binding (2026-09-29)
 

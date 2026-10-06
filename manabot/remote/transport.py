@@ -7,7 +7,7 @@ import shlex
 import subprocess
 import time
 
-from .plan import DeploymentPlan, digest
+from .plan import DeploymentPlan
 from .provider import Pod
 
 REPOSITORY = "https://github.com/loopflowstudio/etude.git"
@@ -140,11 +140,3 @@ uv --version > /workspace/evidence/toolchain.txt
 rustc --version >> /workspace/evidence/toolchain.txt
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv >> /workspace/evidence/toolchain.txt
 """
-
-
-def bootstrap_digest() -> str:
-    """Bind bootstrap and guardian bytes as part of source-tree identity checks."""
-    return digest(
-        Path(__file__).read_bytes()
-        + Path(__file__).with_name("guardian.sh").read_bytes()
-    )
