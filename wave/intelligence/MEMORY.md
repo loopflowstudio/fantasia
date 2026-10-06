@@ -3,9 +3,8 @@
 ## History-input software delivery (ETU-106, 2026-10-06)
 
 Jack Heart authorized [history-screen delivery](../../experiments/history-input.md).
-Off/on ABIs stay distinct. The source-matched native build preserves the old
-extension; history fixtures and eight fixed-weight replayed games pass. Campaign
-bytes remain unchanged. No calibration or campaign ran; delivered source,
+Off/on ABIs stay distinct. Native history fixtures and eight fixed-weight replayed games pass; the old
+extension and campaign bytes remain preserved. No calibration or campaign ran; delivered source,
 exclusive-host/cohort audit and prospective cost admission precede execution.
 History adds information and parameters; fixed-update scores cannot establish
 common-cost superiority. ETU-106 stays open.
