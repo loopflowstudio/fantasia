@@ -1,12 +1,12 @@
 # Intelligence memory
 
-## Remote regime live proof (ETU-114, 2026-10-06)
+## Remote proof (ETU-114, 2026-10-06)
 
 Jack Heart authorized $50 across all attempts and branch pushes for exact-source
 fetching; PR review/readiness and landing remain prohibited. ETU-108/larger models
 stay separate. Attempt 004 completed 700 CUDA updates in 27.73 minutes, returned
 raw/EMA and authoritative records, and exact-replayed four ordinary arena games.
-Inventory was empty; rented CUDA smoke passed.
+Empty inventory; CUDA smoke passed.
 Including failures/shakedown: $1.0701 estimated/reported, not invoiced.
 Evidence: [remote contract](../../docs/remote-training.md).
 
@@ -15,7 +15,7 @@ attempt 005 is running. ETU-119 owns persistence fixes; frozen runs stay unchang
 Growing update intervals do not isolate save cost. Wider budgets also change the
 elapsed-budget schedule. No strength or chapter acceptance follows.
 
-## Experiment execution and notebook boundary (ETU-113, 2026-10-06)
+## Experiments/notebooks (ETU-113, 2026-10-06)
 
 Jack Heart accepted declarative Experiment comparisons: one Python declaration
 per experiment and a shared explicit runner. History/depth
