@@ -101,9 +101,11 @@ VerifyStore retain execution authority. The explicit diagnostic driver adds
 initialization/no-update controls and root replay. The sustained run must use
 the shared Experiment scheduling/notebook path and its phase accounting.
 
-Delete — do not maintain: remove any wording or report flag treating a short
-full-game pass as baseline promotion. Preserve its predeclared thresholds and
-outcomes as historical debugging criteria, not a rewritten successful claim.
+Delete — do not maintain: short full-game promotion/graduation wording is removed;
+its frozen thresholds and outcomes remain debugging criteria. The executor and
+report share typed Result/Attempt/Score evidence. Learner/evaluator deadlines use
+one clock helper, and notebook sections are authored directly instead of patched
+by cell index and string matching. Retained evidence bytes remain unchanged.
 
 Current-game recovery, safe pause and active-clock accounting now extend the shared
 owners. Real pause/resume matched uninterrupted learner/optimizer/EMA/RNG and native
@@ -129,4 +131,4 @@ and independently validated daily testing remain open; no baseline promotion or
 Task completion. `experiments/current-baseline.md` and its hash-bound calibration
 archive own exact costs, failures and evidence limits.
 
-Check: affected gate 39 passed; follow-up monitor/report/authoring and abrupt-restart checks 44 passed; allocation checks 2 passed; native debug 7 passed and all-target Clippy passed.
+Check: `uv run pytest -q tests/training/test_current_baseline.py tests/training/test_worker_deadline.py tests/training/test_checkpoint_queue.py tests/training/test_experiment_report.py` — 13 passed after compression; broader gate/native results remain in `experiments/current-baseline.md`. Storage compaction and sustained calibration remain follow-up work.

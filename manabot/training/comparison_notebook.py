@@ -22,6 +22,11 @@ def write_comparison_notebook(
         Path(__file__).resolve().parents[2] / "docs/experiment-metrics.md",
         output.parent.resolve(),
     )
+    individual_section = (
+        "    ('Individual learning trajectories (unmatched)', 'comparisons', strength_figures(evidence, 'training_seconds', matched_only=False)),\n"
+        if individual_progress
+        else ""
+    )
     cells = [
         nbformat.v4.new_markdown_cell(
             "# Experiment report generator\n\nRun All reads saved evidence and writes `comparison.html`, "
@@ -49,6 +54,7 @@ def write_comparison_notebook(
         nbformat.v4.new_code_cell(
             "# Editable plotting code. Keep the default report concise.\n"
             "sections = [\n"
+            f"{individual_section}"
             "    ('Strength versus time', 'comparisons', strength_figures(evidence, 'training_seconds')),\n"
             "    ('Strength versus work', 'comparisons', strength_figures(evidence, 'environment_decisions')),\n"
             "    ('RL objective', 'learning', [metric_figure(evidence, 'rl/loss')]),\n"
@@ -76,11 +82,6 @@ def write_comparison_notebook(
             "language_info": {"name": "python", "version": "3.12"},
         },
     )
-    if individual_progress:
-        notebook.cells[3].source = notebook.cells[3].source.replace(
-            "sections = [\n",
-            "sections = [\n    ('Individual learning trajectories (unmatched)', 'comparisons', strength_figures(evidence, 'training_seconds', matched_only=False)),\n",
-        )
     try:
         with output.open("x") as stream:
             nbformat.write(notebook, stream)

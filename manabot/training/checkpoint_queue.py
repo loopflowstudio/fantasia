@@ -23,7 +23,7 @@ from pydantic import Field
 import torch
 
 from manabot.arena.models import canonical_sha256
-from manabot.training.clock import arm_active_deadline
+from manabot.training.clock import arm_worker_deadline
 from manabot.training.execution import atomic_json
 from manabot.training.models import (
     Strict,
@@ -387,17 +387,11 @@ def main() -> None:
 
     # Even if the supervisor dies, stop this whole evaluator session at its cap.
     # The supervisor retains the immutable attempt and conservatively charges it.
-    def expire(signum: int, frame: object) -> None:
-        os.killpg(os.getpgrp(), signal.SIGKILL)
-
-    if job.active_runtime:
-        arm_active_deadline(job.allowance_seconds)
-    else:
-        signal.signal(signal.SIGALRM, expire)
-        remaining = job.deadline_unix - time.time()
-        if remaining <= 0:
-            expire(signal.SIGALRM, None)
-        signal.setitimer(signal.ITIMER_REAL, remaining)
+    arm_worker_deadline(
+        active_runtime=job.active_runtime,
+        allowance_seconds=job.allowance_seconds,
+        deadline_unix=job.deadline_unix,
+    )
     torch.set_num_threads(1)
     result = evaluate_checkpoint(
         job.run,

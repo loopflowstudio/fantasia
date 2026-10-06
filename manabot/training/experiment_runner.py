@@ -28,7 +28,7 @@ import torch
 from manabot.arena.models import canonical_sha256
 from manabot.sim.teacher1_evidence import source_bundle_sha256
 from manabot.training.checkpoint_queue import CheckpointQueue
-from manabot.training.clock import arm_active_deadline, boot_identity
+from manabot.training.clock import arm_worker_deadline, boot_identity
 from manabot.training.execution import atomic_json, execute_regime
 from manabot.training.experiment_execution import (
     ExperimentRun,
@@ -440,17 +440,11 @@ def main() -> None:
         raise ValueError("internal worker requires an isolated process session")
     payload = json.loads(args.job.read_text())
 
-    def expire(signum: int, frame: object) -> None:
-        os.killpg(os.getpgrp(), signal.SIGKILL)
-
-    if payload.get("active_runtime"):
-        arm_active_deadline(payload["allowance_seconds"])
-    else:
-        signal.signal(signal.SIGALRM, expire)
-        remaining = payload["deadline_unix"] - time.time()
-        if remaining <= 0:
-            expire(signal.SIGALRM, None)
-        signal.setitimer(signal.ITIMER_REAL, remaining)
+    arm_worker_deadline(
+        active_runtime=payload.get("active_runtime", False),
+        allowance_seconds=payload["allowance_seconds"],
+        deadline_unix=payload["deadline_unix"],
+    )
     with VerifyStore(payload["store"]) as store:
         run = execute_regime(
             TrainingRegime.model_validate(payload["regime"]),

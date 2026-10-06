@@ -67,7 +67,7 @@ seconds for training with a 760-second stage bound. No paid compute or other
 campaign intervention. The native build is a setup operation, not training.
 Host load fell from 41.73 to 10.46 during preparation; these runs cannot calibrate
 uncontended throughput. A new full-game allocation must be frozen before that
-level; positive-control failure requires diagnosis before graduation.
+level; positive-control failure requires diagnosis before full-game debugging.
 
 ## Execution and evidence ownership
 
@@ -87,7 +87,7 @@ are retained below. The editable notebook generates the debugging evidence HTML.
 These checks cannot promote the candidate. Sustained learning, followed by an
 independently validated daily test, remains the main outcome.
 
-## Prospective full-game graduation
+## Frozen full-game debugging protocol
 
 After the complete positive control passes, the next bounded level uses the
 unchanged authored Allies/Lessons setup and masked-mean learning settings, fresh
@@ -116,7 +116,7 @@ frozen/initial outputs, all games replaying, and a positive lower 95% paired-see
 bootstrap bound. Report every seed and seat/deck leg regardless of the result.
 Three seeds and one scripted reference are only a reproducible small-matchup
 learning control, never a chapter-strength or self-play claim. Failure preserves
-the narrow target-task result and blocks general baseline promotion.
+the narrow target-task result; neither debugging outcome permits baseline promotion.
 
 ## Retained failure and protocol amendment (2026-10-06)
 

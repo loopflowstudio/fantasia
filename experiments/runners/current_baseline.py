@@ -7,14 +7,13 @@ is explicit here. Every selected action is re-executed from its original root.
 
 import argparse
 from copy import deepcopy
-import json
 from pathlib import Path
 import signal
 import time
 
-from pydantic import JsonValue
 import torch
 
+from experiments.runners.current_baseline_evidence import Attempt, Result, Score
 from experiments.runners.run_value_models import smoke_baseline
 from manabot.arena.models import file_sha256
 from manabot.env import Match
@@ -64,10 +63,10 @@ def declaration(*, frozen: bool = False, full_game: bool = False) -> Experiment:
     return Experiment(name=base.id, baseline=Baseline.capture(base.id, base))
 
 
-def evaluate(checkpoint: Path, regime: TrainingRegime) -> list[dict[str, JsonValue]]:
+def evaluate(checkpoint: Path, regime: TrainingRegime) -> list[Score]:
     agent, space = load_checkpoint_agent(str(checkpoint))
     player = AgentMatchupPlayer(agent)
-    rows: list[dict[str, JsonValue]] = []
+    rows: list[Score] = []
     for deal in DEALS:
         for seat in (0, 1):
             env = target_root(Match(regime.match), space, deal, seat)
@@ -96,17 +95,17 @@ def evaluate(checkpoint: Path, regime: TrainingRegime) -> list[dict[str, JsonVal
             ):
                 raise ValueError("target-root exact replay diverged")
             rows.append(
-                {
-                    "deal": deal,
-                    "seat": seat,
-                    "action": action,
-                    "winner": winner,
-                    "win": winner == seat,
-                    "probabilities": probabilities[:2].tolist(),
-                    "root": before,
-                    "terminal": after,
-                    "replay": True,
-                }
+                Score(
+                    deal=deal,
+                    seat=seat,
+                    action=action,
+                    winner=winner,
+                    win=winner == seat,
+                    probabilities=probabilities[:2].tolist(),
+                    root=before,
+                    terminal=after,
+                    replay=True,
+                )
             )
     return rows
 
@@ -115,9 +114,7 @@ def _expire(signum: int, frame: object) -> None:
     raise TimeoutError("ETU-118 declared attempt allowance exhausted")
 
 
-def score(
-    run: TrainingRun, kind: str, out: Path, full_game: bool
-) -> list[dict[str, JsonValue]]:
+def score(run: TrainingRun, kind: str, out: Path, full_game: bool) -> list[Score]:
     artifact = run.stages[0].artifacts[kind]
     if not full_game:
         return evaluate(Path(artifact["path"]), run.regime)
@@ -142,12 +139,12 @@ def score(
     if measured.status != "completed":
         raise RuntimeError(f"full-game evaluation incomplete: {measured.error}")
     return [
-        {
-            "deal": row.deal_seed,
-            "leg": row.leg,
-            "win": row.score_a,
-            "replay": row.replay_passed,
-        }
+        Score(
+            deal=row.deal_seed,
+            leg=row.leg,
+            win=row.score_a,
+            replay=row.replay_passed,
+        )
         for row in measured.rows
     ]
 
@@ -158,41 +155,45 @@ def run(out: Path, prior: Path | None = None, *, full_game: bool = False) -> Non
     started = time.monotonic()
     prior_seconds = 0.0
     if prior is not None:
-        previous = json.loads(prior.read_text())
-        if previous["status"] != ("completed" if full_game else "failed"):
+        previous = Result.model_validate_json(prior.read_text())
+        if previous.status != ("completed" if full_game else "failed"):
             raise ValueError("explicit recovery requires retained failure")
-        prior_seconds = float(previous["seconds"]) + float(
-            previous.get("prior_seconds", 0)
-        )
+        prior_seconds = previous.seconds + previous.prior_seconds
         if full_game:
-            for attempt in previous["attempts"]:
-                if not attempt["frozen"]:
-                    initial = sum(row["win"] for row in attempt["initial"]) / len(
-                        attempt["initial"]
+            for attempt in previous.attempts:
+                if not attempt.frozen:
+                    initial = sum(row.win for row in attempt.initial) / len(
+                        attempt.initial
                     )
-                    trained = sum(row["win"] for row in attempt["rows"]) / len(
-                        attempt["rows"]
-                    )
+                    trained = sum(row.win for row in attempt.rows) / len(attempt.rows)
                     if trained < 0.85 or trained - initial < 0.25:
                         raise ValueError(
-                            "positive control failed; full-game graduation forbidden"
+                            "positive control failed; full-game debugging forbidden"
                         )
     elif full_game:
         raise ValueError(
-            "full-game graduation requires completed positive-control evidence"
+            "full-game debugging requires completed positive-control evidence"
         )
-    result: dict[str, JsonValue] = {"status": "running", "attempts": [], "seconds": 0.0}
-    attempts: list[dict[str, JsonValue]] = []
-    result["attempts"] = attempts
-    result["prior_seconds"] = prior_seconds
-    result["prior_sha256"] = file_sha256(prior) if prior is not None else None
-    result["full_game"] = full_game
+    result = Result(
+        status="running",
+        attempts=[],
+        prior_seconds=prior_seconds,
+        prior_sha256=file_sha256(prior) if prior is not None else None,
+        full_game=full_game,
+    )
+
+    def persist() -> None:
+        result.seconds = time.monotonic() - started
+        atomic_json(
+            out / "result.json", result.model_dump(mode="json", exclude_unset=True)
+        )
+
     signal.signal(signal.SIGALRM, _expire)
     try:
         with VerifyStore(out / "verify.sqlite") as store:
             for seed in (11821, 11822, 11823) if full_game else SEEDS:
                 initial_state: dict[str, torch.Tensor] | None = None
-                initial_rows: list[dict[str, JsonValue]] | None = None
+                initial_rows: list[Score] | None = None
                 for frozen in (False, True):
                     allowance = (
                         min(2700, 3600 - prior_seconds)
@@ -210,13 +211,9 @@ def run(out: Path, prior: Path | None = None, *, full_game: bool = False) -> Non
                         .cases[0]
                         .regime
                     )
-                    attempt: dict[str, JsonValue] = {
-                        "seed": seed,
-                        "frozen": frozen,
-                        "status": "running",
-                    }
-                    attempts.append(attempt)
-                    atomic_json(out / "result.json", result)
+                    attempt = Attempt(seed=seed, frozen=frozen, status="running")
+                    result.attempts.append(attempt)
+                    persist()
                     try:
                         training = execute_regime(
                             regime,
@@ -224,7 +221,7 @@ def run(out: Path, prior: Path | None = None, *, full_game: bool = False) -> Non
                             out / f"{seed}-{'frozen' if frozen else 'learning'}",
                             store,
                         )
-                        attempt["run_id"] = training.id
+                        attempt.run_id = training.id
                         if training.status != "completed":
                             raise RuntimeError(training.error)
                         artifacts = training.stages[0].artifacts
@@ -240,7 +237,7 @@ def run(out: Path, prior: Path | None = None, *, full_game: bool = False) -> Non
                                 out / f"{seed}-initial-eval",
                                 full_game,
                             )
-                            attempt["initial"] = initial_rows
+                            attempt.initial = initial_rows
                         if any(
                             not torch.equal(value, initial_state[key])
                             for key, value in init_agent.state_dict().items()
@@ -264,29 +261,25 @@ def run(out: Path, prior: Path | None = None, *, full_game: bool = False) -> Non
                             raise ValueError(
                                 "frozen control differs from initialization"
                             )
-                        attempt.update(
-                            status="completed",
-                            checkpoint_sha256=file_sha256(final),
-                            initial_sha256=file_sha256(initial),
-                            rows=scored,
-                        )
+                        attempt.status = "completed"
+                        attempt.checkpoint_sha256 = file_sha256(final)
+                        attempt.initial_sha256 = file_sha256(initial)
+                        attempt.rows = scored
                     except BaseException as error:
-                        attempt.update(
-                            status="failed", error=f"{type(error).__name__}: {error}"
-                        )
+                        attempt.status = "failed"
+                        attempt.error = f"{type(error).__name__}: {error}"
                         raise
                     finally:
                         signal.setitimer(signal.ITIMER_REAL, 0)
-                        attempt["seconds"] = time.monotonic() - tick
-                        result["seconds"] = time.monotonic() - started
-                        atomic_json(out / "result.json", result)
-        result["status"] = "completed"
+                        attempt.seconds = time.monotonic() - tick
+                        persist()
+        result.status = "completed"
     except BaseException as error:
-        result.update(status="failed", error=f"{type(error).__name__}: {error}")
+        result.status = "failed"
+        result.error = f"{type(error).__name__}: {error}"
         raise
     finally:
-        result["seconds"] = time.monotonic() - started
-        atomic_json(out / "result.json", result)
+        persist()
 
 
 def main() -> None:

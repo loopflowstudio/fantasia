@@ -68,3 +68,21 @@ def arm_active_deadline(seconds: float) -> None:
         os.killpg(os.getpgrp(), signal.SIGKILL)
 
     threading.Thread(target=watch, daemon=True, name="active-runtime-watchdog").start()
+
+
+def arm_worker_deadline(
+    *, active_runtime: bool, allowance_seconds: float, deadline_unix: float
+) -> None:
+    """Arm the selected allocation clock for an isolated learner or evaluator."""
+    if active_runtime:
+        arm_active_deadline(allowance_seconds)
+        return
+
+    def expire(signum: int, frame: object) -> None:
+        os.killpg(os.getpgrp(), signal.SIGKILL)
+
+    signal.signal(signal.SIGALRM, expire)
+    remaining = deadline_unix - time.time()
+    if remaining <= 0:
+        expire(signal.SIGALRM, None)
+    signal.setitimer(signal.ITIMER_REAL, remaining)

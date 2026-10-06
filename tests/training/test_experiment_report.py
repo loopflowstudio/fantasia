@@ -7,6 +7,7 @@ import shutil
 
 from nbclient import NotebookClient
 import nbformat
+import pytest
 
 from manabot.training.comparison_notebook import write_comparison_notebook
 from manabot.training.experiment_report import (
@@ -18,8 +19,13 @@ from manabot.training.experiment_report import (
 DEMO = Path(__file__).resolve().parents[2] / "experiments/study/experiment-demo"
 
 
-def test_saved_notebook_generates_html_without_inline_plots(tmp_path: Path) -> None:
-    path = write_comparison_notebook(DEMO, tmp_path / "report.ipynb")
+@pytest.mark.parametrize("individual_progress", [False, True])
+def test_saved_notebook_generates_html_without_inline_plots(
+    tmp_path: Path, individual_progress: bool
+) -> None:
+    path = write_comparison_notebook(
+        DEMO, tmp_path / "report.ipynb", individual_progress=individual_progress
+    )
     notebook = nbformat.read(path, as_version=4)
     notebook.cells[1].source = notebook.cells[1].source.replace(
         "comparison.html", "chosen.html"
@@ -33,7 +39,7 @@ def test_saved_notebook_generates_html_without_inline_plots(tmp_path: Path) -> N
         notebook, timeout=60, resources={"metadata": {"path": str(tmp_path)}}
     ).execute()
     html = (tmp_path / "chosen.html").read_text()
-    assert html.count("<svg") == 4
+    assert html.count("<svg") == (5 if individual_progress else 4)
     assert "Final experiment report" in html
     assert "#evaluation" in html and "#costs" in html
     assert not (tmp_path / "comparison.html").exists()
