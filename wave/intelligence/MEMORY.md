@@ -1,13 +1,20 @@
 # Intelligence memory
 
-## Remote regime kickoff (ETU-114, 2026-10-06)
+## Remote regime software (ETU-114, 2026-10-06)
 
 Jack Heart authorized RunPod software and an under-$5 proof, not larger training.
-The kickoff plan (scratch/remote-training-design.md) proposes one-GPU self-play,
-explicit CUDA wiring and rejection of unsupported stages/recovery. Preserve
-producer receipts during relocation. Deletion must end billing; scoped pod-side
-deletion still needs live proof. No rental/training ran. ETU-108 and larger-model
-work remain independent; chapter acceptance stays open.
+`manabot remote` replaces parked AWS deployment with reviewable declared-resource
+plans, CUDA self-play wiring, two deadline guards, cleanup and hash-bound artifact
+relocation. Producer TrainingRun/SQLite bytes remain unchanged. Unsupported stages
+and CUDA recovery fail before rental; ETU-108/larger-model work stay independent.
+
+The authenticated inventory reported zero pods; no rental/training ran here.
+Local placement, relocation, failure/cleanup and CPU checks pass; CUDA execution,
+scoped guardian self-deletion and returned-checkpoint arena play remain the live
+gate after source publication. The [remote contract](../../docs/remote-training.md)
+owns commands, exact limits and the $4.90 all-attempt acceptance helper. An
+unobserved timed-out create remains unsettled despite an empty inventory. No
+strength or chapter acceptance follows from software checks.
 
 ## History input (ETU-106, 2026-10-06)
 
@@ -294,14 +301,11 @@ gate before integration.
 
 ## Architecture convergence (accepted 2026-07-17)
 
-managym owns match/Commands, canonical viewer Observations, replay/forks, world
-meaning, typed queries, compatible-deal measure and materialization. manabot owns
-memory, conditional priors/beliefs, planning/learning, teacher evidence, datasets,
-checkpoints, opponents, arena and Study evidence. The product proof is a complete
-conditional play distribution changing without revealing actual truth. Students
-condition on canonical restricted priors; hidden truth supervises beliefs
-separately, never a clairvoyant one-world policy. Original ordering: README.md and this file at `fd7437df`.
-docs/ARCHITECTURE.md owns the contract; later reprioritizations below apply.
+[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) owns the world/belief/query
+boundary: managym owns world meaning; manabot owns normalized beliefs and
+conditional strategy. Students consume canonical restricted priors, never
+clairvoyant truth. Hidden truth supervises beliefs separately. The original
+I1–I6 ordering at `fd7437df` is superseded by later reprioritizations below.
 
 ## Results-first reprioritization (2026-07-18)
 
