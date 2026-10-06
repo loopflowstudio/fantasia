@@ -1095,8 +1095,7 @@ forward equation was introduced. Trainable counts are export flags, not exposure
 The retained `90c55627` CPU ladder completed in 212.56 seconds: six admitted raw
 checkpoints and 40 exact-replayed games. Semantic 64/1, 64/2, 128/2 models had
 138,434 / 188,418 / 712,706 parameters. High host load and differing inference
-batches prevent capacity-only timing claims. An earlier 10-second game timeout
-remains retained; 30 seconds fixed the workflow within the same total cap.
+batches prevent capacity-only timing claims. A retained timeout was fixed within the original cap.
 Full timing definitions and integration evidence remain at `fd7437df` and in the
 [calibration guide](../../docs/training-calibration.md). These are software proofs;
 no scientific allocation, strength, demo or chapter acceptance follows. ETU-91
