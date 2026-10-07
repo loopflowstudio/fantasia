@@ -1,7 +1,7 @@
 """Retained endpoint evaluation and analysis for the frozen ETU-118 experiment.
 
 The shared queue/arena owns games, replay and failed attempts. This module selects
-the predeclared initial/800/endpoint raw artifacts and interprets complete paired
+the predeclared initial/800/1240/endpoint raw artifacts and interprets complete paired
 seed cohorts. It does not choose a daily regression test from early gains.
 """
 
@@ -51,6 +51,8 @@ class Comparison(Strict):
     seed_gains: list[float]
     mean_gain: float
     seed_interval: tuple[float, float]
+    deal_interval: tuple[float, float]
+    seed_deal_intervals: list[tuple[float, float]]
 
 
 class Conclusion(Strict):
@@ -66,7 +68,7 @@ def analyze(root: Path, plan: SustainedPlan, binding: str) -> Conclusion:
         MonitorResult.model_validate_json(p.read_text())
         for p in sorted((root / "final").rglob("monitor.json"))
     ]
-    if len(results) != 18 or any(
+    if len(results) != 24 or any(
         r.status != "completed" or len(r.rows) != 400 for r in results
     ):
         return Conclusion(status="incomplete")
@@ -77,8 +79,9 @@ def analyze(root: Path, plan: SustainedPlan, binding: str) -> Conclusion:
         raise ValueError("final evidence differs from frozen comparison identity")
     comparisons: list[Comparison] = []
     for opponent in ("scripted_greedy", "random"):
-        for reference in (0, 800):
+        for reference in (0, 800, 1240):
             gains: list[float] = []
+            deal_gains: list[np.ndarray] = []
             for seed in plan.schedule.seeds:
                 matched = [
                     r
@@ -88,8 +91,9 @@ def analyze(root: Path, plan: SustainedPlan, binding: str) -> Conclusion:
                 if {r.coordinates.updates for r in matched} != {
                     0,
                     800,
+                    1240,
                     endpoint,
-                } or len(matched) != 3:
+                } or len(matched) != 4:
                     raise ValueError(
                         "endpoint cohort does not match declared seed/checkpoint cross"
                     )
@@ -115,8 +119,26 @@ def analyze(root: Path, plan: SustainedPlan, binding: str) -> Conclusion:
                     sum(float(row.score_a) for row in r.rows) / 400 for r in pairs
                 ]
                 gains.append(scores[1] - scores[0])
+                deal_gains.append(
+                    np.array(
+                        [
+                            float(b.score_a) - float(a.score_a)
+                            for a, b in zip(pairs[0].rows, pairs[1].rows, strict=True)
+                        ]
+                    )
+                    .reshape(-1, 4)
+                    .mean(axis=1)
+                )
             means = np.random.default_rng(118).choice(gains, (10000, 3)).mean(axis=1)
             lo, hi = np.quantile(means, [0.025, 0.975])
+            # Shared deal blocks preserve all four legs and paired checkpoint/seed
+            # comparisons. This interval conditions on the three trained seeds.
+            matrix = np.stack(deal_gains)
+            indexes = np.random.default_rng(119).integers(
+                0, matrix.shape[1], size=(10000, matrix.shape[1])
+            )
+            sampled = matrix[:, indexes].mean(axis=2)
+            deal_lo, deal_hi = np.quantile(sampled.mean(axis=0), [0.025, 0.975])
             comparisons.append(
                 Comparison(
                     opponent=opponent,
@@ -125,15 +147,22 @@ def analyze(root: Path, plan: SustainedPlan, binding: str) -> Conclusion:
                     seed_gains=gains,
                     mean_gain=float(np.mean(gains)),
                     seed_interval=(float(lo), float(hi)),
+                    deal_interval=(float(deal_lo), float(deal_hi)),
+                    seed_deal_intervals=[
+                        tuple(float(v) for v in np.quantile(row, [0.025, 0.975]))
+                        for row in sampled
+                    ],
                 )
             )
-    initial, short, random_initial, _ = comparisons
+    initial, short, early, random_initial, _, _ = comparisons
     passed = (
         initial.mean_gain >= 0.10
         and min(initial.seed_gains) > 0
         and initial.seed_interval[0] > 0
         and short.mean_gain >= 0.05
         and short.seed_interval[0] > 0
+        and early.mean_gain >= 0.05
+        and early.seed_interval[0] > 0
         and random_initial.mean_gain >= -0.05
     )
     return Conclusion(
@@ -213,12 +242,13 @@ def finalize(
         try:
             for opponent in ("scripted_greedy", "random"):
                 config = MonitoringBudget(
-                    seconds=plan.final_reserve_seconds / 2,
+                    seconds=(plan.final_reserve_seconds - plan.report_reserve_seconds)
+                    / 2,
                     attempt_seconds=3600,
                     active_runtime=True,
                     include_initial=True,
-                    include_monitoring=False,
-                    updates=(0, 800, plan.milestones[-1]),
+                    include_monitoring=True,
+                    updates=(0, 800, 1240, plan.milestones[-1]),
                     protocol=MonitorProtocol(
                         deal_seeds=plan.schedule.scientific_deal_seeds,
                         game_seconds=60,
@@ -232,7 +262,10 @@ def finalize(
                         pausing = (root / "pause.request").exists()
                         queue.tick(sources, launch=not pausing)
                         save()
-                        if receipt.active_seconds >= plan.final_reserve_seconds:
+                        if (
+                            receipt.active_seconds
+                            >= plan.final_reserve_seconds - plan.report_reserve_seconds
+                        ):
                             raise TimeoutError(
                                 "final evaluation/report reserve exhausted"
                             )

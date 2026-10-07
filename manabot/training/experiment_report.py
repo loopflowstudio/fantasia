@@ -206,7 +206,7 @@ def strength_figures(
                 if matched_only
                 else "Individual trajectories (unmatched)"
             )
-            + f" · cohort {panel[:8]}",
+            + f" · {results[0].protocol.opponent} · cohort {panel[:8]}",
         )
         ax.legend(fontsize=8)
         figures.append(fig)

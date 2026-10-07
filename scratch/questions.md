@@ -6,7 +6,7 @@
 - The calibration amendment reserves 7200 seconds inside that remaining week,
   including three 1800-second learner caps, 1200 evaluator seconds and 600 seconds
   of coordination/report overhead. It addresses the timeout for the newly selected depth2
-  recipe; the approved sustained horizon is 10000 updates, implementation pending. Live random monitoring uses its own
+  recipe; the approved sustained horizon is 10000 updates, implemented; mini measurement pending. Live random monitoring uses its own
   25-deal family at initialization and fixed stage milestones, not hourly exports.
 - Active runtime will mean occupied elapsed time while the machine is awake, not
   process CPU time. Evaluator overlap must also be retained as additive process

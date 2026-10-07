@@ -33,7 +33,7 @@ def calibration_fixture(root: Path) -> ExperimentRun:
     root.mkdir()
     schedule = ExperimentSchedule(
         seeds=baseline.CALIBRATION_SEEDS,
-        hardware="etu118-laptop",
+        hardware="etu118-mini",
         wall_seconds=1200,
         process_seconds=1200,
         active_runtime=True,
@@ -43,7 +43,10 @@ def calibration_fixture(root: Path) -> ExperimentRun:
     )
     regime = (
         baseline.declaration(
-            baseline.recipe((baseline.CALIBRATION_UPDATES,), 240), schedule
+            baseline.recipe(
+                (baseline.CALIBRATION_UPDATES,), baseline.CALIBRATION_LEARNER_SECONDS
+            ),
+            schedule,
         )
         .resolve()
         .cases[0]
@@ -120,7 +123,7 @@ def test_horizon_uses_retained_time_and_rejects_changed_authority(
     disk = shutil.disk_usage(tmp_path)._replace(free=10**12)
     monkeypatch.setattr(baseline.shutil, "disk_usage", lambda path: disk)
     plan = baseline.freeze(root, tmp_path / "plan.json", 3000)
-    assert plan.milestones[-1] == 25600
+    assert plan.milestones == (620, 1240, 2500, 5000, 7500, 10000)
     assert (
         plan.preparation_seconds
         + plan.schedule.process_seconds
@@ -169,7 +172,7 @@ def test_calibration_charges_prior_exploration_before_launch(
         out: Path,
     ) -> ExperimentRun:
         assert experiment.schedule is not None
-        assert experiment.schedule.process_seconds == pytest.approx(810.8866298330586)
+        assert experiment.schedule.process_seconds == baseline.CALIBRATION_ALLOWANCE
         assert experiment.schedule.wall_seconds == experiment.schedule.process_seconds
         assert experiment.schedule.seeds == baseline.CALIBRATION_SEEDS
         raise ScheduleCaptured
@@ -177,5 +180,46 @@ def test_calibration_charges_prior_exploration_before_launch(
     monkeypatch.setattr(baseline, "run_experiment", capture)
     with pytest.raises(ScheduleCaptured):
         baseline.calibration(tmp_path / "calibration", 2789.1133701669414)
-    with pytest.raises(ValueError, match="remaining exploration"):
-        baseline.calibration(tmp_path / "exhausted", 3600)
+    with pytest.raises(ValueError, match="remaining week"):
+        baseline.calibration(tmp_path / "exhausted", baseline.MAX_ACTIVE_SECONDS)
+
+
+def test_recipe_matches_retained_actor_critic_settings() -> None:
+    import gzip
+    import json
+
+    retained = json.loads(
+        gzip.decompress(
+            Path("experiments/data/etu105/filter-scope-mini.json.gz").read_bytes()
+        )
+    )
+    source = next(
+        r["regime"] for r in retained["runs"] if r["regime"]["id"] == "actor-critic"
+    )
+    selected = baseline.recipe(baseline.STAGE_MILESTONES, 120000)
+    historical = baseline.TrainingRegime.model_validate(source)
+    assert selected.agent == historical.agent
+    assert selected.match == historical.match
+    assert selected.observation == historical.observation
+    assert selected.schedule_clock == historical.schedule_clock
+    for stage in selected.stages:
+        assert stage.learning == historical.stages[0].learning
+        assert stage.streams * stage.transitions == 256
+        assert stage.behavior == "current-self"
+    assert [s.updates for s in selected.stages[:2]] == [620, 620]
+    assert all(s.initial == p.id for p, s in zip(selected.stages, selected.stages[1:]))
+
+
+def test_diagnostic_deals_cannot_overlap_final_or_greedy() -> None:
+    from manabot.training.monitor_evaluation import MonitorProtocol
+
+    with pytest.raises(ValueError, match="disjoint"):
+        ExperimentSchedule(
+            seeds=(1,),
+            hardware="fixture",
+            wall_seconds=100,
+            process_seconds=100,
+            monitoring=MonitoringBudget(seconds=20, attempt_seconds=10),
+            diagnostic_protocol=MonitorProtocol(opponent="random"),
+            diagnostic_updates=(0, 800),
+        )

@@ -14,6 +14,7 @@ from pydantic import Field, JsonValue, model_validator
 
 from manabot.training.checkpoint_queue import MonitoringBudget
 from manabot.training.models import Strict
+from manabot.training.monitor_evaluation import MonitorProtocol
 
 
 class Hardware(Strict):
@@ -60,6 +61,11 @@ class ExperimentSchedule(Strict):
     process_seconds: float = Field(gt=0)
     monitoring: MonitoringBudget
     checkpoint_seconds: float = Field(default=3600, gt=0)
+    checkpoint_updates: tuple[int, ...] = Field(default=(), exclude_if=lambda v: not v)
+    diagnostic_protocol: MonitorProtocol | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    diagnostic_updates: tuple[int, ...] = Field(default=(), exclude_if=lambda v: not v)
     # Reserve existing scientific deal families without redefining their protocol.
     scientific_deal_seeds: tuple[int, ...] = ()
     # Case indexes per seed; empty means declaration order for every seed.
@@ -75,6 +81,24 @@ class ExperimentSchedule(Strict):
             raise ValueError("training seeds must be in [0, 100000)")
         if set(self.scientific_deal_seeds) & set(self.monitoring.protocol.deal_seeds):
             raise ValueError("monitoring and scientific deals must be disjoint")
+        if any(n <= 0 for n in self.checkpoint_updates) or any(
+            n < 0 for n in self.diagnostic_updates
+        ):
+            raise ValueError(
+                "checkpoint/diagnostic updates must be nonnegative (exports positive)"
+            )
+        if (self.diagnostic_protocol is None) != (not self.diagnostic_updates):
+            raise ValueError(
+                "diagnostic protocol and updates must be declared together"
+            )
+        if self.diagnostic_protocol is not None and set(
+            self.diagnostic_protocol.deal_seeds
+        ) & (
+            set(self.scientific_deal_seeds) | set(self.monitoring.protocol.deal_seeds)
+        ):
+            raise ValueError(
+                "diagnostic, monitoring and scientific deals must be disjoint"
+            )
         if self.monitoring.seconds >= self.process_seconds:
             raise ValueError("monitoring must leave a positive learning allocation")
         if self.monitoring.attempt_seconds > self.monitoring.seconds:

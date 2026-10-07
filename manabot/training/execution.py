@@ -159,6 +159,7 @@ def execute_regime(
     *,
     resume_from: str | None = None,
     checkpoint_seconds: float | None = None,
+    checkpoint_updates: tuple[int, ...] = (),
     pause_path: Path | None = None,
 ) -> TrainingRun:
     """Execute under a local lease, including admission and crash settlement."""
@@ -213,6 +214,7 @@ def execute_regime(
             parent=parent,
             snapshot=snapshot,
             checkpoint_seconds=checkpoint_seconds,
+            checkpoint_updates=checkpoint_updates,
             pause_path=pause_path,
         )
 
@@ -226,6 +228,7 @@ def _execute_regime(
     parent: TrainingRun | None,
     snapshot: UpdateSnapshot | None,
     checkpoint_seconds: float | None = None,
+    checkpoint_updates: tuple[int, ...] = (),
     pause_path: Path | None = None,
 ) -> TrainingRun:
     """Execute admitted inputs while the caller holds both recovery writer leases."""
@@ -352,13 +355,19 @@ def _execute_regime(
     def monitor_checkpoint(model: Agent) -> None:
         nonlocal last_monitor_seconds
         elapsed = time.perf_counter() - start - run.monitoring_export_seconds
-        if (
+        if isinstance(stage, TrainSelfPlay) and len(record.diagnostics) == stage.updates:
+            # The stage raw export owns this coordinate; avoid duplicate cohorts.
+            return
+        point = coordinates()
+        scheduled = point["updates"] in checkpoint_updates and not any(
+            c.updates == point["updates"] for c in run.monitoring_checkpoints
+        )
+        if not scheduled and (
             checkpoint_seconds is None
             or elapsed - last_monitor_seconds < checkpoint_seconds
         ):
             return
         last_monitor_seconds = elapsed
-        point = coordinates()
         receipt = MonitoringCheckpoint(
             stage_id=record.id,
             ordinal=len(run.monitoring_checkpoints),

@@ -19,7 +19,7 @@ from manabot.training.source_bundle import SourceBundle
 import managym
 
 
-def freeze_source(out: Path) -> Path:
+def freeze_source(out: Path, *, environment: bool = True) -> Path:
     root = Path(__file__).resolve().parents[2]
     out = out.resolve()
     if not out.is_relative_to(root / ".runs"):
@@ -54,6 +54,12 @@ def freeze_source(out: Path) -> Path:
     )
     atomic_json(out / ".manabot-source.json", manifest.model_dump(mode="json"))
     (out / ".manabot-source.json").chmod(0o444)
+    if environment:
+        build_environment(out)
+    return out
+
+
+def build_environment(out: Path) -> None:
     # The pinned environment belongs to the bundle too. Reviewing this Task must
     # not mutate the interpreter/dependencies needed for a later process restart.
     with (out / "environment-build.log").open("wb") as log:
@@ -69,7 +75,6 @@ def freeze_source(out: Path) -> Path:
             stdout=log,
             stderr=subprocess.STDOUT,
         )
-    return out
 
 
 def launch(bundle: Path, plan: Path, out: Path) -> int:
@@ -85,8 +90,7 @@ def launch(bundle: Path, plan: Path, out: Path) -> int:
     command = [
         str(bundle / ".venv/bin/python"),
         "-m",
-        "experiments.runners.sustained_baseline",
-        "run",
+        "experiments.runners.sustained_baseline_supervisor",
         str(plan),
         str(out),
     ]
@@ -131,13 +135,17 @@ def main() -> None:
         "--launch", type=Path, help="Use this existing frozen source bundle"
     )
     parser.add_argument("--plan", type=Path)
+    parser.add_argument("--source-only", action="store_true")
+    parser.add_argument("--environment-only", action="store_true")
     args = parser.parse_args()
     if args.launch:
         if args.plan is None:
             parser.error("--launch requires --plan")
         print(launch(args.launch, args.plan, args.out))
+    elif args.environment_only:
+        build_environment(args.out.resolve())
     else:
-        print(freeze_source(args.out))
+        print(freeze_source(args.out, environment=not args.source_only))
 
 
 if __name__ == "__main__":

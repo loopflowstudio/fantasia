@@ -61,7 +61,7 @@ endpoint four-game cohort), and 600 seconds for bounded prefix/source checks and
 coordination/report overhead. Calibration uses the newly selected depth2 recipe.
 The longer watchdog addresses the retained 220-second timeout; it is not a
 learning-duration result. This numeric amendment is fixed before measurement;
-the runner does not implement it yet. No automatic retry or reuse of failed paths.
+the runner implements it. No automatic retry or reuse of failed paths.
 Actual maximum elapsed/additive-process cost is charged once, including setup
 and failed preparation. Consuming this full allowance would leave
 594569.9884917501 seconds before other new charges. No scientific scores choose
@@ -107,6 +107,9 @@ visible. No favorable-checkpoint selection or automatic statistical plateau stop
 
 ## What exists and remaining implementation
 
+Delete — do not maintain: the old automatic horizon selection and depth1
+construction have been removed. Frozen laptop evidence remains unchanged.
+
 Experiment supplies recipe resolution; TrainingRun/VerifyStore and the shared arena
 own execution and evidence. Initialization and greedy monitoring, endpoint random
 scoring, editable notebook → HTML and complete-state recovery exist. Recovery
@@ -124,17 +127,17 @@ not model bytes. Credentials on mini and publication remain unverified; a locate
 contract is not a completed archive. Three ordinary demo-loaded executions and
 complete games with both deck assignments remain acceptance work beyond arena.
 
-Remaining launch work is substantive:
+Implementation and remaining launch work:
 
-1. Bind the exact ETU-105 recipe and linked-stage semantics, fixed 10000 endpoint,
-   extra monitoring exports and final 1240 reference in declaration/admission and
-   analysis. The current code uses depth1, chooses a minimum 12800 horizon and
-   expects 18 final cells instead of the new 24. Implement the bounded calibration
-   amendment and mini identity together in calibration/freeze admission; code still
-   derives caps from 3600 seconds and clamps learners to 240. Extend Experiment
-   for the declared live random diagnostic. CheckpointQueue already has a
-   `protocols_for` hook, but Experiment does not yet supply it; reporting must keep
-   the two opponent curves separate and reserve their deal families.
+1. The declaration now binds the retained ETU-105 recipe, linked stage boundaries,
+   fixed 10000 endpoint, monitoring exports at 400/800, random diagnostic and 24
+   final cells including 1240. Calibration reserves 7200 seconds with 1800-second
+   learner caps. Absolute Ataraxos iteration schedules admit recovery even with
+   the historical serialized elapsed-clock setting; other elapsed schedules do not.
+   Shared Experiment supplies multiple protocols with disjoint deals, and reporting
+   labels opponent curves. Detached supervision reserves 3600 seconds within the
+   existing final/report reserve for periodic notebook execution. Bounded prefix
+   comparison against original source remains required before launch.
 2. Pin and stage the reviewed source/environment under an isolated mini evidence
    directory without modifying ETU-105 source or training. The bundle helper
    currently builds only a local artifact under this Task's `.runs`; remote staging,
@@ -158,3 +161,7 @@ A flat curve prompts review; operational failure cannot silently restart a seed.
 No further product decision is missing for the authorized mini preparation/launch.
 
 Check: `uv run python` retained-recipe audit — 3 actor-critic recipes and 3720 rate/iteration rows match current formulas, linked 620+620 stages and 256 rows/update verified; `git diff --check` passed. Prior sync feedback retains 25 focused checks at `db2182d8`, including CUDA recovery rejection; no training ran in this reconciliation.
+
+Implementation check: affected allocation, Experiment/queue/report and real recovery
+checks passed (13 + 10 + 9, with 6 focused post-edit checks); lint/diff checks passed.
+Mini prefix and calibration remain the execution gates, not completed claims.

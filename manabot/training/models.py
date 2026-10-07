@@ -389,10 +389,15 @@ class TrainingRegime(Strict):
             raise ValueError("select one recovery contract")
         if self.recoverable and (
             any(not isinstance(stage, TrainSelfPlay) for stage in self.stages)
-            or self.schedule_clock != "iteration_fraction"
+            or (
+                self.schedule_clock != "iteration_fraction"
+                and any(
+                    stage.learning.gradient != "ataraxos_move" for stage in self.stages
+                )
+            )
         ):
             raise ValueError(
-                "recovery requires only self-play stages and iteration_fraction schedule"
+                "recovery requires self-play with iteration_fraction or absolute Ataraxos move schedules"
             )
         if self.recoverable and any(stage.root is not None for stage in self.stages):
             raise ValueError("diagnostic roots do not support recovery")

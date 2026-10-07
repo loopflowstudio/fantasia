@@ -1,7 +1,7 @@
 """ETU-118 weekly-first masked-mean experiment through the shared runner.
 
 Calibration measures the exact CPU recipe with recoverable collection. Freeze
-selects a common multi-seed horizon from throughput and retained-storage bounds;
+admits the fixed multi-seed horizon from throughput and retained-storage bounds;
 it never selects using scores. Run consumes that immutable plan. Daily regression
 selection belongs to subsequent analysis, after sustained improvement exists.
 """
@@ -16,7 +16,6 @@ import socket
 import numpy as np
 from pydantic import Field, model_validator
 
-from experiments.runners.run_value_models import smoke_baseline
 from experiments.runners.sustained_baseline_result import (
     FinalReceipt,
     finalize,
@@ -47,10 +46,16 @@ from manabot.verify.store import VerifyStore
 SEEDS = (11851, 11852, 11853)
 CALIBRATION_SEEDS = (11841, 11842, 11843)
 CALIBRATION_UPDATES = 32
+CALIBRATION_ALLOWANCE = 7200
+CALIBRATION_LEARNER_SECONDS = 1800
+STAGE_MILESTONES = (620, 1240, 2500, 5000, 7500, 10000)
+SCORED_MILESTONES = (0, 400, 620, 800, 1240, 2500, 5000, 7500, 10000)
+RANDOM_MONITORING_DEALS = tuple(range(1_911_185_000, 1_911_185_025))
 MONITORING_DEALS = tuple(range(1_911_183_000, 1_911_183_025))
 ENDPOINT_DEALS = tuple(range(1_911_184_000, 1_911_184_100))
 MAX_ACTIVE_SECONDS = 7 * 86400
 FINAL_RESERVE = 86400
+REPORT_RESERVE = 3600
 MONITOR_RESERVE = 86400
 DISK_RESERVE = 4 * 1024**3
 
@@ -69,6 +74,7 @@ class SustainedPlan(Strict):
     calibrated_seconds_per_update: float = Field(gt=0)
     projected_bytes: int = Field(gt=0)
     milestones: tuple[int, ...]
+    report_reserve_seconds: float = REPORT_RESERVE
     final_reserve_seconds: float = FINAL_RESERVE
     maximum_active_seconds: float = MAX_ACTIVE_SECONDS
 
@@ -76,12 +82,22 @@ class SustainedPlan(Strict):
     def allocation(self) -> "SustainedPlan":
         if (
             self.maximum_active_seconds != MAX_ACTIVE_SECONDS
+            or self.report_reserve_seconds != REPORT_RESERVE
             or self.final_reserve_seconds != FINAL_RESERVE
             or self.schedule.monitoring.seconds != MONITOR_RESERVE
             or not self.schedule.active_runtime
             or self.schedule.seeds != SEEDS
             or self.schedule.scientific_deal_seeds != ENDPOINT_DEALS
             or self.schedule.monitoring.protocol.deal_seeds != MONITORING_DEALS
+            or self.milestones != STAGE_MILESTONES
+            or self.schedule.checkpoint_updates != (400, 800)
+            or self.schedule.diagnostic_updates != SCORED_MILESTONES
+            or self.schedule.diagnostic_protocol
+            != MonitorProtocol(
+                deal_seeds=RANDOM_MONITORING_DEALS,
+                opponent="random",
+                game_seconds=60,
+            )
             or abs(
                 self.preparation_seconds
                 + self.schedule.process_seconds
@@ -113,17 +129,21 @@ class SustainedPlan(Strict):
 def hardware() -> HardwareInventory:
     return HardwareInventory(
         resources=(
-            Hardware(name="etu118-laptop", host=socket.gethostname(), cpu_threads=2),
+            Hardware(name="etu118-mini", host=socket.gethostname(), cpu_threads=2),
         )
     )
 
 
 def recipe(milestones: tuple[int, ...], allowance: float) -> TrainingRegime:
     """Keep the candidate's architecture, estimator and absolute iteration schedules."""
-    base = smoke_baseline()
+    base = TrainingRegime.model_validate_json(
+        (
+            Path(__file__).resolve().parents[1]
+            / "regimes/current-baseline-mini-source.json"
+        ).read_text()
+    )
     base.id = "current-baseline-masked-mean"
     base.agent.value_aggregation = "masked_mean"
-    base.schedule_clock = "iteration_fraction"
     base.recovery = RecoveryPolicy(checkpoint_updates=128)
     base.wall_seconds = allowance
     template = deepcopy(base.stages[0])
@@ -152,22 +172,25 @@ def declaration(regime: TrainingRegime, schedule: ExperimentSchedule) -> Experim
 
 
 def calibration(out: Path, preparation_seconds: float) -> ExperimentRun:
-    """Three timing seeds, bounded by the original exploration allocation."""
+    """One three-seed mini calibration inside the remaining original week."""
     if not math.isfinite(preparation_seconds) or preparation_seconds < 0:
         raise ValueError("preparation cost must be finite and nonnegative")
-    allowance = min(1050.0, 3600.0 - preparation_seconds)
-    if allowance <= 150:
-        raise ValueError("remaining exploration budget cannot admit calibration")
-    learner_allowance = min(240.0, (allowance - 150) / len(CALIBRATION_SEEDS))
+    allowance = CALIBRATION_ALLOWANCE
+    if (
+        preparation_seconds + allowance
+        >= MAX_ACTIVE_SECONDS - FINAL_RESERVE - MONITOR_RESERVE
+    ):
+        raise ValueError("remaining week cannot admit calibration")
+    learner_allowance = CALIBRATION_LEARNER_SECONDS
     schedule = ExperimentSchedule(
         seeds=CALIBRATION_SEEDS,
-        hardware="etu118-laptop",
+        hardware="etu118-mini",
         wall_seconds=allowance,
         process_seconds=allowance,
         active_runtime=True,
         monitoring=MonitoringBudget(
-            seconds=150,
-            attempt_seconds=50,
+            seconds=1200,
+            attempt_seconds=200,
             active_runtime=True,
             include_initial=True,
             protocol=MonitorProtocol(deal_seeds=(1_911_182_000,), game_seconds=30),
@@ -215,11 +238,7 @@ def freeze(
     ):
         raise ValueError("complete current-source calibration required")
     calibration_schedule = ExperimentSchedule.model_validate(record.intent["schedule"])
-    learner_allowance = min(
-        240.0,
-        (calibration_schedule.process_seconds - calibration_schedule.monitoring.seconds)
-        / len(CALIBRATION_SEEDS),
-    )
+    learner_allowance = CALIBRATION_LEARNER_SECONDS
     expected = (
         declaration(
             recipe((CALIBRATION_UPDATES,), learner_allowance),
@@ -282,7 +301,7 @@ def freeze(
     )
     per_seed = learning / len(SEEDS)
     free = shutil.disk_usage(output.parent).free - DISK_RESERVE
-    candidates = [12800, 25600, 51200, 102400]
+    candidates = [10000]
     admitted: list[tuple[int, int]] = []
     for updates in candidates:
         # Snapshots retain bounded current-game state and diagnostic references.
@@ -300,14 +319,10 @@ def freeze(
             "no serious horizon fits calibrated time/storage; retain calibration and revise allocation/storage explicitly"
         )
     updates, projected = admitted[-1]
-    milestones = tuple(
-        v
-        for v in (400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 102400)
-        if v <= updates
-    )
+    milestones = STAGE_MILESTONES
     schedule = ExperimentSchedule(
         seeds=SEEDS,
-        hardware="etu118-laptop",
+        hardware="etu118-mini",
         active_runtime=True,
         wall_seconds=learning + MONITOR_RESERVE,
         process_seconds=learning + MONITOR_RESERVE,
@@ -318,6 +333,13 @@ def freeze(
             include_initial=True,
             protocol=MonitorProtocol(deal_seeds=MONITORING_DEALS, game_seconds=60),
         ),
+        diagnostic_protocol=MonitorProtocol(
+            deal_seeds=RANDOM_MONITORING_DEALS,
+            opponent="random",
+            game_seconds=60,
+        ),
+        diagnostic_updates=SCORED_MILESTONES,
+        checkpoint_updates=(400, 800),
         scientific_deal_seeds=ENDPOINT_DEALS,
         checkpoint_seconds=3600,
     )

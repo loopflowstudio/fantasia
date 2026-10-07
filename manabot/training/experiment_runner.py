@@ -37,6 +37,7 @@ from manabot.training.experiment_execution import (
 )
 from manabot.training.experiments import Experiment
 from manabot.training.models import TrainingRegime, TrainingRun
+from manabot.training.monitor_evaluation import Checkpoint, MonitorProtocol
 from manabot.training.recovery import attempt_lock
 from manabot.verify.store import VerifyStore
 import managym
@@ -267,7 +268,25 @@ def run_experiment(
         save()
         try:
             record.report(out)
-            queue = CheckpointQueue(out / "monitoring", schedule.monitoring)
+
+            def protocols_for(
+                run: TrainingRun, checkpoint: Checkpoint
+            ) -> list[MonitorProtocol]:
+                protocols = [schedule.monitoring.protocol]
+                if (
+                    schedule.diagnostic_protocol is not None
+                    and checkpoint.coordinates.updates in schedule.diagnostic_updates
+                ):
+                    protocols.append(schedule.diagnostic_protocol)
+                return protocols
+
+            queue = CheckpointQueue(
+                out / "monitoring",
+                schedule.monitoring,
+                protocols_for=protocols_for
+                if schedule.diagnostic_protocol is not None
+                else None,
+            )
 
             def execution_order(attempt: RegimeAttempt) -> tuple[int, int]:
                 ancestor = attempt
@@ -311,6 +330,7 @@ def run_experiment(
                         "store": str(store.path.resolve()),
                         "resume_from": attempt.recovery_parent,
                         "checkpoint_seconds": schedule.checkpoint_seconds,
+                        "checkpoint_updates": schedule.checkpoint_updates,
                         "allowance_seconds": attempt.allowance_seconds,
                         "deadline_unix": time.time() + attempt.allowance_seconds,
                         "active_runtime": schedule.active_runtime,
@@ -456,6 +476,7 @@ def main() -> None:
             if payload.get("pause_path")
             else None,
             checkpoint_seconds=payload["checkpoint_seconds"],
+            checkpoint_updates=tuple(payload.get("checkpoint_updates", ())),
         )
     if run.status != "completed":
         raise SystemExit(1)

@@ -1,7 +1,7 @@
 # Current learning baseline — ETU-118
 
 Status: mini CPU released; selected 3 × 10,000-update cohort requires current-source
-calibration and launch implementation. Historical laptop failures remain charged.
+calibration and supervised launch. Historical laptop failures remain charged.
 No sustained launch, baseline promotion or daily-test validation has occurred.
 
 ## Current mini execution direction (2026-10-07)
@@ -144,16 +144,21 @@ service. Daily-test derivation and independent validation follow sustained evide
 
 ### Implementation boundary
 
-No selected-recipe plan, mini execution bundle or complete mini calibration exists.
-The current declaration still uses depth1, clamps calibration learners to 240 seconds,
-selects a minimum 12800 endpoint and scores random only at finalization. Analysis
-still expects 18 cells without a 1240 reference. Shared CheckpointQueue supports
-multiple protocols, but the Experiment schedule/runner does not supply that hook.
-The source-bundle helper makes a local immutable artifact; mini staging and supervised
-disconnect/recovery admission remain to be exercised. These are implementation and
-execution gaps under existing authorization, not a missing human-review decision.
-The [working design](../scratch/current-baseline.md) owns remaining implementation;
-publication of stopped-calibration software does not fulfill the requested launch.
+The runner now consumes `regimes/current-baseline-mini-source.json`, extracted
+unchanged from all three retained actor-critic recipes. It fixes 10000 updates,
+620/1240 linked early boundaries, explicit 400/800 exports, separate live random
+monitoring and 24 final cells. The 7200-second calibration amendment is implemented.
+Ataraxos move recovery admits the historical serialized clock because its learning
+rates use absolute iterations; other elapsed schedules remain unsupported.
+
+Detached supervision refreshes the editable notebook every five minutes when
+available, with a 120-second attempt cap and 3600-second cumulative report reserve
+inside the unchanged 86400-second final/report allocation. Failed refreshes remain
+visible and never restart training. Seed and paired-deal gain intervals are saved
+separately; the deal intervals condition on the fixed trained seeds.
+
+Selected-source mini prefix checks, calibration, storage admission and actual
+launch remain required. Software checks do not establish these execution results.
 
 ## Weekly-first scope revision (2026-10-06)
 
