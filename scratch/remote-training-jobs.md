@@ -1,48 +1,56 @@
 # Remote jobs that outlive the submitting laptop
 
-Jack Heart requested design, autonomous implementation and a PR walkthrough before landing. The intended experience is: submit a bounded experiment, close the laptop, and later reconnect to the same job and its evidence. This additive capability should ship as one useful end-to-end PR, not just detached process plumbing.
+Jack Heart requested autonomous implementation and publication, then a source-pinned
+PR walkthrough before landing. PR #254 remains unmerged for Jack Heart's review.
+The original design is retained at `076bb5e5`; current contract and proof live in
+[docs/remote-jobs.md](../docs/remote-jobs.md).
 
-## Existing authority and evidence
+## Reconciled implementation (2026-10-06)
 
-Build on landed ETU-114 (a108ed34). TrainingRun and VerifyStore own learning state and provenance; Experiment owns regimes and evaluation protocol; the existing S3 publication contract owns durable artifacts. Deployment owns rental identity, admission and cleanup. Keep these owners. Read AGENTS.md, manabot/README.md, docs/remote-training.md and the existing experiment/report/storage APIs before coding.
+`uv run manabot deploy` is the sole public lifecycle namespace, per Jack Heart's
+two naming corrections. Direct `--plan` or `--regime/--mix` submission shares the
+explicit `submit` implementation; status, logs/attach, fetch, cancel, reconcile and
+report reconnect by ID. No alias or hidden historical namespace is registered.
+Internal Python modules and frozen proof commands retain their names.
 
-manabot/remote/deploy.py currently calls blocking SSH training, retrieves artifacts and deletes pods in the client's finally block. transport.py already installs an independent pod guardian. That bounds billing but does not make the experiment laptop-independent. ETU-103/PR #253 adds live exports, bulk transfers and capacity reporting; coordinate shared changes and preserve its active writer. Start from landed source; adopt compatible delivered work through normal integration rather than copying an active checkout. Existing sweeps completed before deletion; their subsequent retrieval errors are not proof laptop sleep killed training.
+The client-owned deployment lifecycle was replaced by provider startup and one
+remote supervisor. S3 conditional create claims bind exact intent and fence
+ambiguous provider requests. Retrying never resets the deadline or rents a
+replacement. Stale heartbeat, completed execution, complete evidence and confirmed
+deletion remain separate. CUDA process recovery is rejected, never restarted.
 
-## Contract and main types
+TrainingRun/VerifyStore, Experiment, S3 artifact storage and reporting remain their
+existing owners. PR253 `e052ac30` was integrated through `lf sync`; its checkout
+was untouched. Initial/raw exports, CheckpointQueue, Bundle and live-export
+relocation are shared. Arbitrary client SSH callbacks fail before rental; pinned
+historical examples retain low-level helpers for reproduction. Capacity science
+was not launched.
 
-Extend manabot.remote, using fully typed domain objects and one lifecycle implementation shared by CLI and Experiment callers.
+Scoped SSO worker credentials required a dedicated role trusting the current
+principal, with no provider account access. The role-chain deadline is under one
+hour including reserves. The first paid attempt exposed missing-key S3 403 behavior;
+submission now creates its empty cancellation mailbox before renting. No bucket
+listing grant was added. Provider startup begins setup; observed acceptance follows
+source and resource admission. The independent guardian owns the absolute deadline.
 
-- RemoteJobSpec: stable caller-supplied or durably generated job ID, immutable plan digest, exact source, existing resolved training/evaluation plan, artifact prefix, hardware admission, absolute deadline and cumulative dollar cap. Persist intent before provider creation. Retrying that ID with different content fails.
-- RemoteJobRecord: provider resource identity, lifecycle phase, remote heartbeat/update time, run/evaluation references, artifact generation, cost observations and terminal/error information. A stale heartbeat means unknown/unreachable, not finished. Keep provider absence, execution completion, artifact completeness and cleanup confirmation distinct.
-- Remote supervisor: the sole execution owner after acknowledged handoff. It runs the existing learner, bounded milestone evaluator, artifact publisher and finalizer on the rental. The submitting process may disappear without cancellation. No new learning state machine or distributed training engine.
+## Retained proof and remaining delivery
 
-Use durable storage and conditional ownership to prevent concurrent submitters acquiring the same ID. A lost provider-create response must be reconciled by unique job identity before any retry creates resources; if ambiguity cannot be resolved, stop with actionable status. Do not promise exactly-once creation from a local lock. Scope credentials to existing secret policy, redact logs and avoid persisting secrets in public job metadata.
+Jack Heart confirmed the $3 reservation inside ETU-103's $15 allocation. Both
+ETU-123 attempts total $0.1158450 estimated; inherited ETU-103 spend brings the
+shared estimate to $0.6518216. All rentals are deleted. No ETU-105/118 compute or
+evidence was changed. No scientific allocation or learning-strength claim follows.
 
-## Public behavior
+At pinned `def37708`, the client exited at zero updates. The rental completed
+160 CUDA updates, an initial evaluation and two later evaluations, 12 complete
+games, and final publication/deletion. Another client fetched 48 verified files,
+admitted four policies and regenerated notebook/HTML after deletion. The final
+status poll lagged at 139; the authoritative database held 160. Current status
+uses that database, with a regression; frozen evidence is unchanged.
 
-Expose submit, status, logs/attach, fetch and cancel through the existing `uv run manabot remote` interface. Preserve existing useful run behavior as a wrapper around the shared lifecycle; an optional wait/follow only observes. Print the job ID and reconnection command. Reconnection from a fresh client cannot require the original local receipt or a living SSH session. Reuse current authentication and storage setup.
+Remaining: publish the final API/reporting corrections, refresh the source-pinned
+HTML walkthrough, and leave PR #254 unmerged for Jack Heart's review. Full private
+proof stays in `.runs/etu123-disconnect`; compact hashes/costs are in
+`experiments/data/etu123-remote-jobs`. The requested proof was not restarted for
+CLI naming or the counter repair.
 
-Submit may require connectivity until remote acceptance; expose the boundary explicitly. An interrupted pre-acceptance submit reconciles safely. After acceptance, setup/training/evaluation/upload/shutdown are remote-owned. Attachment disconnect and Ctrl-C end observation only; cancellation is an explicit remotely acknowledged request. Report unsupported pause/resume or CUDA crash recovery honestly. This PR does not require new exact learner process recovery; never reinterpret reconnect as restarting at initialization.
-
-Keep evaluation resource limits declared. At least one real milestone evaluation must happen while the client is absent, using existing checkpoint/evaluation APIs. Periodically publish consistent run snapshots, logs, committed checkpoints and evaluation results to existing S3 storage. Upload immutable artifacts before publishing a manifest referring to them; validate hashes on retrieval. Do not upload a live SQLite file inconsistently. Notebook/HTML generation consumes these persisted artifacts after rental deletion.
-
-Finalize uploads before normal deletion within a reserved deadline. An independent guardian still enforces the absolute billing limit when the supervisor crashes or storage is unavailable. Missing evidence remains explicit, not falsely completed. Retries never reset the original deadline or cumulative cost allowance. Provider outages may leave deletion unconfirmed; expose that fact and a safe reconciliation command.
-
-## Proof and delivery
-
-Focused automated integration tests exercise real subprocess detachment plus controlled storage/provider boundaries: killed submitter after acceptance, ambiguous creation, duplicate/concurrent submit, mismatched plan, stale heartbeat, upload failure, cancellation, supervisor failure and deadline. Do not equate a tmux demo with lifecycle acceptance.
-
-One bounded live proof uses real CUDA training, an initial evaluation and a later milestone. Exit/kill the client after acknowledgement, verify updates and evaluation advancing from another connection, reattach from a fresh client, then retrieve verified checkpoints and a report after the pod is deleted. Save source, timings, costs, disconnect interval, evaluation evidence and final inventory; make no learning-strength claim from this smoke.
-
-Reserve at most $3 TOTAL for all live proof attempts from ETU-103's existing $15 rental allocation; coordinate that reservation before renting. It is not a fresh allowance, and ETU-114's historic $50 is unavailable. Keep below-$5 deployment guards and live price admission. Leave mini ETU-105 and laptop ETU-118 compute/evidence untouched.
-
-Implement, compress, run focused checks, preserve the lasting contract and proof in docs, and publish a descriptive PR. Prepare and headlessly render scratch/pr-review.html with user workflow, types/APIs, failure cases and observed evidence. Stop for Jack Heart's PR review; do not auto-merge or mark delivered. The task Flow is code (pursue then pr-review), not a design-review or landing Flow.
-
-## Implementation cut
-
-Delete — do not maintain: `deploy.deploy`'s client-owned bootstrap/train/transfer/
-finally-delete lifecycle and the CLI's dependence on a local deployment receipt
-for new runs. Preserve legacy receipt cleanup, cost admission, guardian proof,
-source pinning and immutable artifact verification. Move ordinary run and new
-submit/observe/fetch/cancel consumers onto one durable job owner. Existing
-worked-example low-level helpers remain for frozen reproduction.
+Check: `uv run pytest tests/remote tests/training/test_checkpoint_queue.py tests/training/test_artifact_storage.py -q` — 94 passed, one CUDA-host skip; live proof above.

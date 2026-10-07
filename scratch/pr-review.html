@@ -1,0 +1,289 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Remote jobs · PR 254</title><style>
+:root{color-scheme:light}*{box-sizing:border-box}body{margin:0;background:#faf9f6;color:#222a2b;font:17px/1.6 system-ui,sans-serif}main{max-width:1120px;margin:64px auto;padding:0 28px}h1{font-size:38px;line-height:1.15;font-weight:600;max-width:800px}h2{margin:68px 0 18px;font-size:28px;font-weight:550}p{max-width:850px}a{color:#195963;text-underline-offset:3px}nav{display:flex;flex-wrap:wrap;gap:20px;margin:28px 0}.meta,figcaption{font-size:13px;color:#566568}.map{display:grid;grid-template-columns:1.1fr 2fr 2fr;border-top:1px solid #c8cdca}.map>div{padding:16px 12px;border-bottom:1px solid #c8cdca}.map .label{font-weight:600}figure{margin:28px 0}figcaption{margin-bottom:9px}pre{background:#eff1ed;padding:22px;overflow:auto;font:14px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;border-left:2px solid #638889}.terminal{background:#e8eeec}code{tab-size:4}details{margin:24px 0}summary{cursor:pointer}a:focus-visible,summary:focus-visible{outline:3px solid #a25d24;outline-offset:4px}@media(max-width:680px){main{margin:32px auto;padding:0 18px}h1{font-size:29px}.map{display:block}.map>div{padding:10px 0}.map .label{margin-top:16px;border:0}pre{font-size:12px;padding:14px}}@media print{main{margin:0;max-width:none}pre{white-space:pre-wrap;overflow-wrap:anywhere}nav{display:none}figure{break-inside:avoid}}
+</style></head><body><main><p class="meta"><a href="https://github.com/loopflowstudio/etude/pull/254">PR #254</a> · Unmerged; Jack Heart’s review pending</p><h1>Close the laptop. Return to the same training job.</h1><p>Remote training previously needed a connected client to run evaluation, retrieve artifacts and delete the rental. A durable job now gives the rental that responsibility and lets another client reconnect by ID.</p><p class="meta">Base a108ed34 · Review head b4e861e4 · PR253 shared APIs integrated at e052ac30. The full branch includes that unmerged dependency. Live proof source: def37708.</p>
+<nav aria-label="Review sections"><a href="#submit">Submit and retry</a><a href="#disconnect">Disconnect and return</a><a href="#evidence">Retrieve evidence</a><a href="#limits">Failures and limits</a></nav>
+<div class="map"><div class="label">When you submit or retry</div><div>The same ID retains its first plan and deadline. An uncertain create cannot rent a replacement.</div><div><a href="#submit">RemoteJobSpec binds intent; _provision fences provider creation in S3.</a></div><div class="label">When the laptop goes offline</div><div>The rental continues learning, evaluating checkpoints, uploading and shutting down.</div><div><a href="#disconnect">The provider starts the supervisor; RemoteJobRecord separates progress from freshness and evidence.</a></div><div class="label">When you return after deletion</div><div>You fetch a committed artifact generation and regenerate the notebook/HTML locally.</div><div><a href="#evidence">publish_snapshot commits verified bytes before publishing the manifest.</a></div><div class="label">When work must stop</div><div>Cancel requests remote finalization. Forced reconciliation can delete a failed setup; Ctrl-C only detaches.</div><div><a href="#limits">A durable cancellation mailbox and independent guardian preserve the distinction.</a></div></div>
+<h2 id="submit">1. Submit once; reconcile uncertainty</h2><p>Illustrative public commands below use a previously compiled source-pinned plan. The observed paid proof calls the same prepare_job/submit_job API from its retained driver.</p><pre class="terminal">uv run --extra artifacts manabot deploy \
+  --plan .runs/remote-plan.json --job-id example-001 \
+  --monitoring .runs/monitoring.json
+uv run --extra artifacts manabot deploy status --job-id example-001</pre>
+<figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/manabot/remote/cli.py#L50-L85">manabot/remote/cli.py · deploy_command · b4e861e4 · lines 50–85</a></figcaption><pre><code>def deploy_command(
+    ctx: typer.Context,
+    plan: Path | None = None,
+    regime: Path | None = None,
+    mix: Path | None = None,
+    seed: int = 197,
+    job_id: str | None = None,
+    monitoring: Path | None = None,
+    checkpoint_seconds: float = 60,
+    destination: str = DEFAULT_JOBS,
+) -&gt; None:
+    &quot;&quot;&quot;Submit directly, or select a job lifecycle command below.&quot;&quot;&quot;
+    submitting = any(
+        value is not None for value in (plan, regime, mix, job_id, monitoring)
+    )
+    if ctx.invoked_subcommand is not None:
+        if (
+            submitting
+            or seed != 197
+            or checkpoint_seconds != 60
+            or destination != DEFAULT_JOBS
+        ):
+            raise typer.BadParameter(&quot;put options after the selected lifecycle command&quot;)
+        return
+    if not submitting:
+        typer.echo(ctx.get_help())
+        return
+    if job_id is None:
+        raise typer.BadParameter(&quot;submission requires --job-id for safe retries&quot;)
+    _submit(
+        _resolve_plan(plan, regime, mix, seed),
+        job_id,
+        monitoring,
+        checkpoint_seconds,
+        destination,
+    )</code></pre></figure>
+<figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/manabot/remote/jobs.py#L26-L47">manabot/remote/jobs.py · RemoteJobSpec · b4e861e4 · lines 26–47</a></figcaption><pre><code>class RemoteJobSpec(Frozen):
+    job_id: str = Field(pattern=r&quot;^[a-z0-9][a-z0-9-]{0,62}$&quot;)
+    plan: DeploymentPlan
+    created_at: float
+    deadline: float
+    destination: str = DEFAULT_JOBS
+    monitoring: MonitoringBudget | None = None
+    checkpoint_seconds: float = Field(default=60, gt=0)
+    publish_seconds: float = Field(default=30, ge=5)
+    # Optional original Experiment authoring receipt; not a second recipe owner.
+    experiment_json: str | None = None
+
+    @model_validator(mode=&quot;after&quot;)
+    def valid(self) -&gt; &quot;RemoteJobSpec&quot;:
+        bucket, prefix = split_s3_uri(self.destination)
+        if not prefix or any(c in prefix for c in &quot;*?[]&quot;) or &quot;..&quot; in prefix.split(&quot;/&quot;):
+            raise ValueError(&quot;job destination requires a literal private S3 prefix&quot;)
+        if self.deadline != self.created_at + self.plan.mix.wall_seconds:
+            raise ValueError(&quot;job deadline must bind the original rental allowance&quot;)
+        if self.plan.mix.wall_seconds &gt; 12 * 3600:
+            raise ValueError(
+                &quot;remote job credential lifetime is bounded to twelve hours&quot;
+# … remaining validation omitted from this excerpt</code></pre></figure>
+<figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/manabot/remote/job_client.py#L54-L151">manabot/remote/job_client.py · _provision · b4e861e4 · lines 54–151</a></figcaption><pre><code>def _provision(
+    spec: RemoteJobSpec,
+    store: JobStore,
+    provider: RunPod,
+    purpose: Literal[&quot;guardian&quot;, &quot;training&quot;],
+    deadline: float,
+    script: str,
+    environment: dict[str, str],
+) -&gt; Resource:
+    key = f&quot;{purpose}.json&quot;
+    stored = store.read(key)
+    if stored is not None:
+        resource = Resource.model_validate_json(stored.data)
+        _bound_resource(spec, resource)
+        return resource
+    claim_key = f&quot;{purpose}-claim.json&quot;
+    stored_claim = store.read(claim_key)
+    if stored_claim is not None:
+        claim = CreateClaim.model_validate_json(stored_claim.data)
+    else:
+        claim = CreateClaim(
+            spec_sha256=spec.identity,
+            name=f&quot;manabot-{spec.identity[:32]}-{purpose}&quot;,
+            purpose=purpose,
+            intent_time=time.time(),
+            deadline=deadline,
+        )
+    prices = provider.prices() if stored_claim is None else {}
+    mix = spec.plan.mix
+    candidates = [
+        g
+        for g in mix.gpu_types
+        if 0 &lt; prices.get(g, float(&quot;inf&quot;)) &lt;= mix.hourly_ceiling
+    ]
+    if stored_claim is None and not candidates:
+        raise ValueError(&quot;no declared GPU has an admitted live price&quot;)
+    winner = stored_claim is None and store.create(
+        claim_key, claim.model_dump_json().encode()
+    )
+    if winner:
+        if time.time() + 20 &gt;= deadline:
+            raise TimeoutError(
+                &quot;creation deadline expired; retained claim will not be retried&quot;
+            )
+        # The fence is intentionally permanent even if this process dies here.
+        pod = provider.create(
+            {
+                &quot;name&quot;: claim.name,
+                &quot;imageName&quot;: mix.image,
+                &quot;cloudType&quot;: &quot;SECURE&quot;,
+                &quot;computeType&quot;: &quot;GPU&quot;,
+                &quot;gpuCount&quot;: 1,
+                &quot;gpuTypeIds&quot;: candidates,
+                &quot;gpuTypePriority&quot;: &quot;custom&quot;,
+                &quot;minVCPUPerGPU&quot;: mix.vcpus,
+                &quot;minRAMPerGPU&quot;: mix.memory_gb,
+                &quot;containerDiskInGb&quot;: mix.container_gb,
+                &quot;volumeInGb&quot;: mix.volume_gb,
+                &quot;volumeMountPath&quot;: &quot;/workspace&quot;,
+                &quot;dockerEntrypoint&quot;: [&quot;/bin/bash&quot;, &quot;-c&quot;],
+                &quot;dockerStartCmd&quot;: [script],
+                &quot;env&quot;: environment,
+            }
+        )
+    else:
+        # A loser must load the winning claim (its timestamp may differ).
+        existing = store.read(claim_key)
+        if existing is None:
+            raise RuntimeError(
+                &quot;creation claim unavailable; reconcile, do not resubmit a new ID&quot;
+            )
+        claim = CreateClaim.model_validate_json(existing.data)
+        matches = [p for p in provider.list() if p.name == claim.name]
+        if len(matches) != 1:
+            raise RuntimeError(
+                &quot;provider creation ambiguous; inspect this job ID, never retry with a new ID&quot;
+            )
+        pod = matches[0]
+    resource = Resource(claim=claim, pod=pod)
+    # Retain bad assignments too, so explicit cancellation knows exact ownership.
+    if not store.create(key, resource.model_dump_json().encode()):
+        observed = store.read(key)
+        if observed is None:
+            raise RuntimeError(&quot;resource receipt unavailable&quot;)
+        resource = Resource.model_validate_json(observed.data)
+        if resource.pod.id != pod.id:
+            raise ValueError(
+                &quot;conflicting provider resources; manual reconciliation required&quot;
+            )
+    try:
+        _bound_resource(spec, resource)
+    except ValueError:
+        # Failed price/resource admission is before remote acceptance. Do not
+        # leave a rejected allocation billing through the full setup reserve.
+        if resource.pod.name == resource.claim.name:
+            provider.delete(resource.pod.id)
+        raise
+    return resource</code></pre></figure>
+<p>The create claim is permanent. A crash between claiming and issuing the request can leave the job ambiguous; no lease timeout silently creates another rental. Reconciliation is deliberately conservative.</p>
+<h2 id="disconnect">2. Remote ownership survives the client</h2><p>The submitting client exited at update 0. The same job finished 160 updates on CUDA, with 2 later checkpoint evaluations starting after that exit. 12 arena games completed. All 48 bundle files verified after deletion; 4 raw/EMA policies passed ordinary admission. Inventory was empty. Both proof attempts cost $0.1158 estimated, inside the shared $3 reservation. This proves execution survival and evidence retrieval, not learning strength.</p>
+<figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/manabot/remote/jobs.py#L99-L117">manabot/remote/jobs.py · RemoteJobRecord · b4e861e4 · lines 99–117</a></figcaption><pre><code>class RemoteJobRecord(Frozen):
+    spec_sha256: str
+    pod_id: str
+    phase: JobPhase
+    accepted_at: float
+    heartbeat_at: float
+    generation: int = 0
+    manifest: StoredArtifact | None = None
+    artifacts_complete: bool = False
+    run_id: str | None = None
+    updates: int = 0
+    evaluations_completed: int = 0
+    evaluator_seconds: float = 0
+    cancel_acknowledged_at: float | None = None
+    error: str | None = None
+
+    @property
+    def terminal(self) -&gt; bool:
+        return self.phase in {&quot;completed&quot;, &quot;failed&quot;, &quot;cancelled&quot;, &quot;deadline&quot;}</code></pre></figure>
+<figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/manabot/remote/supervisor.py#L309-L337">manabot/remote/supervisor.py · main · b4e861e4 · lines 309–337</a></figcaption><pre><code>def main() -&gt; None:
+    store = S3JobStore(os.environ[&quot;MANABOT_JOB_PREFIX&quot;])
+    raw = store.read(&quot;spec.json&quot;)
+    if raw is None:
+        raise ValueError(&quot;remote job intent missing&quot;)
+    spec = RemoteJobSpec.model_validate_json(raw.data)
+    pod_id = os.environ[&quot;RUNPOD_POD_ID&quot;]
+    # A lost create response can delay admission; a fresh submitter can reconcile
+    # it without starting another rental. Never train before price admission.
+    while time.time() &lt; spec.work_deadline:
+        try:
+            if store.read(&quot;training.json&quot;) is not None:
+                break
+        except RuntimeError:
+            # A missing resource receipt is deliberately unreadable to the
+            # scoped role until the client reconciles it (no ListBucket grant).
+            pass
+        time.sleep(2)
+    try:
+        supervise(spec, store, Path(&quot;/workspace/evidence&quot;), pod_id)
+    finally:
+        # No account key is forwarded. The same pod-scoped identity as guardian.
+        subprocess.run(
+            [&quot;runpodctl&quot;, &quot;remove&quot;, &quot;pod&quot;, pod_id],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=20,
+            check=False,
+        )</code></pre></figure>
+<p>Provider startup runs pinned-source setup before supervisor acceptance. The separate shell guardian starts first and keeps the original absolute deadline even if Python or S3 fails. A stale heartbeat never means the learner completed.</p>
+<h2 id="evidence">3. Fetch after the rental is gone</h2><p>Fresh clients used <code>deploy fetch</code> after deletion; the report reuses the existing create-once notebook and experiment dashboard. TrainingRun and VerifyStore still own learning. Bundle owns paths and hashes.</p>
+<p class="meta">Captured on the review head with existing AWS credentials, after provider deletion. These commands incurred no rental.</p><pre class="terminal">uv run --extra artifacts manabot deploy fetch --job-id etu123-disconnect-001 \
+  --out .runs/etu123-disconnect/cli-returned
+.runs/etu123-disconnect/cli-returned/generation-000008
+
+uv run --extra artifacts --extra notebook manabot deploy report \
+  --evidence .runs/etu123-disconnect/cli-returned/generation-000008 \
+  --out .runs/etu123-disconnect/cli-report
+.runs/etu123-disconnect/cli-report/comparison.html</pre>
+<figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/manabot/remote/snapshots.py#L112-L156">manabot/remote/snapshots.py · publish_snapshot · b4e861e4 · lines 112–156</a></figcaption><pre><code>def publish_snapshot(
+    spec: RemoteJobSpec,
+    root: Path,
+    generation: int,
+    *,
+    complete: bool,
+    artifacts: S3ArtifactStore | None = None,
+) -&gt; StoredArtifact:
+    artifacts = artifacts or S3ArtifactStore()
+    destination = f&quot;{spec.prefix}/runtime/artifacts&quot;
+    with tempfile.TemporaryDirectory(prefix=&quot;manabot-snapshot-&quot;) as directory:
+        snapshot = Path(directory)
+        snapshot_evidence(root, snapshot)
+        entries: list[BundleFile] = []
+        references: list[StoredArtifact] = []
+        for path in sorted(snapshot.rglob(&quot;*&quot;)):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(snapshot).as_posix()
+            item = BundleFile(
+                producer_path=str(root / relative),
+                relative_path=relative,
+                size=path.stat().st_size,
+                sha256=digest(path.read_bytes()),
+            )
+            references.append(
+                artifacts.publish(path, destination, sha256=item.sha256, size=item.size)
+            )
+            entries.append(item)
+        manifest = JobManifest(
+            spec_sha256=spec.identity,
+            generation=generation,
+            complete=complete,
+            bundle=Bundle(files=tuple(entries)),
+            artifacts=tuple(references),
+        )
+        path = snapshot / &quot;manifest.json&quot;
+        path.write_text(manifest.model_dump_json(indent=2))
+        # Publish the manifest only after every referenced blob passes readback.
+        return artifacts.publish(
+            path,
+            destination,
+            sha256=digest(path.read_bytes()),
+            size=path.stat().st_size,
+        )</code></pre></figure>
+<p>SQLite’s online backup supplies one consistent database cut. Its run JSON is derived from that same backup; committed artifacts and closed evaluator attempts retain their original bytes. An upload failure leaves the previous committed generation readable.</p>
+<h2 id="limits">4. Cancellation, evidence gaps and the review boundary</h2>
+<figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/manabot/remote/job_client.py#L373-L385">manabot/remote/job_client.py · cancel_job · b4e861e4 · lines 373–385</a></figcaption><pre><code>def cancel_job(spec: RemoteJobSpec, *, store: JobStore | None = None) -&gt; None:
+    &quot;&quot;&quot;Request cancellation once; concurrent callers preserve its first timestamp.&quot;&quot;&quot;
+    store = store or S3JobStore(spec.prefix)
+    request = Cancellation(requested_at=time.time()).model_dump_json().encode()
+    while True:
+        current = store.read(&quot;cancel.json&quot;)
+        if current is None:
+            if store.create(&quot;cancel.json&quot;, request):
+                return
+        elif Cancellation.model_validate_json(current.data).requested_at is not None:
+            return
+        elif store.replace(&quot;cancel.json&quot;, request, current.etag):
+            return</code></pre></figure>
+<p>The first live attempt reached acceptance but failed before learner launch because S3 returns 403 for a missing key to the restricted worker. Submission now creates the empty mailbox first. Its setup artifacts and cost remain retained; permissions were not widened to bucket listing. The successful proof’s final status poll lagged at 139 updates while its database held 160. Current status reads VerifyStore; a regression covers that correction. Frozen evidence was not rewritten or rerun.</p><p>SSO role chaining currently admits less than one hour including reserves. Reconnection is observation and retrieval, not CUDA process recovery. Historical arbitrary SSH calibration callbacks fail before rental until those callers adopt a serializable workload. The only registered lifecycle namespace is <code>manabot deploy</code>; there is no compatibility alias. Publication is not merge approval.</p>
+<details><summary>Verification and retained evidence</summary><p>The local deployment suite and focused evaluator/storage checks passed 94 tests (one CUDA-host skip), including rejection of the removed namespace. These checks cover subprocess detachment, uncertain creation, concurrent intent, cancellation, deadline, upload failure, immutable snapshot verification and the guardian. CUDA-host checks are skipped locally; the retained live proof is separate. Full private evidence remains in <code>.runs/etu123-disconnect</code>. The durable contract is <a href="https://github.com/loopflowstudio/etude/blob/b4e861e4878a55c7642daa7e77ae91d76c5938f3/docs/remote-jobs.md">docs/remote-jobs.md</a>.</p></details>
+<p class="meta">This walkthrough describes the pinned source above. No merge decision or scientific strength claim is made.</p></main></body></html>
