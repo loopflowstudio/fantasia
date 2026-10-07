@@ -321,3 +321,77 @@ def test_worker_cancellation_mailbox_exists_before_rental(store: FileStore) -> N
     assert specification(store).deadline == spec.deadline
     job_client.cancel_job(spec, store=store)
     assert job_client.cancellation_requested(store) == first
+
+
+def test_rejected_rental_is_deleted_before_setup(store: FileStore) -> None:
+    spec = specification(store)
+    provider = Provider(Clock(), failure="price")
+    with pytest.raises(ValueError, match="price/resource"):
+        job_client._provision(
+            spec, store, provider, "training", spec.deadline, "script", {}
+        )
+    assert not provider.pods
+    assert store.read("training.json") is not None
+    status = job_client.job_status(spec, store=store, provider=provider)
+    assert status.cleanup is not None and status.cleanup.estimated_dollars > 0
+
+
+def test_explicit_cancellation_stops_an_accepted_process(
+    store: FileStore, tmp_path: Path
+) -> None:
+    spec = specification(store)
+    resource = admitted(spec, store)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(
+            supervisor.supervise,
+            spec,
+            store,
+            tmp_path / "evidence",
+            resource.pod.id,
+            command=[sys.executable, "-c", "import time; time.sleep(30)"],
+            publish=published,
+        )
+        until = time.time() + 10
+        while time.time() < until:
+            raw = store.read("runtime/record.json")
+            if (
+                raw is not None
+                and RemoteJobRecord.model_validate_json(raw.data).phase == "running"
+            ):
+                break
+            time.sleep(0.02)
+        assert raw is not None
+        job_client.cancel_job(spec, store=store)
+        result = future.result(timeout=10)
+    assert result.phase == "cancelled" and result.cancel_acknowledged_at is not None
+    assert result.artifacts_complete
+
+
+def test_failed_final_upload_keeps_previous_generation(
+    store: FileStore, tmp_path: Path
+) -> None:
+    spec = specification(store)
+    resource = admitted(spec, store)
+
+    def publish(
+        spec: RemoteJobSpec, root: Path, generation: int, *, complete: bool
+    ) -> StoredArtifact:
+        if complete:
+            raise OSError("unavailable")
+        return published(spec, root, generation, complete=False)
+
+    result = supervisor.supervise(
+        spec,
+        store,
+        tmp_path / "evidence",
+        resource.pod.id,
+        command=[
+            sys.executable,
+            "-c",
+            "import time; time.sleep(.2); raise SystemExit(3)",
+        ],
+        publish=publish,
+    )
+    assert result.generation == 1 and result.manifest is not None
+    assert not result.artifacts_complete and result.error is not None
+    assert "final upload" in result.error

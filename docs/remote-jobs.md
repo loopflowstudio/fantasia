@@ -35,7 +35,8 @@ expiring, job-scoped STS session, never the account's AWS or RunPod keys. A supp
 credentials can instead use STS federation without role setup. SSO/role-chained
 jobs must fit below 3,540 seconds including all reserves; admission fails before
 rental if credentials cannot cover the absolute deadline. This is a current
-runtime limit, not portable credential renewal or long-job recovery.
+runtime limit, not portable credential renewal or long-job recovery. AWS documents
+the [one-hour role-chaining limit](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
 
 Author an optional `MonitoringBudget` JSON using the existing contract. For a tiny
 workflow check, this declares two minutes per evaluation and a four-minute total:

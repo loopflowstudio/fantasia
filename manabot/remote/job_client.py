@@ -140,7 +140,14 @@ def _provision(
             raise ValueError(
                 "conflicting provider resources; manual reconciliation required"
             )
-    _bound_resource(spec, resource)
+    try:
+        _bound_resource(spec, resource)
+    except ValueError:
+        # Failed price/resource admission is before remote acceptance. Do not
+        # leave a rejected allocation billing through the full setup reserve.
+        if resource.pod.name == resource.claim.name:
+            provider.delete(resource.pod.id)
+        raise
     return resource
 
 
