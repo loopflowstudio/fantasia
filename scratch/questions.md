@@ -22,3 +22,6 @@ The extra 25 minutes funds only the required live-workflow/L4 fit proof and free
 Prior attempts remain immutable. This is an operator decision, not a claim that
 Jack Heart separately approved these exact revised phase numbers. Another overrun
 stops execution; it does not authorize a further extension.
+
+Sync check (2026-10-06): transport observer/bootstrap pytest collection blocked by
+missing `managym._managym` native extension; no behavioral result obtained.
