@@ -47,8 +47,11 @@ admitted four policies and regenerated notebook/HTML after deletion. The final
 status poll lagged at 139; the authoritative database held 160. Current status
 uses that database, with a regression; frozen evidence is unchanged.
 
-Remaining: publish the final API/reporting corrections, refresh the source-pinned
-HTML walkthrough, and leave PR #254 unmerged for Jack Heart's review. Full private
+The final API/reporting corrections are published in PR #254. The walkthrough
+binds implementation head `b4e861e4`; later heads change review artifacts only.
+Desktop/narrow layout and code excerpts were rendered and inspected. Remaining:
+the saved Flow must reach its pr-review boundary, and Jack Heart reviews before
+any merge. This running implement Session cannot mark that human review complete. Full private
 proof stays in `.runs/etu123-disconnect`; compact hashes/costs are in
 `experiments/data/etu123-remote-jobs`. The requested proof was not restarted for
 CLI naming or the counter repair.
