@@ -1,0 +1,7 @@
+# ETU-105 mini closeout — 2026-10-07
+
+Jack Heart requested completion of the six retained 1240-update runs through held-out/random evaluation and report delivery. No training is authorized in this closeout. Original absolute deadline: 1791415121.724962. Retain frozen source and all earlier failed calibration attempts. ETU-118 receives a Task steer on CPU release; its recipe is independent of this exploratory screen.
+
+Evaluate only final raw policy-1 checkpoints, all three seeds, against scripted greedy on reserved 9305000–9305024 and random on 9205000–9205024, four legs each. No score-dependent endpoint selection. Evaluation uses the retained native/source/runtime, separate immutable output and a detached supervisor capped at 7200 seconds or the original deadline, whichever comes first. The larger scheduling ceiling consumes existing remaining allocation, not a new allocation; calibrated estimates remain unchanged. Preserve partial/failing cells without retries.
+
+Report every monitoring milestone separately from final held-out results. Compare actor-only minus actor+critic across paired seeds and shared deals, conditional on this opponent; three seeds cannot support strong generalization. Use last-observed checkpoints on common cost support; sparse clocks do not establish equal-cost endpoint superiority. Keep transition, actor/critic exposure and environment decision clocks separate. Source export/runtime hashes, not incidental git HEAD, own execution identity.
