@@ -1,27 +1,29 @@
 # Intelligence memory
 
-## CUDA capacity and hardware scope (ETU-103, 2026-10-06)
+## CUDA capacity boundary (ETU-103, 2026-10-06)
 
-Jack Heart assigned the pure-capacity CUDA comparison and GPU performance sweep
-to ETU-103's existing worker. The mini depth cohort remains separate retained
-evidence. The allocation is two hours calibration plus twelve hours total
-comparison across arms/seeds, including evaluation, transfer, reporting and
-failures. Initial all-in ceiling is $15; a conditional $30 ceiling needs a retained
-calibration-based reason. Every deployment remains below $5 with pod/client
-deadlines, verified returns and confirmed deletion. No historical ETU-114/91
-allocation transfers. ETU-118 owns baseline promotion and shares the CPU evaluator
-lease; ETU-105/106/108 retain learning-rule, representation and distributed work.
+Jack Heart assigned the L4/A40 performance sweep and pure capacity comparison to
+ETU-103, retaining the completed mini evidence separately. Both 48-cell grids
+completed 47 cells plus the large-model batch1024 optimizer OOM. A40 batch512
+used 26.159 GiB allocated peak. L4 was faster on the selected identical short
+512-row/64-stream loops; this does not establish sustained throughput or strength.
+Wider existing streams helped; collection share alone proves no missing capability.
 
-Fixed-real-batch inference/Adam probes and ordinary complete-loop measurements
-cross existing capacities through width384/depth8/ff1536 on L4 and A40. Batch and
-stream counts are independent of worker count. GPU fit, model throughput, filtered
-optimizer exposure and playing strength are separate outcomes; collection share
-alone cannot establish engine starvation. Initialization, live greedy milestones,
-separate random diagnostics and untouched final deals must be prospectively bound.
-The [capacity protocol](../../experiments/model-capacity.md) owns exact clocks,
-receipts and the forthcoming freeze. No strength/default conclusion follows from
-calibration. A bulk-verified closed bundle can preserve an interrupted file-transfer
-attempt without rewriting that failure or rerunning measurements.
+Bulk-verified closed bundles preserve interrupted/failed per-file returns without
+rewriting failures. Five rentals were deleted, estimated total $0.5359766177.
+The last guardian bootstrap timed out before training; live evaluation, L4 batch512
+and collection profiling remain unmeasured. No scientific plan/cohort launched.
+The [protocol and portable report](../../experiments/model-capacity.md) retain
+exact clocks, identities, all attempts and limits; preserve ignored private bundles.
+
+Jack Heart reserved $3 within the existing $15 for ETU-123's disconnect proof and
+requires its delivered lifecycle before science. ETU-103 is capped at the remaining
+$12; the scientific CLI rejects launch until integration. PR253's export callbacks,
+CPU queue and bulk returns remain client-owned. A reported 25-minute calibration
+reallocation preserved combined 14 hours; it does not reset the elapsed clock or
+authorize retries. ETU-118 retains baseline promotion/shared evaluator ownership;
+ETU-105/106/108 retain learning, representation and distributed work. No default
+or promotion model is selected from timing alone.
 
 ## Reading learning trends (ETU-117, 2026-10-06)
 

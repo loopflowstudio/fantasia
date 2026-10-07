@@ -42,18 +42,31 @@ Original calibration drivers live in /tmp/etu103-*.py and will be copied alongsi
 the retained receipts. Both original deployments bind b6bbd1a4; following software
 changes require a new exact source binding, not rewritten receipts.
 
-The two-card grids bind published `7316da5d` (PR253). L4 finished 47 cells and
-one optimizer OOM at w384/d8 batch1024. Its complete 277-file/1,735,865,605-byte
-bundle verified under calibration-l4-sweep/bulk-return. The duplicate per-file
-transfer was deliberately interrupted; original failure retained, deletion
-confirmed, estimated rental $0.19039643325805666. A40 is running the same source
-and grid. Its remote checkout/native remain pinned while local follow-up code is
-validated. Read-only telemetry and recovery drivers are retained with the evidence.
+The two-card grids bind published `7316da5d` (PR253). Both finished 47 cells and
+one optimizer OOM at large fixed batch1024. Both closed 277-file bundles verified
+under calibration-{l4,a40}-sweep/bulk-return. L4's duplicate per-file transfer was
+stopped after verification; A40's primary scp failed after bulk verification.
+Original failures remain immutable. A40's separate batch512 optimizer succeeded
+at 26.159 GiB allocated peak. No strength scores were inspected.
 
-Local follow-up adds bulk archive admission, phase timestamps, protocol-bound
-live/endpoint/random evaluation, a six-run/24-cohort freeze and notebook/report.
-All scientific updates remain unfrozen and no scientific scores were inspected.
-The prospective schedule and optional final 1,250-second live-workflow/profiler
-calibration are in experiments/model-capacity.md. The original calibration clock
-starts 1791328605.990033 and ends 1791335805.990033; no reset or extension.
-Basic check: 93 passed, one CUDA-host skip; no Rust/native changes.
+The final live-workflow attempt at e052ac30 failed the 90-second guardian SSH
+bootstrap before training. Deletion is confirmed for all five rentals; total
+estimate $0.5359766177137693. L4 batch512, profiler and live evaluation proof
+remain unmeasured. No retry or scientific cohort launched. The operator reported
+25 minutes reallocated before the original calibration deadline, keeping combined
+14 hours and $15; exact interpretation and deadline are in scratch/questions.md
+and .runs/etu103-cuda-capacity/calibration-amendment.json. No clock reset.
+
+Jack Heart subsequently requires ETU-123's delivered disconnect-safe lifecycle
+before science and reserves $3 within the existing $15 for its bounded proof.
+ETU-103 has at most $12; the scientific CLI fails explicitly pending integration.
+ETU-123's ordinary worker is already implementing; no duplicate worker launched
+and its checkout remains untouched. Current APIs in PR253: observed Transport,
+LiveExports, bulk_return with manifest verification, PhaseStamp, initial exports,
+protocol-bound checkpoint queue. They remain client-owned, not disconnect-safe.
+
+The portable compact JSON/notebook/HTML are in experiments/data/cuda-capacity;
+private models/tapes/bundles remain under this checkout's ignored .runs. The
+protocol owns results and limitations. Mini, ETU-91 and ETU-106 evidence unchanged.
+
+Check: 40 affected tests passed; portable report regeneration passes; nine provider pod IDs rechecked absent. No Rust/native changes.
