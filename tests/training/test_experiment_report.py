@@ -13,6 +13,7 @@ from manabot.training.comparison_notebook import write_comparison_notebook
 from manabot.training.experiment_report import (
     load_evidence,
     matched_milestones,
+    strength_figures,
     write_dashboard,
 )
 
@@ -69,6 +70,31 @@ def test_unequal_latest_updates_and_missing_runs_are_not_comparisons() -> None:
         update={"attempts": [*execution.attempts, pending]}
     )
     assert not matched_milestones(replace(evidence, executions=(execution,)))
+
+
+def test_recovery_extends_one_trajectory_without_adding_a_replicate() -> None:
+    evidence = load_evidence(DEMO)
+    parent = evidence.runs[0]
+    child = parent.model_copy(update={"id": "recovered", "parent_run_id": parent.id})
+    monitors = tuple(
+        result.model_copy(update={"run_id": child.id})
+        if result.run_id == parent.id
+        else result
+        for result in evidence.monitors
+    )
+    resumed = replace(evidence, runs=(*evidence.runs, child), monitors=monitors)
+    assert matched_milestones(resumed) == matched_milestones(
+        replace(evidence, monitors=monitors, runs=(child, *evidence.runs[1:]))
+    )
+    for matched in (False, True):
+        figures = strength_figures(resumed, "training_seconds", matched_only=matched)
+        assert len(figures) == 1
+        axes = figures[0].axes[0]
+        assert len(axes.containers) == len(evidence.runs)
+        assert ("Matched stage/update" in axes.get_title()) == matched
+        assert sorted(axes.get_legend_handles_labels()[1]) == sorted(
+            evidence.label(run.id) for run in evidence.runs
+        )
 
 
 def test_failed_evaluation_suppresses_rates_and_remains_visible(tmp_path: Path) -> None:

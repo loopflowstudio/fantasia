@@ -6,14 +6,12 @@ rows remain missing; neither parsing nor reporting imputes failed games.
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from manabot.training.models import Strict
 
 
-class Evidence(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-
-class Score(Evidence):
+class Score(Strict):
     deal: int
     win: float = Field(ge=0, le=1)
     replay: bool
@@ -26,7 +24,7 @@ class Score(Evidence):
     terminal: str | None = None
 
 
-class Attempt(Evidence):
+class Attempt(Strict):
     seed: int
     frozen: bool
     status: Literal["running", "completed", "failed"] = "running"
@@ -39,7 +37,7 @@ class Attempt(Evidence):
     initial_sha256: str | None = None
 
 
-class Result(Evidence):
+class Result(Strict):
     status: Literal["running", "completed", "failed"] = "running"
     attempts: list[Attempt] = Field(default_factory=list)
     seconds: float = Field(default=0, ge=0)

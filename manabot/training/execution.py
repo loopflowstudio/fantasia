@@ -67,6 +67,7 @@ from .models import (
 from .objectives import update_ema, update_iteration
 from .recovery import (
     TrainingPaused,
+    UpdateSnapshot,
     attempt_lock,
     load_update,
     restore_learning,
@@ -161,6 +162,8 @@ def execute_regime(
     lease = destination.with_name(destination.name + ".writer.lock")
     with ExitStack() as leases:
         leases.enter_context(attempt_lock(lease))
+        parent = None
+        snapshot = None
         if resume_from is not None:
             parent = store.training_run(resume_from)
             if parent.recovery_lock_path is None:
@@ -168,11 +171,14 @@ def execute_regime(
             leases.enter_context(
                 attempt_lock(Path(parent.recovery_lock_path), existing=True)
             )
-            if parent.seed != seed or parent.regime_digest != canonical_sha256(
-                regime.model_dump(mode="json")
+            if (
+                not regime.recoverable
+                or parent.seed != seed
+                or parent.regime_digest
+                != canonical_sha256(regime.model_dump(mode="json"))
             ):
                 raise ValueError("recovery recipe or seed mismatch")
-            load_update(parent, store)
+            snapshot = load_update(parent, store)
             if parent.identities != _runtime_identities(
                 seed, regime, ObservationSpace(regime.observation)
             ):
@@ -182,12 +188,18 @@ def execute_regime(
                 # Preserve the old run.json and snapshots. The canonical record
                 # explains settlement, including the explicitly estimated cost.
                 store.save_training_run(settled)
+            parent = settled
+            if parent.status not in {"failed", "interrupted"}:
+                raise ValueError(
+                    "recovery requires a stopped failed or interrupted attempt"
+                )
         return _execute_regime(
             regime,
             seed,
             destination,
             store,
-            resume_from=resume_from,
+            parent=parent,
+            snapshot=snapshot,
             checkpoint_seconds=checkpoint_seconds,
             pause_path=pause_path,
         )
@@ -199,24 +211,12 @@ def _execute_regime(
     out: str | Path,
     store: "VerifyStore",
     *,
-    resume_from: str | None = None,
+    parent: TrainingRun | None,
+    snapshot: UpdateSnapshot | None,
     checkpoint_seconds: float | None = None,
     pause_path: Path | None = None,
 ) -> TrainingRun:
-    regime = validate_regime(regime)
-    parent = store.training_run(resume_from) if resume_from is not None else None
-    if parent is not None:
-        if parent.status not in {"failed", "interrupted"}:
-            raise ValueError(
-                "recovery requires a stopped failed or interrupted attempt"
-            )
-        if (
-            not regime.recoverable
-            or parent.seed != seed
-            or parent.regime_digest != canonical_sha256(regime.model_dump(mode="json"))
-        ):
-            raise ValueError("recovery recipe or seed mismatch")
-    snapshot = load_update(parent, store) if parent is not None else None
+    """Execute admitted inputs while the caller holds both recovery writer leases."""
     # A retry can fail during setup before reaching its stage. Walk the retained
     # lineage so that failure cannot erase a stage allowance or completion receipt.
     prior_records: dict[str, StageRecord] = {}
@@ -284,6 +284,16 @@ def _execute_regime(
     last_export = float("-inf")
     export_wait = PROGRESS_EXPORT_SECONDS
 
+    def save_run() -> None:
+        """Stamp normal progress and failures with the same allocation clocks."""
+        run.seconds = time.perf_counter() - start
+        run.watchdog_seconds = budget_now() - watchdog_start
+        run.last_recorded_wall_seconds = time.time()
+        run.last_recorded_active_seconds = time.monotonic()
+        run.calendar_seconds = max(0.0, run.last_recorded_wall_seconds - calendar_start)
+        run.downtime_seconds = max(0.0, run.calendar_seconds - run.seconds)
+        store.save_training_run(run)
+
     def persist(*, progress: bool = False) -> None:
         """Commit the run to the store and refresh its run.json export.
 
@@ -295,13 +305,7 @@ def _execute_regime(
         completion and failure always export.
         """
         nonlocal last_export, export_wait
-        run.seconds = time.perf_counter() - start
-        run.watchdog_seconds = budget_now() - watchdog_start
-        run.last_recorded_wall_seconds = time.time()
-        run.last_recorded_active_seconds = time.monotonic()
-        run.calendar_seconds = max(0.0, time.time() - calendar_start)
-        run.downtime_seconds = max(0.0, run.calendar_seconds - run.seconds)
-        store.save_training_run(run)
+        save_run()
         began = time.monotonic()
         if progress and began - last_export < export_wait:
             return
@@ -1252,13 +1256,7 @@ def _execute_regime(
                 - record.diagnostic_seconds,
             )
             setattr(record, phase, getattr(record, phase) + unaccounted)
-        run.seconds = time.perf_counter() - start
-        run.watchdog_seconds = budget_now() - watchdog_start
-        run.last_recorded_wall_seconds = time.time()
-        run.last_recorded_active_seconds = time.monotonic()
-        run.calendar_seconds = max(0.0, time.time() - calendar_start)
-        run.downtime_seconds = max(0.0, run.calendar_seconds - run.seconds)
-        store.save_training_run(run)
+        save_run()
         try:
             export_training_run(run.id, store, out)
         except OSError:

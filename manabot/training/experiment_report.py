@@ -7,6 +7,7 @@ retained run in a compatible cohort at the same stage/update coordinate.
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import cached_property
 from html import escape
 from io import StringIO
 import json
@@ -31,22 +32,25 @@ class ReportEvidence:
     failed_directories: tuple[Path, ...]
     paths: tuple[Path, ...]
 
+    @cached_property
+    def runs_by_id(self) -> dict[str, TrainingRun]:
+        return {run.id: run for run in self.runs}
+
     def logical_run_id(self, run_id: str) -> str:
         """A recovery child extends its original seed, never another replicate."""
-        by_id = {run.id: run for run in self.runs}
         seen: set[str] = set()
-        while run_id in by_id and by_id[run_id].parent_run_id is not None:
+        while (
+            run := self.runs_by_id.get(run_id)
+        ) is not None and run.parent_run_id is not None:
             if run_id in seen:
                 raise ValueError("cyclic recovery lineage")
             seen.add(run_id)
-            run_id = by_id[run_id].parent_run_id
+            run_id = run.parent_run_id
         return run_id
 
     def label(self, run_id: str) -> str:
-        return next(
-            (f"{r.regime.id} · seed {r.seed}" for r in self.runs if r.id == run_id),
-            run_id,
-        )
+        run = self.runs_by_id.get(run_id)
+        return f"{run.regime.id} · seed {run.seed}" if run is not None else run_id
 
     def metrics(self, run: TrainingRun) -> list[dict[str, Scalar]]:
         """Expose all saved diagnostics for notebook-selected deeper analysis."""
@@ -107,7 +111,7 @@ def matched_milestones(evidence: ReportEvidence) -> dict[str, list[MonitorResult
     expected = {evidence.logical_run_id(r.id) for r in evidence.runs}
     if any(
         a.status in {"pending", "running", "failed", "interrupted"}
-        and a.run_id not in {r.id for r in evidence.runs}
+        and a.run_id not in evidence.runs_by_id
         for e in evidence.executions
         for a in e.attempts
     ):
@@ -136,7 +140,7 @@ def strength_figures(
     *,
     matched_only: bool = True,
 ) -> list[Figure]:
-    """Plot matched milestones per seed; bands are saved deal uncertainty, not seed CIs."""
+    """Plot each seed's milestones; bands are saved deal uncertainty, not seed CIs."""
     figures: list[Figure] = []
     panels = (
         matched_milestones(evidence) if matched_only else compatible_panels(evidence)
@@ -144,11 +148,11 @@ def strength_figures(
     for panel, results in panels.items():
         fig = Figure(figsize=(9, 3.5), layout="constrained")
         ax = fig.subplots()
-        for run_id in sorted({evidence.logical_run_id(r.run_id) for r in results}):
-            rows = sorted(
-                (r for r in results if evidence.logical_run_id(r.run_id) == run_id),
-                key=lambda r: getattr(r.coordinates, axis),
-            )
+        by_run: dict[str, list[MonitorResult]] = {}
+        for result in results:
+            by_run.setdefault(evidence.logical_run_id(result.run_id), []).append(result)
+        for run_id, rows in sorted(by_run.items()):
+            rows.sort(key=lambda r: getattr(r.coordinates, axis))
             x = [getattr(r.coordinates, axis) for r in rows]
             rates = [r.win for r in rows if r.win is not None]
             ax.errorbar(
@@ -168,7 +172,7 @@ def strength_figures(
             else "Native environment decisions (work proxy)",
             ylabel="Win fraction",
             ylim=(-0.03, 1.03),
-            title=f"Matched stage/update milestones · cohort {panel[:8]}",
+            title=f"{'Matched stage/update milestones' if matched_only else 'Individual trajectories (unmatched)'} · cohort {panel[:8]}",
         )
         ax.legend(fontsize=8)
         figures.append(fig)
@@ -444,7 +448,7 @@ def write_dashboard(
         + "</p>"
     )
     parts.append(
-        f"<p>{link('Comparison rules', 'comparisons')}: only common stage/update milestones across every retained run appear below. Work counts and time remain distinct; no unequal latest-checkpoint ranking.</p>"
+        f"<p>{link('Comparison rules', 'comparisons')}: comparisons require common stage/update milestones across every retained run. Individual trajectories may show unmatched progress. Work counts and time remain distinct; no unequal latest-checkpoint ranking.</p>"
     )
     for title, anchor, figures in sections:
         parts.append(f"<section><h2>{link(title, anchor)}</h2>")

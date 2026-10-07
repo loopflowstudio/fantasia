@@ -1,9 +1,41 @@
 # Current learning baseline — ETU-118
 
 Status: storage admitted; third calibration timed out; no sustained launch.
-The sustained learner has not started; daily-test validation remains open. Jack Heart authorized
-bounded local CPU evidence on 2026-10-06. No self-play, architecture superiority,
-full-matchup improvement or chapter acceptance follows from this fixture.
+The storage observation and calibration below are laptop evidence. Jack Heart's
+2026-10-07 restart direction moves the one sustained duration cohort to mini;
+daily-test validation remains open. No strength or chapter acceptance follows.
+
+## Current mini execution direction (2026-10-07)
+
+Jack Heart requested actual supervised mini training after ETU-105's finite
+final/random scoring closeout. This supersedes laptop placement and earlier mini
+sequencing below, without rewriting those protocols or their evidence. ETU-118
+retains the masked-mean scalar candidate and original remaining allocation:
+601769.9884917501 active seconds before new charges; 3030.011508249935 seconds
+already charged. No duplicate laptop cohort, new week or technique selection from
+ETU-105 scores. ETU-116 duration and ETU-82 repeat-training acceptance stay here.
+
+Use `lf ssh` to `jack@100.96.227.95`, repository `/Users/jack/src/etude`, and a remote
+supervisor that survives laptop closure. ETU-105's six 1240-update learners finished;
+its owning worker is scoring six endpoints × 100 games per opponent against greedy
+and random, with hard stop 2026-10-07 23:18:41 UTC (1791415121.724962). Wait for the
+explicit CPU-release/evaluator-exit evidence, not merely the deadline. Source:
+`/Users/jack/src/etude/.runs/etu105-mini-filter-scope-20261006-3-calibration-continuation`.
+Do not interrupt ETU-103 GPU work.
+
+Before scoring, amend the numeric calibration allowance within the remaining week,
+remeasure mini storage/source/runtime, and complete exact-recipe format-3 calibration.
+The old 220-second timeout and remaining 569.9884917500649-second exploration balance
+cannot support an unchanged retry. Freeze three-seed day-scale duration, initialization
+and hourly/declared 100-game greedy monitoring, a separately scheduled live random
+diagnostic, untouched final deals, clocks and safe pause/restart rules. The current
+runner still has laptop admission and final-only random scheduling; those require
+implementation before launch. Retain Experiment/TrainingRun/VerifyStore, arena,
+editable notebook → HTML, W&B and the existing S3 publication contract.
+
+The Flow resumed at compress. Its next loop-decide must iterate for calibration and
+remote launch; publishing the stopped-calibration software is not the requested
+execution. PR251 delivery and scientific Task completion remain separate.
 
 ## Weekly-first scope revision (2026-10-06)
 
