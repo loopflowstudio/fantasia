@@ -175,20 +175,7 @@ def test_cleanup_recovers_only_evidenced_cost(
     assert repeated.attempts[0].deleted_time == recovered.attempts[0].deleted_time
 
 
-def test_calibration_hook_failure_keeps_existing_deletion_guards(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    clock = Clock()
-    provider = Provider(clock)
-    monkeypatch.setattr(lifecycle, "time", clock)
-    monkeypatch.setattr(lifecycle, "RunPod", lambda: provider)
-    monkeypatch.setattr(lifecycle, "current_source", lambda root: SOURCE)
-    monkeypatch.setattr(lifecycle, "verify_public_source", lambda source: None)
-    monkeypatch.setattr(lifecycle.Path, "home", lambda: tmp_path)
-    transport = SimpleNamespace(
-        shell=lambda *args, **kwargs: b"", put=lambda *args: None
-    )
-    monkeypatch.setattr(lifecycle, "_ready", lambda *args: transport)
+def test_client_calibration_callbacks_reject_before_rental(tmp_path: Path) -> None:
     plan = compile_plan(
         (ROOT / "experiments/regimes/direct-self-play.json").read_text(),
         HardwareMix.model_validate_json(
@@ -198,18 +185,10 @@ def test_calibration_hook_failure_keeps_existing_deletion_guards(
         197,
     )
 
-    def fail(transport: lifecycle.Transport) -> None:
-        raise TimeoutError("bounded probe timed out")
+    def callback(transport: lifecycle.Transport) -> None:
+        raise AssertionError("client callback must not run")
 
     out = tmp_path / ".runs/deployment"
-    with pytest.raises(TimeoutError):
-        lifecycle.deploy(plan, out, tmp_path, after_training=fail)
-    receipt = lifecycle.Receipt.model_validate_json(
-        (out / "deployment.json").read_text()
-    )
-    assert receipt.phase == "deleted" and not receipt.complete
-    assert receipt.estimated_dollars is not None
-    assert len(receipt.attempts) == 2 and all(
-        a.deleted_time is not None for a in receipt.attempts
-    )
-    assert not provider.pods
+    with pytest.raises(ValueError, match="client execution callbacks"):
+        lifecycle.deploy(plan, out, tmp_path, after_training=callback)
+    assert not out.exists()
