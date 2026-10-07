@@ -2,7 +2,7 @@
 
 Jack Heart requested one declarative JobSpec and an admitted Job. Machine owns
 hardware; JobSpec owns lifetime, spending and access. Experiment.jobs binds
-JobRun cases/seeds/evaluation; compile_jobs and prepare_job use the existing
+PlannedRun cases/seeds/evaluation; compile_jobs and prepare_job use the existing
 compiler and lifecycle. One schema-2 plan contains one spec.
 
 Delete — do not maintain: LaunchSpec, HardwareMix public inputs/unions/projection,

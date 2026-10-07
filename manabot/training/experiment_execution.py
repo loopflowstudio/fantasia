@@ -17,7 +17,7 @@ from manabot.training.checkpoint_queue import MonitoringBudget
 from manabot.training.models import Strict
 
 
-class JobRun(Strict):
+class PlannedRun(Strict):
     """Bind one resolved case and training seed to allocation and evaluation intent."""
 
     case: str

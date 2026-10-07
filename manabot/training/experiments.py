@@ -20,7 +20,7 @@ from manabot.remote.job_client import prepare_experiment_job
 from manabot.remote.jobs import Job
 from manabot.remote.plan import DeploymentPlan, Source, compile_plan
 from manabot.training.execution import validate_regime
-from manabot.training.experiment_execution import ExperimentSchedule, JobRun
+from manabot.training.experiment_execution import ExperimentSchedule, PlannedRun
 from manabot.training.models import (
     AtaraxosMoveLearning,
     Execution,
@@ -376,7 +376,7 @@ class Experiment:
     cases: tuple[Case, ...] = ()
     matrix: tuple[Axis, ...] = ()
     schedule: ExperimentSchedule | None = None
-    jobs: tuple[JobRun, ...] = ()
+    jobs: tuple[PlannedRun, ...] = ()
 
     def compile_jobs(self, source: "Source") -> tuple["DeploymentPlan", ...]:
         """Pure compilation; preserves cases, seed order and learning targets."""

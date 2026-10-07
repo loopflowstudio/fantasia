@@ -2,12 +2,12 @@
 
 ## Step targets and machine allocations (ETU-124, 2026-10-07)
 
-Jack Heart approved step-target TrainingRegimes and reusable JobSpecs, then
-simplified the unshipped LaunchSpec draft. Machine owns hardware/provider shape;
+Jack Heart approved step-target TrainingRegimes and reusable JobSpecs.
+Machine owns hardware/provider shape;
 JobSpec owns lifetime, spending and scoped artifact authority; Job is admitted
-execution. Experiment binds case/seed, JobSpec and evaluation. Current plans
+execution. Experiment PlannedRuns bind case/seed, JobSpec and evaluation. Current plans
 carry one spec; private schema-1 readers retain historical JSON, job digests and
-deadlines. The unshipped draft has no compatibility layer. Calibration-era
+deadlines. Calibration-era
 capacity authoring is retired; frozen plans and their pinned runners remain evidence.
 
 Machine lifetime alone sets permissions and shutdown deadlines. Collection stops

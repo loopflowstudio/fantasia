@@ -21,7 +21,7 @@ from manabot.remote.plan import (
 from manabot.remote.provider import Pod
 from manabot.remote.transport import job_startup
 from manabot.training.checkpoint_queue import MonitoringBudget
-from manabot.training.experiment_execution import JobRun
+from manabot.training.experiment_execution import PlannedRun
 from manabot.training.experiments import Baseline, Experiment
 from manabot.training.models import TrainingRegime, TrainSelfPlay
 from tests.remote.job_fixtures import FileStore
@@ -132,7 +132,7 @@ def test_experiment_binds_seeded_cases_without_changing_recipe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     bindings = tuple(
-        JobRun(
+        PlannedRun(
             case="steps",
             seed=seed,
             spec=job_spec(hours),

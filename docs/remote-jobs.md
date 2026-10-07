@@ -220,7 +220,7 @@ from pathlib import Path
 
 from manabot.remote.plan import AccessScope, JobSpec, Machine, Source
 from manabot.training.checkpoint_queue import MonitoringBudget
-from manabot.training.experiment_execution import JobRun
+from manabot.training.experiment_execution import PlannedRun
 from manabot.training.experiments import Baseline, Experiment
 from manabot.training.models import TrainingRegime
 
@@ -241,7 +241,7 @@ spec = JobSpec(
 experiment = Experiment(
     name="step-comparison",
     baseline=Baseline.capture("fixed-target", regime),
-    jobs=(JobRun(
+    jobs=(PlannedRun(
         case="step-comparison", seed=197, spec=spec,
         monitoring=MonitoringBudget(seconds=600, attempt_seconds=120),
         checkpoint_seconds=3600,   # monitoring cadence
@@ -274,7 +274,7 @@ lives only in `spec.machine`. `Job` binds that plan to its admitted ID and deadl
 The private schema-1 reader retains historical plan/job JSON, digests, active-time
 watchdogs and fractional deadline semantics. Current compilation accepts only
 JobSpec; there is no `--mix`, public hardware-mix type or derived mix projection.
-The earlier unshipped schema-2 draft has no compatibility branch. Historical
+Historical
 `active_seconds` recipes retain their exact meaning and serialized identities; they are refused under a new JobSpec.
 The duration-specific capacity preparation API/CLI is removed. ETU-103's running
 four-hour cohort continues at its pinned source
