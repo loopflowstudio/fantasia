@@ -39,8 +39,10 @@ def freeze_source(out: Path, *, environment: bool = True) -> Path:
     files: dict[str, str] = {}
     for name in sorted(set(filter(None, names))):
         source = root / name
-        if source.is_symlink():
-            raise ValueError(f"source bundle does not follow symlinks: {name}")
+        if source.is_symlink() and (
+            not source.resolve().is_relative_to(root) or not source.is_file()
+        ):
+            raise ValueError(f"source bundle symlink escapes tracked source: {name}")
         target = out / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
