@@ -2,41 +2,38 @@
 
 ## Weekly-first mini duration baseline (ETU-118, 2026-10-07)
 
-Jack Heart moved the one sustained cohort from laptop to mini after ETU-105's
-completed final/random scoring and explicit CPU release. ETU-116 duration and
-ETU-82 repeat-training outcomes belong here. The latest direction selects three
-10,000-update runs of ETU-105's actor-and-critic-filtered masked-mean scalar
-width64/depth2/heads4, no-history current-self recipe, 256 rows/update. Early gains
-and no demonstrated actor-only cost payoff motivate this choice; it is not baseline
-promotion. This supersedes depth1 and automatic 12800–102400 horizon selection.
-Optional all/none screens remain ETU-105 followups, not launch prerequisites.
+Jack Heart selected three 10,000-update mini runs of ETU-105's actor-and-critic
+filtered masked-mean scalar width64/depth2/heads4, no-history current-self recipe,
+256 rows/update. This supersedes depth1 and automatic horizon selection; early gains inform the
+choice, not promotion. ETU-116/82 outcomes belong here. ETU-105 released CPU.
 
-Preserve the first linked 620+620 stages and full learning settings. Despite the
-serialized `run_elapsed_budget` field, Ataraxos move diagnostics/rates use absolute
-collection/update iteration, including skips; extending the watchdog does not
-stretch LR/tau. Current recovery/initialization changes still need bounded
-matched-prefix verification. Add 400/800 monitoring exports without changing the
-early stage boundaries. Freeze later milestones, live 100-game greedy and separate
-random monitoring, untouched final deals and full seed/deal uncertainty before launch.
+Source `ba0ae3e9` is frozen with its native library and pinned environment under
+mini `/Users/jack/src/etude/.runs/etu118-mini-20261007-1/source`. All three 32-update
+calibration seeds completed, with 24 terminal/replayed evaluation games and a
+521.313901-second additive charge. Four historical/current updates matched batches, learner, Adam, RNGs and diagnostics
+across a linked boundary, not a full 1240-update reproduction. World/setup agreed. Ataraxos rates use absolute iterations, including skips,
+despite the historical serialized elapsed-clock field. Preserve 620+620 stages.
 
-All laptop failures remain charged: preparation 3030.011508249935 seconds leaves
-601769.9884917501 of the original week before new charges. The protocol fixes a
-7200-second mini preparation/calibration amendment within that balance; code still
-implements the exhausted old cap. Mini has about 57.65 GiB free at inspection,
-not the laptop's earlier 195.33 GiB. Selected-recipe calibration, storage admission,
-source/runtime freezing and supervised launch remain open. No sustained learner exists.
+Plan `46aabdb0`
+fixes seeds 11851–11853, extra 400/800 exports, later milestones through 10000,
+separate 100-game greedy/random monitoring and 24 untouched final cells. Time/storage admission passed. Preparation totals 4355.137744 seconds, leaving 600444.862256 of the
+original week. Preserve all laptop failures, the partial symlink bundle and the
+128.339317-second pre-learner PATH failure. Preparation exceeded its 600-second
+subreserve; actual total remained inside the 7200-second amendment. No seed retried.
 
-Root controls passed; short full-game gains missed the +10-point mean criterion.
-Neither proves sustained strength. Format-3 recovery binds diagnostic prefixes to
-VerifyStore and preserves learner/Adam/EMA/RNG/current games. Known sleep/pause
-is separate; unknown gaps remain conservatively charged. Physical lid closure is
-untested; flat curves prompt review, not automatic failure. Serial mini placement
-needs no cross-campaign lease redesign; preserve host-local ownership and ETU-103.
-S3/W&B contracts are present; credentials/publication remain unverified here.
-The [protocol and retained evidence](../../experiments/current-baseline.md) own
-exact accounting and limits. Demo-loaded repeat runs, sustained improvement,
-published checkpoints and independently validated daily testing remain open;
-software delivery cannot complete this Task.
+Detached supervisor 86655 reached 128 committed updates/32768 transitions and 200
+replayed initialization games; notebook refresh works. No duplicate or ETU-103 change.
+Format-3 recovery preserves VerifyStore prefixes and complete learning/game state.
+Known sleep/pause stays separate; unknown gaps are conservatively charged. Physical
+lid closure remains untested; flat curves prompt review, not automatic failure.
+
+The [protocol/evidence](../../experiments/current-baseline.md) owns accounting,
+identities and controls. S3 publication is blocked by unavailable default credentials
+and the configured softmax SSO token; do not repair auth as a launch prerequisite.
+W&B backfilled 128 diagnostic rows; later publication is not automatic.
+Sustained improvement, three ordinary
+demo-loaded executions, published checkpoints and independent daily-test validation
+remain open. Root controls and short-run gains do not prove those outcomes.
 
 ## Disconnected deployment proof (ETU-123, 2026-10-06)
 

@@ -1,8 +1,8 @@
 # Current learning baseline — ETU-118
 
-Status: mini CPU released; selected 3 × 10,000-update cohort requires current-source
-calibration and supervised launch. Historical laptop failures remain charged.
-No sustained launch, baseline promotion or daily-test validation has occurred.
+Status: the selected 3 × 10,000-update mini cohort launched on 2026-10-07 after
+current-source calibration and admission. Historical failures remain charged.
+No baseline promotion or daily-test validation has occurred.
 
 ## Current mini execution direction (2026-10-07)
 
@@ -157,8 +157,72 @@ inside the unchanged 86400-second final/report allocation. Failed refreshes rema
 visible and never restart training. Seed and paired-deal gain intervals are saved
 separately; the deal intervals condition on the fixed trained seeds.
 
-Selected-source mini prefix checks, calibration, storage admission and actual
-launch remain required. Software checks do not establish these execution results.
+### Mini execution receipt (2026-10-07)
+
+The [calibration manifest](data/current-baseline-mini-calibration.json) and
+[byte-preserving archive](data/current-baseline-mini-calibration.zip) retain 73 JSON
+receipts: source comparison, all calibration runs/cohorts, failed launch intent,
+allocation and frozen plan. Full native checkpoints/databases remain on mini at
+`/Users/jack/src/etude/.runs/etu118-mini-20261007-1`, with a local retained copy under
+this Task's `.runs/etu118-mini-20261007-1/retained`. Do not delete either source or
+evidence directory while training or archival remains open.
+
+Frozen execution source is `ba0ae3e9ef9b99df7f84d4e0fa43cc640d5341f6`, with the
+exact native library and a separate locked Python 3.12 environment. The four-update
+historical/current prefix used two linked two-update stages, the same 256-row
+learning recipe and one runtime. Batches, learner/Adam states, Torch/minibatch RNGs
+and diagnostics matched exactly at every update, including continuation and extra
+monitoring exports. World/setup identities agree; engine/source hashes differ.
+This is a bounded equivalence check, not full 1240-update reproduction.
+
+All three timing seeds completed 32 updates. Six initial/endpoint cohorts completed
+24 games with exact replay. The attempt used 435.142165 elapsed seconds and
+521.313901 additive process seconds, including 102.759537 evaluator seconds.
+The admitted conservative rate is 8.455201 seconds/update: 70.46 projected training
+hours across 30,000 updates, not the earlier roughly 31-hour planning estimate.
+Storage projection is 6,198,501,227 bytes against 59,870,167,040 free, retaining the
+4 GiB reserve. This is short-run extrapolation, not a promise of long-run speed.
+
+The partial local bundle failed on the repository's `CLAUDE.md` symlink and remains
+retained; internal file links are now materialized. A first mini calibration
+coordinator failed before any learner because its supplied PATH omitted `/usr/sbin`
+and boot admission could not find `sysctl`. Its evidence remains in `calibration/`,
+charged 128.339317 seconds conservatively. Correcting only the launch environment
+created `calibration-2/`; no learning seed was restarted. Precalibration preparation
+was 615.473018 seconds versus its planned 600-second overhead subreserve. This
+operational overrun and the separate PATH failure are disclosed and charged;
+actual new preparation remained within the 7200-second amendment, without a new
+allocation. All earlier laptop failures remain charged too.
+
+Preparation totals 4355.137744 seconds, including a conservative 60-second
+admission/tracker allowance, leaving 600444.862256 active seconds of the original
+604800. Plan SHA-256 is
+`46aabdb0ca584d62cc2264fde9766914750d3befd696970d0428678bae034bb7`.
+It freezes the exact recipe, seeds 11851–11853, monitoring/final deal identities,
+linked milestones, analysis, source/runtime, time and storage bounds.
+
+The launch SSH connection returned after starting supervisor PID 86655 at
+2026-10-07 17:35:22 UTC. Its independent coordinator is PID 86658. The supervisor
+has refreshed the create-once notebook into `science/comparison.html`; refresh
+attempts/costs are in `science.supervisor.json`. The first 100-game greedy
+initialization cohort completed with exact replay while learning continued;
+random monitoring is separate. The [launch verification receipt](data/current-baseline-mini-launch.json) records
+seed 11851 at 128 committed updates, 32,768 learner transitions and 7,634 optimizer
+sample exposures after disconnect. `load_update` verified the format-3 recovery
+artifact at iteration 128 against canonical VerifyStore. Both 100-game initialization
+cohorts completed with exact replay. A consistent SQLite backup, run export and
+cohort receipts are retained in `launch-proof/`. Seeds 11852/11853 remain scheduled.
+These counts prove real execution, not improvement.
+
+S3 publication remains unavailable: the default AWS chain has no credentials and
+configured `softmax` credentials fail token retrieval. No login or credentials
+were changed. W&B accepted all 128 retained diagnostic rows in
+[the seed-11851 projection](https://wandb.ai/loopflow-studio/etude/runs/training-ed8e425c3663727830077360).
+That is a verified backfill; it is not an unattended publisher for later seeds.
+The detached supervisor continues notebook/HTML refreshes. Sustained
+improvement, final scoring, three demo-loaded executions, model archival and
+independent daily-test validation remain unfinished; this launch does not promote
+a baseline or complete ETU-118.
 
 ## Weekly-first scope revision (2026-10-06)
 

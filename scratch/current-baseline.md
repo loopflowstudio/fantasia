@@ -105,63 +105,69 @@ screen. Every seed/checkpoint, failure, paired change, seed/deal uncertainty,
 plateau/regression, transitions, exposures, losses, entropy and phase cost remains
 visible. No favorable-checkpoint selection or automatic statistical plateau stop.
 
-## What exists and remaining implementation
+## Running execution and remaining acceptance
 
-Delete — do not maintain: the old automatic horizon selection and depth1
-construction have been removed. Frozen laptop evidence remains unchanged.
+Implementation is committed at `ba0ae3e9`, published in PR251 and frozen on mini.
+The same source/native and locked environment passed a four-update historical/current
+comparison: batches, learner, Adam, Torch/minibatch RNG and diagnostics agreed across
+a linked boundary. This is bounded prefix evidence, not full 1240-update reproduction.
+The three 32-update calibration seeds completed, with six exact-replayed four-game
+cohorts. Calibration charged 521.313901 additive seconds. The source-symlink packaging
+failure and pre-learner PATH failure are retained; no training seed was retried.
+Precalibration overhead exceeded its 600-second subreserve, but actual preparation
+remained inside the unchanged 7200-second amendment and original week.
 
-Experiment supplies recipe resolution; TrainingRun/VerifyStore and the shared arena
-own execution and evidence. Initialization and greedy monitoring, endpoint random
-scoring, editable notebook → HTML and complete-state recovery exist. Recovery
-preserves learner/Adam/EMA/RNG, counters and current native games; format 3 binds
-diagnostic prefixes to canonical VerifyStore rows instead of copying growing
-histories. Missing/changed rows reject recovery. Committed work is immutable;
-post-snapshot work can repeat with its costs retained. Historical snapshots and
-exports remain unchanged. Physical lid closure is untested. Known sleep/pause is
-separate; uncertain restart/reboot gaps remain conservatively charged.
+Total preparation is 4355.1377444409545 seconds, leaving 600444.8622555591 active
+seconds at launch. Frozen plan `46aabdb0ca584d62cc2264fde9766914750d3befd696970d0428678bae034bb7`
+admits 10000 updates per seed at 8.455201 conservative seconds/update and projects
+6,198,501,227 retained bytes against 59,870,167,040 free. The 70.46-hour conservative
+training projection supersedes the rough 31-hour estimate. Full monitoring/final
+reserves remain within the original week; 3600 seconds of the final/report reserve
+belongs to periodic notebook refreshes.
 
-The S3 implementation is present at `manabot/training/artifacts.py`; the existing
-[storage contract](../docs/training-monitoring.md#s3-model-and-artifact-storage)
-owns private model publication and verified readback. W&B owns metric projections,
-not model bytes. Credentials on mini and publication remain unverified; a located
-contract is not a completed archive. Three ordinary demo-loaded executions and
-complete games with both deck assignments remain acceptance work beyond arena.
+Remote root: `/Users/jack/src/etude/.runs/etu118-mini-20261007-1` on
+`jack@100.96.227.95`. `source/` owns immutable execution bytes and `.venv`;
+`plan.json` owns the frozen cohort; `science/experiment.sqlite` owns execution.
+Use this source/environment for all later reads, pause or explicit recovery.
+Do not rebuild or edit it, start another cohort, delete leases or reset charges.
+The local retained copy is `.runs/etu118-mini-20261007-1/retained` in this Task.
+The [protocol](../experiments/current-baseline.md) owns full receipts and limits.
 
-Implementation and remaining launch work:
+Supervisor 86655 and coordinator 86658 run independently of SSH. After disconnect,
+seed11851 committed 128 updates / 32768 transitions / 7634 optimizer exposures;
+`load_update` verified snapshot iteration128 against VerifyStore. Both initial
+100-game greedy/random cohorts completed with exact replay. Seed11852/11853 remain
+scheduled. `science/comparison.ipynb` is editable; supervision refreshes read-only
+`science/comparison.html` every five minutes within a retained reporting cap.
+`science.supervisor.json` records refresh costs/failures. Flat curves prompt review,
+not automatic failure. Safe pause/recovery preserves the existing complete state.
 
-1. The declaration now binds the retained ETU-105 recipe, linked stage boundaries,
-   fixed 10000 endpoint, monitoring exports at 400/800, random diagnostic and 24
-   final cells including 1240. Calibration reserves 7200 seconds with 1800-second
-   learner caps. Absolute Ataraxos iteration schedules admit recovery even with
-   the historical serialized elapsed-clock setting; other elapsed schedules do not.
-   Shared Experiment supplies multiple protocols with disjoint deals, and reporting
-   labels opponent curves. Detached supervision reserves 3600 seconds within the
-   existing final/report reserve for periodic notebook execution. Bounded prefix
-   comparison against original source remains required before launch.
-2. Pin and stage the reviewed source/environment under an isolated mini evidence
-   directory without modifying ETU-105 source or training. The bundle helper
-   currently builds only a local artifact under this Task's `.runs`; remote staging,
-   manifest/native verification and disconnect-surviving supervision need a bounded
-   proof. Existing same-host recovery remains the recovery owner.
-3. Measure mini runtime/storage and complete all three calibration seeds under the
-   amended cap. Freeze the admitted horizon, full protocol and original-week cost
-   ledger. No complete selected-recipe calibration, execution bundle or sustained
-   plan exists yet. A failed bound retains evidence; it does not authorize silently
-   shortening or extending the 10000-update cohort.
-4. Launch the one admitted mini cohort; verify committed learner progress and a live
-   completed initialization cohort after disconnect. Keep the editable notebook and
-   read-only dashboard current during training, with W&B projection and later S3
-   archival through existing contracts. Preserve restart receipts and all failures.
-5. Complete final scoring, repeated demo admission/play and publication; promote
-   only on the unchanged improvement criteria. Daily-test derivation and independent
-   validation follow sustained evidence and remain unimplemented.
+W&B accepted 128 diagnostic rows at
+https://wandb.ai/loopflow-studio/etude/runs/training-ed8e425c3663727830077360 .
+This verified backfill is not automatic publication for later seeds. S3 remains
+credential-blocked: default chain unavailable; configured softmax token retrieval
+fails. No auth repair or artifact publication occurred. Private model/recovery
+bytes remain on mini and must be retained through archival.
 
-Manual pause commits a learner boundary and drains the current bounded evaluation.
-A flat curve prompts review; operational failure cannot silently restart a seed.
-No further product decision is missing for the authorized mini preparation/launch.
+Remaining work:
 
-Check: `uv run python` retained-recipe audit — 3 actor-critic recipes and 3720 rate/iteration rows match current formulas, linked 620+620 stages and 256 rows/update verified; `git diff --check` passed. Prior sync feedback retains 25 focused checks at `db2182d8`, including CUDA recovery rejection; no training ran in this reconciliation.
+1. Keep the admitted single trajectory and live evaluator supervised; inspect
+   failures before explicit recovery. Preserve the pinned source, all attempts,
+   phase costs, monitoring and untouched final cohorts. Refresh/backfill W&B from
+   retained evidence; notebook refresh already runs independently.
+2. Finish all three 10000-update seeds and the 24 final comparison cells. Report
+   every seed, paired changes and separate seed/deal uncertainty; no favorable
+   checkpoint selection, baseline promotion or strength claim before the criteria.
+3. Admit each completed checkpoint through the ordinary demo and complete games
+   with both deck assignments. Archive exact models/evidence through the S3 contract
+   once credentials are available; software delivery cannot complete ETU-118.
+4. Derive and independently validate a daily test only after sustained evidence.
+   This remains unimplemented; no positive long-run result is presumed.
 
-Implementation check: affected allocation, Experiment/queue/report and real recovery
-checks passed (13 + 10 + 9, with 6 focused post-edit checks); lint/diff checks passed.
-Mini prefix and calibration remain the execution gates, not completed claims.
+Delete — do not maintain: obsolete depth1 construction and automatic horizon
+selection were removed. All historical laptop evidence remains unchanged.
+
+Check: focused allocation, Experiment/queue/report, live dual-opponent export and
+real recovery checks passed; mini historical/current prefix passed, all 96 calibration
+updates/24 games completed, and detached science committed 128 updates/200 initial
+games with exact replay. Lint/diff checks passed; full CI remains its own matrix.

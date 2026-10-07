@@ -6,7 +6,7 @@
 - The calibration amendment reserves 7200 seconds inside that remaining week,
   including three 1800-second learner caps, 1200 evaluator seconds and 600 seconds
   of coordination/report overhead. It addresses the timeout for the newly selected depth2
-  recipe; the approved sustained horizon is 10000 updates, implemented; mini measurement pending. Live random monitoring uses its own
+  recipe; the approved sustained horizon is 10000 updates, implemented and measured; the fixed mini cohort is running. Live random monitoring uses its own
   25-deal family at initialization and fixed stage milestones, not hourly exports.
 - Active runtime will mean occupied elapsed time while the machine is awake, not
   process CPU time. Evaluator overlap must also be retained as additive process
@@ -24,3 +24,11 @@
 - Admission retains a 4 GiB disk reserve and projects recovery/evaluation storage
   from calibration. Insufficient capacity rejects a horizon without deleting
   another campaign's evidence.
+
+- Mini preparation exceeded the 600-second overhead subreserve before a retained
+  pre-learner PATH failure. Every charge is included in the 4355.137744-second total;
+  actual new preparation stayed within the 7200-second amendment. No scientific seed
+  was retried and no additional week was allocated.
+- The default AWS chain and configured softmax SSO credentials are unavailable on
+  mini. Preserve model/evidence bytes; archival requires usable credentials. W&B
+  backfill succeeded through update128; later backfill is not automatic.
