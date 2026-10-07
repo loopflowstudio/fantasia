@@ -16,10 +16,12 @@ uv run manabot belief-learn-demo  # held-out frozen-population belief proof
 The default `local` preset is the certified laptop path: it trains a small
 manabot on CPU in under a minute, needs no W&B account or CUDA, and saves
 checkpoints to `.runs/local/step_N.pt`. The `simple` and `attention` presets
-are real training runs: they expect a CUDA machine (in practice Ubuntu on
-AWS — see [ops/](../ops/README.md)) and track to the `manabot` Weights &
-Biases project. Simulation pulls trained models from W&B and runs locally on
-CPU at small scales.
+are real training runs: they expect a CUDA machine (see
+[remote training](../docs/remote-training.md)) and track to the `manabot` Weights &
+Biases project. New checkpoints stay local until explicitly published to
+[S3 artifact storage](../docs/training-monitoring.md#s3-model-and-artifact-storage).
+W&B tracks metrics and S3 references; the historical W&B model reader remains
+available for previously published checkpoints.
 
 Override any hyperparameter with `--set dotted.path=value`; presets live in
 `manabot/config/presets.py`.
@@ -35,6 +37,12 @@ villain_deck)` so both main decks and sideboards come from managym's compiled
 setup. Custom `hero_sideboard` / `villain_sideboard` maps default to empty and
 require positive integer counts. `Match.swapped()` moves both lists together;
 `Env.reset(options={"match": match})` also replaces the setup used by auto-reset.
+
+
+Submit bounded cloud work and reconnect after the laptop disconnects with
+[`manabot deploy submit/status/fetch`](../docs/remote-jobs.md). Training, checkpoint
+evaluation, verified S3 snapshots and shutdown belong to the remote job; reconnecting
+does not restart the learner or promise CUDA process recovery.
 
 ## World identity
 

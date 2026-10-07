@@ -43,8 +43,19 @@ from manabot.training.models import (
     TrainingRun,
 )
 
+EvaluationPurpose = Literal[
+    "monitoring-not-scientific-evaluation", "frozen-study-evaluation"
+]
+
 
 class MonitorProtocol(Strict):
+    purpose: EvaluationPurpose = Field(
+        default="monitoring-not-scientific-evaluation",
+        exclude_if=lambda v: v == "monitoring-not-scientific-evaluation",
+    )
+    study_protocol_sha256: str | None = Field(
+        default=None, pattern=r"^[a-f0-9]{64}$", exclude_if=lambda v: v is None
+    )
     # Reserved monitoring namespace; callers must also exclude these from any
     # scientific cohort they construct. These deals are repeatedly inspected.
     deal_seeds: tuple[int, ...] = tuple(range(1_910_101_000, 1_910_101_025))
@@ -63,6 +74,12 @@ class MonitorProtocol(Strict):
 
     @model_validator(mode="after")
     def unique_deals(self) -> MonitorProtocol:
+        if (self.purpose == "frozen-study-evaluation") != (
+            self.study_protocol_sha256 is not None
+        ):
+            raise ValueError(
+                "held-out evaluation requires a frozen study protocol binding"
+            )
         if not self.deal_seeds or len(set(self.deal_seeds)) != len(self.deal_seeds):
             raise ValueError("monitoring deals must be nonempty and unique")
         return self
@@ -147,9 +164,9 @@ class RateInterval(Strict):
 
 class MonitorResult(Strict):
     schema_version: Literal[1] = 1
-    purpose: Literal[
-        "monitoring-not-scientific-evaluation", "predeclared-comparison-not-admission"
-    ] = "monitoring-not-scientific-evaluation"
+    purpose: EvaluationPurpose | Literal["predeclared-comparison-not-admission"] = (
+        "monitoring-not-scientific-evaluation"
+    )
     run_id: str
     regime_digest: str
     training_seed: int
@@ -188,6 +205,14 @@ class MonitorResult(Strict):
     )
     error: str | None = None
     evaluation_identities: dict[str, JsonValue] = {}
+
+    @model_validator(mode="after")
+    def purpose_matches_protocol(self) -> "MonitorResult":
+        if self.purpose != self.protocol.purpose:
+            raise ValueError(
+                "evaluation result purpose differs from its frozen protocol"
+            )
+        return self
 
 
 def _summarize(result: MonitorResult) -> None:
@@ -329,7 +354,7 @@ def _manifest(
     return MonitorResult(
         purpose="predeclared-comparison-not-admission"
         if protocol.comparison_sha256
-        else "monitoring-not-scientific-evaluation",
+        else protocol.purpose,
         run_id=run.id,
         regime_digest=run.regime_digest,
         training_seed=run.seed,
