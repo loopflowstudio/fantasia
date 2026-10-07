@@ -72,6 +72,17 @@ class MonitorProtocol(Strict):
         default=None, pattern=r"^[0-9a-f]{64}$", exclude_if=lambda value: value is None
     )
 
+    @property
+    def result_purpose(
+        self,
+    ) -> EvaluationPurpose | Literal["predeclared-comparison-not-admission"]:
+        """Preserve the external-comparison label without changing frozen bytes."""
+        return (
+            "predeclared-comparison-not-admission"
+            if self.comparison_sha256
+            else self.purpose
+        )
+
     @model_validator(mode="after")
     def unique_deals(self) -> MonitorProtocol:
         if (self.purpose == "frozen-study-evaluation") != (
@@ -208,7 +219,7 @@ class MonitorResult(Strict):
 
     @model_validator(mode="after")
     def purpose_matches_protocol(self) -> "MonitorResult":
-        if self.purpose != self.protocol.purpose:
+        if self.purpose != self.protocol.result_purpose:
             raise ValueError(
                 "evaluation result purpose differs from its frozen protocol"
             )
@@ -352,9 +363,7 @@ def _manifest(
         evaluation_compute_envelope_id="policy-cpu-one-thread-one-pass",
     )
     return MonitorResult(
-        purpose="predeclared-comparison-not-admission"
-        if protocol.comparison_sha256
-        else protocol.purpose,
+        purpose=protocol.result_purpose,
         run_id=run.id,
         regime_digest=run.regime_digest,
         training_seed=run.seed,

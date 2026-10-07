@@ -215,6 +215,37 @@ def test_default_monitoring_cohort() -> None:
         monitor.MonitorProtocol(deal_seeds=(1, 1))
 
 
+@pytest.mark.parametrize("binding", ["monitoring", "study", "comparison"])
+def test_result_purpose_preserves_protocol_binding(
+    binding: Literal["monitoring", "study", "comparison"],
+) -> None:
+    protocol = (
+        monitor.MonitorProtocol(
+            purpose="frozen-study-evaluation", study_protocol_sha256="a" * 64
+        )
+        if binding == "study"
+        else monitor.MonitorProtocol(
+            comparison_sha256="a" * 64 if binding == "comparison" else None
+        )
+    )
+    expected = {
+        "monitoring": "monitoring-not-scientific-evaluation",
+        "study": "frozen-study-evaluation",
+        "comparison": "predeclared-comparison-not-admission",
+    }[binding]
+    data = _manifest().model_dump(mode="json")
+    data.update(protocol=protocol.model_dump(mode="json"), purpose=expected)
+    result = monitor.MonitorResult.model_validate(data)
+    assert monitor.MonitorResult.model_validate_json(result.model_dump_json()) == result
+    data["purpose"] = (
+        "frozen-study-evaluation"
+        if binding == "monitoring"
+        else "monitoring-not-scientific-evaluation"
+    )
+    with pytest.raises(ValueError, match="purpose differs"):
+        monitor.MonitorResult.model_validate(data)
+
+
 @pytest.mark.parametrize(
     "max_commands,opponent",
     [(1, "scripted_greedy"), (10000, "scripted_greedy"), (10000, "random")],

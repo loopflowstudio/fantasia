@@ -509,8 +509,7 @@ Known-policy Bayes remains diagnostic.
 
 ### What the branch proves and what remains
 
-The 2026-09-24 belief/state/runtime/learning and BC suite passed 27 checks;
-full receipt and historical implementation detail remains at `76afdb68`.
+The 2026-09-24 suite passed 27 checks; receipts remain at `76afdb68`.
 Those bounded proofs do not establish strength or general calibration. Reference
 receipt ranges count opaque events; learned ranges count typed commitments.
 
