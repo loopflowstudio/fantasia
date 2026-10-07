@@ -437,7 +437,8 @@ promotion model is selected from hardware throughput.
 
 ### Four-hour preparation and admission — 2026-10-07
 
-`cuda_capacity --prepare-four-hour` exports ordinary DeploymentPlans from the
+At frozen source `68e0fbe9265a689891615274123587d653b5e66b`,
+`cuda_capacity --prepare-four-hour` exported ordinary DeploymentPlans from the
 existing Experiment baseline and retained calibration input. It prepares L4,
 512 transitions per update over 64 streams, width64/depth2 versus
 width384/depth8/feedforward1536, scalar value-token, no history. All learning,

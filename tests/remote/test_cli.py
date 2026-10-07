@@ -8,7 +8,6 @@ from typer.testing import CliRunner
 
 from manabot.cli import app
 from manabot.remote import cli
-from manabot.remote.jobs import DEFAULT_JOBS
 from manabot.remote.plan import DeploymentPlan, HardwareMix, compile_plan
 from tests.remote.test_compile import ROOT, SOURCE
 
@@ -64,13 +63,9 @@ def test_submit_uses_same_plan_and_job(
         job_id: str,
         monitoring: Path | None,
         checkpoint_seconds: float,
-        destination: str,
+        destination: str | None,
     ) -> None:
-        assert (
-            monitoring is None
-            and checkpoint_seconds == 60
-            and destination == DEFAULT_JOBS
-        )
+        assert monitoring is None and checkpoint_seconds == 60 and destination is None
         called.append((value, job_id))
 
     monkeypatch.setattr(cli, "_submit", submit)

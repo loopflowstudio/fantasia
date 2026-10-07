@@ -17,32 +17,51 @@ from .job_client import (
     submit_job,
 )
 from .jobs import DEFAULT_JOBS
-from .plan import DeploymentPlan, HardwareMix, compile_plan
+from .plan import DeploymentPlan, HardwareMix, LaunchSpec, compile_plan
 from .provider import RunPod
 
 app = typer.Typer(help="Submit bounded training and reconnect to durable jobs")
 
 
-def _compile(regime: Path, mix: Path, seed: int) -> DeploymentPlan:
+def _compile(
+    regime: Path, mix: Path | None, seed: int, launch: Path | None = None
+) -> DeploymentPlan:
+    if (mix is None) == (launch is None):
+        raise typer.BadParameter("provide exactly one of --launch or historical --mix")
+    if launch is not None:
+        placement: HardwareMix | LaunchSpec = LaunchSpec.model_validate_json(
+            launch.read_text()
+        )
+    else:
+        assert mix is not None
+        placement = HardwareMix.model_validate_json(mix.read_text())
     return compile_plan(
         regime.read_text(),
-        HardwareMix.model_validate_json(mix.read_text()),
+        placement,
         current_source(Path.cwd()),
         seed,
     )
 
 
 def _resolve_plan(
-    plan: Path | None, regime: Path | None, mix: Path | None, seed: int
+    plan: Path | None,
+    regime: Path | None,
+    mix: Path | None,
+    seed: int,
+    launch: Path | None = None,
 ) -> DeploymentPlan:
     if plan is not None:
-        if regime is not None or mix is not None:
-            raise typer.BadParameter("use --plan or --regime and --mix")
+        if regime is not None or mix is not None or launch is not None:
+            raise typer.BadParameter(
+                "use --plan or --regime and --launch (historical --mix)"
+            )
         value = DeploymentPlan.model_validate_json(plan.read_text())
-    elif regime is not None and mix is not None:
-        value = _compile(regime, mix, seed)
+    elif regime is not None and (mix is not None or launch is not None):
+        value = _compile(regime, mix, seed, launch)
     else:
-        raise typer.BadParameter("requires --plan or --regime and --mix")
+        raise typer.BadParameter(
+            "requires --plan or --regime and --launch (historical --mix)"
+        )
     return value
 
 
@@ -52,22 +71,23 @@ def deploy_command(
     plan: Path | None = None,
     regime: Path | None = None,
     mix: Path | None = None,
+    launch: Path | None = None,
     seed: int = 197,
     job_id: str | None = None,
     monitoring: Path | None = None,
     checkpoint_seconds: float = 60,
-    destination: str = DEFAULT_JOBS,
+    destination: str | None = None,
 ) -> None:
     """Submit directly, or select a job lifecycle command below."""
     submitting = any(
-        value is not None for value in (plan, regime, mix, job_id, monitoring)
+        value is not None for value in (plan, regime, mix, launch, job_id, monitoring)
     )
     if ctx.invoked_subcommand is not None:
         if (
             submitting
             or seed != 197
             or checkpoint_seconds != 60
-            or destination != DEFAULT_JOBS
+            or destination is not None
         ):
             raise typer.BadParameter("put options after the selected lifecycle command")
         return
@@ -77,7 +97,7 @@ def deploy_command(
     if job_id is None:
         raise typer.BadParameter("submission requires --job-id for safe retries")
     _submit(
-        _resolve_plan(plan, regime, mix, seed),
+        _resolve_plan(plan, regime, mix, seed, launch),
         job_id,
         monitoring,
         checkpoint_seconds,
@@ -88,12 +108,13 @@ def deploy_command(
 @app.command("compile")
 def compile_command(
     regime: Path = typer.Option(...),
-    mix: Path = typer.Option(...),
     out: Path = typer.Option(...),
+    mix: Path | None = None,
+    launch: Path | None = None,
     seed: int = 197,
 ) -> None:
     """Resolve placement and projected cost without contacting RunPod."""
-    plan = _compile(regime, mix, seed)
+    plan = _compile(regime, mix, seed, launch)
     if out.exists():
         raise typer.BadParameter("plan output already exists")
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -109,12 +130,20 @@ def run_command(
     plan: Path | None = None,
     regime: Path | None = None,
     mix: Path | None = None,
+    launch: Path | None = None,
     seed: int = 197,
 ) -> None:
     """Prove the guardian, deploy training, retrieve evidence and confirm deletion."""
-    value = _resolve_plan(plan, regime, mix, seed)
+    value = _resolve_plan(plan, regime, mix, seed, launch)
     typer.echo(value.model_dump_json(indent=2))
-    result = deploy(value, out, Path.cwd())
+    result = deploy(
+        value,
+        out,
+        Path.cwd(),
+        destination=value.launch.access.destination
+        if value.launch is not None
+        else DEFAULT_JOBS,
+    )
     typer.echo(
         f"Evidence: {out / 'evidence'}; deletion confirmed; estimated dollars: {result.estimated_dollars}"
     )
@@ -154,7 +183,7 @@ def submit_command(
     ),
     monitoring: Path | None = None,
     checkpoint_seconds: float = 60,
-    destination: str = DEFAULT_JOBS,
+    destination: str | None = None,
 ) -> None:
     """Submit a job; returns only after remote acceptance (or an explicit uncertainty)."""
     _submit(
@@ -171,8 +200,12 @@ def _submit(
     job_id: str,
     monitoring: Path | None,
     checkpoint_seconds: float,
-    destination: str,
+    destination: str | None,
 ) -> None:
+    if destination is None:
+        destination = (
+            plan.launch.access.destination if plan.launch is not None else DEFAULT_JOBS
+        )
     spec = prepare_job(
         plan,
         job_id,

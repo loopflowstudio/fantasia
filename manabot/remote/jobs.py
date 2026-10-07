@@ -14,12 +14,19 @@ from pydantic import Field, model_validator
 from manabot.infra.artifacts import StoredArtifact, split_s3_uri
 from manabot.training.checkpoint_queue import MonitoringBudget
 
-from .plan import MAX_JOB_SECONDS, DeploymentPlan, Frozen, digest
+from .plan import MAX_JOB_SECONDS, Allocation, DeploymentPlan, Frozen, digest
 from .provider import Pod
 
 DEFAULT_JOBS = "s3://etudefantasia/manabot/jobs"
 JobPhase = Literal[
-    "accepted", "running", "finalizing", "completed", "failed", "cancelled", "deadline"
+    "accepted",
+    "running",
+    "finalizing",
+    "completed",
+    "failed",
+    "cancelled",
+    "deadline",
+    "paused",
 ]
 
 
@@ -40,12 +47,21 @@ class RemoteJobSpec(Frozen):
         bucket, prefix = split_s3_uri(self.destination)
         if not prefix or any(c in prefix for c in "*?[]") or ".." in prefix.split("/"):
             raise ValueError("job destination requires a literal private S3 prefix")
-        if self.deadline != self.created_at + self.plan.mix.wall_seconds:
+        expected_deadline = (
+            self.allocation.deadline
+            if self.allocation is not None
+            else self.created_at + self.plan.mix.wall_seconds
+        )
+        if self.deadline != expected_deadline:
             raise ValueError("job deadline must bind the original rental allowance")
         if self.plan.mix.wall_seconds > MAX_JOB_SECONDS:
             raise ValueError(
                 "remote job credential lifetime is bounded to twelve hours"
             )
+        if self.plan.launch is not None:
+            self.plan.launch.admit(self.created_at)
+            if self.destination != self.plan.launch.access.destination:
+                raise ValueError("job destination differs from LaunchSpec access scope")
         if self.monitoring is not None:
             if self.monitoring.require_initial_admission and (
                 len(self.plan.regime.stages) != 1
@@ -68,6 +84,12 @@ class RemoteJobSpec(Frozen):
         return self
 
     @property
+    def allocation(self) -> Allocation | None:
+        if self.plan.launch is None:
+            return None
+        return self.plan.launch.admit(self.created_at)
+
+    @property
     def identity(self) -> str:
         return digest(self.model_dump_json().encode())
 
@@ -77,6 +99,8 @@ class RemoteJobSpec(Frozen):
 
     @property
     def work_deadline(self) -> float:
+        if self.allocation is not None:
+            return self.allocation.checkpoint_deadline
         return (
             self.deadline
             - self.plan.mix.transfer_seconds
@@ -134,7 +158,7 @@ class RemoteJobRecord(Frozen):
 
     @property
     def terminal(self) -> bool:
-        return self.phase in {"completed", "failed", "cancelled", "deadline"}
+        return self.phase in {"completed", "failed", "cancelled", "deadline", "paused"}
 
 
 class Deletion(Frozen):

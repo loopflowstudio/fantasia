@@ -33,7 +33,7 @@ from .transport import job_startup, startup
 if TYPE_CHECKING:
     from manabot.training.experiments import ResolvedCase
 
-    from .plan import HardwareMix, Source
+    from .plan import HardwareMix, LaunchSpec, Source
 
 
 def _provision(
@@ -148,12 +148,16 @@ def prepare_job(
     store: JobStore | None = None,
 ) -> RemoteJobSpec:
     """Persist intent before renting; repeated IDs retain the first absolute deadline."""
+    if plan.launch is not None:
+        plan.launch.admit_execution()
     now = time.time()
     spec = RemoteJobSpec(
         job_id=job_id,
         plan=plan,
         created_at=now,
-        deadline=now + plan.mix.wall_seconds,
+        deadline=plan.launch.admit(now).deadline
+        if plan.launch is not None
+        else now + plan.mix.wall_seconds,
         destination=destination,
         monitoring=monitoring,
         checkpoint_seconds=checkpoint_seconds,
@@ -190,6 +194,8 @@ def submit_job(
     The worker starts from the provider's startup command, not a connected SSH
     process. The separate startup guardian bounds billing before any bootstrap.
     """
+    if spec.plan.launch is not None:
+        spec.plan.launch.admit_execution()
     store = store or S3JobStore(spec.prefix)
     spec = RemoteJobSpec.model_validate_json(spec.model_dump_json())
     intent = store.read("spec.json")
@@ -201,7 +207,10 @@ def submit_job(
     provider = provider or RunPod()
     if store.read("runtime/record.json") is not None:
         return job_status(spec, store=store, provider=provider)
-    if time.time() >= spec.work_deadline or cancellation_requested(store) is not None:
+    collection_cutoff = (
+        spec.allocation.pause_at if spec.allocation is not None else spec.work_deadline
+    )
+    if time.time() >= collection_cutoff or cancellation_requested(store) is not None:
         raise ValueError(
             "job deadline expired or cancellation requested; inspect/cancel this ID"
         )
@@ -397,7 +406,7 @@ def fetch_job(spec: RemoteJobSpec, output: Path) -> Path:
 
 def prepare_experiment_job(
     case: "ResolvedCase",
-    mix: "HardwareMix",
+    mix: "HardwareMix | LaunchSpec",
     source: "Source",
     seed: int,
     job_id: str,

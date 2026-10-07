@@ -76,6 +76,10 @@ def run_experiment(
     is granted by resume. No tracker is required and report refresh preserves edits.
     """
     entered, cpu_entered = time.monotonic(), time.process_time()
+    if experiment.launches:
+        raise ValueError(
+            "LaunchSpec runs use Experiment.prepare_launch and deploy submit"
+        )
     schedule = experiment.schedule
     if schedule is None:
         raise ValueError("Experiment execution requires an explicit schedule")

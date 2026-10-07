@@ -112,6 +112,9 @@ def supervise(
     queue: CheckpointQueue | None = None
     recipe = root.parent / "regime.json"
     recipe.write_text(spec.plan.regime.model_dump_json(indent=2))
+    allocation_path = root.parent / "allocation.json"
+    if spec.allocation is not None:
+        allocation_path.write_text(spec.allocation.model_dump_json())
     run_path = root / "run/run.json"
     admission = root / "initial-evaluation-admitted"
     require_initial = bool(
@@ -144,6 +147,11 @@ def supervise(
                         str(root / "run"),
                         "--checkpoint-seconds",
                         str(spec.checkpoint_seconds),
+                        *(
+                            ["--allocation", str(allocation_path)]
+                            if spec.allocation is not None
+                            else []
+                        ),
                         *(
                             ["--initial-admission", str(admission)]
                             if require_initial
@@ -261,7 +269,9 @@ def supervise(
                                     "updates": final_run.updates_through(),
                                 }
                             )
-                        if final_run is None or final_run.status != "completed":
+                        if final_run is not None and final_run.status == "paused":
+                            record = record.model_copy(update={"phase": "paused"})
+                        elif final_run is None or final_run.status != "completed":
                             record = record.model_copy(
                                 update={
                                     "phase": "failed",

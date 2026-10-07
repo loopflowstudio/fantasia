@@ -10,8 +10,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from manabot.infra.artifacts import split_s3_uri
 from manabot.training.models import TrainingRegime, TrainSelfPlay
-from manabot.training.preparation import ActiveTrainingBudget
 
 MAX_JOB_SECONDS = 12 * 3600
 
@@ -20,7 +20,9 @@ class Frozen(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
 
-class HardwareMix(Frozen):
+class Machine(Frozen):
+    """Provider shape and price ceilings, without an authority duration."""
+
     schema_version: Literal[1] = 1
     provider: Literal["runpod"] = "runpod"
     role: Literal["training"] = "training"
@@ -35,8 +37,13 @@ class HardwareMix(Frozen):
     image: str = Field(pattern=r"^[a-zA-Z0-9./_-]+@sha256:[a-f0-9]{64}$")
     hourly_ceiling: float = Field(gt=0)
     storage_hourly_allowance: float = Field(default=0.02, ge=0)
-    dollar_cap: float = Field(gt=0, lt=5)
-    wall_seconds: int = Field(ge=60)
+
+
+class HardwareMix(Machine):
+    """Frozen v1 deployment input; new declarations use LaunchSpec."""
+
+    dollar_cap: float = Field(gt=0)
+    wall_seconds: int | float = Field(ge=60)
     setup_seconds: int = Field(default=300, ge=1)
     transfer_seconds: int = Field(default=300, ge=1)
     cleanup_seconds: int = Field(default=120, ge=30)
@@ -61,6 +68,111 @@ class HardwareMix(Frozen):
         return self
 
 
+class AccessScope(Frozen):
+    """Artifact namespace only. Issuer and provider credentials stay on the launcher."""
+
+    destination: str = "s3://etudefantasia/manabot/jobs"
+
+    @model_validator(mode="after")
+    def literal_prefix(self) -> "AccessScope":
+        _, prefix = split_s3_uri(self.destination)
+        if not prefix or any(c in prefix for c in "*?[]") or ".." in prefix.split("/"):
+            raise ValueError("access scope requires a literal private S3 prefix")
+        return self
+
+
+class LaunchSpec(Frozen):
+    """One machine allocation; hours include setup, checkpoint, upload and cleanup.
+
+    Construction is planning, not execution admission. Long allocations cannot
+    execute on the current RunPod adapter without renewal and portable recovery.
+    No throughput estimate or learning target belongs here.
+    """
+
+    machine: Machine
+    lifetime_hours: float = Field(gt=0)
+    spending_limit: float = Field(gt=0)
+    access: AccessScope = AccessScope()
+    setup_seconds: int = Field(default=300, ge=1)
+    checkpoint_seconds: int = Field(default=120, ge=1)
+    upload_seconds: int = Field(default=300, ge=1)
+    cleanup_seconds: int = Field(default=120, ge=30)
+
+    @property
+    def lifetime_seconds(self) -> float:
+        return self.lifetime_hours * 3600
+
+    @property
+    def projected_dollars(self) -> float:
+        return self.mix().projected_dollars
+
+    def mix(self) -> HardwareMix:
+        """Compile the existing placement input; never author a second duration."""
+        return HardwareMix(
+            **self.machine.model_dump(),
+            wall_seconds=self.lifetime_seconds,
+            dollar_cap=self.spending_limit,
+            setup_seconds=self.setup_seconds,
+            transfer_seconds=self.checkpoint_seconds + self.upload_seconds,
+            cleanup_seconds=self.cleanup_seconds,
+        )
+
+    @model_validator(mode="after")
+    def budget(self) -> "LaunchSpec":
+        self.mix()
+        return self
+
+    def admit(self, now: float) -> "Allocation":
+        if self.lifetime_seconds > MAX_JOB_SECONDS - 60:
+            raise ValueError(
+                "RunPod allocation unavailable: renewable worker credentials and "
+                "durable complete-state CUDA recovery across replacement workers "
+                "are not implemented (single STS session limit: twelve hours)"
+            )
+        return Allocation(launch=self, admitted_at=now)
+
+    def admit_execution(self) -> None:
+        """Admit the bounded adapter; long renewal/replacement remains unsupported."""
+        self.admit(0)
+
+
+class Allocation(Frozen):
+    """Absolute authority receipt. Every cutoff is derived from one admission."""
+
+    launch: LaunchSpec
+    admitted_at: float = Field(ge=0)
+
+    @property
+    def deadline(self) -> float:
+        # The guardian uses Unix seconds; round down once for both enforcement owners.
+        return math.floor(self.admitted_at + self.launch.lifetime_seconds)
+
+    @property
+    def pause_at(self) -> float:
+        return (
+            self.deadline
+            - self.launch.checkpoint_seconds
+            - self.launch.upload_seconds
+            - self.launch.cleanup_seconds
+        )
+
+    @property
+    def checkpoint_deadline(self) -> float:
+        return self.deadline - self.launch.upload_seconds - self.launch.cleanup_seconds
+
+    def renewal_cutoff(self, now: float) -> float:
+        if now >= self.deadline:
+            raise ValueError("allocation has expired; renewal forbidden")
+        # This bound is useful to adapters but does not implement a renewer.
+        return self.deadline
+
+    def extend(self, lifetime_hours: float) -> "Allocation":
+        raise ValueError(
+            "RunPod extension unavailable: persisted intent, guardian and issued "
+            "session policies cannot be updated atomically; original deadline remains"
+        )
+
+
 class Source(Frozen):
     commit: str = Field(pattern=r"^[0-9a-f]{40}$")
     tree: str = Field(pattern=r"^[0-9a-f]{40}$")
@@ -68,7 +180,10 @@ class Source(Frozen):
 
 
 class DeploymentPlan(Frozen):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[1, 2] = 1
+    launch: LaunchSpec | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     input_json: str
     input_sha256: str
     regime: TrainingRegime
@@ -81,7 +196,15 @@ class DeploymentPlan(Frozen):
     def consistent(self) -> "DeploymentPlan":
         if digest(self.input_json.encode()) != self.input_sha256:
             raise ValueError("input regime digest differs")
-        expected = resolve(self.input_json, self.mix)
+        if self.schema_version == 1 and self.mix.dollar_cap >= 5:
+            raise ValueError(
+                "frozen v1 deployment requires a dollar cap below five; use LaunchSpec"
+            )
+        if (self.schema_version == 2) != (self.launch is not None):
+            raise ValueError("LaunchSpec requires deployment schema 2")
+        if self.launch is not None and self.mix != self.launch.mix():
+            raise ValueError("placement differs from LaunchSpec")
+        expected = resolve(self.input_json, self.mix, launch=self.launch)
         if (
             expected != self.regime
             or self.projected_dollars != self.mix.projected_dollars
@@ -94,12 +217,26 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def resolve(input_json: str, mix: HardwareMix) -> TrainingRegime:
+def resolve(
+    input_json: str, mix: HardwareMix, *, launch: LaunchSpec | None = None
+) -> TrainingRegime:
     regime = TrainingRegime.model_validate_json(input_json)
     if regime.recovery_max_microsteps is not None:
         raise ValueError("remote recovery is unsupported")
     if regime.agent.compound_decisions or regime.agent.belief_count_buckets:
         raise ValueError("remote deployment requires ordinary self-play")
+    if launch is not None:
+        if len(regime.stages) != 1 or regime.schedule_clock != "iteration_fraction":
+            raise ValueError(
+                "LaunchSpec requires one step-target stage with iteration_fraction schedules"
+            )
+        if any(
+            isinstance(stage, TrainSelfPlay) and stage.active_seconds is not None
+            for stage in regime.stages
+        ):
+            raise ValueError(
+                "LaunchSpec requires update targets; active-time recipes are frozen v1 records"
+            )
     for stage in regime.stages:
         if not isinstance(stage, TrainSelfPlay) or stage.opponent is not None:
             raise ValueError("remote deployment requires self-contained self-play")
@@ -110,10 +247,11 @@ def resolve(input_json: str, mix: HardwareMix) -> TrainingRegime:
             stage.execution.threads, mix.thread_limit, mix.vcpus, 4
         )
     reserves = mix.setup_seconds + mix.transfer_seconds + mix.cleanup_seconds
-    if regime.wall_seconds + reserves > mix.wall_seconds:
+    if launch is None and regime.wall_seconds + reserves > mix.wall_seconds:
         raise ValueError("run watchdog and reserves exceed rental allowance")
     if (
-        sum(stage.execution.wall_seconds for stage in regime.stages)
+        launch is None
+        and sum(stage.execution.wall_seconds for stage in regime.stages)
         > regime.wall_seconds
     ):
         raise ValueError("stage watchdogs exceed run allowance")
@@ -121,78 +259,19 @@ def resolve(input_json: str, mix: HardwareMix) -> TrainingRegime:
 
 
 def compile_plan(
-    input_json: str, mix: HardwareMix, source: Source, seed: int
+    input_json: str, mix: HardwareMix | LaunchSpec, source: Source, seed: int
 ) -> DeploymentPlan:
+    launch = mix if isinstance(mix, LaunchSpec) else None
+    placement = launch.mix() if launch is not None else mix
+    assert isinstance(placement, HardwareMix)
     return DeploymentPlan(
+        schema_version=2 if launch is not None else 1,
+        launch=launch,
         input_json=input_json,
         input_sha256=digest(input_json.encode()),
-        regime=resolve(input_json, mix),
-        mix=mix,
+        regime=resolve(input_json, placement, launch=launch),
+        mix=placement,
         source=source,
         seed=seed,
-        projected_dollars=mix.projected_dollars,
+        projected_dollars=placement.projected_dollars,
     )
-
-
-class LeaseRequirements(Frozen):
-    """Planning bounds for bounded workers, not a continuation implementation.
-
-    Every projected worker reserves setup, gated initialization, export/run
-    overhead, evaluation drain and cleanup. Replacement overhead is a declared
-    estimate, not evidence that a CUDA snapshot can be restored on another host.
-    """
-
-    training: ActiveTrainingBudget
-    mix: HardwareMix
-    credential_seconds: float = Field(gt=0)
-    replacement_seconds: float = Field(ge=0)
-
-    @property
-    def boundary_seconds(self) -> float:
-        return (
-            self.mix.setup_seconds
-            + self.mix.transfer_seconds
-            + self.mix.cleanup_seconds
-            + self.training.evaluation_seconds
-            + self.training.stage_overhead_seconds
-            + self.training.run_overhead_seconds
-            + self.training.evaluation_tail_seconds
-        )
-
-    @property
-    def active_seconds_per_worker(self) -> float:
-        return self.mix.wall_seconds - self.boundary_seconds - self.replacement_seconds
-
-    @property
-    def workers_per_run(self) -> int:
-        # First worker does not restore; every subsequent worker does. Full lease
-        # ceilings (including a partially used final worker) bound projected spend.
-        remaining = max(
-            0.0,
-            self.training.active_seconds - (self.mix.wall_seconds - self.boundary_seconds),
-        )
-        return 1 + math.ceil(remaining / self.active_seconds_per_worker)
-
-    @property
-    def unavailable(self) -> tuple[str, ...]:
-        missing: list[str] = []
-        if self.workers_per_run > 1:
-            missing.extend((
-                "durable complete-state CUDA checkpoints and measured recovery",
-                "replacement-worker admission with exclusive ownership and nonduplicated costs/samples",
-                "renewable job-scoped access across replacement workers",
-            ))
-        if self.mix.wall_seconds > min(self.credential_seconds, MAX_JOB_SECONDS):
-            missing.append("in-worker credential renewal through the lease deadline")
-        return tuple(missing)
-
-    def admit(self) -> None:
-        """Reject unavailable capabilities before producing executable deploy inputs."""
-        if self.unavailable:
-            raise ValueError("execution unavailable: " + "; ".join(self.unavailable))
-
-    @model_validator(mode="after")
-    def usable_lease(self) -> "LeaseRequirements":
-        if self.active_seconds_per_worker <= 0:
-            raise ValueError("worker lease reserves leave no active training capacity")
-        return self

@@ -108,7 +108,9 @@ def test_direct_issuer_and_role_chaining_have_distinct_limits(
         assert result["AWS_SECRET_ACCESS_KEY"] == "delegated-secret"
         assert result["AWS_SESSION_TOKEN"] == "delegated-token"
         assert sts.calls[0].duration == 25260
-        assert sts.calls[0].policy == job_store.worker_policy(spec.prefix)
+        assert sts.calls[0].policy == job_store.worker_policy(
+            spec.prefix, spec.deadline
+        )
         assert "issuer-secret" not in json.dumps(result)
     assert profiles == ["manabot-issuer"]
 
@@ -145,3 +147,16 @@ def test_credential_provider_failure_is_redacted(
         job_store.worker_credentials(specification())
     assert "secret-bearing" not in str(caught.value)
     assert caught.value.__suppress_context__
+
+
+def test_expired_allocation_cannot_issue_another_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spec = specification()
+    sts = STS(spec.deadline + 3600)
+    monkeypatch.setattr(boto3, "Session", lambda **kwargs: Session(sts, None))
+    monkeypatch.setattr(job_store.time, "time", lambda: spec.deadline)
+    monkeypatch.delenv("MANABOT_REMOTE_ISSUER_PROFILE", raising=False)
+    with pytest.raises(ValueError, match="expired.*renewal forbidden"):
+        job_store.worker_credentials(spec)
+    assert not sts.calls

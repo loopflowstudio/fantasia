@@ -89,7 +89,7 @@ uv run --extra artifacts --extra notebook manabot deploy report \
 ```
 
 `deploy --plan ... --job-id ...` is the direct submission entry point;
-`deploy submit` is the explicit equivalent. `deploy --regime ... --mix ... --job-id ...`
+`deploy submit` is the explicit equivalent. `deploy --regime ... --launch ... --job-id ...`
 compiles and submits in one invocation. No previous CLI namespace is registered.
 
 The generation number comes from `fetch`. Report generation reuses the existing
@@ -202,3 +202,126 @@ Together with ETU-103's prior rentals, the shared estimate is **$0.6518216** of
 $15. These conservative observations are not invoices. Final inventory was empty.
 This is one bounded execution/evidence proof, not learning improvement, portable
 CUDA recovery or the Trained Challengers chapter's scientific acceptance.
+
+## Step targets and machine allocations
+
+New jobs declare `LaunchSpec` separately from `TrainingRegime`. The regime owns
+updates and learning settings; the launch owns the machine, `lifetime_hours`,
+`spending_limit`, artifact access scope and setup/checkpoint/upload/cleanup
+reserves. Hours include all those phases. No throughput estimate is translated
+into the learning target. Keep the same target for equal-step comparisons, or
+compare available checkpoints at declared common allocation/cost cutoffs for
+equal-time comparisons. A paused endpoint is not a completed target.
+
+A concrete authoring example (configuration only; it does not rent):
+
+```python
+from pathlib import Path
+
+from manabot.remote.plan import AccessScope, LaunchSpec, Machine, Source
+from manabot.training.checkpoint_queue import MonitoringBudget
+from manabot.training.experiment_execution import LaunchRun
+from manabot.training.experiments import Baseline, Experiment
+from manabot.training.models import TrainingRegime
+
+regime = TrainingRegime.model_validate_json(Path("regime.json").read_text())
+# One ordinary self-play stage; its authored updates remain the learning target.
+# Select iteration schedules explicitly for new recipes, not frozen evidence.
+regime.schedule_clock = "iteration_fraction"
+launch = LaunchSpec(
+    machine=Machine.model_validate_json(Path("machine.json").read_text()),
+    lifetime_hours=4,              # 0.5 and 24 * 30 use the same model
+    spending_limit=3,
+    access=AccessScope(destination="s3://etudefantasia/manabot/jobs"),
+    setup_seconds=300,
+    checkpoint_seconds=120,        # export reserve, not monitoring cadence
+    upload_seconds=300,
+    cleanup_seconds=120,
+)
+experiment = Experiment(
+    name="step-comparison",
+    baseline=Baseline.capture("fixed-target", regime),
+    launches=(LaunchRun(
+        case="step-comparison", seed=197, launch=launch,
+        monitoring=MonitoringBudget(seconds=600, attempt_seconds=120),
+        checkpoint_seconds=3600,   # monitoring cadence
+    ),),
+)
+source = Source.model_validate_json(Path("source.json").read_text())
+plan, = experiment.compile_launches(source)
+Path("plan.json").write_text(plan.model_dump_json(indent=2))
+```
+
+`machine.json` contains the existing RunPod shape and price fields: GPU types,
+CPU threads/vCPUs, memory/storage, digest-pinned image, hourly compute ceiling and
+storage allowance. It has no lifetime, credential duration or secrets.
+`experiment.prepare_launch(index, source, job_id)` persists the selected run's
+monitoring and original authoring receipt through the existing job client;
+`submit_job(spec)` performs the explicit submission. Neither method loops through
+or schedules the rest of the experiment.
+
+The same compiler is available directly:
+
+```bash
+uv run manabot deploy compile --regime regime.json --launch launch.json --out plan.json
+# Execution requires its separately authorized compute allocation:
+uv run manabot deploy submit --plan plan.json --job-id fixed-target-001
+```
+
+`deploy --regime ... --launch ... --job-id ...` compiles and submits directly.
+`--mix` and schema-1 DeploymentPlans remain the explicit compatibility boundary
+for frozen records. Historical `active_seconds` recipes retain their exact
+meaning and serialized identities; they are refused under a new LaunchSpec.
+The duration-specific capacity preparation API/CLI is removed. ETU-103's running
+four-hour cohort continues at its pinned source
+`68e0fbe9265a689891615274123587d653b5e66b`, without rewritten configurations or evidence.
+
+Admission derives one absolute deadline, rounding down to the guardian's Unix
+second precision. STS session policy explicitly denies access at that deadline;
+the guardian terminates the machine at the same deadline. STS's minimum token
+lifetime or issuance margin cannot extend artifact permissions. Issuer credentials
+stay on the launcher; workers receive only the job-scoped artifact session and
+the provider's existing pod termination capability. Access scope has no separate
+duration input. Historical recipe watchdog fields remain serialized, but
+LaunchSpec execution uses the admitted allocation for timing and iteration-based
+learning schedules; changing machine hours does not change the update schedule.
+
+Collection stops at `pause_at = deadline - checkpoint - upload - cleanup`.
+An unfinished batch is discarded and its collection time remains charged. The
+executor exports the last updated raw/EMA policy and optimizer, reports `paused`
+when updates remain, and reports `completed` only on reaching the target. Exports
+must finish before `deadline - upload - cleanup`; exhausting that reserve is an
+interrupted/failed attempt, not a successful pause. Monitoring may inspect a
+paused checkpoint, while final completed-target cohorts remain excluded.
+
+Supported boundaries and refusals:
+
+- Bounded single-worker RunPod jobs work through the existing disconnected
+  supervisor. With a directly configured issuer, the maximum is twelve hours
+  minus the 60-second STS issuance margin; temporary-role sources remain limited
+  to 3,540 seconds. No renewed session is issued after the allocation deadline.
+- A 720-hour LaunchSpec constructs and compiles with its full projected cost,
+  but admission refuses it before persisting job intent or renting: in-worker
+  credential renewal, portable complete-state CUDA recovery and exclusive
+  replacement-worker ownership are not implemented. There is no capability
+  boolean that bypasses this refusal, nor a month-long bearer credential.
+- CPU recipes with existing recovery enabled can explicitly resume a paused run
+  on the same host under a new allocation, retaining the original update target,
+  optimizer, EMA, RNGs and collector. A collection interrupted mid-batch retains
+  the preceding complete recovery boundary. CUDA exports do **not** provide this
+  continuation: attempting recovery fails instead of restarting from initialization.
+- Cancellation requests stop the learner and finalize available evidence before
+  pod deletion. They **do not immediately revoke** an already issued STS session;
+  copied credentials retain their restricted scope until the deadline. IAM
+  permission changes or a separate revocation service would be needed. See
+  [AWS's session permission controls](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_control-access_disable-perms.html).
+- In-place extension is refused without changing the old deadline. Updating only
+  a local plan cannot update persisted job intent, the running guardian and an
+  issued immutable session policy coherently. A new allocation is explicit;
+  remote CUDA replacement is still unsupported.
+
+The offline tests exercise actual CLI compilation and fake-provider submission,
+absolute permission/shutdown bounds, paused artifact publication and native CPU
+pause/recovery equivalence. They do not establish live IAM enforcement, CUDA
+recovery, or month-long operation. No rental or scientific scoring is needed to
+run them.
