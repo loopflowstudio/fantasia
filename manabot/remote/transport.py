@@ -6,7 +6,10 @@ from pathlib import Path
 import shlex
 import subprocess
 import time
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from .jobs import RemoteJobSpec
 
 from .plan import DeploymentPlan
 from .provider import Pod
@@ -178,4 +181,31 @@ nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv >> /workspa
 env_start=$(stat -c %Y .venv/pyvenv.cfg)
 env_end=$(stat -c %Y /workspace/evidence/toolchain.txt)
 printf '{{"bootstrap_seconds":%s,"uv_sync_seconds":%s,"native_build_seconds":%s,"environment_to_toolchain_seconds":%s}}\\n' "$((SECONDS - bootstrap_start))" "$sync_seconds" "$build_seconds" "$((env_end - env_start))" > /workspace/evidence/bootstrap-timing.json
+"""
+
+
+def job_startup(spec: "RemoteJobSpec") -> str:
+    """Provider-owned bootstrap; neither SSH nor the submitter owns its lifetime."""
+    guardian = Path(__file__).with_name("guardian.sh").read_text()
+    setup = bootstrap(spec.plan).replace(
+        "--python 3.12 --extra play", "--python 3.12 --extra play --extra artifacts"
+    )
+    return f"""set -eu
+umask 077
+export MANABOT_DEADLINE={int(spec.deadline)}
+mkdir -p /workspace/evidence
+cat > /tmp/manabot-guardian.sh <<'MANABOT_GUARDIAN'
+{guardian}
+MANABOT_GUARDIAN
+nohup bash /tmp/manabot-guardian.sh >/tmp/manabot-guardian.log 2>&1 </dev/null &
+cat > /tmp/manabot-setup.sh <<'MANABOT_SETUP'
+{setup}
+MANABOT_SETUP
+# Keep PID 1 alive even on setup failure so the independent guardian can delete.
+if timeout {max(1, int(spec.created_at + spec.plan.mix.setup_seconds - time.time()))} bash /tmp/manabot-setup.sh >/workspace/evidence/bootstrap.log 2>&1; then
+  export PATH=/root/.local/bin:/root/.cargo/bin:$PATH
+  cd {REPO_DIR}
+  uv run --no-sync python -m manabot.remote.supervisor >>/workspace/evidence/supervisor.log 2>&1 || true
+fi
+while true; do sleep 5; done
 """

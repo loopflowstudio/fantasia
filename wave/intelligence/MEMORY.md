@@ -1,5 +1,28 @@
 # Intelligence memory
 
+## Disconnected deployment proof (ETU-123, 2026-10-06)
+
+Jack Heart required `uv run manabot deploy` alone, without aliases. CLI and
+Experiment share S3 intent, creation fences and provider-started supervision.
+TrainingRun, VerifyStore, CheckpointQueue, Bundle and reporting retain ownership.
+Client and supervisor share `Resource.validate_for` admission and `job_store`
+cancellation reads; neither contract belongs to the client. PR253 `e052ac30` was
+integrated without changing its checkout. Jack Heart approved PR254 on 2026-10-06 and authorized `lf land -c`; PR254 merged at `ab721cab`; its full CI matrix passed.
+
+The client exited at zero updates; pinned `def37708` finished 160 CUDA updates,
+an initial and two later evaluations, 12 games and final upload/deletion. Clients
+retrieved 48 verified files, admitted four raw/EMA policies and regenerated
+notebook/HTML after deletion. The status poll lagged at 139; the database held 160.
+Status now reads VerifyStore; frozen evidence is unchanged. No strength, allocation or CUDA recovery follows.
+
+The first attempt failed before training on scoped S3 missing-key 403. An empty
+cancellation mailbox before rental fixed this without ListBucket. Both attempts total $0.1158450 estimated within the $3 reservation from
+ETU-103's $15; shared retained spend is $0.6518216. Final inventory is empty.
+The [contract](../../docs/remote-jobs.md) owns compact proof, costs and commands;
+full originals remain in `.runs/etu123-disconnect`. Preserve failed attempts.
+SSO chaining limits the path to under one hour including reserves. Unknown
+creation is never retried speculatively; reconnect never restarts learning.
+
 ## CUDA capacity boundary (ETU-103, 2026-10-06)
 
 Jack Heart assigned the L4/A40 performance sweep and pure capacity comparison to
@@ -227,44 +250,25 @@ No method benefit, challenger strength or chapter acceptance follows.
 ## Distributed RL research and software boundary (ETU-108, 2026-10-06)
 
 Jack Heart authorized retained evidence delivery without new training, keeping
-ETU-108 open. The [report](../../docs/distributed-rl.md) and compact extracts
-preserve failed inference/retry, tiny empty-filter training, separate eight-game
-calibration and the earlier 68.60-second mini representative run. Full prior
-integration detail remains in this file at `8b576a45`.
+ETU-108 open. The [report](../../docs/distributed-rl.md) owns compact extracts,
+failures, calibration and retained originals. Detailed host/transfer measurements
+remain in this memory at `2bd68b3a`; earlier integration remains at `8b576a45`.
 
-The matched recipe completed once per host: laptop 45.32455 versus mini 65.00472
-training seconds, each with 20 iterations, 5,120 transitions and 1,280 exposures.
-Inference was 2,396.22 versus 1,160.53 observations/s. Twelve artifact hashes/sizes
-verified; source/recipe/world bindings and Git trees match despite different HEADs.
-Python 3.12.12 versus 3.12.11, macOS differences and launch load near 15 versus
-1.55 prevent controlled hardware ranking. No GPU, strength, useful-progress or
-distributed-speedup claim follows.
+One matched recipe completed per host with identical source trees and verified
+artifacts; differing Python/macOS and contention prevent hardware ranking.
+The final mini policy completed eight games/1,037 decisions with exact replay,
+separate from its earlier calibration. No GPU, strength, useful-progress or
+distributed-speedup claim follows. Synthetic SSH upload timings are not persistent
+RTT, bidirectional bandwidth or trajectory transport. ETU-91/106 remain untouched.
 
-The final raw mini checkpoint subsequently completed eight ordinary evaluator
-games / 1,037 decisions with exact replay and zero failures/truncations. Total
-launch cost was 21.99 s versus 17.67 s arena including replay; ten copied result
-hashes verified. No new training or score analysis ran. This single-cohort
-feasibility result is separate from the earlier calibration, not strength or
-distributed learning. The compact evaluation extract binds admission, runtime,
-costs and retained originals; raw tapes stay outside Git.
-
-SSH synthetic-upload medians for zero, 618,025 and 8 MiB were .448, 1.093 and
-5.052 seconds (three trials each), including startup/authentication/completion.
-They are not persistent RTT, bidirectional bandwidth or real trajectory transfer.
-The transfer probe overlapped a laptop campaign; matched compute waited for exit.
-ETU-91/106 checkouts remain untouched; original evidence paths stay retained.
-
-The recipe-aware harness reuses TrainingRegime with input/resolved-recipe,
-source/runtime/world and actual-work receipts. Admission stays CPU float32,
-current-self, one thread, with 240-second benchmark supervisor caps; requested
-memory is not enforced. Concurrent contributions, persistent transport and
-retry/sample accounting remain open. Actor/inference placement and synchronization
-await measurements and an explicit estimator contract. Neither PPO nor Ataraxos
-implements V-trace; clipping/reverse KL do not authorize arbitrary lag. Preserve
-same-viewer terminal/bootstrap boundaries, full behavior distributions, opponent
-versions, unique samples and one optimizer owner. Zero-lag compatibility remains
-a proposal, not reinstatement of synchronous rounds. No scientific allocation follows; the report owns sources, launch/stop
-instructions and acceptance.
+The harness retains TrainingRegime source/runtime/world and actual-work receipts.
+Admission is CPU float32, current-self, one thread, with 240-second supervisor
+caps; requested memory is not enforced. Concurrent contributions, persistent
+transport, retry/sample accounting and actor/inference synchronization remain open.
+Neither PPO nor Ataraxos implements V-trace; clipping/reverse KL do not authorize
+arbitrary lag. Preserve same-viewer terminal/bootstrap boundaries, full behavior
+distributions, opponent versions, unique samples and one optimizer owner. Zero-lag
+compatibility remains a proposal. No scientific allocation follows.
 
 ## Focused value-model software (ETU-106, 2026-10-05)
 
