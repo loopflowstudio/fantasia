@@ -184,8 +184,12 @@ class TrainSelfPlay(Stage):
     operation: Literal["train_self_play"]
     trainer: Literal["net_opponent"] = "net_opponent"
     optimizer: Literal["adam"] = "adam"
-    trainable: Literal["policy_value"] = "policy_value"
-    behavior: Literal["current-self", "ema-self", "frozen"] = "current-self"
+    trainable: Literal["policy_value", "none"] = "policy_value"
+    behavior: Literal["current-self", "ema-self", "frozen", "random"] = "current-self"
+    # Omitted defaults preserve frozen historical regime identities.
+    root: Literal["lethal-target-v1"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     opponent: FrozenOpponent | None = None
     initial: str | None = None
     updates: int = Field(default=2, ge=1)
@@ -309,6 +313,17 @@ Operation = Annotated[
 ]
 
 
+class RecoveryPolicy(Strict):
+    """Bounded current-game replay and an awake elapsed-time allocation.
+
+    Recovery artifacts are private compressed snapshots. All created snapshots
+    remain retained; cadence bounds duplicated serialization and restart work.
+    """
+
+    max_game_microsteps: int = Field(default=40000, ge=1, le=1_000_000)
+    checkpoint_updates: int = Field(default=128, ge=1)
+
+
 class TrainingRegime(Strict):
     schema_version: Literal[1] = 1
     id: str
@@ -322,7 +337,14 @@ class TrainingRegime(Strict):
         "run_elapsed_budget"
     )
     recovery_max_microsteps: int | None = Field(default=None, ge=1, le=1_000_000)
+    recovery: RecoveryPolicy | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     selection: Literal["last-complete-raw"] = "last-complete-raw"
+
+    @property
+    def recoverable(self) -> bool:
+        return self.recovery is not None or self.recovery_max_microsteps is not None
 
     @model_validator(mode="after")
     def references(self) -> "TrainingRegime":
@@ -363,15 +385,24 @@ class TrainingRegime(Strict):
             raise ValueError(
                 "compound policies require compound policy stages throughout the run"
             )
-        if self.recovery_max_microsteps is not None and (
+        if self.recovery is not None and self.recovery_max_microsteps is not None:
+            raise ValueError("select one recovery contract")
+        if self.recoverable and (
             any(not isinstance(stage, TrainSelfPlay) for stage in self.stages)
-            or self.schedule_clock != "iteration_fraction"
+            or (
+                self.schedule_clock != "iteration_fraction"
+                and any(
+                    stage.learning.gradient != "ataraxos_move" for stage in self.stages
+                )
+            )
         ):
             raise ValueError(
-                "recovery requires only self-play stages and iteration_fraction schedule"
+                "recovery requires self-play with iteration_fraction or absolute Ataraxos move schedules"
             )
+        if self.recoverable and any(stage.root is not None for stage in self.stages):
+            raise ValueError("diagnostic roots do not support recovery")
         if any(stage.execution.device == "cuda" for stage in self.stages):
-            if self.recovery_max_microsteps is not None:
+            if self.recoverable:
                 raise ValueError("CUDA process recovery is unsupported")
             if self.agent.belief_count_buckets or any(
                 not isinstance(stage, TrainSelfPlay) or stage.opponent is not None
@@ -493,6 +524,8 @@ class TrainingRegime(Strict):
                     or parent.streams != stage.streams
                     or parent.learning.ema != stage.learning.ema
                     or parent.opponent != stage.opponent
+                    or parent.root != stage.root
+                    or parent.trainable != stage.trainable
                     or parent.learning.gradient != stage.learning.gradient
                 ):
                     raise ValueError(
@@ -587,6 +620,14 @@ class TrainingRun(Strict):
     recovery_lock_path: str | None = None
     recovery_host: str | None = None
     last_recorded_wall_seconds: float | None = None
+    last_recorded_active_seconds: float | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    recovery_boot_identity: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    calendar_seconds: float = Field(default=0, exclude_if=lambda value: value == 0)
+    downtime_seconds: float = Field(default=0, exclude_if=lambda value: value == 0)
     unobserved_seconds: float = 0
     recovery_seconds: float = 0
     prior_seconds: float = 0

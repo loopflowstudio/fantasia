@@ -14,6 +14,7 @@ from pydantic import Field, JsonValue, model_validator
 
 from manabot.training.checkpoint_queue import MonitoringBudget
 from manabot.training.models import Strict
+from manabot.training.monitor_evaluation import MonitorProtocol
 
 
 class Hardware(Strict):
@@ -60,11 +61,17 @@ class ExperimentSchedule(Strict):
     process_seconds: float = Field(gt=0)
     monitoring: MonitoringBudget
     checkpoint_seconds: float = Field(default=3600, gt=0)
+    checkpoint_updates: tuple[int, ...] = Field(default=(), exclude_if=lambda v: not v)
+    diagnostic_protocol: MonitorProtocol | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    diagnostic_updates: tuple[int, ...] = Field(default=(), exclude_if=lambda v: not v)
     # Reserve existing scientific deal families without redefining their protocol.
     scientific_deal_seeds: tuple[int, ...] = ()
     # Case indexes per seed; empty means declaration order for every seed.
     order: tuple[tuple[int, ...], ...] = ()
     disk_reserve_bytes: int = Field(default=4 * 1024**3, ge=0)
+    active_runtime: bool = Field(default=False, exclude_if=lambda value: not value)
 
     @model_validator(mode="after")
     def valid(self) -> "ExperimentSchedule":
@@ -74,6 +81,24 @@ class ExperimentSchedule(Strict):
             raise ValueError("training seeds must be in [0, 100000)")
         if set(self.scientific_deal_seeds) & set(self.monitoring.protocol.deal_seeds):
             raise ValueError("monitoring and scientific deals must be disjoint")
+        if any(n <= 0 for n in self.checkpoint_updates) or any(
+            n < 0 for n in self.diagnostic_updates
+        ):
+            raise ValueError(
+                "checkpoint/diagnostic updates must be nonnegative (exports positive)"
+            )
+        if (self.diagnostic_protocol is None) != (not self.diagnostic_updates):
+            raise ValueError(
+                "diagnostic protocol and updates must be declared together"
+            )
+        if self.diagnostic_protocol is not None and set(
+            self.diagnostic_protocol.deal_seeds
+        ) & (
+            set(self.scientific_deal_seeds) | set(self.monitoring.protocol.deal_seeds)
+        ):
+            raise ValueError(
+                "diagnostic, monitoring and scientific deals must be disjoint"
+            )
         if self.monitoring.seconds >= self.process_seconds:
             raise ValueError("monitoring must leave a positive learning allocation")
         if self.monitoring.attempt_seconds > self.monitoring.seconds:
@@ -115,8 +140,20 @@ class ExperimentRun(Strict):
     host_dollars: float | None = None
     error: str | None = None
     notebook: str
+    paused: bool = False
+    calendar_seconds: float = 0
+    downtime_seconds: float = 0
+    uncertain_seconds: float = 0
+    boot_identity: str | None = None
+    last_seen_active: float | None = None
 
     def report(self, directory: Path) -> Path:
         from manabot.training.comparison_notebook import write_comparison_notebook
 
-        return write_comparison_notebook(directory, Path(self.notebook))
+        schedule = self.intent.get("schedule")
+        return write_comparison_notebook(
+            directory,
+            Path(self.notebook),
+            individual_progress=isinstance(schedule, dict)
+            and schedule.get("active_runtime") is True,
+        )

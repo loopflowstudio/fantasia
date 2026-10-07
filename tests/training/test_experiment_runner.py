@@ -228,3 +228,59 @@ def test_budget_exhaustion_retains_pending_work_without_launch(tmp_path: Path) -
     assert all(a["status"] == "pending" for a in payload["attempts"])
     assert payload["process_seconds"] == 0
     assert not list(out.glob("training-*.log"))
+
+
+def test_live_diagnostics_and_requested_exports_remain_separate(tmp_path: Path) -> None:
+    from manabot.training.experiments import Baseline, Experiment
+    from manabot.training.models import TrainingRun
+    from manabot.training.monitor_evaluation import MonitorResult
+    from tests.training.test_recovery import recipe
+
+    value = recipe()
+    value.recovery_max_microsteps = None
+    value.stages[0].updates = 2
+    schedule = ExperimentSchedule(
+        seeds=(11840,),
+        hardware="fixture",
+        wall_seconds=180,
+        process_seconds=180,
+        checkpoint_updates=(1,),
+        monitoring=MonitoringBudget(
+            seconds=120,
+            attempt_seconds=20,
+            include_initial=True,
+            protocol=MonitorProtocol(deal_seeds=(1911182000,), game_seconds=5),
+        ),
+        diagnostic_protocol=MonitorProtocol(
+            deal_seeds=(1911182001,),
+            opponent="random",
+            game_seconds=5,
+        ),
+        diagnostic_updates=(0, 2),
+        scientific_deal_seeds=(1911182002,),
+    )
+    value.wall_seconds = 60
+    value.stages[0].execution.wall_seconds = 60
+    record = run_experiment(
+        Experiment("diagnostic", Baseline.capture("fixture", value), schedule=schedule),
+        hardware(),
+        tmp_path / "live",
+    )
+    assert record.status == "completed", record.error
+    results = [
+        MonitorResult.model_validate_json(p.read_text())
+        for p in (tmp_path / "live/monitoring").rglob("monitor.json")
+    ]
+    assert {(r.coordinates.updates, r.protocol.opponent) for r in results} == {
+        (0, "scripted_greedy"),
+        (1, "scripted_greedy"),
+        (2, "scripted_greedy"),
+        (0, "random"),
+        (2, "random"),
+    }
+    assert len(results) == 5
+    assert all(r.status == "completed" and len(r.rows) == 4 for r in results)
+    saved = TrainingRun.model_validate_json(
+        (Path(record.attempts[0].path) / "run.json").read_text()
+    )
+    assert [c.updates for c in saved.monitoring_checkpoints] == [1]

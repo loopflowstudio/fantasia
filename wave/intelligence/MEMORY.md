@@ -1,5 +1,40 @@
 # Intelligence memory
 
+## Weekly-first mini duration baseline (ETU-118, 2026-10-07)
+
+Jack Heart selected three 10,000-update mini runs of ETU-105's actor-and-critic
+filtered masked-mean scalar width64/depth2/heads4, no-history current-self recipe,
+256 rows/update. This supersedes depth1 and automatic horizon selection; early gains inform the
+choice, not promotion. ETU-116/82 outcomes belong here. ETU-105 released CPU.
+
+Source `ba0ae3e9` is frozen with its native library and pinned environment under
+mini `/Users/jack/src/etude/.runs/etu118-mini-20261007-1/source`. All three 32-update
+calibration seeds completed, with 24 terminal/replayed evaluation games and a
+521.313901-second additive charge. Four historical/current updates matched batches, learner, Adam, RNGs and diagnostics
+across a linked boundary, not a full 1240-update reproduction. World/setup agreed. Ataraxos rates use absolute iterations, including skips,
+despite the historical serialized elapsed-clock field. Preserve 620+620 stages.
+
+Plan `46aabdb0`
+fixes seeds 11851–11853, extra 400/800 exports, later milestones through 10000,
+separate 100-game greedy/random monitoring and 24 untouched final cells. Time/storage admission passed. Preparation totals 4355.137744 seconds, leaving 600444.862256 of the
+original week. Preserve all laptop failures, the partial symlink bundle and the
+128.339317-second pre-learner PATH failure. Preparation exceeded its 600-second
+subreserve; actual total remained inside the 7200-second amendment. No seed retried.
+
+Detached supervisor 86655 reached 128 committed updates/32768 transitions and 200
+replayed initialization games; notebook refresh works. No duplicate or ETU-103 change.
+Format-3 recovery preserves VerifyStore prefixes and complete learning/game state.
+Known sleep/pause stays separate; unknown gaps are conservatively charged. Physical
+lid closure remains untested; flat curves prompt review, not automatic failure.
+
+The [protocol/evidence](../../experiments/current-baseline.md) owns accounting,
+identities and controls. S3 publication is blocked by unavailable default credentials
+and the configured softmax SSO token; do not repair auth as a launch prerequisite.
+W&B backfilled 128 diagnostic rows; later publication is not automatic.
+Sustained improvement, three ordinary
+demo-loaded executions, published checkpoints and independent daily-test validation
+remain open. Root controls and short-run gains do not prove those outcomes.
+
 ## Disconnected deployment proof (ETU-123, 2026-10-06)
 
 Jack Heart required `uv run manabot deploy` alone, without aliases. CLI and
@@ -321,10 +356,8 @@ gate before integration.
   Its 512-game immutable snapshot trained both arms in 8.63 minutes; joint
   value supervision materially improved value calibration without reducing
   batch throughput. It is flat Monte Carlo evidence, not MCTS strength.
-- Rust vector stepping and zero-copy observation buffers moved environment-only
-  throughput from roughly 24k to 183k SPS at 16 environments. With inference
-  enabled, model inference consumed 97% of step time. Model layout is now a
-  first-order systems question.
+- Historical throughput evidence remains at `4ad09540`: inference dominated
+  environment stepping, making model layout a systems priority.
 
 ## Decisions
 
@@ -408,31 +441,22 @@ I1–I6 ordering at `fd7437df` is superseded by later reprioritizations below.
 
 ## Belief-forming branch reconciliation (2026-09-24)
 
-The branch supplies `Manabot.decide`, `evaluate_under_belief`, `ManabotPlayer`,
-a reference compatible-deal updater, schema-bound marginal encoding, and a
-bounded learned exact-world updater. The configured `checkpoint` player
-selects belief capability from serialized Agent fields. Observation-only
-checkpoints still exist; this is not evidence that every training or serving
-path now forms beliefs. Belief-enabled play generates a belief on every
-ordinary decision, and evaluating the same belief explicitly yields identical
-policy/value bytes without replacing autonomous memory.
+`Manabot.decide`, `evaluate_under_belief` and `ManabotPlayer` compose normalized
+beliefs with ordinary checkpoint play. Observation-only policies remain supported;
+not every training/serving path forms beliefs. Explicit evaluation of an identical
+belief preserves policy/value bytes without replacing autonomous memory.
 
-The three semantic layers are managym's possible worlds, manabot's normalized
-weights over those worlds, and managym's typed predicates. Conditioning is
-`b_Q(w) = b(w) * 1[Q(w)] / P_b(Q)`; empty mass fails explicitly. Full world
-weights preserve correlations for queries and search. The policy projection
-contains canonical owner/zone/CardDefId count marginals, validity, entropy,
-and effective support. Equal distributions encode equally regardless of query
-spelling or provenance; marginals cannot authoritatively answer conjunctions.
-Teacher policy/value labels are separate from a supplied belief.
+managym owns possible worlds and typed predicates; manabot owns normalized weights.
+Conditioning uses `b_Q(w) = b(w) * 1[Q(w)] / P_b(Q)` and rejects empty mass.
+Full weights preserve correlations. Canonical owner/zone/CardDefId marginals,
+validity, entropy and effective support encode equal distributions identically;
+marginals cannot answer conjunctions. Teacher labels remain separate.
 
-The implementation shares the visible-state attention/decision core, with a
-schema-bound card-definition embedding for belief rows. The existing visible
-card encoder has numeric features but no CardDefId/name identity to share.
-The learned updater has its own embeddings and head; full semantic parameter
-sharing remains an architectural target, not an implemented claim. Belief and
-strategy losses remain separate, and no private recurrent activation crosses
-the intervention boundary. Joint gradients require a measured future choice.
+The shared visible-state core uses schema-bound belief embeddings; visible cards
+lack CardDefId/name embeddings. The updater owns separate embeddings/head: full
+semantic sharing remains unimplemented. Belief and strategy losses stay separate;
+no private recurrent activation crosses interventions. Joint gradients need a
+measured future choice.
 
 Belief-enabled checkpoints require both `belief_schema_identity` and
 `belief_content_manifest_identity`. The schema binds world/content identities,
@@ -477,21 +501,17 @@ a managym semantic-history replay projection. Do not infer meaning from hashes.
 The v2 updater sum-pools events with square-root count normalization: it learns
 actor/kind/card/multiplicity sensitivity but is explicitly invariant to order.
 
-`uv run manabot belief-learn-demo` samples 160 opening worlds with replacement
-from exact `p0`. One frozen opponent plays its most-held land (canonical-name
-tie break), otherwise passes, after refreshing its legal offers. Each deal
-contributes one real post-transition label; whole episodes split 128/32. The
-held-out test checks joint NLL improvement >0.1 nat, improved inclusion Brier
-and ECE, 90% credible-set coverage >=0.8, and broad posterior support. The same
-scripted population appears in both arms: this proves population supervision,
-not opponent transfer, order sensitivity, multi-seed calibration, or strength.
-Future splits must also hold out opponent versions; the updater must not
-require the acting policy at inference. Known-policy Bayes remains diagnostic.
+`uv run manabot belief-learn-demo` uses 160 physical-prior opening worlds,
+one frozen scripted opponent and a 128/32 whole-episode split. Held-out joint
+NLL, Brier, ECE, coverage and support checks prove same-population supervision
+only, not transfer, order sensitivity, multi-seed calibration or strength.
+Exact recipe/thresholds remain in this memory at `7962bd69`. Future splits must
+hold out opponent versions; inference must not require the acting policy.
+Known-policy Bayes remains diagnostic.
 
 ### What the branch proves and what remains
 
-The 2026-09-24 belief/state/runtime/learning and BC suite passed 27 checks;
-full receipt and historical implementation detail remains at `76afdb68`.
+The 2026-09-24 suite passed 27 checks; receipts remain at `76afdb68`.
 Those bounded proofs do not establish strength or general calibration. Reference
 receipt ranges count opaque events; learned ranges count typed commitments.
 
@@ -513,11 +533,9 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-Detail remains at `59f16e0d` / `60e2f897`; GOAL.md owns ETU-21's abandonment,
-ETU-31's deferral and ETU-34's completion. Bounded demos prove no strength or
-conditional student flips. ed2 survives; unavailable advice/checkpoints remain
-subject to [the live-advice plan](../../docs/plans/live-belief-advice.md).
-Rules owns history semantics; check existing Tasks before overlapping work.
+History: `59f16e0d` / `60e2f897`; GOAL.md owns Task dispositions. Bounded demos
+prove no strength. ed2 survives; [live-advice limits](../../docs/plans/live-belief-advice.md)
+and Rules' history ownership remain.
 
 ## Corrected-world training binding (2026-09-29)
 
@@ -560,15 +578,11 @@ end-marker GAE and paused streams address those mechanisms. The trace scale
 `1/(1-gamma*lambda)` is not a hard learning horizon. Historical PPO/search
 comparisons do not settle which repaired recipe wins at matched current cost.
 
-ETU-89 now integrates ETU-75's mandatory checkpoint world/setup contract,
-semantic tensor propagation and ETU-90's complete-state EMA helper. A retained
-two-stage execution completed 13 games and 1,024 learner transitions with four
-ordinary raw/EMA reloads on the semantic ABI. ETU-90 owns EMA complete-state
-correctness; ETU-91 owns final replayed arena/notebook evidence after integration. Study smoke success cannot
-close infrastructure, RL correctness, strength or human-play acceptance for
-another Task. The implementation contract is in
-[training regimes](../../docs/training-regimes.md); scientific proposals and
-limits remain in the [study protocol](../../experiments/training-regimes.md).
+ETU-89 integrated world/setup admission, semantic tensors and complete-state EMA.
+Retained two-stage exports prove software only; ETU-90 owns EMA correctness and
+ETU-91 owns final arena/notebook evidence. The [regime guide](../../docs/training-regimes.md)
+owns implementation; detailed integration receipts remain in this memory at
+`7962bd69`.
 
 Compare study scores only over overlapping observed cost ranges, using the last
 checkpoint available at each cutoff. Search generation remains on the cost axis;
@@ -576,24 +590,18 @@ no overlap means equal-cost comparison is unavailable. One seed and a four-leg
 deal block prove workflow, not method-level uncertainty. ETU-91 owns final
 replayed study and offline-regeneration evidence on the integrated code.
 
-ETU-91 now has integrated semantic study proof: final learning-speed and
-five-arm smokes completed in 91 and 204 seconds with 24 and 72 exact-replayed
-games, two checkpoints per arm, and unchanged offline-regenerated metrics and
-reports. Both use the executor's cumulative checkpoint clock and have observed
-cost overlap. Earlier inherited-ABI evidence remains preliminary. A later
-five-arm attempt failed when a merge exposed conflict markers to a child
-process; that attempt remains retained separately. Never edit imported source
-while a multiprocessing measurement is running.
+ETU-91's learning-speed and five-arm smokes passed exact replay and unchanged
+offline regeneration; earlier ABI evidence remains preliminary. A later attempt
+failed on conflict markers exposed to a child and remains retained. Never edit
+imported source during multiprocessing measurements. Detailed smoke receipts and
+plan-generation history remain in this memory at `7962bd69`.
 
-Scientific plan generation scales measured updates and teacher games, retains
-cumulative fitting, reserves 168 hours across calibration, both three-seed
-studies, evaluation and recovery, and checks projected storage against a 4 GiB
-reserve. The three fixed anchors, untouched endpoint deals and full nine-cell
-main comparison remain explicit. Count extrapolation is not long-run timing
-proof. No scientific study ran here; root owns calibration and the unique launch.
-Post-training evaluation resume retains failed cells without replacement, uses
-remaining original time and cannot turn an incomplete cohort into a strength
-claim. Training checkpoints do not support process resume.
+Scientific plans reserve the original 168 hours across calibration, three-seed
+studies, evaluation and recovery, with a 4 GiB storage reserve, three fixed anchors,
+untouched endpoint deals and the full nine-cell comparison. Extrapolation is not
+long-run timing proof. Root owns calibration and launch. Evaluation resume retains
+failed cells within remaining original time; incomplete cohorts cannot establish
+strength. These historical training checkpoints do not support process resume.
 
 Jack Heart requested keeping ETU-91 and its checkout open to preserve ignored
 `.runs` evidence. Detailed attempts, commands and evidence limits live in the
@@ -1046,22 +1054,16 @@ scope and deferred architecture sketches.
 
 ## Training dashboard software (ETU-101, 2026-10-05)
 
-Jack Heart authorized dashboard implementation, publication and landing using
-saved evidence and tiny fixtures, without changing ETU-91's frozen checkout.
-TrainingRun/VerifyStore remain the metric authority. Epoch/update diagnostics
-now retain original counters, elapsed cost and resource observations; historical
-rows without those coordinates stay explicitly incomplete. W&B is a resumable
-projection with stable run/group identities, prefix checks, default panels and
-local JSON backfill. PPO's clipped objective is not teacher cross-entropy.
+Jack Heart authorized dashboard delivery using saved evidence/tiny fixtures,
+without changing ETU-91. TrainingRun/VerifyStore own counters, costs and resources;
+missing historical coordinates remain incomplete. W&B is a resumable projection
+with prefix checks and backfill. PPO loss is not teacher cross-entropy.
 
-The first distillation cohort freezes whole validation games and source bytes,
-remains excluded from later training, and is reported beside growing validation.
-Its first reference target stays fixed even when later stages change their
-training target; rejecting such changes would break existing local-update controls.
-TrainingRun's globally assigned game IDs survive shard composition. Optional
-hourly raw exports occur at learner boundaries, preserve RNG and Adam/collector
-state, and exclude their measured duration from the learning schedule while
-remaining charged to resource budgets. Monitoring is separate from recovery.
+Distillation freezes first-reference validation games/source/targets, excludes them
+from training, and also reports growing validation. Later training targets may
+change; global game IDs survive shard composition. Learner-boundary exports preserve
+RNG/Adam/collector state. Export duration is charged to resources, excluded from the
+learning schedule. Monitoring is separate from recovery.
 
 The independent arena follower evaluates 25 reserved monitoring deals across all
 four seat/deck legs versus source-pinned scripted greedy. Incomplete cohorts have
@@ -1072,10 +1074,8 @@ The [dashboard contract](../../docs/training-monitoring.md) owns launch/backfill
 commands and limits. Software fixtures do not establish strength, live W&B
 service acceptance or chapter completion; no scientific campaign ran here.
 
-ETU-101's focused gate passed 78 checks; the final monitoring suite passed 22,
-including four complete games through an untrained checkpoint and native arena,
-retained timeout prefixes, fixed-reference isolation and idempotent backfill.
-The live W&B service was not exercised. These remain software fixtures.
+Detailed 78/22-check fixture receipts remain at `08d2b2e9`; live W&B was not
+exercised and no scientific claim follows.
 
 ## Capacity software receipt boundary (ETU-102, 2026-10-05)
 
