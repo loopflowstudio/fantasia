@@ -7,22 +7,20 @@ Experiment share S3 intent, creation fences and provider-started supervision.
 TrainingRun, VerifyStore, CheckpointQueue, Bundle and reporting retain ownership.
 Client and supervisor share `Resource.validate_for` admission and `job_store`
 cancellation reads; neither contract belongs to the client. PR253 `e052ac30` was
-integrated without changing its checkout. PR254 awaits Jack Heart's merge review.
+integrated without changing its checkout. Jack Heart approved PR254 on 2026-10-06 and authorized `lf land -c`; CI remains pending.
 
 The client exited at zero updates; pinned `def37708` finished 160 CUDA updates,
-an initial and two later evaluations, 12 games and final upload/deletion. Fresh
-clients retrieved 48 verified files, admitted four raw/EMA policies and regenerated
+an initial and two later evaluations, 12 games and final upload/deletion. Clients
+retrieved 48 verified files, admitted four raw/EMA policies and regenerated
 notebook/HTML after deletion. The status poll lagged at 139; the database held 160.
-Status now reads VerifyStore; frozen evidence is unchanged. No strength,
-scientific allocation or CUDA process recovery follows.
+Status now reads VerifyStore; frozen evidence is unchanged. No strength, allocation or CUDA recovery follows.
 
-The first attempt failed before training because scoped S3 missing-key reads return
-403. Creating the empty cancellation mailbox before rental fixed this without
-ListBucket. Both attempts total $0.1158450 estimated within the $3 reservation from
+The first attempt failed before training on scoped S3 missing-key 403. An empty
+cancellation mailbox before rental fixed this without ListBucket. Both attempts total $0.1158450 estimated within the $3 reservation from
 ETU-103's $15; shared retained spend is $0.6518216. Final inventory is empty.
 The [contract](../../docs/remote-jobs.md) owns compact proof, costs and commands;
 full originals remain in `.runs/etu123-disconnect`. Preserve failed attempts.
-SSO chaining limits the current path to under one hour including reserves. Unknown
+SSO chaining limits the path to under one hour including reserves. Unknown
 creation is never retried speculatively; reconnect never restarts learning.
 
 ## CUDA capacity and hardware scope (ETU-103, 2026-10-06)

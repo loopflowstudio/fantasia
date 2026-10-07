@@ -1,7 +1,8 @@
 # Remote jobs that outlive the submitting laptop
 
 Jack Heart requested autonomous implementation and publication, then a source-pinned
-PR walkthrough before landing. PR #254 remains unmerged for Jack Heart's review.
+PR walkthrough before landing. Jack Heart approved PR #254 on 2026-10-06 (recorded comment
+83e7f9e0-724c-4302-aacd-c625803a4d73) and authorized `lf land -c` after preparation/CI.
 The original design is retained at `076bb5e5`; current contract and proof live in
 [docs/remote-jobs.md](../docs/remote-jobs.md).
 
@@ -68,10 +69,12 @@ predate this refresh. HTML and the focused code-capture page are updated.
 
 The publication copy retains deploy-only commands, the completed live proof and
 its source limits. CI run `37566288029` has passed Python, protocol conformance
-and clean-machine play; Rust and the visual gate are still running, with no
+and clean-machine play plus the visual gate; Rust is still running, with no
 reported failures at this check. Gate owns any remaining affected-suite checks.
-The next boundary is Jack Heart's saved pr-review; publication neither completes
-that review nor permits merge. Full private
+Jack Heart's recorded “254 looks fine” satisfies the saved review boundary; no
+repeat review is required. Landing is authorized with Task completion after merge.
+Four-hour credential support is outside this PR; ETU-103 remains limited to the
+current SSO window below 3,540 seconds including reserves. Full private
 proof stays in `.runs/etu123-disconnect`; compact hashes/costs are in
 `experiments/data/etu123-remote-jobs`. The requested proof was not restarted for
 CLI naming or the counter repair.
