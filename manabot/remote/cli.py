@@ -1,10 +1,22 @@
 """Reviewable plans and one-command bounded RunPod deployment."""
 
 from pathlib import Path
+import time
 
 import typer
 
+from manabot.training.checkpoint_queue import MonitoringBudget
+
 from .deploy import cleanup, current_source, deploy
+from .job_client import (
+    cancel_job,
+    fetch_job,
+    job_status,
+    load_job,
+    prepare_job,
+    submit_job,
+)
+from .jobs import DEFAULT_JOBS
 from .plan import DeploymentPlan, HardwareMix, compile_plan
 from .provider import RunPod
 
@@ -65,8 +77,13 @@ def run_command(
 
 
 @app.command("status")
-def status_command() -> None:
+def status_command(job_id: str | None = None, destination: str = DEFAULT_JOBS) -> None:
     """Read current rentals without exposing provider/account identifiers."""
+    if job_id is not None:
+        status = job_status(load_job(job_id, destination))
+        typer.echo(status.model_dump_json(indent=2))
+        typer.echo(f"Stale/unavailable heartbeat: {status.stale}")
+        return
     pods = RunPod().list()
     typer.echo(
         f"Current rentals: {len(pods)} pods; total compute ${sum(p.rate for p in pods):.3f}/hour (storage additional)"
@@ -81,3 +98,156 @@ def cleanup_command(deployment: Path = typer.Option(...)) -> None:
     """Retry deletion for exactly the attempts recorded in a private receipt."""
     cleanup(deployment)
     typer.echo("Recorded deployment pods confirmed absent.")
+
+
+@app.command("submit")
+def submit_command(
+    plan: Path = typer.Option(...),
+    job_id: str = typer.Option(
+        ..., help="Stable ID; retry this exact ID after interruption"
+    ),
+    monitoring: Path | None = None,
+    checkpoint_seconds: float = 60,
+    destination: str = DEFAULT_JOBS,
+) -> None:
+    """Submit a job; returns only after remote acceptance (or an explicit uncertainty)."""
+    spec = prepare_job(
+        DeploymentPlan.model_validate_json(plan.read_text()),
+        job_id,
+        destination=destination,
+        checkpoint_seconds=checkpoint_seconds,
+        monitoring=MonitoringBudget.model_validate_json(monitoring.read_text())
+        if monitoring
+        else None,
+    )
+    typer.echo(
+        f"Job {spec.job_id}; reconnect: uv run manabot remote status --job-id {spec.job_id}"
+    )
+    status = submit_job(spec)
+    typer.echo(status.model_dump_json(indent=2))
+
+
+@app.command("fetch")
+def fetch_command(
+    job_id: str = typer.Option(...),
+    out: Path = typer.Option(...),
+    destination: str = DEFAULT_JOBS,
+) -> None:
+    """Fetch the latest committed artifact generation, including after deletion."""
+    typer.echo(str(fetch_job(load_job(job_id, destination), out)))
+
+
+@app.command("cancel")
+def cancel_command(
+    job_id: str = typer.Option(...), destination: str = DEFAULT_JOBS
+) -> None:
+    """Request cancellation explicitly; the supervisor acknowledges before final upload."""
+    cancel_job(load_job(job_id, destination))
+    typer.echo(
+        "Cancellation requested; status reports acknowledgement and confirmed deletion separately."
+    )
+
+
+@app.command("logs")
+def logs_command(
+    job_id: str = typer.Option(...),
+    follow: bool = False,
+    destination: str = DEFAULT_JOBS,
+) -> None:
+    """Read published log prefixes; Ctrl-C ends observation only."""
+    from tempfile import TemporaryDirectory
+
+    spec = load_job(job_id, destination)
+    generation = -1
+    offset = 0
+    with TemporaryDirectory(prefix="manabot-logs-") as directory:
+        while True:
+            status = job_status(spec)
+            record = status.record
+            if (
+                record is not None
+                and record.manifest is not None
+                and record.generation != generation
+            ):
+                path = fetch_job(spec, Path(directory))
+                log = path / "training.log"
+                if log.exists():
+                    data = log.read_bytes()
+                    typer.echo(data[offset:].decode(errors="replace"), nl=False)
+                    offset = len(data)
+                generation = record.generation
+            if not follow or (record is not None and record.terminal):
+                break
+            time.sleep(5)
+
+
+@app.command("attach")
+def attach_command(
+    job_id: str = typer.Option(...), destination: str = DEFAULT_JOBS
+) -> None:
+    """Follow the same persisted job; detaching never restarts or cancels training."""
+    logs_command(job_id, True, destination)
+
+
+@app.command("setup-worker")
+def setup_worker_command(destination: str = DEFAULT_JOBS) -> None:
+    """Create the S3-only worker role trusted by the current AWS identity."""
+    from .job_store import configure_worker_role
+
+    configure_worker_role(destination)
+    typer.echo(
+        "Private job-evidence worker role configured for the current AWS principal."
+    )
+
+
+@app.command("reconcile")
+def reconcile_command(
+    job_id: str = typer.Option(...),
+    delete: bool = False,
+    destination: str = DEFAULT_JOBS,
+) -> None:
+    """Reconcile uncertain creation/deletion; --delete may lose unpublished evidence."""
+    from .job_client import reconcile_job
+
+    typer.echo(
+        reconcile_job(load_job(job_id, destination), delete=delete).model_dump_json(
+            indent=2
+        )
+    )
+
+
+@app.command("report")
+def report_command(
+    evidence: Path = typer.Option(...), out: Path = typer.Option(...)
+) -> None:
+    """Regenerate a notebook and HTML from a fetched generation, without a rental."""
+    from manabot.training.comparison_notebook import write_comparison_notebook
+    from manabot.training.experiment_report import (
+        diagnostic_figures,
+        load_evidence,
+        strength_figures,
+        write_dashboard,
+    )
+
+    from .bundle import Bundle
+
+    Bundle.model_validate_json((evidence / "bundle.json").read_text()).verify(evidence)
+    retained = load_evidence(evidence)
+    out.mkdir(parents=True, exist_ok=True)
+    write_comparison_notebook(evidence, out / "report.ipynb")
+    path = write_dashboard(
+        retained,
+        out / "comparison.html",
+        question="Remote job progress and checkpoint monitoring",
+        docs="https://github.com/loopflowstudio/etude/blob/main/docs/experiment-metrics.md",
+        sections=[
+            (
+                "Checkpoint monitoring",
+                "comparisons",
+                strength_figures(retained, "training_seconds"),
+            ),
+            ("Learning diagnostics", "sampling", diagnostic_figures(retained)),
+        ],
+        notes="Disconnected execution proof; monitoring does not establish scientific strength.",
+    )
+    typer.echo(str(path))

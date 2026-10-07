@@ -76,8 +76,16 @@ def snapshot_evidence(root: Path, snapshot: Path) -> TrainingRun | None:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source_path, target)
             verify_file(target, artifact.sha256, artifact.bytes)
-        (snapshot / "training-dashboard.json").write_text(training_dashboard(run).model_dump_json(indent=2))
-    for name in ("training.log", "bootstrap.log", "toolchain.txt", "bootstrap-timing.json", "training-exit.txt"):
+        (snapshot / "training-dashboard.json").write_text(
+            training_dashboard(run).model_dump_json(indent=2)
+        )
+    for name in (
+        "training.log",
+        "bootstrap.log",
+        "toolchain.txt",
+        "bootstrap-timing.json",
+        "training-exit.txt",
+    ):
         path = root / name
         if path.exists():
             # Logs may be growing; this generation binds exactly the copied prefix.
@@ -101,7 +109,11 @@ def snapshot_evidence(root: Path, snapshot: Path) -> TrainingRun | None:
 
 
 def publish_snapshot(
-    spec: RemoteJobSpec, root: Path, generation: int, *, complete: bool,
+    spec: RemoteJobSpec,
+    root: Path,
+    generation: int,
+    *,
+    complete: bool,
     artifacts: S3ArtifactStore | None = None,
 ) -> StoredArtifact:
     artifacts = artifacts or S3ArtifactStore()
@@ -115,13 +127,29 @@ def publish_snapshot(
             if not path.is_file():
                 continue
             relative = path.relative_to(snapshot).as_posix()
-            item = BundleFile(producer_path=str(root / relative), relative_path=relative,
-                              size=path.stat().st_size, sha256=digest(path.read_bytes()))
-            references.append(artifacts.publish(path, destination, sha256=item.sha256, size=item.size))
+            item = BundleFile(
+                producer_path=str(root / relative),
+                relative_path=relative,
+                size=path.stat().st_size,
+                sha256=digest(path.read_bytes()),
+            )
+            references.append(
+                artifacts.publish(path, destination, sha256=item.sha256, size=item.size)
+            )
             entries.append(item)
-        manifest = JobManifest(spec_sha256=spec.identity, generation=generation,
-                               complete=complete, bundle=Bundle(files=tuple(entries)), artifacts=tuple(references))
+        manifest = JobManifest(
+            spec_sha256=spec.identity,
+            generation=generation,
+            complete=complete,
+            bundle=Bundle(files=tuple(entries)),
+            artifacts=tuple(references),
+        )
         path = snapshot / "manifest.json"
         path.write_text(manifest.model_dump_json(indent=2))
         # Publish the manifest only after every referenced blob passes readback.
-        return artifacts.publish(path, destination, sha256=digest(path.read_bytes()), size=path.stat().st_size)
+        return artifacts.publish(
+            path,
+            destination,
+            sha256=digest(path.read_bytes()),
+            size=path.stat().st_size,
+        )

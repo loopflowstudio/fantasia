@@ -5,6 +5,7 @@ own learning; RemoteJobRecord reports supervisor liveness and evidence publicati
 No state here authorizes restarting an interrupted learner.
 """
 
+import json
 import time
 from typing import Literal
 
@@ -17,7 +18,9 @@ from .plan import DeploymentPlan, Frozen, digest
 from .provider import Pod
 
 DEFAULT_JOBS = "s3://etudefantasia/manabot/jobs"
-JobPhase = Literal["accepted", "running", "finalizing", "completed", "failed", "cancelled", "deadline"]
+JobPhase = Literal[
+    "accepted", "running", "finalizing", "completed", "failed", "cancelled", "deadline"
+]
 
 
 class RemoteJobSpec(Frozen):
@@ -40,14 +43,23 @@ class RemoteJobSpec(Frozen):
         if self.deadline != self.created_at + self.plan.mix.wall_seconds:
             raise ValueError("job deadline must bind the original rental allowance")
         if self.plan.mix.wall_seconds > 12 * 3600:
-            raise ValueError("remote job credential lifetime is bounded to twelve hours")
+            raise ValueError(
+                "remote job credential lifetime is bounded to twelve hours"
+            )
         if self.monitoring is not None:
             if self.plan.mix.vcpus < 2:
                 raise ValueError("monitoring requires a separate allocated CPU")
-            if any(s.execution.threads >= self.plan.mix.vcpus for s in self.plan.regime.stages):
+            if any(
+                s.execution.threads >= self.plan.mix.vcpus
+                for s in self.plan.regime.stages
+            ):
                 raise ValueError("reserve one allocated CPU for the evaluator")
             if self.monitoring.attempt_seconds > self.monitoring.seconds:
                 raise ValueError("evaluation attempt exceeds cumulative allocation")
+        if self.experiment_json is not None:
+            receipt = json.loads(self.experiment_json)
+            if receipt.get("regime") != json.loads(self.plan.input_json):
+                raise ValueError("Experiment receipt differs from deployment input")
         return self
 
     @property
@@ -60,7 +72,11 @@ class RemoteJobSpec(Frozen):
 
     @property
     def work_deadline(self) -> float:
-        return self.deadline - self.plan.mix.transfer_seconds - self.plan.mix.cleanup_seconds
+        return (
+            self.deadline
+            - self.plan.mix.transfer_seconds
+            - self.plan.mix.cleanup_seconds
+        )
 
 
 class CreateClaim(Frozen):
@@ -113,5 +129,6 @@ class RemoteJobStatus(Frozen):
     def stale(self) -> bool:
         return self.record is None or (
             not self.record.terminal
-            and self.observed_at - self.record.heartbeat_at > max(90, 3 * self.spec.publish_seconds)
+            and self.observed_at - self.record.heartbeat_at
+            > max(90, 3 * self.spec.publish_seconds)
         )

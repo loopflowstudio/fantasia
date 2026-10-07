@@ -1,27 +1,21 @@
-# ETU-123 assumptions and coordination
+# ETU-123 implementation decisions
 
-2026-10-06: Remote jobs use private versioned S3 for immutable intent, conditional
-creation claims, supervisor status and artifact manifests. A create claim is never
-reissued: an unobserved provider operation remains ambiguous even when inventory
-is temporarily empty. No automatic process restart or lease stealing is admitted.
-A fresh client observes/fetches by ID using the normal AWS/RunPod credentials.
+2026-10-06: Permanent S3 create claims fence uncertain provider operations. No
+lease takeover or process restart is admitted. New IDs are never a retry mechanism.
 
-The ETU-103 contribution request failed: `Task input belongs to a stale or different
-Flow`. Read-only Task status confirms Jack Heart's shared $3 reservation direction,
-but the shared spend ledger/reservation is not confirmed. No rental is permitted
-until that coordination succeeds. PR253 is published and unmerged at e052ac30;
-its active checkout is unchanged. Implementation uses landed APIs.
+Jack Heart confirmed PR253 shared API freeze and the $3 reservation within the
+same $15 ETU-103 allocation. Its five prior rentals total $0.5359766177 and are
+deleted. PR253 e052ac30 was integrated with `lf sync`; its checkout is unchanged.
+Historical ETU-103 calibration assumptions remain at that commit. Scientific
+capacity execution remains blocked on delivered integration, not launched here.
 
-# ETU-103 material assumption
+SSO cannot issue GetFederationToken. The explicitly configured manabot-remote-jobs
+role trusts the current AWS principal and grants only job-control reads and
+runtime evidence writes. Job-specific session policy narrows it further. SSO
+role chaining admits less than one hour including reserves; longer jobs require
+an appropriate non-chained credential source and still expire after their deadline.
+No provider account key is forwarded. No other existing role was changed.
 
-Jack Heart requested a concrete revised time plan before calibration exceeded its
-remaining allocation, with autonomous headless execution. Codex interprets this
-as permitting a reported reallocation within the same combined 14 hours and $15,
-not additional total time or money: 2h25m calibration and 11h35m comparison.
-The extra 25 minutes funds only the required live-workflow/L4 fit proof and freeze.
-Prior attempts remain immutable. This is an operator decision, not a claim that
-Jack Heart separately approved these exact revised phase numbers. Another overrun
-stops execution; it does not authorize a further extension.
-
-Sync check (2026-10-06): transport observer/bootstrap pytest collection blocked by
-missing `managym._managym` native extension; no behavioral result obtained.
+Remote execution begins from provider startup, so setup too survives the client.
+Acceptance is observed after source setup and resource admission. Missing setup
+heartbeats remain unavailable; the shell guardian owns the original deadline.

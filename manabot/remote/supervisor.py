@@ -34,8 +34,12 @@ def stop_process(process: subprocess.Popen[bytes]) -> None:
 
 
 def supervise(
-    spec: RemoteJobSpec, store: JobStore, root: Path, pod_id: str,
-    *, command: list[str] | None = None,
+    spec: RemoteJobSpec,
+    store: JobStore,
+    root: Path,
+    pod_id: str,
+    *,
+    command: list[str] | None = None,
     publish: Callable[..., StoredArtifact] = publish_snapshot,
 ) -> RemoteJobRecord:
     """Execute once. Injection points support real-process offline lifecycle tests."""
@@ -50,15 +54,24 @@ def supervise(
         raise ValueError("job already started; CUDA process recovery is unsupported")
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     now = time.time()
-    record = RemoteJobRecord(spec_sha256=spec.identity, pod_id=pod_id, phase="accepted",
-                             accepted_at=now, heartbeat_at=now)
+    record = RemoteJobRecord(
+        spec_sha256=spec.identity,
+        pod_id=pod_id,
+        phase="accepted",
+        accepted_at=now,
+        heartbeat_at=now,
+    )
     previous: StoredValue | None = None
 
     def persist() -> None:
         nonlocal previous, record
         record = record.model_copy(update={"heartbeat_at": time.time()})
         data = record.model_dump_json().encode()
-        okay = store.create("runtime/record.json", data) if previous is None else store.replace("runtime/record.json", data, previous.etag)
+        okay = (
+            store.create("runtime/record.json", data)
+            if previous is None
+            else store.replace("runtime/record.json", data, previous.etag)
+        )
         if not okay:
             raise RuntimeError("remote job record ownership changed")
         previous = store.read("runtime/record.json")
@@ -73,59 +86,141 @@ def supervise(
     run_path = root / "run/run.json"
     try:
         if store.read("cancel.json") is not None:
-            record = record.model_copy(update={"phase": "cancelled", "cancel_acknowledged_at": time.time()})
+            record = record.model_copy(
+                update={"phase": "cancelled", "cancel_acknowledged_at": time.time()}
+            )
         elif time.time() >= spec.work_deadline:
             record = record.model_copy(update={"phase": "deadline"})
         else:
             if spec.monitoring is not None:
                 queue = CheckpointQueue(root / "monitoring", spec.monitoring)
             with (root / "training.log").open("ab") as log:
-                learner = subprocess.Popen(command or [
-                    "uv", "run", "--no-sync", "manabot", "train", "--regime", str(recipe),
-                    "--seed", str(spec.plan.seed), "--out", str(root / "run"),
-                    "--checkpoint-seconds", str(spec.checkpoint_seconds),
-                ], stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+                learner = subprocess.Popen(
+                    command
+                    or [
+                        "uv",
+                        "run",
+                        "--no-sync",
+                        "manabot",
+                        "train",
+                        "--regime",
+                        str(recipe),
+                        "--seed",
+                        str(spec.plan.seed),
+                        "--out",
+                        str(root / "run"),
+                        "--checkpoint-seconds",
+                        str(spec.checkpoint_seconds),
+                    ],
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
             record = record.model_copy(update={"phase": "running"})
             persist()
             last_upload = float("-inf")
             while True:
                 if store.read("cancel.json") is not None:
-                    record = record.model_copy(update={"phase": "cancelled", "cancel_acknowledged_at": time.time()})
+                    record = record.model_copy(
+                        update={
+                            "phase": "cancelled",
+                            "cancel_acknowledged_at": time.time(),
+                        }
+                    )
                     break
                 if time.time() >= spec.work_deadline:
                     record = record.model_copy(update={"phase": "deadline"})
                     break
                 sources = [run_path] if run_path.exists() else []
                 if queue is not None:
-                    queue.tick(sources, launch=time.time() + queue.config.attempt_seconds < spec.work_deadline)
+                    queue.tick(
+                        sources,
+                        launch=time.time() + queue.config.attempt_seconds
+                        < spec.work_deadline,
+                    )
                 if sources:
                     run = TrainingRun.model_validate_json(run_path.read_bytes())
-                    record = record.model_copy(update={"run_id": run.id, "updates": sum(s.updates for s in run.stages)})
+                    record = record.model_copy(
+                        update={"run_id": run.id, "updates": run.updates_through()}
+                    )
                 if time.time() - last_upload >= spec.publish_seconds:
                     try:
-                        manifest = publish(spec, root, record.generation + 1, complete=False)
-                        record = record.model_copy(update={"generation": record.generation + 1, "manifest": manifest})
+                        manifest = publish(
+                            spec, root, record.generation + 1, complete=False
+                        )
+                        record = record.model_copy(
+                            update={
+                                "generation": record.generation + 1,
+                                "manifest": manifest,
+                            }
+                        )
                     except Exception as error:
-                        record = record.model_copy(update={"error": f"snapshot upload failed ({type(error).__name__})"})
+                        record = record.model_copy(
+                            update={
+                                "error": f"snapshot upload failed ({type(error).__name__})"
+                            }
+                        )
                     last_upload = time.time()
                 if queue is not None:
-                    record = record.model_copy(update={"evaluations_completed": sum(a.status == "completed" for a in queue.attempts), "evaluator_seconds": queue.charged_seconds})
+                    record = record.model_copy(
+                        update={
+                            "evaluations_completed": sum(
+                                a.status == "completed" for a in queue.attempts
+                            ),
+                            "evaluator_seconds": queue.charged_seconds,
+                        }
+                    )
                 persist()
                 if learner.poll() is not None:
                     if learner.returncode != 0:
-                        record = record.model_copy(update={"phase": "failed", "error": f"learner exited {learner.returncode}"})
+                        record = record.model_copy(
+                            update={
+                                "phase": "failed",
+                                "error": f"learner exited {learner.returncode}",
+                            }
+                        )
                         break
-                    if queue is None or (queue.process is None and (queue.pending == 0 or queue.config.seconds - queue.charged_seconds < queue.config.attempt_seconds)):
-                        if not run_path.exists() or TrainingRun.model_validate_json(run_path.read_bytes()).status != "completed":
-                            record = record.model_copy(update={"phase": "failed", "error": "learner exited without completed TrainingRun"})
-                        elif queue is not None and any(a.status != "completed" for a in queue.attempts):
-                            record = record.model_copy(update={"phase": "failed", "error": "milestone evaluation incomplete"})
+                    if queue is None or (
+                        queue.process is None
+                        and (
+                            queue.pending == 0
+                            or queue.config.seconds - queue.charged_seconds
+                            < queue.config.attempt_seconds
+                        )
+                    ):
+                        if (
+                            not run_path.exists()
+                            or TrainingRun.model_validate_json(
+                                run_path.read_bytes()
+                            ).status
+                            != "completed"
+                        ):
+                            record = record.model_copy(
+                                update={
+                                    "phase": "failed",
+                                    "error": "learner exited without completed TrainingRun",
+                                }
+                            )
+                        elif queue is not None and any(
+                            a.status != "completed" for a in queue.attempts
+                        ):
+                            record = record.model_copy(
+                                update={
+                                    "phase": "failed",
+                                    "error": "milestone evaluation incomplete",
+                                }
+                            )
                         else:
                             record = record.model_copy(update={"phase": "completed"})
                         break
                 time.sleep(1)
     except Exception as error:
-        record = record.model_copy(update={"phase": "failed", "error": f"supervisor failed ({type(error).__name__})"})
+        record = record.model_copy(
+            update={
+                "phase": "failed",
+                "error": f"supervisor failed ({type(error).__name__})",
+            }
+        )
     finally:
         if learner is not None:
             stop_process(learner)
@@ -137,9 +232,20 @@ def supervise(
         try:
             persist()
             manifest = publish(spec, root, record.generation + 1, complete=True)
-            record = record.model_copy(update={"generation": record.generation + 1, "manifest": manifest, "artifacts_complete": True})
+            record = record.model_copy(
+                update={
+                    "generation": record.generation + 1,
+                    "manifest": manifest,
+                    "artifacts_complete": True,
+                }
+            )
         except Exception as error:
-            record = record.model_copy(update={"error": f"final upload incomplete ({type(error).__name__})", "artifacts_complete": False})
+            record = record.model_copy(
+                update={
+                    "error": f"final upload incomplete ({type(error).__name__})",
+                    "artifacts_complete": False,
+                }
+            )
         record = record.model_copy(update={"phase": terminal})
         try:
             persist()
@@ -164,8 +270,13 @@ def main() -> None:
         supervise(spec, store, Path("/workspace/evidence"), pod_id)
     finally:
         # No account key is forwarded. The same pod-scoped identity as guardian.
-        subprocess.run(["runpodctl", "remove", "pod", pod_id], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, timeout=20, check=False)
+        subprocess.run(
+            ["runpodctl", "remove", "pod", pod_id],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=20,
+            check=False,
+        )
 
 
 if __name__ == "__main__":

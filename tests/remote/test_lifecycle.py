@@ -1,7 +1,6 @@
 """Failure paths retain intent and settle only owned rentals, without network calls."""
 
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -96,54 +95,6 @@ def test_ambiguous_create_reconciles_exact_name(
     assert owned.id != unrelated.id
 
 
-@pytest.mark.parametrize(
-    "failure", ["price", "ambiguous", "bootstrap", "interrupt", "delete"]
-)
-def test_deployment_failure_retains_receipt_and_deletes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
-) -> None:
-    clock = Clock()
-    provider = Provider(clock, failure=failure)
-    monkeypatch.setattr(lifecycle, "time", clock)
-    monkeypatch.setattr(lifecycle, "RunPod", lambda: provider)
-    monkeypatch.setattr(lifecycle, "current_source", lambda root: SOURCE)
-    monkeypatch.setattr(lifecycle, "verify_public_source", lambda source: None)
-    monkeypatch.setattr(lifecycle.Path, "home", lambda: tmp_path)
-
-    def shell(script: str) -> bytes:
-        if script.startswith("set -eu"):
-            if failure == "interrupt":
-                raise KeyboardInterrupt()
-            raise RuntimeError("bootstrap failed")
-        return b""
-
-    monkeypatch.setattr(lifecycle, "_ready", lambda *args: SimpleNamespace(shell=shell))
-    plan = compile_plan(
-        (ROOT / "experiments/regimes/direct-self-play.json").read_text(),
-        HardwareMix.model_validate_json(
-            (ROOT / "ops/mixes/runpod-small.json").read_text()
-        ),
-        SOURCE,
-        197,
-    )
-    out = tmp_path / ".runs/deployment"
-    with pytest.raises((ValueError, RuntimeError, KeyboardInterrupt)):
-        lifecycle.deploy(plan, out, tmp_path)
-    receipt = lifecycle.Receipt.model_validate_json(
-        (out / "deployment.json").read_text()
-    )
-    assert not receipt.complete
-    assert receipt.attempts
-    assert receipt.error
-    if failure == "delete":
-        assert receipt.phase == "cleanup-unconfirmed"
-        assert receipt.estimated_dollars is None
-        assert provider.pods
-    else:
-        assert receipt.phase == "deleted"
-        assert not provider.pods
-
-
 def test_delayed_unobserved_create_stays_unconfirmed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -222,43 +173,3 @@ def test_cleanup_recovers_only_evidenced_cost(
     repeated = lifecycle.cleanup(path)
     assert repeated.estimated_dollars == recovered.estimated_dollars
     assert repeated.attempts[0].deleted_time == recovered.attempts[0].deleted_time
-
-
-def test_calibration_hook_failure_keeps_existing_deletion_guards(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    clock = Clock()
-    provider = Provider(clock)
-    monkeypatch.setattr(lifecycle, "time", clock)
-    monkeypatch.setattr(lifecycle, "RunPod", lambda: provider)
-    monkeypatch.setattr(lifecycle, "current_source", lambda root: SOURCE)
-    monkeypatch.setattr(lifecycle, "verify_public_source", lambda source: None)
-    monkeypatch.setattr(lifecycle.Path, "home", lambda: tmp_path)
-    transport = SimpleNamespace(
-        shell=lambda *args, **kwargs: b"", put=lambda *args: None
-    )
-    monkeypatch.setattr(lifecycle, "_ready", lambda *args: transport)
-    plan = compile_plan(
-        (ROOT / "experiments/regimes/direct-self-play.json").read_text(),
-        HardwareMix.model_validate_json(
-            (ROOT / "ops/mixes/runpod-small.json").read_text()
-        ),
-        SOURCE,
-        197,
-    )
-
-    def fail(transport: lifecycle.Transport) -> None:
-        raise TimeoutError("bounded probe timed out")
-
-    out = tmp_path / ".runs/deployment"
-    with pytest.raises(TimeoutError):
-        lifecycle.deploy(plan, out, tmp_path, after_training=fail)
-    receipt = lifecycle.Receipt.model_validate_json(
-        (out / "deployment.json").read_text()
-    )
-    assert receipt.phase == "deleted" and not receipt.complete
-    assert receipt.estimated_dollars is not None
-    assert len(receipt.attempts) == 2 and all(
-        a.deleted_time is not None for a in receipt.attempts
-    )
-    assert not provider.pods

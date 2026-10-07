@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import shutil
 import time
-from typing import Callable
+from typing import TYPE_CHECKING, Callable, Literal
 
 from manabot.infra.artifacts import S3ArtifactStore
 from manabot.training.checkpoint_queue import MonitoringBudget
@@ -29,18 +29,35 @@ from .plan import DeploymentPlan
 from .provider import ProviderError, RunPod
 from .transport import job_startup, startup
 
+if TYPE_CHECKING:
+    from manabot.training.experiments import ResolvedCase
+
+    from .plan import HardwareMix, Source
+
 
 def _bound_resource(spec: RemoteJobSpec, resource: Resource) -> None:
     pod, mix = resource.pod, spec.plan.mix
     if resource.claim.spec_sha256 != spec.identity or pod.name != resource.claim.name:
         raise ValueError("provider resource does not belong to this job")
-    if pod.gpu_count != mix.gpu_count or not 0 < pod.rate <= mix.hourly_ceiling or pod.vcpus < mix.vcpus or pod.memory_gb < mix.memory_gb:
-        raise ValueError("assigned rental fails declared price/resource admission; cancel job")
+    if (
+        pod.gpu_count != mix.gpu_count
+        or not 0 < pod.rate <= mix.hourly_ceiling
+        or pod.vcpus < mix.vcpus
+        or pod.memory_gb < mix.memory_gb
+    ):
+        raise ValueError(
+            "assigned rental fails declared price/resource admission; cancel job"
+        )
 
 
 def _provision(
-    spec: RemoteJobSpec, store: JobStore, provider: RunPod,
-    purpose: str, deadline: float, script: str, environment: dict[str, str],
+    spec: RemoteJobSpec,
+    store: JobStore,
+    provider: RunPod,
+    purpose: Literal["guardian", "training"],
+    deadline: float,
+    script: str,
+    environment: dict[str, str],
 ) -> Resource:
     key = f"{purpose}.json"
     stored = store.read(key)
@@ -54,35 +71,62 @@ def _provision(
         claim = CreateClaim.model_validate_json(stored_claim.data)
     else:
         claim = CreateClaim(
-            spec_sha256=spec.identity, name=f"manabot-{spec.identity[:32]}-{purpose}",
-            purpose=purpose, intent_time=time.time(), deadline=deadline,
+            spec_sha256=spec.identity,
+            name=f"manabot-{spec.identity[:32]}-{purpose}",
+            purpose=purpose,
+            intent_time=time.time(),
+            deadline=deadline,
         )
     prices = provider.prices() if stored_claim is None else {}
     mix = spec.plan.mix
-    candidates = [g for g in mix.gpu_types if 0 < prices.get(g, float("inf")) <= mix.hourly_ceiling]
+    candidates = [
+        g
+        for g in mix.gpu_types
+        if 0 < prices.get(g, float("inf")) <= mix.hourly_ceiling
+    ]
     if stored_claim is None and not candidates:
         raise ValueError("no declared GPU has an admitted live price")
-    winner = stored_claim is None and store.create(claim_key, claim.model_dump_json().encode())
+    winner = stored_claim is None and store.create(
+        claim_key, claim.model_dump_json().encode()
+    )
     if winner:
+        if time.time() + 20 >= deadline:
+            raise TimeoutError(
+                "creation deadline expired; retained claim will not be retried"
+            )
         # The fence is intentionally permanent even if this process dies here.
-        pod = provider.create({
-            "name": claim.name, "imageName": mix.image, "cloudType": "SECURE",
-            "computeType": "GPU", "gpuCount": 1, "gpuTypeIds": candidates,
-            "gpuTypePriority": "custom", "minVCPUPerGPU": mix.vcpus,
-            "minRAMPerGPU": mix.memory_gb, "containerDiskInGb": mix.container_gb,
-            "volumeInGb": mix.volume_gb, "volumeMountPath": "/workspace",
-            "dockerEntrypoint": ["/bin/bash", "-c"], "dockerStartCmd": [script],
-            "env": environment,
-        })
+        pod = provider.create(
+            {
+                "name": claim.name,
+                "imageName": mix.image,
+                "cloudType": "SECURE",
+                "computeType": "GPU",
+                "gpuCount": 1,
+                "gpuTypeIds": candidates,
+                "gpuTypePriority": "custom",
+                "minVCPUPerGPU": mix.vcpus,
+                "minRAMPerGPU": mix.memory_gb,
+                "containerDiskInGb": mix.container_gb,
+                "volumeInGb": mix.volume_gb,
+                "volumeMountPath": "/workspace",
+                "dockerEntrypoint": ["/bin/bash", "-c"],
+                "dockerStartCmd": [script],
+                "env": environment,
+            }
+        )
     else:
         # A loser must load the winning claim (its timestamp may differ).
         existing = store.read(claim_key)
         if existing is None:
-            raise RuntimeError("creation claim unavailable; reconcile, do not resubmit a new ID")
+            raise RuntimeError(
+                "creation claim unavailable; reconcile, do not resubmit a new ID"
+            )
         claim = CreateClaim.model_validate_json(existing.data)
         matches = [p for p in provider.list() if p.name == claim.name]
         if len(matches) != 1:
-            raise RuntimeError("provider creation ambiguous; inspect this job ID, never retry with a new ID")
+            raise RuntimeError(
+                "provider creation ambiguous; inspect this job ID, never retry with a new ID"
+            )
         pod = matches[0]
     resource = Resource(claim=claim, pod=pod)
     # Retain bad assignments too, so explicit cancellation knows exact ownership.
@@ -92,23 +136,35 @@ def _provision(
             raise RuntimeError("resource receipt unavailable")
         resource = Resource.model_validate_json(observed.data)
         if resource.pod.id != pod.id:
-            raise ValueError("conflicting provider resources; manual reconciliation required")
+            raise ValueError(
+                "conflicting provider resources; manual reconciliation required"
+            )
     _bound_resource(spec, resource)
     return resource
 
 
 def prepare_job(
-    plan: DeploymentPlan, job_id: str, *, destination: str = DEFAULT_JOBS,
-    monitoring: MonitoringBudget | None = None, checkpoint_seconds: float = 60,
-    publish_seconds: float = 30, experiment_json: str | None = None,
+    plan: DeploymentPlan,
+    job_id: str,
+    *,
+    destination: str = DEFAULT_JOBS,
+    monitoring: MonitoringBudget | None = None,
+    checkpoint_seconds: float = 60,
+    publish_seconds: float = 30,
+    experiment_json: str | None = None,
     store: JobStore | None = None,
 ) -> RemoteJobSpec:
     """Persist intent before renting; repeated IDs retain the first absolute deadline."""
     now = time.time()
     spec = RemoteJobSpec(
-        job_id=job_id, plan=plan, created_at=now, deadline=now + plan.mix.wall_seconds,
-        destination=destination, monitoring=monitoring,
-        checkpoint_seconds=checkpoint_seconds, publish_seconds=publish_seconds,
+        job_id=job_id,
+        plan=plan,
+        created_at=now,
+        deadline=now + plan.mix.wall_seconds,
+        destination=destination,
+        monitoring=monitoring,
+        checkpoint_seconds=checkpoint_seconds,
+        publish_seconds=publish_seconds,
         experiment_json=experiment_json,
     )
     store = store or S3JobStore(spec.prefix)
@@ -117,14 +173,19 @@ def prepare_job(
         if existing is None:
             raise RuntimeError("job intent unavailable; reconcile by ID")
         previous = RemoteJobSpec.model_validate_json(existing.data)
-        if previous.model_dump(exclude={"created_at", "deadline"}) != spec.model_dump(exclude={"created_at", "deadline"}):
+        if previous.model_dump(exclude={"created_at", "deadline"}) != spec.model_dump(
+            exclude={"created_at", "deadline"}
+        ):
             raise ValueError("job ID already binds different immutable content")
         return previous
     return spec
 
 
 def submit_job(
-    spec: RemoteJobSpec, *, store: JobStore | None = None, provider: RunPod | None = None,
+    spec: RemoteJobSpec,
+    *,
+    store: JobStore | None = None,
+    provider: RunPod | None = None,
     credentials: Callable[[RemoteJobSpec], dict[str, str]] = worker_credentials,
 ) -> RemoteJobStatus:
     """Provision up to acceptance; interruption is reconciled with the same spec.
@@ -133,11 +194,20 @@ def submit_job(
     process. The separate startup guardian bounds billing before any bootstrap.
     """
     store = store or S3JobStore(spec.prefix)
+    spec = RemoteJobSpec.model_validate_json(spec.model_dump_json())
+    intent = store.read("spec.json")
+    if (
+        intent is None
+        or RemoteJobSpec.model_validate_json(intent.data).identity != spec.identity
+    ):
+        raise ValueError("submission differs from durable job intent")
     provider = provider or RunPod()
     if store.read("runtime/record.json") is not None:
         return job_status(spec, store=store, provider=provider)
     if time.time() >= spec.work_deadline or store.read("cancel.json") is not None:
-        raise ValueError("job deadline expired or cancellation requested; inspect/cancel this ID")
+        raise ValueError(
+            "job deadline expired or cancellation requested; inspect/cancel this ID"
+        )
     verify_public_source(spec.plan.source)
     # Resolve credentials before acquiring the provider-create fence or spending.
     environment = credentials(spec)
@@ -145,20 +215,32 @@ def submit_job(
     if store.read(probe_key) is None:
         deadline = min(spec.created_at + 90, spec.work_deadline)
         # No SSH connection or private key is needed to prove self-deletion.
-        probe = _provision(spec, store, provider, "guardian", deadline,
-                           startup(int(deadline), "ssh-ed25519 AAAA manabot-probe"), {})
+        probe = _provision(
+            spec,
+            store,
+            provider,
+            "guardian",
+            deadline,
+            startup(int(deadline), "ssh-ed25519 AAAA manabot-probe"),
+            {},
+        )
         while time.time() < deadline + 30:
             if provider.get(probe.pod.id) is None:
                 if time.time() < deadline - 2:
                     raise ValueError("guardian probe disappeared before its deadline")
-                store.create(probe_key, json.dumps({"confirmed_at": time.time()}).encode())
+                store.create(
+                    probe_key, json.dumps({"confirmed_at": time.time()}).encode()
+                )
                 break
             time.sleep(2)
         else:
-            raise RuntimeError("guardian deletion unconfirmed; cancel this job before further rental")
+            raise RuntimeError(
+                "guardian deletion unconfirmed; cancel this job before further rental"
+            )
     environment.update({"MANABOT_JOB_PREFIX": spec.prefix})
-    _provision(spec, store, provider, "training", spec.deadline,
-               job_startup(spec), environment)
+    _provision(
+        spec, store, provider, "training", spec.deadline, job_startup(spec), environment
+    )
     # Once launched, all setup/training/upload/deletion is remote-owned. A lost
     # acknowledgement is resolved by this same read; no finally block cancels it.
     while time.time() < spec.created_at + spec.plan.mix.setup_seconds:
@@ -166,9 +248,13 @@ def submit_job(
         if status.record is not None:
             return status
         if status.provider_state == "absent":
-            raise RuntimeError("rental disappeared before remote acceptance; evidence may be incomplete")
+            raise RuntimeError(
+                "rental disappeared before remote acceptance; evidence may be incomplete"
+            )
         time.sleep(2)
-    raise TimeoutError(f"remote acceptance not observed; reconnect to job {spec.job_id}")
+    raise TimeoutError(
+        f"remote acceptance not observed; reconnect to job {spec.job_id}"
+    )
 
 
 def load_job(job_id: str, destination: str = DEFAULT_JOBS) -> RemoteJobSpec:
@@ -187,7 +273,10 @@ def load_job(job_id: str, destination: str = DEFAULT_JOBS) -> RemoteJobSpec:
 
 
 def job_status(
-    spec: RemoteJobSpec, *, store: JobStore | None = None, provider: RunPod | None = None,
+    spec: RemoteJobSpec,
+    *,
+    store: JobStore | None = None,
+    provider: RunPod | None = None,
 ) -> RemoteJobStatus:
     store = store or S3JobStore(spec.prefix)
     raw = store.read("runtime/record.json")
@@ -198,11 +287,16 @@ def job_status(
     unsettled = False
     costs = 0.0
     for purpose in ("guardian", "training"):
-        claim_raw, resource_raw = store.read(f"{purpose}-claim.json"), store.read(f"{purpose}.json")
+        claim_raw, resource_raw = (
+            store.read(f"{purpose}-claim.json"),
+            store.read(f"{purpose}.json"),
+        )
         if claim_raw is None:
             continue
         claim = CreateClaim.model_validate_json(claim_raw.data)
-        resource = Resource.model_validate_json(resource_raw.data) if resource_raw else None
+        resource = (
+            Resource.model_validate_json(resource_raw.data) if resource_raw else None
+        )
         if resource is None:
             unsettled, state = True, "ambiguous"
             continue
@@ -220,8 +314,15 @@ def job_status(
                 unsettled, state = True, "present"
                 continue
             ended = time.time()
-            deletion = Deletion(confirmed_at=ended, estimated_dollars=(ended - claim.intent_time) * (resource.pod.rate + spec.plan.mix.storage_hourly_allowance) / 3600)
-            store.create(f"{purpose}-deletion.json", deletion.model_dump_json().encode())
+            deletion = Deletion(
+                confirmed_at=ended,
+                estimated_dollars=(ended - claim.intent_time)
+                * (resource.pod.rate + spec.plan.mix.storage_hourly_allowance)
+                / 3600,
+            )
+            store.create(
+                f"{purpose}-deletion.json", deletion.model_dump_json().encode()
+            )
             saved = store.read(f"{purpose}-deletion.json")
             if saved is None:
                 raise RuntimeError("deletion receipt unavailable")
@@ -229,14 +330,25 @@ def job_status(
             state = "absent"
         except ProviderError:
             unsettled, state = True, "unknown"
-    cleanup = None if unsettled or state == "not-created" else Deletion(confirmed_at=time.time(), estimated_dollars=costs)
-    return RemoteJobStatus(spec=spec, record=record, provider_state=state, cleanup=cleanup)
+    cleanup = (
+        None
+        if unsettled or state == "not-created"
+        else Deletion(confirmed_at=time.time(), estimated_dollars=costs)
+    )
+    return RemoteJobStatus(
+        spec=spec, record=record, provider_state=state, cleanup=cleanup
+    )
 
 
 def cancel_job(spec: RemoteJobSpec, *, store: JobStore | None = None) -> None:
     """Request remote cancellation. Status distinguishes request from acknowledgement."""
     store = store or S3JobStore(spec.prefix)
-    store.create("cancel.json", json.dumps({"requested_at": time.time(), "spec_sha256": spec.identity}).encode())
+    store.create(
+        "cancel.json",
+        json.dumps(
+            {"requested_at": time.time(), "spec_sha256": spec.identity}
+        ).encode(),
+    )
 
 
 def fetch_job(spec: RemoteJobSpec, output: Path) -> Path:
@@ -251,8 +363,13 @@ def fetch_job(spec: RemoteJobSpec, output: Path) -> Path:
     artifacts = S3ArtifactStore()
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
     cache = output / "cache"
-    manifest = JobManifest.model_validate_json(artifacts.fetch(record.manifest, cache).read_bytes())
-    if manifest.spec_sha256 != spec.identity or manifest.generation != record.generation:
+    manifest = JobManifest.model_validate_json(
+        artifacts.fetch(record.manifest, cache).read_bytes()
+    )
+    if (
+        manifest.spec_sha256 != spec.identity
+        or manifest.generation != record.generation
+    ):
         raise ValueError("artifact generation differs from supervisor record")
     destination = output / f"generation-{manifest.generation:06d}"
     destination.mkdir(exist_ok=False, mode=0o700)
@@ -264,3 +381,66 @@ def fetch_job(spec: RemoteJobSpec, output: Path) -> Path:
     (destination / "bundle.json").write_text(manifest.bundle.model_dump_json(indent=2))
     (destination / "job.json").write_text(record.model_dump_json(indent=2))
     return destination
+
+
+def prepare_experiment_job(
+    case: "ResolvedCase",
+    mix: "HardwareMix",
+    source: "Source",
+    seed: int,
+    job_id: str,
+    *,
+    monitoring: MonitoringBudget,
+    destination: str = DEFAULT_JOBS,
+    checkpoint_seconds: float = 60,
+) -> RemoteJobSpec:
+    """Compile one resolved Experiment case through the ordinary job lifecycle.
+
+    The caller owns case/seed/cohort selection and cumulative campaign allocation;
+    this API never starts a hidden experiment scheduler or revises the declaration.
+    """
+    from .plan import compile_plan
+
+    plan = compile_plan(case.configuration, mix, source, seed)
+    return prepare_job(
+        plan,
+        job_id,
+        destination=destination,
+        monitoring=monitoring,
+        checkpoint_seconds=checkpoint_seconds,
+        experiment_json=json.dumps(case.receipt(), sort_keys=True),
+    )
+
+
+def reconcile_job(spec: RemoteJobSpec, *, delete: bool = False) -> RemoteJobStatus:
+    """Discover uncertain creates; optionally delete only exact job-owned resources.
+
+    Force deletion can discard an unpublished final generation. Normal cancel
+    leaves finalization to the worker; this path settles failed bootstrap/outages.
+    """
+    store, provider = S3JobStore(spec.prefix), RunPod()
+    for purpose in ("guardian", "training"):
+        raw = store.read(f"{purpose}-claim.json")
+        if raw is None:
+            continue
+        claim = CreateClaim.model_validate_json(raw.data)
+        if claim.spec_sha256 != spec.identity:
+            raise ValueError("creation claim belongs to another job")
+        pods = [p for p in provider.list() if p.name == claim.name]
+        if len(pods) > 1:
+            raise ValueError(
+                "multiple rentals share this job claim; manual reconciliation required"
+            )
+        if pods:
+            resource = Resource(claim=claim, pod=pods[0])
+            existing = store.read(f"{purpose}.json")
+            if (
+                existing is not None
+                and Resource.model_validate_json(existing.data).pod.id
+                != resource.pod.id
+            ):
+                raise ValueError("conflicting rental identity")
+            store.create(f"{purpose}.json", resource.model_dump_json().encode())
+            if delete:
+                provider.delete(resource.pod.id)
+    return job_status(spec, store=store, provider=provider)
