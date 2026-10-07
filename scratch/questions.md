@@ -1,8 +1,13 @@
 # ETU-118 open implementation assumptions
 
-- Jack Heart authorized the current laptop for the sustained allocation. ETU-116's
-  mini sequencing remains unchanged. Compatible evidence will be shared; no second
-  laptop study is inferred.
+- Jack Heart's 2026-10-07 restart direction moves the single sustained cohort to
+  mini after ETU-105 CPU release. The remaining original week follows that cohort;
+  no duplicate laptop run or separate ETU-116 duration study is inferred.
+- The calibration amendment reserves 7200 seconds inside that remaining week,
+  including three 1800-second learner caps, 1200 evaluator seconds and 600 seconds
+  of coordination/report overhead. It addresses the timeout for the newly selected depth2
+  recipe; the approved sustained horizon is 10000 updates, implementation pending. Live random monitoring uses its own
+  25-deal family at initialization and fixed stage milestones, not hourly exports.
 - Active runtime will mean occupied elapsed time while the machine is awake, not
   process CPU time. Evaluator overlap must also be retained as additive process
   occupancy; CPU seconds are separate. Known sleep and safe-pause downtime are

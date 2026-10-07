@@ -1,41 +1,159 @@
 # Current learning baseline — ETU-118
 
-Status: storage admitted; third calibration timed out; no sustained launch.
-The storage observation and calibration below are laptop evidence. Jack Heart's
-2026-10-07 restart direction moves the one sustained duration cohort to mini;
-daily-test validation remains open. No strength or chapter acceptance follows.
+Status: mini CPU released; selected 3 × 10,000-update cohort requires current-source
+calibration and launch implementation. Historical laptop failures remain charged.
+No sustained launch, baseline promotion or daily-test validation has occurred.
 
 ## Current mini execution direction (2026-10-07)
 
-Jack Heart requested actual supervised mini training after ETU-105's finite
-final/random scoring closeout. This supersedes laptop placement and earlier mini
-sequencing below, without rewriting those protocols or their evidence. ETU-118
-retains the masked-mean scalar candidate and original remaining allocation:
-601769.9884917501 active seconds before new charges; 3030.011508249935 seconds
-already charged. No duplicate laptop cohort, new week or technique selection from
-ETU-105 scores. ETU-116 duration and ETU-82 repeat-training acceptance stay here.
+Jack Heart selected ETU-105's completed actor-and-critic-filtered masked-mean scalar
+width64/depth2/heads4, no-history current-self recipe for three independent seeds
+× 10,000 updates. This supersedes the first-screen depth1 candidate and automatic
+12,800–102,400 horizon selection below. The choice is informed by early gains in
+all three ETU-105 seeds and no demonstrated equal-cost payoff for actor-only
+filtering. It is a conservative experiment, not a promoted baseline or an optimality
+claim. Optional all/none Ataraxos screens belong to ETU-105 and do not gate this run.
+ETU-116 duration and ETU-82 repeated training/export/play outcomes remain here;
+ETU-85 retains demo-opponent/human comparison. Software delivery alone cannot
+complete ETU-118.
 
-Use `lf ssh` to `jack@100.96.227.95`, repository `/Users/jack/src/etude`, and a remote
-supervisor that survives laptop closure. ETU-105's six 1240-update learners finished;
-its owning worker is scoring six endpoints × 100 games per opponent against greedy
-and random, with hard stop 2026-10-07 23:18:41 UTC (1791415121.724962). Wait for the
-explicit CPU-release/evaluator-exit evidence, not merely the deadline. Source:
-`/Users/jack/src/etude/.runs/etu105-mini-filter-scope-20261006-3-calibration-continuation`.
-Do not interrupt ETU-103 GPU work.
+### Handoff, placement and retained allocation
 
-Before scoring, amend the numeric calibration allowance within the remaining week,
-remeasure mini storage/source/runtime, and complete exact-recipe format-3 calibration.
-The old 220-second timeout and remaining 569.9884917500649-second exploration balance
-cannot support an unchanged retry. Freeze three-seed day-scale duration, initialization
-and hourly/declared 100-game greedy monitoring, a separately scheduled live random
-diagnostic, untouched final deals, clocks and safe pause/restart rules. The current
-runner still has laptop admission and final-only random scheduling; those require
-implementation before launch. Retain Experiment/TrainingRun/VerifyStore, arena,
-editable notebook → HTML, W&B and the existing S3 publication contract.
+The mini is `jack@100.96.227.95`, repository `/Users/jack/src/etude`; orchestration
+uses `lf ssh`. A remote supervisor must survive laptop closure. Jack Heart released
+ETU-105 CPU after all twelve final/random evaluation cells completed. Read-only
+inspection confirmed exit-zero/completed rows in
+`.runs/etu105-mini-filter-scope-final-20261007-1/supervisor.json`, SHA-256
+`52970cabb661dc96d2d434d2ef5ec0d24b0095d5544b6496274fa883908b9548`.
+At 2026-10-07 16:44:39 UTC none of its twelve child PIDs appeared and neither
+shared experiment/evaluator lease had an open owner. Fresh lease acquisition still
+owns launch admission. ETU-103 GPU work and ETU-105 retained source/evidence remain
+untouched. Host-local serial mini execution needs no shared-laptop fairness redesign.
 
-The Flow resumed at compress. Its next loop-decide must iterate for calibration and
-remote launch; publishing the stopped-calibration software is not the requested
-execution. PR251 delivery and scientific Task completion remain separate.
+The original 604800-active-second ceiling retains 3030.011508249935 seconds of
+preparation, leaving **601769.9884917501 seconds before new charges**. There is no
+fresh week, paid provisioning or duplicate laptop cohort. Known pause/sleep is
+separate; unknown restart gaps remain conservative charges. Experimental setup,
+matched-prefix checks, calibration, failures, training, monitoring, recovery and
+final reporting all consume this balance. Charge maximum elapsed/additive process
+occupancy once per attempt and retain both observations, not their sum.
+
+Mini free space at inspection was 60,449,624 KiB (57.65 GiB). The earlier 195.33 GiB
+readmission was on the laptop. Neither that laptop projection nor this mini free
+space observation replaces current mini source/runtime/storage admission. Preserve
+all originals and a 4 GiB reserve; insufficient capacity never authorizes deletion
+of another campaign's evidence.
+
+### Calibration amendment fixed before execution
+
+Jack Heart delegated amendment within the remaining week. This execution design
+reserves at most **7200 new active seconds** for one selected-recipe mini calibration
+and preparation: unchanged timing seeds 11841–11843 × 32 updates, 1800 seconds per
+learner, 1200 evaluator seconds (200 per initial/endpoint four-game cohort), and
+600 seconds for bounded matched-prefix/source checks and coordination/reporting.
+The 1800-second watchdog replaces the unsuccessful 220-second bound, not the
+learning recipe or sustained endpoint. Actual costs are charged; unused reserve
+remains available. Full consumption leaves 594569.9884917501 seconds before other
+new charges. No automatic retry or overwrite of prior attempts is authorized.
+
+This amendment replaces the old 3600-second exploration ceiling for this new
+attempt only; all prior charges and historical receipts remain unchanged. The
+runner still implements the old cap and must be amended before execution.
+Calibration scores cannot select recipes, seeds or endpoints. Jack Heart's roughly
+31-hour training estimate is a planning estimate, not current-source calibration.
+
+### Exact recipe and schedule semantics
+
+The source-bound authority is the actor-critic regimes in
+[data/etu105/filter-scope-mini.json.gz](data/etu105/filter-scope-mini.json.gz), with
+[original source provenance](ataraxos-technique-screen.md#sources-and-existing-evidence).
+The complete learning configuration, model, authored decks/sideboards, observation
+capacity, raw current-self behavior and Adam ownership carry forward. Four streams
+× 64 transitions remain 256 collected rows/update: 2.56M per 10,000-update run.
+All original ETU-105 artifacts remain immutable; its parent-discovered Git commit
+is not the exported source identity.
+
+The serialized historical recipe says `schedule_clock=run_elapsed_budget`, but
+its Ataraxos move rule actually calls `learning.rates(iteration)`. Retained
+learning diagnostics use the one-based collection/update count, 1–620 then
+621–1240, with no reset and including skipped updates. LR and tau ignore the
+wall-budget fraction on this path. Extending the watchdog therefore need not
+stretch this schedule. Preserve the serialized meaning and actual behavior;
+changing a field to imply equivalence is insufficient.
+
+The 2026-10-07 read-only audit compared all 3,720 retained actor-critic update rows
+against current `AtaraxosMoveLearning.rates`: LR/tau, iteration sequence, linked
+620+620 stages and 256-row collection settings agree. It performed no training
+and does not establish source-wide or recovery-path equivalence.
+
+The first stages remain linked 620 + 620 updates. Learner, Adam, EMA, live collector
+and iteration continue at the boundary. Later linked stages reach 2500, 5000, 7500
+and 10000. Scoring at 400/800 uses monitoring exports, not inserted stage boundaries.
+Current initialization/recovery differs from the historical source; a bounded
+matched-prefix comparison of learner/RNG/collector/continuation behavior is required
+before launch. Formula agreement is not complete training equivalence. Statistical
+reproducibility is the contract, not byte-identical stochastic runs across hosts.
+
+### Frozen cohort, monitoring and endpoint criterion
+
+Training seeds are 11851–11853, independent of timing and ETU-105 seeds. Freeze
+source/native/runtime/world, full resolved recipe, initial checkpoints, exact
+opponent/inference identities, deals, clocks, budgets and stopping rules before
+scoring. Current-source mini calibration must admit the fixed 10,000-update horizon
+using the existing conservative 1.5× slowest timing rule and measured retained
+storage, including format-3 recovery and evaluation. Failure cannot silently shorten
+or enlarge the cohort. The monitoring and final/reporting reserves remain 86,400
+seconds each within the original week; remaining learning is divided across seeds.
+
+Greedy monitoring uses deals 1911183000–1911183024 × all four deck/seat legs:
+100 games at initialization, updates 400/620/800/1240/2500/5000/7500/10000 and roughly
+hourly exports where practical. Duplicate artifact/coordinate triggers are scored
+once. A separately scheduled live random diagnostic uses 1911185000–1911185024,
+100 games at initialization and stage endpoints. Both run during training through
+the shared evaluator; opponent-specific curves must remain separate. These are
+inspected development deals. No monitoring score selects a checkpoint or stops
+training automatically; a flat curve prompts review.
+
+Untouched final deals 1911184000–1911184099 retain four legs each against both
+anchors at initialization, 800, 1240 and 10000 (24 complete cells). Preserve the
+historical criteria: mean greedy gain over initialization at least 10 points,
+positive in every seed and positive lower 95% paired training-seed bootstrap bound;
+at least 5 points mean gain over update800 with positive lower paired-seed bound;
+random mean regression no worse than 5 points from initialization. Add the same
+5-point/positive-lower-bound requirement versus update1240 to demonstrate progress
+beyond the selected recipe's early endpoint. This prospective addition does not
+weaken any historical threshold. Every failure and incomplete cell remains visible
+and suppresses acceptance; three seeds remain exploratory.
+
+Retain all checkpoints/seeds, paired changes, seed and deal uncertainty, plateaus,
+regressions, transitions, optimizer exposures, throughput, losses, entropy and full
+phase costs. Complete-state recovery preserves committed updates/exports; repeated
+post-snapshot work retains cost. Manual pause commits a learner boundary and drains
+the current bounded cohort. Physical lid closure remains untested. Three ordinary
+demo-loaded executions and complete games with both deck assignments are still
+required; arena replay alone does not satisfy that acceptance.
+
+Experiment, TrainingRun/VerifyStore and the arena retain execution authority.
+Create-once editable notebook cells generate read-only HTML with live progress,
+strength and freshness; W&B is a metric projection. The existing
+[S3 contract](../docs/training-monitoring.md#s3-model-and-artifact-storage) and
+`manabot/training/artifacts.py` own private model publication and verified readback.
+The contract is now located; mini credentials and actual archival remain unverified.
+Model publication is explicit for stopped/completed runs, not a new live recovery
+service. Daily-test derivation and independent validation follow sustained evidence.
+
+### Implementation boundary
+
+No selected-recipe plan, mini execution bundle or complete mini calibration exists.
+The current declaration still uses depth1, clamps calibration learners to 240 seconds,
+selects a minimum 12800 endpoint and scores random only at finalization. Analysis
+still expects 18 cells without a 1240 reference. Shared CheckpointQueue supports
+multiple protocols, but the Experiment schedule/runner does not supply that hook.
+The source-bundle helper makes a local immutable artifact; mini staging and supervised
+disconnect/recovery admission remain to be exercised. These are implementation and
+execution gaps under existing authorization, not a missing human-review decision.
+The [working design](../scratch/current-baseline.md) owns remaining implementation;
+publication of stopped-calibration software does not fulfill the requested launch.
 
 ## Weekly-first scope revision (2026-10-06)
 
@@ -250,7 +368,7 @@ refresh never overwrites notebook edits. Regenerate with:
 uv run --extra notebook python -m experiments.runners.current_baseline_report experiments/data/current-baseline-debugging.zip --output .runs/etu118-report/published.html
 ```
 
-## Sustained protocol, before calibration/scoring
+## Historical laptop sustained proposal (superseded 2026-10-07)
 
 The serious candidate keeps the masked-mean scalar architecture and Ataraxos
 move-learning controls above, with current-self collection. Absolute iteration
@@ -303,7 +421,8 @@ checkpoints or failed evaluation, not a claim inferred from RL loss. A daily tes
 is selected and independently validated only after this trajectory is established.
 
 
-The public run controls are:
+The historical interface examples below do not admit the selected mini cohort;
+its calibration allocation, recipe and analysis still require the changes above:
 
 ```bash
 uv run python -m experiments.runners.sustained_baseline calibrate .runs/etu118-calibration-3 --preparation-seconds 2789.1133701669414
@@ -422,8 +541,8 @@ and ETU-82 repeated training/export/play acceptance into ETU-118. Preserve the
 reserved mini sequence and separately authorized mini allocation; use one admitted
 trajectory for overlapping questions. Three complete independent executions must
 load through the ordinary demo and complete both deck assignments. Publish model
-bytes through the S3 contract and retain notebook/W&B reporting; the S3 contract
-has not been located in this checkout and remains a publication prerequisite.
+bytes through the S3 contract and retain notebook/W&B reporting. The contract was
+unlocated at this earlier readmission; the current mini section resolves that gap.
 ETU-85 retains the demo-opponent and exploratory human comparison.
 
 [Fresh storage admission](data/current-baseline-storage-readmission.json) records
@@ -472,4 +591,5 @@ calibration allocation/protocol must be explicitly fixed within the remaining we
 before another attempt; no cost reset or shortened toy endpoint is inferred.
 Sustained execution also needs the shared-evaluator coordination described in the
 working design, live random-diagnostic scheduling, and the existing S3 publication
-contract resolved. ETU-105 owns the next mini workload; no duration duplicate ran.
+contract resolved. At that time ETU-105 owned the next mini workload; its subsequent
+completion/release and the new duration direction are recorded above. No duplicate ran.

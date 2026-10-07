@@ -1,33 +1,42 @@
 # Intelligence memory
 
-## Weekly-first current baseline (ETU-118, 2026-10-06)
+## Weekly-first mini duration baseline (ETU-118, 2026-10-07)
 
-Jack Heart authorized seven active days on the laptop: sustained improvement before
-an independently validated daily regression test. ETU-116 duration and ETU-82
-repeat-training outcomes now belong here; ETU-105 filter scope is next on mini. Positive controls are debugging only.
-Complete-state pause/restart checks preserve learner/Adam/EMA/RNG and native current
-games. Known sleep/pause is separate; unobserved restart gaps are conservatively
-charged, especially across reboot. Physical lid closure was not tested. Show
-strength/uncertainty and freshness; no automatic statistical plateau stop exists.
+Jack Heart moved the one sustained cohort from laptop to mini after ETU-105's
+completed final/random scoring and explicit CPU release. ETU-116 duration and
+ETU-82 repeat-training outcomes belong here. The latest direction selects three
+10,000-update runs of ETU-105's actor-and-critic-filtered masked-mean scalar
+width64/depth2/heads4, no-history current-self recipe, 256 rows/update. Early gains
+and no demonstrated actor-only cost payoff motivate this choice; it is not baseline
+promotion. This supersedes depth1 and automatic 12800–102400 horizon selection.
+Optional all/none screens remain ETU-105 followups, not launch prerequisites.
 
-Three lethal-target seeds rose 50→100% with unchanged controls after a retained
-root failure. Full-game gains +6.25/+8.33/+6.25 missed the +10-point mean criterion. Neither establishes sustained strength.
-Calibration attempts remain retained: 64 updates timed out; a 32-update seed
-completed before disk exhaustion; format-3 attempt 3 timed out at 220.296 seconds.
-Its initialization evaluation completed live; two seeds stayed pending. Preparation
-is 3030.011508249935 seconds, leaving 569.988492 in the exploration cap. No retry.
-Format 3 binds diagnostic prefixes to VerifyStore, preserving offsets and exports;
-28 recovery/allocation checks passed. Storage readmission now passes at 195.33 GiB
-free versus 6.361 GiB projected plus reserve. Complete calibration still gates launch;
-an amended calibration allocation within the remaining week needs fixing first.
-No sustained learner or frozen plan exists. The [protocol and hash-bound evidence](../../experiments/current-baseline.md)
-own failures, costs and checks. Seven-day authorization persists; sustained learning,
-daily validation and Task acceptance remain open.
+Preserve the first linked 620+620 stages and full learning settings. Despite the
+serialized `run_elapsed_budget` field, Ataraxos move diagnostics/rates use absolute
+collection/update iteration, including skips; extending the watchdog does not
+stretch LR/tau. Current recovery/initialization changes still need bounded
+matched-prefix verification. Add 400/800 monitoring exports without changing the
+early stage boundaries. Freeze later milestones, live 100-game greedy and separate
+random monitoring, untouched final deals and full seed/deal uncertainty before launch.
 
-ETU-118 reserves no evaluator during ETU-103's CUDA comparison. Existing queues
-hold the shared lease across campaigns and pass it to learners; safe serial
-handoff requires owner closure and inherited-process exit. Concurrent campaigns
-need tested cohort-scoped leasing and fairness before ETU-118 sustained launch.
+All laptop failures remain charged: preparation 3030.011508249935 seconds leaves
+601769.9884917501 of the original week before new charges. The protocol fixes a
+7200-second mini preparation/calibration amendment within that balance; code still
+implements the exhausted old cap. Mini has about 57.65 GiB free at inspection,
+not the laptop's earlier 195.33 GiB. Selected-recipe calibration, storage admission,
+source/runtime freezing and supervised launch remain open. No sustained learner exists.
+
+Root controls passed; short full-game gains missed the +10-point mean criterion.
+Neither proves sustained strength. Format-3 recovery binds diagnostic prefixes to
+VerifyStore and preserves learner/Adam/EMA/RNG/current games. Known sleep/pause
+is separate; unknown gaps remain conservatively charged. Physical lid closure is
+untested; flat curves prompt review, not automatic failure. Serial mini placement
+needs no cross-campaign lease redesign; preserve host-local ownership and ETU-103.
+S3/W&B contracts are present; credentials/publication remain unverified here.
+The [protocol and retained evidence](../../experiments/current-baseline.md) own
+exact accounting and limits. Demo-loaded repeat runs, sustained improvement,
+published checkpoints and independently validated daily testing remain open;
+software delivery cannot complete this Task.
 
 ## Disconnected deployment proof (ETU-123, 2026-10-06)
 
@@ -1048,22 +1057,16 @@ scope and deferred architecture sketches.
 
 ## Training dashboard software (ETU-101, 2026-10-05)
 
-Jack Heart authorized dashboard implementation, publication and landing using
-saved evidence and tiny fixtures, without changing ETU-91's frozen checkout.
-TrainingRun/VerifyStore remain the metric authority. Epoch/update diagnostics
-now retain original counters, elapsed cost and resource observations; historical
-rows without those coordinates stay explicitly incomplete. W&B is a resumable
-projection with stable run/group identities, prefix checks, default panels and
-local JSON backfill. PPO's clipped objective is not teacher cross-entropy.
+Jack Heart authorized dashboard delivery using saved evidence/tiny fixtures,
+without changing ETU-91. TrainingRun/VerifyStore own counters, costs and resources;
+missing historical coordinates remain incomplete. W&B is a resumable projection
+with prefix checks and backfill. PPO loss is not teacher cross-entropy.
 
-The first distillation cohort freezes whole validation games and source bytes,
-remains excluded from later training, and is reported beside growing validation.
-Its first reference target stays fixed even when later stages change their
-training target; rejecting such changes would break existing local-update controls.
-TrainingRun's globally assigned game IDs survive shard composition. Optional
-hourly raw exports occur at learner boundaries, preserve RNG and Adam/collector
-state, and exclude their measured duration from the learning schedule while
-remaining charged to resource budgets. Monitoring is separate from recovery.
+Distillation freezes first-reference validation games/source/targets, excludes them
+from training, and also reports growing validation. Later training targets may
+change; global game IDs survive shard composition. Learner-boundary exports preserve
+RNG/Adam/collector state. Export duration is charged to resources, excluded from the
+learning schedule. Monitoring is separate from recovery.
 
 The independent arena follower evaluates 25 reserved monitoring deals across all
 four seat/deck legs versus source-pinned scripted greedy. Incomplete cohorts have
@@ -1074,10 +1077,8 @@ The [dashboard contract](../../docs/training-monitoring.md) owns launch/backfill
 commands and limits. Software fixtures do not establish strength, live W&B
 service acceptance or chapter completion; no scientific campaign ran here.
 
-ETU-101's focused gate passed 78 checks; the final monitoring suite passed 22,
-including four complete games through an untrained checkpoint and native arena,
-retained timeout prefixes, fixed-reference isolation and idempotent backfill.
-The live W&B service was not exercised. These remain software fixtures.
+Detailed 78/22-check fixture receipts remain at `08d2b2e9`; live W&B was not
+exercised and no scientific claim follows.
 
 ## Capacity software receipt boundary (ETU-102, 2026-10-05)
 
