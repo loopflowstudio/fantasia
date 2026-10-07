@@ -486,17 +486,23 @@ seconds, but [AWS role chaining](https://docs.aws.amazon.com/STS/latest/APIRefer
 still caps a session obtained from SSO role credentials at one hour. Increasing
 that role limit or relaxing the local guard cannot authorize a seven-hour job.
 
-The repository operator must choose a new account authentication path. The
-smallest supported option is a dedicated IAM issuer with only permission to
-assume the existing S3 worker role, its key held in Doppler, and a matching narrow
-trust entry; each issued session must additionally restrict S3 access to the
-single job prefix and expire after the rental deadline. The issuer key must
-never reach a pod. An alternative is certificate-based
-[IAM Roles Anywhere](https://docs.aws.amazon.com/rolesanywhere/latest/userguide/authentication-create-session.html),
-which supports sessions up to 12 hours but needs a trust anchor and certificate
-lifecycle. Creating a persistent issuer/key or new certificate trust is an
-account security decision, not an SDK validation fix. No account policy or
-credentials were changed and no rental was created in this preparation.
+On 2026-10-07 Jack Heart authorized a dedicated IAM issuer with only
+`sts:AssumeRole` permission on the existing worker role, its key stored in
+Doppler `etude/prd`, and matching narrow additional trust preserving the original
+SSO trust and unrelated policies. A matching existing issuer/key must be
+reconciled before creation, without duplicate keys on retry. The dedicated
+profile uses `credential_process`; issuer keys never enter pods, artifacts,
+logs or chat. Each issued session retains the single-job-prefix restriction
+and must cover the full rental deadline before rental admission.
+
+The 2026-10-07 execution attempt found a new authentication blocker: the default
+SSO token expired at 04:26:28 UTC, and both boto3 and AWS CLI automatic refresh
+failed at 15:15 UTC. Doppler remained reachable and contained no AWS issuer key.
+No IAM user, policy, trust or credential was changed. An authenticated operator
+must run `aws sso login --profile default` before the authorized setup can
+proceed; issuer permission is already granted. The read-only `manabot deploy
+status` inventory contained zero rentals. No additional rental charge or
+scientific scoring occurred; the historical evidence and allocations remain.
 
 PR254's delivered deploy lifecycle is integrated. Its
 remote supervisor can consume the declarative monitoring budget; reconnect uses

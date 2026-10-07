@@ -48,13 +48,17 @@ $3 ETU-123 proof reservation and all historical charges stay inside it. A prepar
 six × seven-hour L4 plan projects $26.556 all-in at the observed $0.49/hour quote,
 including reserves. It is not launch admission or scientific evidence.
 
-PR254 supplies disconnect-safe jobs. Only AWS SSO credentials are configured;
-the existing worker role already allows 12 hours, but role chaining caps delegated
-sessions at one hour. A least-privilege issuer or certificate trust needs an account security decision.
-No policy/key was created. Active-time endpoint and declarative terminal cohorts
-are prepared; credentials, remote 100-game timing/publication and final source
-freeze remain. ETU-118 owns baseline promotion; ETU-105/106/108 retain learning,
-representation and distributed work. No model is selected from timing alone.
+PR254 supplies disconnect-safe jobs. On 2026-10-07 Jack Heart authorized a
+dedicated IAM issuer restricted to assuming the existing worker role, its key
+in Doppler etude/prd, and narrow additional trust preserving SSO. Reconcile
+existing users/keys before creation; only job-scoped STS credentials reach pods.
+Setup remains unperformed: the default SSO token expired at 04:26:28 UTC and
+both SDK and CLI refresh failed at 15:15 UTC. Renewing that login needs no new
+issuer permission. No account changes or rentals occurred; inventory was empty.
+PR255 has auto-merge enabled; remaining CI, full-duration credential admission,
+remote 100-game timing/publication and final freeze still precede launch.
+ETU-118 owns baseline promotion; ETU-105/106/108 retain learning, representation
+and distributed work. No model is selected from timing alone.
 
 ## Reading learning trends (ETU-117, 2026-10-06)
 
