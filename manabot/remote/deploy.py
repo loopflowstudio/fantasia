@@ -357,7 +357,7 @@ def deploy(
     (out / "job.json").write_text(spec.model_dump_json(indent=2))
     (out / "plan.json").write_text(plan.model_dump_json(indent=2))
     print(
-        f"Job {spec.job_id}; reconnect: uv run manabot remote status --job-id {spec.job_id}",
+        f"Job {spec.job_id}; reconnect: uv run manabot deploy status --job-id {spec.job_id}",
         flush=True,
     )
     status = submit_job(spec)

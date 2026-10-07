@@ -15,9 +15,11 @@ from manabot.remote import job_client, supervisor
 from manabot.remote.jobs import CreateClaim, RemoteJobRecord, RemoteJobSpec, Resource
 from manabot.remote.plan import HardwareMix, compile_plan
 from manabot.remote.provider import ProviderError
+from manabot.verify.store import VerifyStore
 from tests.remote.job_fixtures import FileStore
 from tests.remote.test_compile import ROOT, SOURCE
 from tests.remote.test_lifecycle import Clock, Provider
+from tests.training.test_checkpoint_queue import run_fixture
 
 
 @pytest.fixture
@@ -395,3 +397,27 @@ def test_failed_final_upload_keeps_previous_generation(
     assert result.generation == 1 and result.manifest is not None
     assert not result.artifacts_complete and result.error is not None
     assert "final upload" in result.error
+
+
+def test_terminal_progress_uses_database_not_lagging_export(
+    store: FileStore, tmp_path: Path
+) -> None:
+    spec = specification(store)
+    resource = admitted(spec, store)
+    root = tmp_path / "evidence"
+    (root / "run").mkdir(parents=True)
+    run = run_fixture(root / "run/run.json")
+    run.status = "completed"
+    run.stages[0].diagnostics = [{} for _ in range(160)]
+    with VerifyStore(root / "training.sqlite") as database:
+        database.save_training_run(run)
+    result = supervisor.supervise(
+        spec,
+        store,
+        root,
+        resource.pod.id,
+        command=[sys.executable, "-c", "pass"],
+        publish=published,
+    )
+    assert result.phase == "completed"
+    assert result.updates == run.updates_through() == 160

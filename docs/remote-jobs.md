@@ -1,7 +1,7 @@
 # Remote jobs that survive a disconnected laptop
 
 A submitted manabot job owns its training, checkpoint evaluations, S3 snapshots
-and shutdown on RunPod. After `remote submit` reports remote acceptance, the
+and shutdown on RunPod. After `deploy submit` reports remote acceptance, the
 submitting process can exit. Reconnect from another machine using the job ID and
 ordinary AWS/RunPod authentication. `run` observes this same lifecycle.
 
@@ -24,7 +24,7 @@ settings are changed.
 For AWS SSO, configure the worker role once through the current AWS principal:
 
 ```bash
-uv run --extra artifacts manabot remote setup-worker
+uv run --extra artifacts manabot deploy setup-worker
 ```
 
 This creates `manabot-remote-jobs`, trusting only that principal and granting
@@ -50,16 +50,20 @@ One CPU is reserved for evaluation; the learner's declared threads must leave it
 free. Deals here are inspected monitoring deals, not scientific held-out evidence.
 
 ```bash
-doppler run --project etude --config prd -- uv run --extra artifacts manabot remote submit \
+doppler run --project etude --config prd -- uv run --extra artifacts manabot deploy \
   --plan .runs/remote-plan.json --job-id example-001 --monitoring .runs/monitoring.json
 
 # Any later client, with no original output directory:
-doppler run --project etude --config prd -- uv run --extra artifacts manabot remote status --job-id example-001
-uv run --extra artifacts manabot remote logs --job-id example-001 --follow
-uv run --extra artifacts manabot remote fetch --job-id example-001 --out .runs/example-001
-uv run --extra artifacts --extra notebook manabot remote report \
+doppler run --project etude --config prd -- uv run --extra artifacts manabot deploy status --job-id example-001
+uv run --extra artifacts manabot deploy logs --job-id example-001 --follow
+uv run --extra artifacts manabot deploy fetch --job-id example-001 --out .runs/example-001
+uv run --extra artifacts --extra notebook manabot deploy report \
   --evidence .runs/example-001/generation-000003 --out .runs/example-001/report
 ```
+
+`deploy --plan ... --job-id ...` is the direct submission entry point;
+`deploy submit` is the explicit equivalent. `deploy --regime ... --mix ... --job-id ...`
+compiles and submits in one invocation. No previous CLI namespace is registered.
 
 The generation number comes from `fetch`. Report generation reuses the existing
 create-once editable notebook and offline HTML dashboard. It needs neither the
@@ -90,11 +94,11 @@ intent through observed absence, including setup, upload and teardown; reconnect
 late can overestimate the rental interval. They are not invoices.
 
 ```bash
-uv run --extra artifacts manabot remote cancel --job-id example-001
+uv run --extra artifacts manabot deploy cancel --job-id example-001
 # For uncertain provisioning, failed setup or unconfirmed deletion:
-doppler run --project etude --config prd -- uv run --extra artifacts manabot remote reconcile --job-id example-001
+doppler run --project etude --config prd -- uv run --extra artifacts manabot deploy reconcile --job-id example-001
 # Explicit forced deletion can lose unpublished evidence:
-doppler run --project etude --config prd -- uv run --extra artifacts manabot remote reconcile --job-id example-001 --delete
+doppler run --project etude --config prd -- uv run --extra artifacts manabot deploy reconcile --job-id example-001 --delete
 ```
 
 Normal cancellation is a durable request; the supervisor acknowledges it, stops
@@ -131,8 +135,10 @@ ETU-103 at most $12. ETU-103's five deleted rentals retain $0.5359766177 estimat
 cost before this proof. The proof ledger records both this inherited expenditure
 and every ETU-123 attempt; they are never fresh additive allowances. Per-deployment
 below-$5 admission remains intact. Mini ETU-105 and laptop ETU-118 are untouched.
-The live result will be recorded here after the bounded proof; offline lifecycle
-fixtures alone do not establish CUDA disconnect acceptance or learning strength.
+The [compact proof](../experiments/data/etu123-remote-jobs/proof.json) and
+[shared spend ledger](../experiments/data/etu123-remote-jobs/shared-spend.json)
+retain both attempts. Full originals remain in `.runs/etu123-disconnect`; the
+private S3 job records and artifacts remain available by ID.
 
 The first live attempt at `70f76e0f` reached remote acceptance, then failed before
 learner launch: a job-scoped S3 reader without ListBucket receives HTTP 403 for a
@@ -141,3 +147,31 @@ published its setup evidence and deleted; those original records remain retained
 Submission now creates the readable empty cancellation mailbox before renting,
 and concurrent cancellation requests preserve the first timestamp. No bucket-list
 permission was added. A subsequent proof uses a new ID and retains this charge.
+
+At `def37708334d8153688a4bdb2be4386607e609c7`, job
+`etu123-disconnect-001` was accepted at zero updates and the submitting process
+exited. A separate client observed 19 updates/one completed evaluation, then
+100 updates/three evaluations. The final authoritative TrainingRun contains
+**160 CUDA updates, 81,920 optimizer exposures and 259.445 training seconds**
+across two stages. The initial checkpoint and two later checkpoints completed
+12 arena games; both later evaluations began after client exit. Their coordinates
+0, 73 and 36 are stage-local, not a monotonic run-wide sequence.
+
+After provider deletion, retrieval verified all 48 bundle files and ordinary
+loading admitted four raw/EMA policies. Fresh `deploy status`, `logs`, `fetch`
+and offline `report` clients worked without the submitting process; notebook and
+HTML were regenerated from the returned generation. The proof source and its
+original commands remain immutable through the later CLI naming correction.
+No compatibility namespace is registered.
+
+The final proof-source status counter retained its last poll (139 updates),
+while the database and returned export agree on 160. The current supervisor reads
+VerifyStore for progress and completion; a focused regression retains a stale
+export and checks the authoritative result. The frozen job record is unchanged.
+
+The failed attempt cost $0.0339593 and the completed attempt $0.0818858,
+**$0.1158450 total estimated**, including guardian probes and observed deletion.
+Together with ETU-103's prior rentals, the shared estimate is **$0.6518216** of
+$15. These conservative observations are not invoices. Final inventory was empty.
+This is one bounded execution/evidence proof, not learning improvement, portable
+CUDA recovery or the Trained Challengers chapter's scientific acceptance.

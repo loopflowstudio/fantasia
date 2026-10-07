@@ -17,6 +17,7 @@ from typing import Protocol
 from manabot.infra.artifacts import StoredArtifact
 from manabot.training.checkpoint_queue import CheckpointQueue
 from manabot.training.models import TrainingRun
+from manabot.verify.store import VerifyStore
 
 from .job_client import _bound_resource, cancellation_requested
 from .job_store import JobStore, S3JobStore, StoredValue
@@ -50,6 +51,16 @@ def stop_process(process: subprocess.Popen[bytes]) -> None:
     except ProcessLookupError:
         pass
     process.wait(timeout=5)
+
+
+def _training_run(root: Path) -> TrainingRun | None:
+    """The JSON identifies the run; its current coordinates come from VerifyStore."""
+    path = root / "run/run.json"
+    if not path.exists():
+        return None
+    exported = TrainingRun.model_validate_json(path.read_bytes())
+    with VerifyStore(root / "training.sqlite", read_only=True) as store:
+        return store.training_run(exported.id)
 
 
 def supervise(
@@ -158,7 +169,8 @@ def supervise(
                         < spec.work_deadline,
                     )
                 if sources:
-                    run = TrainingRun.model_validate_json(run_path.read_bytes())
+                    run = _training_run(root)
+                    assert run is not None
                     record = record.model_copy(
                         update={"run_id": run.id, "updates": run.updates_through()}
                     )
@@ -207,13 +219,15 @@ def supervise(
                             < queue.config.attempt_seconds
                         )
                     ):
-                        if (
-                            not run_path.exists()
-                            or TrainingRun.model_validate_json(
-                                run_path.read_bytes()
-                            ).status
-                            != "completed"
-                        ):
+                        final_run = _training_run(root)
+                        if final_run is not None:
+                            record = record.model_copy(
+                                update={
+                                    "run_id": final_run.id,
+                                    "updates": final_run.updates_through(),
+                                }
+                            )
+                        if final_run is None or final_run.status != "completed":
                             record = record.model_copy(
                                 update={
                                     "phase": "failed",

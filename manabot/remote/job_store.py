@@ -236,5 +236,5 @@ def worker_credentials(spec: RemoteJobSpec) -> dict[str, str]:
         raise
     except Exception:
         raise RuntimeError(
-            "scoped STS session unavailable; run remote setup-worker or configure MANABOT_REMOTE_ROLE_ARN; no rental created"
+            "scoped STS session unavailable; run deploy setup-worker or configure MANABOT_REMOTE_ROLE_ARN; no rental created"
         ) from None

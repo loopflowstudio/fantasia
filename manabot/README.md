@@ -40,7 +40,7 @@ require positive integer counts. `Match.swapped()` moves both lists together;
 
 
 Submit bounded cloud work and reconnect after the laptop disconnects with
-[`manabot remote submit/status/fetch`](../docs/remote-jobs.md). Training, checkpoint
+[`manabot deploy submit/status/fetch`](../docs/remote-jobs.md). Training, checkpoint
 evaluation, verified S3 snapshots and shutdown belong to the remote job; reconnecting
 does not restart the learner or promise CUDA process recovery.
 
