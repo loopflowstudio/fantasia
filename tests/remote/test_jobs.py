@@ -191,8 +191,9 @@ def test_submitter_death_does_not_stop_accepted_supervisor(
     spec_path = tmp_path / "spec.json"
     spec_path.write_text(spec.model_dump_json())
     evidence = tmp_path / "evidence"
-    # This fixture uses the real supervisor and real process groups. A short
-    # synthetic learner establishes lifecycle survival, not CUDA learning.
+    # Gate learner output on confirmed submitter death: import/startup speed must
+    # not decide whether work happens before or after the disconnection.
+    release = tmp_path / "continue-learner"
     worker_code = """
 import sys
 from pathlib import Path
@@ -201,14 +202,25 @@ from manabot.remote.supervisor import supervise
 from tests.remote.job_fixtures import FileStore
 from tests.remote.test_jobs import published
 spec=RemoteJobSpec.model_validate_json(Path(sys.argv[1]).read_text())
-command=[sys.executable, '-u', '-c', 'import time\\nfor i in range(8): print(i, flush=True); time.sleep(.5)']
+learner_code = '''
+import sys, time
+from pathlib import Path
+until = time.monotonic() + 60
+while not Path(sys.argv[1]).exists():
+    if time.monotonic() >= until:
+        raise TimeoutError("submitter death was not acknowledged")
+    time.sleep(.05)
+for i in range(8):
+    print(i, flush=True)
+'''
+command=[sys.executable, '-u', '-c', learner_code, sys.argv[4]]
 supervise(spec, FileStore(Path(sys.argv[2])), Path(sys.argv[3]), 'pod1', command=command, publish=published)
 """
     parent_code = """
-import subprocess, sys, time
+import signal, subprocess, sys
 child=subprocess.Popen([sys.executable, '-c', sys.argv[1], *sys.argv[2:]], start_new_session=True)
 print(child.pid, flush=True)
-time.sleep(30)
+signal.pause()
 """
     with (tmp_path / "process.log").open("wb") as log:
         parent = subprocess.Popen(
@@ -220,6 +232,7 @@ time.sleep(30)
                 str(spec_path),
                 str(store.path),
                 str(evidence),
+                str(release),
             ],
             stdout=subprocess.PIPE,
             stderr=log,
@@ -227,18 +240,24 @@ time.sleep(30)
         assert parent.stdout is not None
         worker_pid = int(parent.stdout.readline())
         try:
-            until = time.time() + 15
-            while store.read("runtime/record.json") is None and time.time() < until:
+            until = time.monotonic() + 60
+            while (
+                store.read("runtime/record.json") is None and time.monotonic() < until
+            ):
                 time.sleep(0.05)
             assert store.read("runtime/record.json") is not None
             parent.kill()
             parent.wait(timeout=5)
+            assert parent.returncode == -signal.SIGKILL
             before = (
                 (evidence / "training.log").read_bytes()
                 if (evidence / "training.log").exists()
                 else b""
             )
-            while time.time() < until:
+            assert before == b""
+            release.touch()
+            until = time.monotonic() + 30
+            while time.monotonic() < until:
                 current = store.read("runtime/record.json")
                 assert current is not None
                 record = RemoteJobRecord.model_validate_json(current.data)
@@ -375,13 +394,19 @@ def test_failed_final_upload_keeps_previous_generation(
 ) -> None:
     spec = specification(store)
     resource = admitted(spec, store)
+    successful: list[StoredArtifact] = []
+    final_attempts: list[int] = []
 
     def publish(
         spec: RemoteJobSpec, root: Path, generation: int, *, complete: bool
     ) -> StoredArtifact:
         if complete:
+            final_attempts.append(generation)
             raise OSError("unavailable")
-        return published(spec, root, generation, complete=False)
+        assert generation == len(successful) + 1
+        artifact = published(spec, root, generation, complete=False)
+        successful.append(artifact)
+        return artifact
 
     result = supervisor.supervise(
         spec,
@@ -395,7 +420,15 @@ def test_failed_final_upload_keeps_previous_generation(
         ],
         publish=publish,
     )
-    assert result.generation == 1 and result.manifest is not None
+    # Periodic uploads depend on process scheduling. The failed final attempt
+    # must retain the exact last successful generation and manifest, however many.
+    assert successful
+    assert result.generation == len(successful)
+    assert result.manifest == successful[-1]
+    assert final_attempts == [result.generation + 1]
+    saved = store.read("runtime/record.json")
+    assert saved is not None
+    assert RemoteJobRecord.model_validate_json(saved.data) == result
     assert not result.artifacts_complete and result.error is not None
     assert "final upload" in result.error
 
