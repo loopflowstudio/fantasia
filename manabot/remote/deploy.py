@@ -14,14 +14,14 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Iterator, Literal
+from typing import Callable, Iterator, Literal
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .bundle import Bundle, verify_training_bundle
+from .bundle import Bundle, unpack_bundle, verify_training_bundle
 from .plan import DeploymentPlan, Source, digest
 from .provider import Pod, ProviderError, RunPod
 from .transport import REPO_DIR, Transport, bootstrap, startup
@@ -44,6 +44,11 @@ class Attempt(BaseModel):
     cost_ambiguous: bool = False
 
 
+class PhaseStamp(BaseModel):
+    phase: str
+    unix: float
+
+
 class Receipt(BaseModel):
     model_config = ConfigDict(extra="forbid")
     plan_sha256: str
@@ -54,10 +59,15 @@ class Receipt(BaseModel):
     error: str | None = None
     complete: bool = False
     policies: list[str] = Field(default_factory=list)
+    phase_events: list[PhaseStamp] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
     estimated_dollars: float | None = None
 
 
 def save(path: Path, receipt: Receipt) -> None:
+    if not receipt.phase_events or receipt.phase_events[-1].phase != receipt.phase:
+        receipt.phase_events.append(PhaseStamp(phase=receipt.phase, unix=time.time()))
     temporary = path.with_suffix(".tmp")
     temporary.write_text(receipt.model_dump_json(indent=2) + "\n")
     temporary.chmod(0o600)
@@ -298,7 +308,20 @@ def _ready(
     raise TimeoutError("pod bootstrap deadline exceeded")
 
 
-def deploy(plan: DeploymentPlan, out: Path, root: Path) -> Receipt:
+def deploy(
+    plan: DeploymentPlan,
+    out: Path,
+    root: Path,
+    *,
+    observe: Callable[[Transport], None] | None = None,
+    checkpoint_seconds: float | None = None,
+    after_training: Callable[[Transport], None] | None = None,
+    bulk_return: bool = False,
+) -> Receipt:
+    if checkpoint_seconds is not None and (
+        not math.isfinite(checkpoint_seconds) or checkpoint_seconds <= 0
+    ):
+        raise ValueError("checkpoint_seconds must be positive and finite")
     # Revalidate nested mutable Pydantic values before any provider operation.
     plan = DeploymentPlan.model_validate_json(plan.model_dump_json())
     if current_source(root) != plan.source:
@@ -392,15 +415,36 @@ def deploy(plan: DeploymentPlan, out: Path, root: Path) -> Receipt:
             receipt.phase = "training"
             save(path, receipt)
             transport.deadline = train_deadline - plan.mix.transfer_seconds
+            checkpoint_option = (
+                ""
+                if checkpoint_seconds is None
+                else f" --checkpoint-seconds {checkpoint_seconds}"
+            )
+            atomic_config = {"checkpoint_seconds": checkpoint_seconds}
+            (out / "monitoring-config.json").write_text(json.dumps(atomic_config))
             # Training errors are retained, then the closed output is bundled.
-            transport.shell(f"""export PATH=/root/.local/bin:/root/.cargo/bin:$PATH
+            transport.shell(
+                f"""export PATH=/root/.local/bin:/root/.cargo/bin:$PATH
 cd {REPO_DIR}
-uv run manabot train --regime /workspace/regime.json --seed {plan.seed} --out /workspace/evidence/run > /workspace/evidence/training.log 2>&1
+uv run manabot train --regime /workspace/regime.json --seed {plan.seed} --out /workspace/evidence/run{checkpoint_option} > /workspace/evidence/training.log 2>&1
 status=$?
 printf '%s\\n' "$status" > /workspace/evidence/training-exit.txt
 uv run python -m manabot.remote.bundle /workspace/evidence
 exit 0
-""")
+""",
+                **(
+                    {"observe": lambda: observe(transport)}
+                    if observe is not None
+                    else {}
+                ),
+            )
+            if after_training is not None:
+                receipt.phase = "calibration"
+                save(path, receipt)
+                after_training(transport)
+                transport.shell(
+                    f"export PATH=/root/.local/bin:/root/.cargo/bin:$PATH\ncd {REPO_DIR}\nuv run --no-sync python -m manabot.remote.bundle /workspace/evidence"
+                )
             receipt.phase = "transfer"
             save(path, receipt)
             transport.deadline = train_deadline
@@ -408,10 +452,17 @@ exit 0
             bundle = Bundle.model_validate_json((out / "bundle.json").read_text())
             destination = out / "evidence"
             destination.mkdir()
-            for item in bundle.files:
-                target = item.destination(destination)
-                target.parent.mkdir(parents=True, exist_ok=True)
-                transport.get(f"/workspace/evidence/{item.relative_path}", target)
+            if bulk_return:
+                transport.shell(
+                    "tar -cf /workspace/evidence.tar -C /workspace/evidence ."
+                )
+                transport.get("/workspace/evidence.tar", out / "evidence.tar")
+                unpack_bundle(out / "evidence.tar", destination, bundle)
+            else:
+                for item in bundle.files:
+                    target = item.destination(destination)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    transport.get(f"/workspace/evidence/{item.relative_path}", target)
             policies = verify_training_bundle(destination, bundle)
             receipt.policies = [str(p) for p in policies]
             receipt.complete = True

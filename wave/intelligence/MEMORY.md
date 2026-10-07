@@ -1,5 +1,28 @@
 # Intelligence memory
 
+## CUDA capacity and hardware scope (ETU-103, 2026-10-06)
+
+Jack Heart assigned the pure-capacity CUDA comparison and GPU performance sweep
+to ETU-103's existing worker. The mini depth cohort remains separate retained
+evidence. The allocation is two hours calibration plus twelve hours total
+comparison across arms/seeds, including evaluation, transfer, reporting and
+failures. Initial all-in ceiling is $15; a conditional $30 ceiling needs a retained
+calibration-based reason. Every deployment remains below $5 with pod/client
+deadlines, verified returns and confirmed deletion. No historical ETU-114/91
+allocation transfers. ETU-118 owns baseline promotion and shares the CPU evaluator
+lease; ETU-105/106/108 retain learning-rule, representation and distributed work.
+
+Fixed-real-batch inference/Adam probes and ordinary complete-loop measurements
+cross existing capacities through width384/depth8/ff1536 on L4 and A40. Batch and
+stream counts are independent of worker count. GPU fit, model throughput, filtered
+optimizer exposure and playing strength are separate outcomes; collection share
+alone cannot establish engine starvation. Initialization, live greedy milestones,
+separate random diagnostics and untouched final deals must be prospectively bound.
+The [capacity protocol](../../experiments/model-capacity.md) owns exact clocks,
+receipts and the forthcoming freeze. No strength/default conclusion follows from
+calibration. A bulk-verified closed bundle can preserve an interrupted file-transfer
+attempt without rewriting that failure or rerunning measurements.
+
 ## Reading learning trends (ETU-117, 2026-10-06)
 
 Jack Heart accepted the W&B report as sufficient and authorized shipping on
@@ -241,57 +264,28 @@ versions, unique samples and one optimizer owner. Zero-lag compatibility remains
 a proposal, not reinstatement of synchronous rounds. No scientific allocation follows; the report owns sources, launch/stop
 instructions and acceptance.
 
-## Focused value-model priority (ETU-106, 2026-10-05)
+## Focused value-model software (ETU-106, 2026-10-05)
 
-Jack Heart authorized historical mean, validity-masked mean, one-layer value
-token and two-layer width-64 value-token software contrasts, crossed independently
-with the existing scalar/WDL heads. Recent-event input follows; learned recurrent
-memory is deferred. Jack Heart separately approved ETU-104's incremental
-recipe design; broader architecture sketches remain proposals. ETU-91's running
-campaign and frozen checkout remain untouched;
-only cheap bounded checks and protocol preparation are authorized here.
+Jack Heart authorized historical/masked means and one-/two-layer width64 value
+tokens crossed with scalar/WDL heads; history follows and learned recurrence
+remains deferred. The compound decoder owns a separate critic. Attention masks
+padded outputs, but biased projection before fixed-slot averaging creates a
+padding dependency. Tokens share attention and change policy representations,
+so this is not a critic-only intervention. Historical initialization/equations
+remain intact; equal-shaped pooling variants require saved architecture metadata.
+Later empirical dispositions above supersede this software-only stage.
 
-Source inspection found that attention masks padded outputs but the ordinary
-critic applies a biased projection before fixed-slot averaging. Masked pooling
-addresses this concrete dependency; no strength benefit has been measured.
-Categorical targets and expected-value conversion already exist in the Ataraxos
-move path. The compound decoder owns a separate critic, so ordinary value-head
-changes must not silently claim compound support. Saved AgentHypers and strict
-world-bound loading remain the architecture authority. The focused software
-implements all four contrasts, generates eight recipes and uses the existing
-study executor/report. Variable-padding checks exercise the production attention
-and critic path rather than reproducing those equations in a test. Defaults
-retain historical weights and equations; extra blocks omit repeated ownership
-and the value token is neutral. The token participates in shared attention, so
-it changes policy representations as well as critic aggregation. Strict loading
-cannot distinguish historical and masked pooling from equal-shaped weights;
-saved architecture metadata is essential. The smoke exports raw/EMA artifacts
-but evaluates raw checkpoints only.
-Focused reload, hidden-deal, padding, valid-object sensitivity and finite-gradient
-checks passed. Both token depths preserve real-object action-focus indexes and
-absent focus; ordinary loading rejects incompatible token/depth/head metadata
-and malformed or missing token/layer weights. The 108-test integrated suite
-passed. The sole bounded smoke failed before arena registration after 36.12 s
-because recipe IDs contained forbidden underscores; all eight training runs
-completed and 32 raw/EMA checkpoints passed export admission. Hyphenated IDs
-and a validator regression fix the cause (15 affected checks pass). The failed
-cohort and all artifacts remain in `.runs/etu106-value-smoke`; its incomplete
-report regenerates identically. No arena games or strength evidence exist.
-Jack Heart subsequently authorized necessary local checks and landing, preferring
-recovery from those exports. Evaluation-only recovery preserved the failed
-attempt and all training/checkpoint identities; arena aliases alone replace
-underscores with hyphens and reject collisions. It completed 120 exact-replayed
-games across 30 cells and both deck/seat assignments in 382.86 cumulative seconds
-(including the original failure), within the original 900-second ceiling. No
-retraining occurred. Report, metrics and cost comparison regenerate identically;
-all 16 raw checkpoints entered play, with no EMA arena claim. Delegated technical
-review found no concrete architecture/masking defect; direct comparison against
-the base implementation confirmed historical initialization bytes for scalar/WDL
-and attention on/off. This is software acceptance, not human review approval,
-strength, demo admission or chapter acceptance. The protocol and recovery command
-live in experiments/value-models.md. ETU-106 merged as PR #222 at a371af46
-and is integrated into ETU-104; its separately approved recipe implementation
-owns its own scope.
+The eight-recipe smoke completed training and 32 raw/EMA export admissions, then
+failed on underscore-containing arena IDs after 36.12 seconds. Jack Heart approved
+evaluation-only recovery and landing. Aliases changed without retraining or
+rewriting artifacts; all 16 raw checkpoints played 120 exact-replayed games in
+382.86 cumulative seconds, within 900. Offline metrics/reports regenerated
+identically. EMA exports were not scored. PR #222 merged at `a371af46` and was
+integrated into ETU-104. The 108-test integrated suite, 15 focused fix checks and
+base-byte comparison establish software behavior, not strength, demo/chapter
+acceptance or human review. The [value-model protocol](../../experiments/value-models.md)
+owns recovery details; full historical account remains in this file at `7316da5d`.
+ETU-91's frozen checkout/evidence were untouched.
 
 ## Operating principle
 
