@@ -2,25 +2,29 @@
 
 ## Step targets and machine allocations (ETU-124, 2026-10-07)
 
-Jack Heart superseded duration-based preparation with step-target TrainingRegimes
-and reusable LaunchSpecs, and authorized separate delivery without rentals.
-Experiment binds case/seed, allocation and evaluation; machine lifetime alone
-sets permission and shutdown deadlines. Collection stops before checkpoint,
-upload and cleanup reserves. Paused exports remain incomplete targets and do not
-enter completed-target final cohorts. Existing CPU recovery supports explicit
+Jack Heart approved step-target TrainingRegimes and reusable JobSpecs, then
+simplified the unshipped LaunchSpec draft. Machine owns hardware/provider shape;
+JobSpec owns lifetime, spending and scoped artifact authority; Job is admitted
+execution. Experiment binds case/seed, JobSpec and evaluation. Current plans
+carry one spec; private schema-1 readers retain historical JSON, job digests and
+deadlines. The unshipped draft has no compatibility layer. Calibration-era
+capacity authoring is retired; frozen plans and their pinned runners remain evidence.
+
+Machine lifetime alone sets permissions and shutdown deadlines. Collection stops
+before checkpoint, upload and cleanup reserves. Paused exports remain incomplete
+targets outside completed-target final cohorts. CPU recovery permits explicit
 same-host continuation; CUDA policy/Adam exports do not restore collector/RNG.
 
-Jack Heart clarified that missing immediate revocation and future recovery must
-not block bounded LaunchSpec submissions. Long allocations construct/compile but
-fail admission without renewable access and portable CUDA recovery. Cancellation
-stops compute but does not revoke copied STS credentials; an explicit policy deny
-bounds artifact access at the allocation deadline. In-place extensions fail;
-issuer secrets stay off workers and plans. Offline CLI/fake-provider and native
-CPU fixtures establish software behavior, not live IAM or long-duration operation.
+Jack Heart clarified that immediate revocation and future recovery must not block
+bounded submissions. Long allocations construct/compile but fail admission without
+renewable access and portable CUDA recovery. Cancellation stops compute but does
+not revoke copied STS credentials; an explicit policy deny bounds artifact access
+at the allocation deadline. In-place extensions fail; issuer secrets stay off
+workers and plans. Offline CLI/fake-provider and native CPU fixtures establish
+software behavior, not live IAM or long-duration operation.
 
 The [remote contract](../../docs/remote-jobs.md#step-targets-and-machine-allocations)
-owns API and limits. Frozen v1 records preserve exact serialization and historical
-active-time meaning. ETU-103's live source `68e0fbe9`, checkout and evidence remain
+owns API and limits. ETU-103's live source `68e0fbe9`, checkout and evidence remain
 untouched. No rental, scientific allocation or strength claim follows.
 
 ## Disconnected deployment proof (ETU-123, 2026-10-06)

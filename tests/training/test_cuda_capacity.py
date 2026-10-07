@@ -4,17 +4,13 @@ from pathlib import Path
 
 import pytest
 
-import experiments.runners.cuda_capacity as capacity
 from experiments.runners.cuda_capacity import CapacityPlan, Timing, protocols
 from experiments.runners.training_protocol import EvaluationProtocol
 from manabot.arena.models import canonical_sha256
-from manabot.remote.deploy import Receipt
 from manabot.remote.plan import Source
 from manabot.training import checkpoint_queue as queue
-from manabot.training.execution import atomic_json
-from manabot.training.models import TrainingCoordinates, TrainSelfPlay
+from manabot.training.models import TrainingCoordinates
 from manabot.training.monitor_evaluation import Checkpoint, MonitorProtocol
-from manabot.training.presets import ataraxos_mtg_v1
 from tests.training.test_checkpoint_queue import (
     Process,
     run_fixture,
@@ -139,81 +135,6 @@ def test_queue_binds_two_protocols_without_reusing_the_cohort(
         assert monitor.attempts[0].identity != monitor.attempts[1].identity
     finally:
         monitor.close()
-
-
-def test_freeze_binds_real_authoring_and_rejects_control_drift(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "calibration"
-    (root / "inputs").mkdir(parents=True)
-    base = ataraxos_mtg_v1().regime()
-    base.agent.value_kind = "scalar"
-    base.agent.value_aggregation = "value_token"
-    base.wall_seconds = 1200
-    for stage in base.stages:
-        assert isinstance(stage, TrainSelfPlay)
-        stage.execution.wall_seconds = 590
-    (root / "inputs/cuda-calibration-small.json").write_text(base.model_dump_json())
-    atomic_json(
-        root / "calibration-amendment.json",
-        dict(
-            calibration_seconds=8700, comparison_seconds=41700, combined_seconds=50400
-        ),
-    )
-    (root / "inputs/mix.json").write_bytes(
-        Path("ops/mixes/runpod-small.json").read_bytes()
-    )
-    for name in ("small", "large", "l4-sweep", "a40-sweep"):
-        directory = root / f"calibration-{name}"
-        directory.mkdir()
-        atomic_json(
-            directory / "deployment.json",
-            Receipt(
-                plan_sha256="a" * 64,
-                started=1000,
-                deadline=2000,
-                phase="deleted",
-                estimated_dollars=0.1,
-                complete=True,
-            ).model_dump(mode="json"),
-        )
-    for name in ("w64-d2", "w384-d8"):
-        directory = (
-            root / f"calibration-l4-sweep/evidence/performance/{name}-loop-b512-s16/run"
-        )
-        directory.mkdir(parents=True)
-        run = run_fixture(directory / "run.json")
-        run.status = "completed"
-        run.seconds = 3
-        run.stages = run.stages[:1]
-        run.stages[0].seconds = 3
-        run.stages[0].diagnostics = [
-            {"coordinates": {"training_seconds": i}} for i in (1, 2, 3)
-        ]
-        atomic_json(directory / "run.json", run.model_dump(mode="json"))
-    (root / "live-workflow-control").mkdir()
-    atomic_json(
-        root / "live-workflow-control/receipt.json",
-        dict(
-            status="completed",
-            seconds=100,
-            evaluator_seconds=20,
-            rental_estimated_dollars=0.1,
-            observations=[dict(at=1010, run_status="running", updates=1, attempts=1)],
-            purpose="fixture",
-        ),
-    )
-    source = Source(commit="a" * 40, tree="b" * 40, lock_sha256="c" * 64)
-    monkeypatch.setattr(capacity, "current_source", lambda root: source)
-    monkeypatch.setattr(capacity.time, "time", lambda: 1001)
-    plan = capacity.freeze(root, tmp_path / "science", "NVIDIA L4", 16, 512)
-    assert len(plan.deployments) == 6
-    assert len(set(p.regime.agent.hidden_dim for p in plan.deployments)) == 2
-    assert [t.updates for t in plan.timings] == [600, 600]
-    altered = plan.model_dump(mode="json")
-    altered["deployments"][0]["regime"]["stages"][0]["learning"]["min_advantage"] = 0
-    with pytest.raises(ValueError):
-        CapacityPlan.model_validate(altered)
 
 
 def test_declarative_terminal_schedule_stays_off_monitoring(tmp_path: Path) -> None:

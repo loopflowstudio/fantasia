@@ -89,7 +89,7 @@ uv run --extra artifacts --extra notebook manabot deploy report \
 ```
 
 `deploy --plan ... --job-id ...` is the direct submission entry point;
-`deploy submit` is the explicit equivalent. `deploy --regime ... --launch ... --job-id ...`
+`deploy submit` is the explicit equivalent. `deploy --regime ... --spec ... --job-id ...`
 compiles and submits in one invocation. No previous CLI namespace is registered.
 
 The generation number comes from `fetch`. Report generation reuses the existing
@@ -104,7 +104,7 @@ never use a new ID to retry an uncertain rental.
 
 ## Identity, failures and cancellation
 
-`RemoteJobSpec` binds exact source, resolved regime, optional Experiment receipt,
+`Job` binds exact source, resolved regime, optional Experiment receipt,
 hardware, seed, evaluation allocation, artifact location and original absolute
 cost/deadline allowance. An existing ID with different content fails. S3
 conditional creation records intent before provider creation. Concurrent clients
@@ -112,7 +112,7 @@ share that fence. A lost create response is reconciled by the unique name; an
 empty inventory alone cannot prove that an uncertain create never happened.
 A permanent claim left before the request is intentionally not retried.
 
-`RemoteJobRecord` keeps execution phase, heartbeat, training coordinates,
+`JobRecord` keeps execution phase, heartbeat, training coordinates,
 evaluation count, cancellation acknowledgement and committed artifact generation.
 Stale heartbeat means unknown/unreachable. Completed execution, complete uploaded
 artifacts, provider absence and confirmed cleanup are separate facts. Provider
@@ -205,8 +205,8 @@ CUDA recovery or the Trained Challengers chapter's scientific acceptance.
 
 ## Step targets and machine allocations
 
-New jobs declare `LaunchSpec` separately from `TrainingRegime`. The regime owns
-updates and learning settings; the launch owns the machine, `lifetime_hours`,
+New jobs declare `JobSpec` separately from `TrainingRegime`. The regime owns
+updates and learning settings; the JobSpec owns the machine, `lifetime_hours`,
 `spending_limit`, artifact access scope and setup/checkpoint/upload/cleanup
 reserves. Hours include all those phases. No throughput estimate is translated
 into the learning target. Keep the same target for equal-step comparisons, or
@@ -218,17 +218,17 @@ A concrete authoring example (configuration only; it does not rent):
 ```python
 from pathlib import Path
 
-from manabot.remote.plan import AccessScope, LaunchSpec, Machine, Source
+from manabot.remote.plan import AccessScope, JobSpec, Machine, Source
 from manabot.training.checkpoint_queue import MonitoringBudget
-from manabot.training.experiment_execution import LaunchRun
+from manabot.training.experiment_execution import JobRun
 from manabot.training.experiments import Baseline, Experiment
 from manabot.training.models import TrainingRegime
 
-regime = TrainingRegime.model_validate_json(Path("regime.json").read_text())
+regime = TrainingRegime.model_validate_json(Path("ops/examples/step-target.json").read_text())
 # One ordinary self-play stage; its authored updates remain the learning target.
 # Select iteration schedules explicitly for new recipes, not frozen evidence.
 regime.schedule_clock = "iteration_fraction"
-launch = LaunchSpec(
+spec = JobSpec(
     machine=Machine.model_validate_json(Path("machine.json").read_text()),
     lifetime_hours=4,              # 0.5 and 24 * 30 use the same model
     spending_limit=3,
@@ -241,37 +241,41 @@ launch = LaunchSpec(
 experiment = Experiment(
     name="step-comparison",
     baseline=Baseline.capture("fixed-target", regime),
-    launches=(LaunchRun(
-        case="step-comparison", seed=197, launch=launch,
+    jobs=(JobRun(
+        case="step-comparison", seed=197, spec=spec,
         monitoring=MonitoringBudget(seconds=600, attempt_seconds=120),
         checkpoint_seconds=3600,   # monitoring cadence
     ),),
 )
 source = Source.model_validate_json(Path("source.json").read_text())
-plan, = experiment.compile_launches(source)
+plan, = experiment.compile_jobs(source)
 Path("plan.json").write_text(plan.model_dump_json(indent=2))
 ```
 
 `machine.json` contains the existing RunPod shape and price fields: GPU types,
 CPU threads/vCPUs, memory/storage, digest-pinned image, hourly compute ceiling and
 storage allowance. It has no lifetime, credential duration or secrets.
-`experiment.prepare_launch(index, source, job_id)` persists the selected run's
+`experiment.prepare_job(index, source, job_id)` persists the selected run's
 monitoring and original authoring receipt through the existing job client;
-`submit_job(spec)` performs the explicit submission. Neither method loops through
+`submit_job(job)` performs the explicit submission. Neither method loops through
 or schedules the rest of the experiment.
 
 The same compiler is available directly:
 
 ```bash
-uv run manabot deploy compile --regime regime.json --launch launch.json --out plan.json
+uv run manabot deploy compile --regime regime.json --spec job.json --out plan.json
 # Execution requires its separately authorized compute allocation:
 uv run manabot deploy submit --plan plan.json --job-id fixed-target-001
 ```
 
-`deploy --regime ... --launch ... --job-id ...` compiles and submits directly.
-`--mix` and schema-1 DeploymentPlans remain the explicit compatibility boundary
-for frozen records. Historical `active_seconds` recipes retain their exact
-meaning and serialized identities; they are refused under a new LaunchSpec.
+`deploy --regime ... --spec ... --job-id ...` compiles and submits directly.
+New schema-2 DeploymentPlans contain one `spec: JobSpec`; machine configuration
+lives only in `spec.machine`. `Job` binds that plan to its admitted ID and deadline.
+The private schema-1 reader retains historical plan/job JSON, digests, active-time
+watchdogs and fractional deadline semantics. Current compilation accepts only
+JobSpec; there is no `--mix`, public hardware-mix type or derived mix projection.
+The earlier unshipped schema-2 draft has no compatibility branch. Historical
+`active_seconds` recipes retain their exact meaning and serialized identities; they are refused under a new JobSpec.
 The duration-specific capacity preparation API/CLI is removed. ETU-103's running
 four-hour cohort continues at its pinned source
 `68e0fbe9265a689891615274123587d653b5e66b`, without rewritten configurations or evidence.
@@ -283,7 +287,7 @@ lifetime or issuance margin cannot extend artifact permissions. Issuer credentia
 stay on the launcher; workers receive only the job-scoped artifact session and
 the provider's existing pod termination capability. Access scope has no separate
 duration input. Historical recipe watchdog fields remain serialized, but
-LaunchSpec execution uses the admitted allocation for timing and iteration-based
+JobSpec execution uses the admitted allocation for timing and iteration-based
 learning schedules; changing machine hours does not change the update schedule.
 
 Collection stops at `pause_at = deadline - checkpoint - upload - cleanup`.
@@ -300,7 +304,7 @@ Supported boundaries and refusals:
   supervisor. With a directly configured issuer, the maximum is twelve hours
   minus the 60-second STS issuance margin; temporary-role sources remain limited
   to 3,540 seconds. No renewed session is issued after the allocation deadline.
-- A 720-hour LaunchSpec constructs and compiles with its full projected cost,
+- A 720-hour JobSpec constructs and compiles with its full projected cost,
   but admission refuses it before persisting job intent or renting: in-worker
   credential renewal, portable complete-state CUDA recovery and exclusive
   replacement-worker ownership are not implemented. There is no capability

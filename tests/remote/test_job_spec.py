@@ -10,20 +10,18 @@ from typer.testing import CliRunner
 from manabot.cli import app
 from manabot.remote import cli, job_client, supervisor
 from manabot.remote.job_store import worker_policy
-from manabot.remote.jobs import RemoteJobRecord, RemoteJobSpec, RemoteJobStatus
+from manabot.remote.jobs import Job, JobRecord, JobStatus
 from manabot.remote.plan import (
     AccessScope,
     DeploymentPlan,
-    HardwareMix,
-    LaunchSpec,
-    Machine,
+    JobSpec,
     compile_plan,
     digest,
 )
 from manabot.remote.provider import Pod
 from manabot.remote.transport import job_startup
 from manabot.training.checkpoint_queue import MonitoringBudget
-from manabot.training.experiment_execution import LaunchRun
+from manabot.training.experiment_execution import JobRun
 from manabot.training.experiments import Baseline, Experiment
 from manabot.training.models import TrainingRegime, TrainSelfPlay
 from tests.remote.job_fixtures import FileStore
@@ -33,19 +31,16 @@ from tests.remote.test_lifecycle import Clock, Provider
 from tests.training.test_checkpoint_queue import run_fixture
 
 
-def launch(hours: float = 0.5) -> LaunchSpec:
-    old = HardwareMix.model_validate_json(
-        (ROOT / "ops/mixes/runpod-small.json").read_text()
+def job_spec(hours: float = 0.5) -> JobSpec:
+    template = JobSpec.model_validate_json(
+        (ROOT / "ops/jobs/runpod-small.json").read_text()
     )
-    machine = Machine.model_validate(
-        {name: getattr(old, name) for name in Machine.model_fields}
-    )
-    return LaunchSpec(machine=machine, lifetime_hours=hours, spending_limit=500)
+    return JobSpec(machine=template.machine, lifetime_hours=hours, spending_limit=500)
 
 
 def recipe() -> TrainingRegime:
     value = TrainingRegime.model_validate_json(
-        (ROOT / "experiments/regimes/direct-self-play.json").read_text()
+        (ROOT / "ops/examples/step-target.json").read_text()
     )
     value.stages = value.stages[:1]
     value.schedule_clock = "iteration_fraction"
@@ -55,22 +50,22 @@ def recipe() -> TrainingRegime:
 def test_fractional_and_month_plans_preserve_step_targets() -> None:
     raw = recipe().model_dump_json()
     plans = [
-        compile_plan(raw, launch(hours), SOURCE, 197) for hours in (0.5, 4, 24 * 30)
+        compile_plan(raw, job_spec(hours), SOURCE, 197) for hours in (0.5, 4, 24 * 30)
     ]
     assert all(plan.input_json == raw for plan in plans)
     assert plans[0].regime == plans[1].regime == plans[2].regime
-    assert [plan.mix.wall_seconds for plan in plans] == [1800, 14400, 2592000]
+    assert [plan.spec.lifetime_seconds for plan in plans] == [1800, 14400, 2592000]
     assert plans[0].projected_dollars * 1440 == pytest.approx(
         plans[2].projected_dollars
     )
     assert DeploymentPlan.model_validate_json(plans[2].model_dump_json()) == plans[2]
-    launch(0.5).admit_execution()
+    job_spec(0.5).admit(0)
     with pytest.raises(ValueError, match="renewable.*complete-state CUDA"):
-        launch(720).admit_execution()
+        job_spec(720).admit(0)
 
 
 def test_deadline_reserves_cost_extension_and_renewal() -> None:
-    spec = launch()
+    spec = job_spec()
     allocation = spec.admit(1000)
     assert allocation.deadline == 2800
     assert spec.admit(1000.75).deadline == 2800
@@ -88,19 +83,19 @@ def test_deadline_reserves_cost_extension_and_renewal() -> None:
         allocation.extend(1)
     assert allocation.deadline == 2800
     with pytest.raises(ValueError, match="reserves"):
-        LaunchSpec.model_validate(spec.model_dump() | {"lifetime_hours": 0.1})
-    with pytest.raises(ValueError, match="dollar cap"):
-        LaunchSpec.model_validate(spec.model_dump() | {"spending_limit": 0.01})
+        JobSpec.model_validate(spec.model_dump() | {"lifetime_hours": 0.1})
+    with pytest.raises(ValueError, match="spending limit"):
+        JobSpec.model_validate(spec.model_dump() | {"spending_limit": 0.01})
     with pytest.raises(ValueError):
-        LaunchSpec.model_validate(spec.model_dump() | {"credential_hours": 720})
+        JobSpec.model_validate(spec.model_dump() | {"credential_hours": 720})
     with pytest.raises(ValueError):
-        LaunchSpec.model_validate(spec.model_dump() | {"lifetime_hours": float("inf")})
+        JobSpec.model_validate(spec.model_dump() | {"lifetime_hours": float("inf")})
     policy = worker_policy("s3://bucket/jobs/one", allocation.deadline)
     statements = policy["Statement"]
     assert isinstance(statements, list)
     cutoff = statements[-1]["Condition"]["DateGreaterThanEquals"]["aws:CurrentTime"]
     assert datetime.fromisoformat(cutoff).timestamp() == allocation.deadline
-    job = RemoteJobSpec(
+    job = Job(
         job_id="one",
         plan=compile_plan(recipe().model_dump_json(), spec, SOURCE, 1),
         created_at=1000,
@@ -126,35 +121,35 @@ def test_frozen_four_hour_deployment_keeps_exact_identity() -> None:
         old.input_sha256
         == "e6415e4d638f3da19c9b5c9312d7e43e7e1d12040986377ca7a42fb5b839dea2"
     )
-    assert old.launch is None and old.schema_version == 1
+    assert old.allocation_at(1000) is None and old.schema_version == 1
     stage = old.regime.stages[0]
     assert isinstance(stage, TrainSelfPlay) and stage.active_seconds == 14400
     with pytest.raises(ValueError, match="step-target"):
-        compile_plan(old.input_json, launch(4), SOURCE, 1)
+        compile_plan(old.input_json, job_spec(4), SOURCE, 1)
 
 
 def test_experiment_binds_seeded_cases_without_changing_recipe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     bindings = tuple(
-        LaunchRun(
+        JobRun(
             case="steps",
             seed=seed,
-            launch=launch(hours),
+            spec=job_spec(hours),
             monitoring=MonitoringBudget(seconds=100, attempt_seconds=10),
         )
         for seed, hours in ((1, 0.5), (2, 4))
     )
     experiment = Experiment(
-        name="steps", baseline=Baseline.capture("baseline", recipe()), launches=bindings
+        name="steps", baseline=Baseline.capture("baseline", recipe()), jobs=bindings
     )
-    plans = experiment.compile_launches(SOURCE)
+    plans = experiment.compile_jobs(SOURCE)
     assert [plan.seed for plan in plans] == [1, 2]
     assert plans[0].regime == plans[1].regime
     assert plans[0].input_json == experiment.resolve().cases[0].configuration
     store = FileStore(tmp_path / "experiment.sqlite")
     monkeypatch.setattr(job_client, "S3JobStore", lambda prefix: store)
-    spec = experiment.prepare_launch(0, SOURCE, "experiment-launch")
+    spec = experiment.prepare_job(0, SOURCE, "experiment-launch")
     assert spec.plan == plans[0]
     assert spec.monitoring == bindings[0].monitoring
     assert spec.checkpoint_seconds == bindings[0].checkpoint_seconds
@@ -180,8 +175,8 @@ def test_cli_compile_and_submit_use_real_job_lifecycle(
             if self.created == 2:
                 raw = store.read("spec.json")
                 assert raw is not None
-                spec = RemoteJobSpec.model_validate_json(raw.data)
-                record = RemoteJobRecord(
+                spec = Job.model_validate_json(raw.data)
+                record = JobRecord(
                     spec_sha256=spec.identity,
                     pod_id=pod.id,
                     phase="running",
@@ -195,7 +190,7 @@ def test_cli_compile_and_submit_use_real_job_lifecycle(
     monkeypatch.setattr(job_client, "RunPod", lambda: provider)
     original_submit = job_client.submit_job
 
-    def submit(spec: RemoteJobSpec) -> RemoteJobStatus:
+    def submit(spec: Job) -> JobStatus:
         return original_submit(
             spec, credentials=lambda value: {"AWS_SESSION_TOKEN": "fake-delegated"}
         )
@@ -205,7 +200,7 @@ def test_cli_compile_and_submit_use_real_job_lifecycle(
         tmp_path / name for name in ("regime.json", "launch.json", "plan.json")
     )
     regime_path.write_text(recipe().model_dump_json())
-    declaration = launch().model_copy(
+    declaration = job_spec().model_copy(
         update={"access": AccessScope(destination="s3://bucket/private/jobs")}
     )
     launch_path.write_text(declaration.model_dump_json())
@@ -217,7 +212,7 @@ def test_cli_compile_and_submit_use_real_job_lifecycle(
             "compile",
             "--regime",
             str(regime_path),
-            "--launch",
+            "--spec",
             str(launch_path),
             "--out",
             str(plan_path),
@@ -231,7 +226,7 @@ def test_cli_compile_and_submit_use_real_job_lifecycle(
     assert result.exit_code == 0, (result.output, result.exception)
     raw = store.read("spec.json")
     assert raw is not None
-    spec = RemoteJobSpec.model_validate_json(raw.data)
+    spec = Job.model_validate_json(raw.data)
     assert spec.deadline == 2800 and spec.destination == declaration.access.destination
     assert provider.created == 2
     assert "MANABOT_DEADLINE=2800" in startup[-1]
@@ -245,9 +240,9 @@ def test_cli_compile_and_submit_use_real_job_lifecycle(
     assert provider.created == 2
 
 
-def test_long_launch_fails_before_writing_intent(tmp_path: Path) -> None:
+def test_long_job_fails_before_writing_intent(tmp_path: Path) -> None:
     store = FileStore(tmp_path / "control.sqlite")
-    plan = compile_plan(recipe().model_dump_json(), launch(720), SOURCE, 1)
+    plan = compile_plan(recipe().model_dump_json(), job_spec(720), SOURCE, 1)
     with pytest.raises(ValueError, match="renewable"):
         job_client.prepare_job(plan, "month", store=store)
     assert store.read("spec.json") is None
@@ -258,7 +253,7 @@ def test_supervisor_retains_paused_learner_and_allocation(
 ) -> None:
 
     store = FileStore(tmp_path / "control.sqlite")
-    plan = compile_plan(recipe().model_dump_json(), launch(), SOURCE, 1)
+    plan = compile_plan(recipe().model_dump_json(), job_spec(), SOURCE, 1)
     spec = job_client.prepare_job(plan, "pause", store=store)
     resource = admitted(spec, store)
     retained = run_fixture(tmp_path / "fixture.json")
@@ -281,3 +276,43 @@ def test_supervisor_retains_paused_learner_and_allocation(
     assert (
         root.parent / "allocation.json"
     ).read_text() == spec.allocation.model_dump_json()
+
+
+def test_current_plan_has_one_specification() -> None:
+    plan = compile_plan(recipe().model_dump_json(), job_spec(), SOURCE, 1)
+    payload = plan.model_dump(mode="json")
+    assert payload["schema_version"] == 2
+    assert payload["spec"] == job_spec().model_dump(mode="json")
+    assert "mix" not in payload and "launch" not in payload
+    assert DeploymentPlan.model_validate_json(plan.model_dump_json()) == plan
+
+
+def test_schema1_job_retains_identity_and_deadline() -> None:
+    raw = (Path(__file__).parent / "fixtures/legacy-v1-job.json").read_text().strip()
+    job = Job.model_validate_json(raw)
+    assert job.model_dump_json() == raw
+    assert (
+        job.identity
+        == "83304a98885f4825c47ca5c84f2116d3ffd7ba6295f0310b6098b9420d697234"
+    )
+    assert job.deadline == 26200.25
+    assert job.allocation is None
+    assert job.work_deadline == job.deadline - 660 - 120
+    assert Job.model_validate(job.model_dump()).identity == job.identity
+
+
+def test_schema1_plan_cannot_silently_rewrite_frozen_content() -> None:
+    path = Path(__file__).parent / "fixtures/legacy-capacity-deployment.json"
+    plan = DeploymentPlan.model_validate_json(path.read_text())
+    stage = plan.regime.stages[0]
+    assert isinstance(stage, TrainSelfPlay)
+    stage.updates += 1
+    with pytest.raises(ValueError, match="immutable"):
+        plan.model_dump_json()
+
+
+def test_historical_reserves_require_explicit_new_authoring() -> None:
+    path = Path(__file__).parent / "fixtures/legacy-capacity-deployment.json"
+    old = DeploymentPlan.model_validate_json(path.read_text())
+    with pytest.raises(ValueError, match="checkpoint_seconds"):
+        compile_plan(recipe().model_dump_json(), old.spec, SOURCE, 1)

@@ -15,7 +15,7 @@ from manabot.training.models import TrainingRun
 from manabot.training.monitor_evaluation import MonitorProtocol, stage_checkpoint
 from manabot.training.recovery import load_update
 from manabot.verify.store import VerifyStore
-from tests.remote.test_launch import launch
+from tests.remote.test_job_spec import job_spec
 from tests.training.test_recovery import (
     assert_learning_diagnostics_equal,
     assert_state_equal,
@@ -50,7 +50,7 @@ def test_pause_export_and_resume_preserve_target_and_learning(
     value.wall_seconds = 0.002
     value.stages[0].execution.wall_seconds = 0.001
     original = value.model_dump_json()
-    allocation = launch().admit(clock.time())
+    allocation = job_spec().admit(clock.time())
     export = execution.export_training_run
 
     def pause_after_update(
@@ -74,7 +74,7 @@ def test_pause_export_and_resume_preserve_target_and_learning(
         assert paused.selected_artifact is None
         assert paused.allocation_deadline == allocation.deadline
         assert paused.recovery_artifact is not None
-        second = launch(1).admit(clock.time())
+        second = job_spec(1).admit(clock.time())
         resumed = execution.execute_regime(
             value,
             197,
@@ -98,7 +98,7 @@ def test_pause_export_and_resume_preserve_target_and_learning(
 
 
 def test_reserves_exhausted_refuses_before_training(tmp_path: Path) -> None:
-    allocation = launch().admit(time.time() - 1800)
+    allocation = job_spec().admit(time.time() - 1800)
     with VerifyStore(tmp_path / "training.sqlite") as store:
         with pytest.raises(ValueError, match="reserves exhausted"):
             execution.execute_regime(
@@ -113,7 +113,7 @@ def test_collection_cutoff_leaves_checkpoint_reserve_without_claiming_cuda_recov
 
     clock = AllocationClock()
     monkeypatch.setattr(execution, "time", clock)
-    allocation = launch().admit(clock.time())
+    allocation = job_spec().admit(clock.time())
     original_collect = SeatRoutedCollector.collect
     value = recipe()
     value.recovery_max_microsteps = None
@@ -161,7 +161,7 @@ def test_collection_cutoff_leaves_checkpoint_reserve_without_claiming_cuda_recov
                 tmp_path / "forbidden",
                 store,
                 resume_from=paused.id,
-                allocation=launch().admit(clock.time()),
+                allocation=job_spec().admit(clock.time()),
             )
 
 
@@ -170,7 +170,7 @@ def test_export_reserve_exhaustion_is_not_a_completed_or_paused_run(
 ) -> None:
     clock = AllocationClock()
     monkeypatch.setattr(execution, "time", clock)
-    allocation = launch().admit(clock.time())
+    allocation = job_spec().admit(clock.time())
     value = recipe()
     value.stages[0].updates = 1
     value.recovery_max_microsteps = None

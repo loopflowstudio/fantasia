@@ -15,7 +15,7 @@ from typing import Any, Protocol
 
 from manabot.infra.artifacts import split_s3_uri
 
-from .jobs import Cancellation, RemoteJobSpec
+from .jobs import Cancellation, Job
 
 
 @dataclass(frozen=True)
@@ -210,7 +210,7 @@ def configure_worker_role(destination: str) -> None:
             )
 
 
-def worker_credentials(spec: RemoteJobSpec) -> dict[str, str]:
+def worker_credentials(spec: Job) -> dict[str, str]:
     """Use a job-scoped STS session; account keys never reach a rental.
 
     SSO/role chaining supports at most one hour. Longer jobs require IAM-user

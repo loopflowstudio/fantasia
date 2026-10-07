@@ -537,3 +537,9 @@ S3 generations and deletion. Reconnecting cannot restart training. PR255 deliver
 the final exact source/protocol freeze and per-rental live admission precede
 submission. The old client-driven scientific launcher stays disabled. The editable
 hardware notebook and private bundles remain; no capacity winner exists.
+
+Current authoring uses `Experiment.jobs` with `JobRun(spec=JobSpec(...))`;
+see [machine allocations](../docs/remote-jobs.md#step-targets-and-machine-allocations).
+The calibration-era `cuda_capacity --freeze` authoring helper is retired; its
+source and two-stage protocol remain in Git at `33f68e07`. Saved schema-1 plans
+remain readable. This migration changes no frozen cohort or evidence.

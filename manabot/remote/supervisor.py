@@ -20,14 +20,14 @@ from manabot.training.models import TrainingRun
 from manabot.verify.store import VerifyStore
 
 from .job_store import JobStore, S3JobStore, StoredValue, cancellation_requested
-from .jobs import RemoteJobRecord, RemoteJobSpec, Resource
+from .jobs import Job, JobRecord, Resource
 from .snapshots import publish_snapshot
 
 
 class SnapshotPublisher(Protocol):
     def __call__(
         self,
-        spec: RemoteJobSpec,
+        spec: Job,
         root: Path,
         generation: int,
         *,
@@ -63,14 +63,14 @@ def _training_run(root: Path) -> TrainingRun | None:
 
 
 def supervise(
-    spec: RemoteJobSpec,
+    spec: Job,
     store: JobStore,
     root: Path,
     pod_id: str,
     *,
     command: list[str] | None = None,
     publish: SnapshotPublisher = publish_snapshot,
-) -> RemoteJobRecord:
+) -> JobRecord:
     """Execute once. Injection points support real-process offline lifecycle tests."""
     resource_value = store.read("training.json")
     if resource_value is None:
@@ -83,7 +83,7 @@ def supervise(
         raise ValueError("job already started; CUDA process recovery is unsupported")
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     now = time.time()
-    record = RemoteJobRecord(
+    record = JobRecord(
         spec_sha256=spec.identity,
         pod_id=pod_id,
         phase="accepted",
@@ -355,7 +355,7 @@ def main() -> None:
     raw = store.read("spec.json")
     if raw is None:
         raise ValueError("remote job intent missing")
-    spec = RemoteJobSpec.model_validate_json(raw.data)
+    spec = Job.model_validate_json(raw.data)
     pod_id = os.environ["RUNPOD_POD_ID"]
     # A lost create response can delay admission; a fresh submitter can reconcile
     # it without starting another rental. Never train before price admission.

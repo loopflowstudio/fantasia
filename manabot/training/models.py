@@ -189,7 +189,7 @@ class TrainSelfPlay(Stage):
     opponent: FrozenOpponent | None = None
     initial: str | None = None
     updates: int = Field(default=2, ge=1)
-    # Frozen v1 compatibility only; LaunchSpec rejects active-time endpoints.
+    # Frozen v1 compatibility only; JobSpec rejects active-time endpoints.
     # An active-time endpoint completes after a whole collect/update iteration.
     # updates remains a safety ceiling; reaching it early is a failed attempt.
     active_seconds: float | None = Field(

@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 
 from manabot.cli import app
 from manabot.remote import cli
-from manabot.remote.plan import DeploymentPlan, HardwareMix, compile_plan
+from manabot.remote.plan import DeploymentPlan, JobSpec, compile_plan
 from tests.remote.test_compile import ROOT, SOURCE
 
 runner = CliRunner()
@@ -47,10 +47,8 @@ def test_submit_uses_same_plan_and_job(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, explicit: bool
 ) -> None:
     plan = compile_plan(
-        (ROOT / "experiments/regimes/direct-self-play.json").read_text(),
-        HardwareMix.model_validate_json(
-            (ROOT / "ops/mixes/runpod-small.json").read_text()
-        ),
+        (ROOT / "ops/examples/step-target.json").read_text(),
+        JobSpec.model_validate_json((ROOT / "ops/jobs/runpod-small.json").read_text()),
         SOURCE,
         197,
     )
