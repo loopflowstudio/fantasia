@@ -38,6 +38,27 @@ rental if credentials cannot cover the absolute deadline. This is a current
 runtime limit, not portable credential renewal or long-job recovery. AWS documents
 the [one-hour role-chaining limit](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
 
+For a long job, an explicitly configured dedicated IAM issuer can assume the
+worker role directly. Set `MANABOT_REMOTE_ISSUER_PROFILE` to that local AWS profile
+and `MANABOT_REMOTE_ROLE_ARN` to the worker role. The profile may load its key
+from the approved secret manager through `credential_process`; never store a key
+in source or pass the issuer environment to the pod. Client S3 operations keep
+the ordinary AWS profile. Issuance requests the full remaining rental deadline
+plus a 60-second reserve, applies the same job-prefix session policy, and verifies
+returned expiration before provider creation. Role duration/trust/permissions
+remain enforced by AWS. A temporary-role source still fails above one hour.
+
+This does not create an issuer, key or trust policy. ETU-103's observed account
+has only SSO configured; the repository operator must authorize a dedicated
+least-privilege issuer or another supported authentication path before a long
+rental. The issuer needs only `sts:AssumeRole` on the worker role, which needs a
+matching narrow trust entry. General account credentials never reach the worker.
+
+A monitoring budget may also supply `terminal_protocols`. The last completed
+stage's raw export alone gets these disjoint cohorts; initialization and live
+exports use `protocol`. This permits untouched held-out final deals and a separate
+random diagnostic without putting an experiment callback inside the supervisor.
+
 Author an optional `MonitoringBudget` JSON using the existing contract. For a tiny
 workflow check, this declares two minutes per evaluation and a four-minute total:
 

@@ -323,6 +323,9 @@ def _execute_regime(
         return {
             "updates": run.updates_through(),
             "training_seconds": run.prior_seconds + time.perf_counter() - start,
+            "active_training_seconds": sum(
+                s.collection_seconds + s.learning_seconds for s in run.stages
+            ),
             "environment_decisions": sum(s.environment_decisions for s in run.stages),
             "learner_transitions": sum(s.learner_transitions for s in run.stages),
             "optimizer_exposures": sum(s.optimizer_exposures for s in run.stages),
@@ -336,7 +339,14 @@ def _execute_regime(
 
     def monitor_checkpoint(model: Agent) -> None:
         nonlocal last_monitor_seconds
-        elapsed = time.perf_counter() - start - run.monitoring_export_seconds
+        active_endpoint = (
+            isinstance(stage, TrainSelfPlay) and stage.active_seconds is not None
+        )
+        elapsed = (
+            sum(s.collection_seconds + s.learning_seconds for s in run.stages)
+            if active_endpoint
+            else time.perf_counter() - start - run.monitoring_export_seconds
+        )
         if (
             checkpoint_seconds is None
             or elapsed - last_monitor_seconds < checkpoint_seconds
@@ -352,6 +362,7 @@ def _execute_regime(
                 for k in (
                     "updates",
                     "training_seconds",
+                    "active_training_seconds",
                     "environment_decisions",
                     "learner_transitions",
                     "optimizer_exposures",
@@ -1007,6 +1018,11 @@ def _execute_regime(
                     persist()
                 snapshot = None
                 for update_index in range(first_update, stage.updates):
+                    if stage.active_seconds is not None and (
+                        record.collection_seconds + record.learning_seconds
+                        >= stage.active_seconds
+                    ):
+                        break
                     check()
                     tick = time.perf_counter()
                     phase = "collection_seconds"
@@ -1050,6 +1066,10 @@ def _execute_regime(
                         update_ema(ema, trainer.agent, stage.learning.ema)
                     synchronize()
                     record.learning_seconds += time.perf_counter() - tick
+                    if stage.active_seconds is not None:
+                        # A failure in persistence/export after a completed update
+                        # must not charge that overhead to the active-time clock.
+                        phase = "diagnostic_seconds"
                     record.diagnostics.append(diagnostic)
                     record.optimizer_exposures += diagnostic["optimizer_exposures"]
                     record.games = trainer.collector.stats.games - before.games
@@ -1061,9 +1081,22 @@ def _execute_regime(
                         - before.learner_transitions
                     )
                     diagnostic["coordinates"] = coordinates()
-                    monitor_checkpoint(trainer.agent)
+                    # The completed stage export owns an active-time endpoint;
+                    # do not enqueue a duplicate monitoring cohort at that point.
+                    if stage.active_seconds is None or (
+                        record.collection_seconds + record.learning_seconds
+                        < stage.active_seconds
+                    ):
+                        monitor_checkpoint(trainer.agent)
                     checkpoint(f"update-{iteration:08d}")
                     persist(progress=True)
+                if stage.active_seconds is not None and (
+                    record.collection_seconds + record.learning_seconds
+                    < stage.active_seconds
+                ):
+                    raise RuntimeError(
+                        "update safety ceiling reached before active training endpoint"
+                    )
                 self_play_session = (trainer, ema, iteration)
                 agent = trainer.agent
                 optimizer_state = trainer.optimizer.state_dict()
