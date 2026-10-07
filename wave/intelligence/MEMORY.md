@@ -2,19 +2,19 @@
 
 ## Disconnected deployment proof (ETU-123, 2026-10-06)
 
-Jack Heart required `uv run manabot deploy` as the sole public lifecycle namespace;
-no old alias is registered. CLI and Experiment callers share durable S3 intent,
-conditional creation fences and a provider-started supervisor. TrainingRun,
-VerifyStore, CheckpointQueue, Bundle and artifact/reporting owners remain intact.
-PR253 `e052ac30` was integrated without changing its checkout. PR254 is published
-for review; Jack Heart has not authorized merging it.
+Jack Heart required `uv run manabot deploy` alone, without aliases. CLI and
+Experiment share S3 intent, creation fences and provider-started supervision.
+TrainingRun, VerifyStore, CheckpointQueue, Bundle and reporting retain ownership.
+Client and supervisor share `Resource.validate_for` admission and `job_store`
+cancellation reads; neither contract belongs to the client. PR253 `e052ac30` was
+integrated without changing its checkout. PR254 awaits Jack Heart's merge review.
 
 The client exited at zero updates; pinned `def37708` finished 160 CUDA updates,
 an initial and two later evaluations, 12 games and final upload/deletion. Fresh
 clients retrieved 48 verified files, admitted four raw/EMA policies and regenerated
 notebook/HTML after deletion. The status poll lagged at 139; the database held 160.
-Current status reads VerifyStore; frozen evidence stays unchanged. No strength,
-scientific allocation or CUDA process-recovery claim follows.
+Status now reads VerifyStore; frozen evidence is unchanged. No strength,
+scientific allocation or CUDA process recovery follows.
 
 The first attempt failed before training because scoped S3 missing-key reads return
 403. Creating the empty cancellation mailbox before rental fixed this without
