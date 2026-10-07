@@ -153,7 +153,7 @@ class EvaluationProtocol(BaseModel):
                 or self.endpoint_paired_deals
                 or self.endpoint_seed_pairs
                 or self.checkpoint_count != 3
-                or self.process_seconds != 43200
+                or self.process_seconds != 41700
             ):
                 raise ValueError(
                     "CUDA capacity requires the declared 100-game greedy/development/endpoint and separate random cohorts"

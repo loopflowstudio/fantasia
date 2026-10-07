@@ -6,6 +6,7 @@ remain authoritative. No scores select the subsequent workload.
 """
 
 import argparse
+import json
 from pathlib import Path
 import time
 from typing import Literal
@@ -44,7 +45,13 @@ def launch(root: Path, gpu: str, streams: int, batch: int) -> None:
         Receipt.model_validate_json(p.read_text())
         for p in root.glob("calibration-*/deployment.json")
     ]
-    remaining = 7200 - (time.time() - min(r.started for r in receipts))
+    amendment = json.loads((root / "calibration-amendment.json").read_text())
+    if (
+        amendment["calibration_seconds"] != 8700
+        or amendment["combined_seconds"] != 50400
+    ):
+        raise ValueError("calibration amendment does not match bounded reallocation")
+    remaining = 8700 - (time.time() - min(r.started for r in receipts))
     if remaining < 1250 or any(
         r.phase != "deleted" or r.estimated_dollars is None for r in receipts
     ):

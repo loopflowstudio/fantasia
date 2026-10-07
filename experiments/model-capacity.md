@@ -308,17 +308,17 @@ stage time/3, and either of its last two update intervals. Fewer than 20 admitte
 updates stops allocation. The 50% timing margin is conservative extrapolation,
 not a sustained timing proof. Unused time buys no extra updates. Different counts
 are declared cost-targeted endpoints; sample/exposure comparisons use overlapping
-observed support. Each run has a 1,200-second watchdog and 590 seconds per half.
+observed support. Each run has a 1,000-second watchdog and 490 seconds per half.
 
 Three paired seeds 10351–10353 run small/large, large/small, small/large. Six
-2,100-second rental ceilings reserve 12,600 seconds. Each run has four separate
+1,850-second rental ceilings reserve 11,100 seconds. Each run has four separate
 100-game cohorts, each with a 1,200-second CPU process ceiling: initialization
 and midpoint versus greedy on development deals 1910103510–1910103534; terminal
 raw versus greedy on untouched deals 1910103610–1910103634; then a separately
 scheduled terminal random diagnostic on 1910103710–1910103734. Four deck/seat
 legs stay together. The 24 cohorts reserve 28,800 evaluator seconds; publication
-and reporting reserve 1,800 seconds. These sum to the approved 43,200-second
-comparison ceiling. Rental and evaluator occupied time are charged separately
+and reporting reserve 1,800 seconds. These sum to the revised 41,700-second
+comparison ceiling described below. Rental and evaluator occupied time are charged separately
 even when they overlap. Publication during a rental is a subset of its time;
 post-rental publication/reporting consumes the final reserve. Transfers, setup,
 idle and deletion stay inside rental time. The $15 ceiling includes all earlier
@@ -352,7 +352,7 @@ promotion. Negative or inconclusive outcomes retain both scientific limits and
 all attempts.
 
 Before freezing this schedule, one final live-workflow calibration may use at most
-1,250 remaining seconds of the original two-hour clock: a 1,100-second rental,
+1,250 remaining seconds of the revised calibration clock: a 1,100-second rental,
 128 small-model updates, one four-game initialization timing cohort, and bounded
 collection profiling. The profiler compares the existing 4/64-stream settings
 at 512 total transitions for both capacities. It records actual inference batch
@@ -368,3 +368,16 @@ child after its grid has closed, within that rental's existing deadline; L4 runs
 it in the final live-workflow calibration. Supplemental manifests retain source,
 results, exit/OOM logs and costs. This closes the untested gap between batches256
 and1024 without changing a scientific model or examining strength scores.
+
+### Calibration time reallocation (2026-10-06, before original deadline)
+
+Following Jack Heart’s instruction to report a concrete revised time plan before
+exceeding calibration, Codex reported a 25-minute reallocation at Unix time
+1791335743: 8,700 calibration seconds and 41,700 comparison seconds. Combined
+time stays 50,400 seconds and the all-in ceiling stays $15. The calibration
+deadline is 1791337305.990033. This is an operator interpretation of that
+instruction, not a claim of separate approval of these exact phase numbers.
+The additional time funds only live evaluation, collection profiling, the L4
+batch512 bracket and freeze. Another overrun stops execution. Six reduced rental
+limits absorb the reallocation; evaluation and reporting reserves stay unchanged.
+The immutable local amendment retains the original clock and completed attempts.

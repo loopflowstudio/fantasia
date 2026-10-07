@@ -37,7 +37,7 @@ class HardwareRow(BaseModel):
     batch: int
     streams: int
     capacity: str
-    seconds: float
+    seconds: float | None
     inference_observations_per_second: float | None = None
     optimizer_observations_per_second: float | None = None
     peak_allocated_bytes: int | None = None
@@ -53,6 +53,33 @@ class HardwareRow(BaseModel):
     attention_slots: int | None = None
     parameter_count: int | None = None
     path: str
+
+
+def _model_row(row: HardwareRow, result_path: Path) -> None:
+    model = ModelResult.model_validate_json(result_path.read_text())
+    row.device, row.memory_bytes, row.attention_slots = (
+        model.device,
+        model.total_memory_bytes,
+        model.attention_slots,
+    )
+    if model.architecture is not None:
+        row.parameter_count = model.architecture.parameters.total
+    for name, phase in (
+        ("inference", model.inference),
+        ("optimizer", model.optimizer),
+    ):
+        if phase is not None:
+            rate = median(w.observations / w.seconds for w in phase.windows)
+            if name == "inference":
+                row.inference_observations_per_second = rate
+            else:
+                row.optimizer_observations_per_second = rate
+            row.peak_allocated_bytes = max(
+                row.peak_allocated_bytes or 0, phase.peak_allocated_bytes
+            )
+            row.peak_reserved_bytes = max(
+                row.peak_reserved_bytes or 0, phase.peak_reserved_bytes
+            )
 
 
 def hardware(root: Path) -> list[HardwareRow]:
@@ -85,30 +112,7 @@ def hardware(root: Path) -> list[HardwareRow]:
             )
             result_path = directory / cell.name / "result.json"
             if cell.kind == "model" and result_path.exists():
-                model = ModelResult.model_validate_json(result_path.read_text())
-                row.device, row.memory_bytes, row.attention_slots = (
-                    model.device,
-                    model.total_memory_bytes,
-                    model.attention_slots,
-                )
-                if model.architecture is not None:
-                    row.parameter_count = model.architecture.parameters.total
-                for name, phase in (
-                    ("inference", model.inference),
-                    ("optimizer", model.optimizer),
-                ):
-                    if phase is not None:
-                        rate = median(w.observations / w.seconds for w in phase.windows)
-                        if name == "inference":
-                            row.inference_observations_per_second = rate
-                        else:
-                            row.optimizer_observations_per_second = rate
-                        row.peak_allocated_bytes = max(
-                            row.peak_allocated_bytes or 0, phase.peak_allocated_bytes
-                        )
-                        row.peak_reserved_bytes = max(
-                            row.peak_reserved_bytes or 0, phase.peak_reserved_bytes
-                        )
+                _model_row(row, result_path)
             if cell.kind == "loop":
                 run_path = directory / cell.name / "run/run.json"
                 if run_path.exists():
@@ -128,6 +132,36 @@ def hardware(root: Path) -> list[HardwareRow]:
                     row.peak_allocated_bytes = int(value["peak_allocated_bytes"])
                     row.peak_reserved_bytes = int(value["peak_reserved_bytes"])
             rows.append(row)
+    for card, supplemental in (
+        ("a40", root / "calibration-a40-sweep/fit512/evidence"),
+        ("l4", root / "calibration-live-workflow/evidence/fit512"),
+    ):
+        result_path = supplemental / "w384-d8-model-b512-s0/result.json"
+        exit_path = supplemental / "exit.txt"
+        if not exit_path.exists():
+            continue
+        status = "completed" if exit_path.read_text().strip() == "0" else "failed"
+        log = supplemental / "worker.log"
+        if (
+            status == "failed"
+            and log.exists()
+            and "OutOfMemoryError" in log.read_text()
+        ):
+            status = "oom"
+        row = HardwareRow(
+            card=card,
+            cell="w384-d8-model-b512-s0",
+            kind="model",
+            status=status,
+            batch=512,
+            streams=0,
+            capacity="w384-d8",
+            seconds=None,
+            path=str(supplemental),
+        )
+        if result_path.exists():
+            _model_row(row, result_path)
+        rows.append(row)
     return rows
 
 
@@ -139,7 +173,9 @@ def hardware_comparison(rows: list[HardwareRow]) -> dict[str, object]:
             eligible = [
                 r
                 for r in rows
-                if r.card == card and r.capacity == capacity and r.status == "completed"
+                if r.card == card
+                and r.capacity == capacity
+                and r.status in {"completed", "oom"}
             ]
             for phase in ("inference", "optimizer", "loop"):
 
@@ -151,6 +187,7 @@ def hardware_comparison(rows: list[HardwareRow]) -> dict[str, object]:
                     return (
                         row.transitions / row.training_seconds
                         if row.kind == "loop"
+                        and row.status == "completed"
                         and row.transitions is not None
                         and row.training_seconds
                         else 0
@@ -366,6 +403,7 @@ def build_report(root: Path, scientific_out: Path | None = None) -> Path:
                 and r.inference_observations_per_second is not None
             ]
             if points:
+                points.sort(key=lambda point: point.batch)
                 ax.plot(
                     [p.batch for p in points],
                     [p.inference_observations_per_second for p in points],
@@ -382,7 +420,7 @@ def build_report(root: Path, scientific_out: Path | None = None) -> Path:
     fig.tight_layout()
     fig.savefig(root / "hardware-throughput.svg")
     dollars = sum(r.estimated_dollars or 0 for r in receipts)
-    body = f"""<!doctype html><meta charset="utf-8"><title>ETU-103 capacity</title><style>body{{font:16px system-ui;max-width:1200px;margin:40px auto;padding:0 24px}}table{{border-collapse:collapse;width:100%;font-size:13px}}td,th{{padding:6px;border-bottom:1px solid #ddd;text-align:right}}td:first-child,th:first-child{{text-align:left}}pre{{white-space:pre-wrap}}img{{width:100%}}</style><h1>CUDA capacity: hardware and learning</h1><p>Calibration rental estimate: ${dollars:.4f}. Provider billing may differ; intent-to-confirmed-deletion time includes setup, idle and storage allowance. Every failure and unvisited cell remains below.</p><p>Model-only Adam is a diagnostic loss on fixed real rows. Complete-loop cells use ordinary Ataraxos self-play. Three-update cells and three one-second windows measure short-run behavior, not strength or sustained throughput. Collection includes engine and inference; its share alone does not prove GPU starvation.</p><img src="hardware-throughput.svg" alt="Fixed real batch inference throughput"><h2>Hardware cells</h2>{table}<h2>Learning cohort</h2><pre>{escape(json.dumps(report["science"], indent=2))}</pre>"""
+    body = f"""<!doctype html><meta charset="utf-8"><title>ETU-103 capacity</title><style>body{{font:16px system-ui;max-width:1200px;margin:40px auto;padding:0 24px}}table{{border-collapse:collapse;width:100%;font-size:13px}}td,th{{padding:6px;border-bottom:1px solid #ddd;text-align:right}}td:first-child,th:first-child{{text-align:left}}pre{{white-space:pre-wrap}}img{{width:100%}}</style><h1>CUDA capacity: hardware and learning</h1><p>Calibration rental estimate: ${dollars:.4f}. Provider billing may differ; intent-to-confirmed-deletion time includes setup, idle and storage allowance. Every failure and unvisited cell remains below.</p><p>Model-only Adam is a diagnostic loss on fixed real rows. Peaks cover completed phases; OOM logs retain failed-allocation details. Complete-loop cells use ordinary Ataraxos self-play. Three-update cells and three one-second windows measure short-run behavior, not strength or sustained throughput. Collection includes engine and inference; its share alone does not prove GPU starvation.</p><img src="hardware-throughput.svg" alt="Fixed real batch inference throughput"><h2>Hardware cells</h2>{table}<h2>Learning cohort</h2><p>{escape(str(report["science"]["status"]))}</p><details><summary>Resolved measurements, uncertainty and limits</summary><pre>{escape(json.dumps(report["science"], indent=2))}</pre></details>"""
     target = root / "report.html"
     target.write_text(body)
     return target
@@ -395,7 +433,7 @@ def write_notebook(root: Path) -> Path:
                 "# CUDA capacity\nEdit the evidence path and analysis cells; this notebook generates the read-only HTML report. Hardware speed, fit and playing strength are separate outcomes."
             ),
             nbformat.v4.new_code_cell(
-                f"from pathlib import Path\nfrom experiments.runners.cuda_capacity_report import build_report, hardware\nroot = Path({str(root.resolve())!r})\nreport = build_report(root)\nreport"
+                f"from pathlib import Path\nimport sys\nrepo = Path({str(Path.cwd())!r})\nsys.path.insert(0, str(repo))\nfrom experiments.runners.cuda_capacity_report import build_report, hardware\nroot = Path({str(root.resolve())!r})\nreport = build_report(root)\nreport"
             ),
             nbformat.v4.new_code_cell(
                 "import pandas as pd\nframe = pd.DataFrame([row.model_dump() for row in hardware(root)])\nframe"

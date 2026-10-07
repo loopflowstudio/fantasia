@@ -7,6 +7,7 @@ CPU evaluator; each rental still owns its deadlines, verification and deletion.
 """
 
 import argparse
+import json
 import os
 from pathlib import Path
 import signal
@@ -43,6 +44,13 @@ from manabot.training.monitor_evaluation import Checkpoint, MonitorProtocol
 from manabot.training.monitoring import publish_dashboard, training_dashboard
 
 
+class PublicationAttempt(Strict):
+    status: Literal["completed", "failed", "timeout"]
+    seconds: float
+    directory: str
+    accounting: str = "report reserve"
+
+
 class Timing(Strict):
     capacity: str
     path: str
@@ -61,7 +69,7 @@ class CapacityPlan(Strict):
     protocol: EvaluationProtocol
     deployments: list[DeploymentPlan]
     created_unix: float
-    total_seconds: Literal[43200] = 43200
+    total_seconds: Literal[41700] = 41700
     evaluator_seconds: Literal[28800] = 28800
     cohort_seconds: Literal[1200] = 1200
     report_seconds: Literal[1800] = 1800
@@ -154,7 +162,14 @@ def freeze(root: Path, out: Path, gpu: str, streams: int, batch: int) -> Capacit
             Bundle.model_validate_json((recovered / "bundle.json").read_text()).verify(
                 recovered / "evidence"
             )
-    if time.time() - min(r.started for r in receipts) > 7200:
+    amendment = json.loads((root / "calibration-amendment.json").read_text())
+    if (
+        amendment["calibration_seconds"] != 8700
+        or amendment["comparison_seconds"] != 41700
+        or amendment["combined_seconds"] != 50400
+    ):
+        raise ValueError("calibration reallocation differs from recorded plan")
+    if time.time() - min(r.started for r in receipts) > 8700:
         raise ValueError("calibration clock exhausted before freeze")
     if streams not in (4, 16, 64) or batch not in (128, 512) or batch % streams:
         raise ValueError("selected workload must be a declared measured sweep cell")
@@ -208,7 +223,7 @@ def freeze(root: Path, out: Path, gpu: str, streams: int, batch: int) -> Capacit
         )
         recipe = resolved.regimes[capacity].model_copy(deep=True)
         recipe.id = f"cuda-{capacity}"
-        recipe.wall_seconds = 1200
+        recipe.wall_seconds = 1000
         for stage in recipe.stages:
             assert isinstance(stage, TrainSelfPlay)
             stage.streams, stage.transitions, stage.updates = (
@@ -216,9 +231,10 @@ def freeze(root: Path, out: Path, gpu: str, streams: int, batch: int) -> Capacit
                 batch // streams,
                 updates // 2,
             )
-            stage.execution.wall_seconds = 590
+            stage.execution.wall_seconds = 490
             stage.execution.device, stage.execution.threads = "cuda", 1
         chosen.append(TrainingRegime.model_validate(recipe.model_dump()))
+    base.wall_seconds = 1000
     resolved = Experiment(
         name="cuda",
         baseline=Baseline.capture("cuda-capacity-control-v1", base),
@@ -234,9 +250,9 @@ def freeze(root: Path, out: Path, gpu: str, streams: int, batch: int) -> Capacit
         template.model_dump()
         | dict(
             gpu_types=[gpu],
-            wall_seconds=2100,
-            setup_seconds=420,
-            transfer_seconds=300,
+            wall_seconds=1850,
+            setup_seconds=330,
+            transfer_seconds=360,
             cleanup_seconds=120,
         )
     )
@@ -262,7 +278,7 @@ def freeze(root: Path, out: Path, gpu: str, streams: int, batch: int) -> Capacit
         cost_cutoffs_seconds=(300, 600),
         early_progress_seconds=600,
         progress_score=0.5,
-        process_seconds=43200,
+        process_seconds=41700,
         uncertainty="paired-seed-descriptive",
         game_seconds=60,
     )
@@ -339,7 +355,7 @@ def publish(directory: Path, destination: Path) -> None:
     bundle = Bundle.model_validate_json((directory / "bundle.json").read_text())
     receipt: dict[str, str | None] = {"run_id": run.id}
     try:
-        publish_run(
+        manifest = publish_run(
             run_path,
             "s3://etudefantasia/manabot/",
             destination / "artifacts.json",
@@ -347,8 +363,10 @@ def publish(directory: Path, destination: Path) -> None:
             resolve_artifact=lambda a: bundle.resolve(directory / "evidence", a.path),
         )
         receipt["s3"] = "verified"
+        dashboard = training_dashboard(run)
+        dashboard.summary["artifact_storage"] = manifest.model_dump(mode="json")
         receipt["wandb"] = publish_dashboard(
-            training_dashboard(run),
+            dashboard,
             destination,
             project="etude",
             entity="loopflow-studio",
@@ -360,10 +378,10 @@ def publish(directory: Path, destination: Path) -> None:
 
 def _bounded_command(
     command: list[str], out: Path, seconds: float
-) -> dict[str, str | float | None]:
+) -> PublicationAttempt:
     out.mkdir(parents=True, exist_ok=True)
     began = time.monotonic()
-    status = "completed"
+    status: Literal["completed", "failed", "timeout"] = "completed"
     with (out / "worker.log").open("ab") as log:
         process = subprocess.Popen(
             command, stdout=log, stderr=subprocess.STDOUT, start_new_session=True
@@ -380,11 +398,9 @@ def _bounded_command(
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
-    return {
-        "status": status,
-        "seconds": time.monotonic() - began,
-        "directory": str(out),
-    }
+    return PublicationAttempt(
+        status=status, seconds=time.monotonic() - began, directory=str(out)
+    )
 
 
 def execute(out: Path) -> None:
@@ -417,7 +433,7 @@ def execute(out: Path) -> None:
     dollars = initial_cost
     status = "running"
     error: str | None = None
-    publications: list[dict[str, str | float | None]] = []
+    publications: list[PublicationAttempt] = []
     publication_seconds = 0.0
     queue: CheckpointQueue | None = None
     last_reported = 0
@@ -436,7 +452,7 @@ def execute(out: Path) -> None:
                 estimated_dollars=dollars,
                 calibration_estimated_dollars=initial_cost,
                 storage_reserve_dollars=1,
-                publications=publications,
+                publications=[p.model_dump(mode="json") for p in publications],
                 nonoverlapping_publication_seconds=publication_seconds,
                 plan_sha256=file_sha256(out / "plan.json"),
             ),
@@ -463,9 +479,9 @@ def execute(out: Path) -> None:
             out / "reporting",
             30,
         )
-        delivery["accounting"] = "subset of rental" if overlapping else "report reserve"
+        delivery.accounting = "subset of rental" if overlapping else "report reserve"
         if not overlapping:
-            publication_seconds += float(delivery["seconds"] or 0)
+            publication_seconds += delivery.seconds
         publications.append(delivery)
 
     def check() -> None:
@@ -558,7 +574,7 @@ def execute(out: Path) -> None:
                         out / f"wandb-live-{index}",
                         35,
                     )
-                    publication["accounting"] = "subset of rental time; not added twice"
+                    publication.accounting = "subset of rental time; not added twice"
                     publications.append(publication)
                 save()
 
@@ -610,7 +626,7 @@ def execute(out: Path) -> None:
                 out / f"publication-{index}",
                 120,
             )
-            publication_seconds += float(publication["seconds"] or 0)
+            publication_seconds += publication.seconds
             publications.append(publication)
             if publication_seconds > plan.report_seconds:
                 raise TimeoutError("publication consumed report reserve")
@@ -658,7 +674,7 @@ def execute(out: Path) -> None:
             out / "reporting",
             min(120, remaining_report),
         )
-        publication_seconds += float(delivery["seconds"] or 0)
+        publication_seconds += delivery.seconds
         publications.append(delivery)
         save()
 

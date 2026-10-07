@@ -38,7 +38,7 @@ def protocol() -> EvaluationProtocol:
         cost_cutoffs_seconds=(300, 600),
         early_progress_seconds=600,
         progress_score=0.5,
-        process_seconds=43200,
+        process_seconds=41700,
         uncertainty="paired-seed-descriptive",
     )
 
@@ -154,6 +154,12 @@ def test_freeze_binds_real_authoring_and_rejects_control_drift(
         assert isinstance(stage, TrainSelfPlay)
         stage.execution.wall_seconds = 590
     (root / "inputs/cuda-calibration-small.json").write_text(base.model_dump_json())
+    atomic_json(
+        root / "calibration-amendment.json",
+        dict(
+            calibration_seconds=8700, comparison_seconds=41700, combined_seconds=50400
+        ),
+    )
     (root / "inputs/mix.json").write_bytes(
         Path("ops/mixes/runpod-small.json").read_bytes()
     )
