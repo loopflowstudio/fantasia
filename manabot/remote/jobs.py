@@ -95,6 +95,21 @@ class Resource(Frozen):
     claim: CreateClaim
     pod: Pod
 
+    def validate_for(self, spec: RemoteJobSpec) -> None:
+        """Require the claimed job identity, price and hardware before execution."""
+        pod, mix = self.pod, spec.plan.mix
+        if self.claim.spec_sha256 != spec.identity or pod.name != self.claim.name:
+            raise ValueError("provider resource does not belong to this job")
+        if (
+            pod.gpu_count != mix.gpu_count
+            or not 0 < pod.rate <= mix.hourly_ceiling
+            or pod.vcpus < mix.vcpus
+            or pod.memory_gb < mix.memory_gb
+        ):
+            raise ValueError(
+                "assigned rental fails declared price/resource admission; cancel job"
+            )
+
 
 class RemoteJobRecord(Frozen):
     spec_sha256: str

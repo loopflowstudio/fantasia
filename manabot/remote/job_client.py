@@ -15,7 +15,7 @@ from manabot.infra.artifacts import S3ArtifactStore
 from manabot.training.checkpoint_queue import MonitoringBudget
 
 from .deploy import current_source, verify_public_source
-from .job_store import JobStore, S3JobStore, worker_credentials
+from .job_store import JobStore, S3JobStore, cancellation_requested, worker_credentials
 from .jobs import (
     DEFAULT_JOBS,
     Cancellation,
@@ -36,21 +36,6 @@ if TYPE_CHECKING:
     from .plan import HardwareMix, Source
 
 
-def _bound_resource(spec: RemoteJobSpec, resource: Resource) -> None:
-    pod, mix = resource.pod, spec.plan.mix
-    if resource.claim.spec_sha256 != spec.identity or pod.name != resource.claim.name:
-        raise ValueError("provider resource does not belong to this job")
-    if (
-        pod.gpu_count != mix.gpu_count
-        or not 0 < pod.rate <= mix.hourly_ceiling
-        or pod.vcpus < mix.vcpus
-        or pod.memory_gb < mix.memory_gb
-    ):
-        raise ValueError(
-            "assigned rental fails declared price/resource admission; cancel job"
-        )
-
-
 def _provision(
     spec: RemoteJobSpec,
     store: JobStore,
@@ -64,7 +49,7 @@ def _provision(
     stored = store.read(key)
     if stored is not None:
         resource = Resource.model_validate_json(stored.data)
-        _bound_resource(spec, resource)
+        resource.validate_for(spec)
         return resource
     claim_key = f"{purpose}-claim.json"
     stored_claim = store.read(claim_key)
@@ -141,7 +126,7 @@ def _provision(
                 "conflicting provider resources; manual reconciliation required"
             )
     try:
-        _bound_resource(spec, resource)
+        resource.validate_for(spec)
     except ValueError:
         # Failed price/resource admission is before remote acceptance. Do not
         # leave a rejected allocation billing through the full setup reserve.
@@ -361,13 +346,6 @@ def job_status(
         cleanup=cleanup,
         cancel_requested_at=cancellation_requested(store),
     )
-
-
-def cancellation_requested(store: JobStore) -> float | None:
-    value = store.read("cancel.json")
-    if value is None:
-        return None
-    return Cancellation.model_validate_json(value.data).requested_at
 
 
 def cancel_job(spec: RemoteJobSpec, *, store: JobStore | None = None) -> None:

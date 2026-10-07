@@ -19,8 +19,7 @@ from manabot.training.checkpoint_queue import CheckpointQueue
 from manabot.training.models import TrainingRun
 from manabot.verify.store import VerifyStore
 
-from .job_client import _bound_resource, cancellation_requested
-from .job_store import JobStore, S3JobStore, StoredValue
+from .job_store import JobStore, S3JobStore, StoredValue, cancellation_requested
 from .jobs import RemoteJobRecord, RemoteJobSpec, Resource
 from .snapshots import publish_snapshot
 
@@ -77,7 +76,7 @@ def supervise(
     if resource_value is None:
         raise ValueError("client has not admitted this rental; reconcile submission")
     resource = Resource.model_validate_json(resource_value.data)
-    _bound_resource(spec, resource)
+    resource.validate_for(spec)
     if resource.pod.id != pod_id:
         raise ValueError("supervisor is running on the wrong rental")
     if not store.create("runtime/execution-claim.json", spec.identity.encode()):

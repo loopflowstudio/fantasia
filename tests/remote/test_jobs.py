@@ -12,6 +12,7 @@ import pytest
 
 from manabot.infra.artifacts import StoredArtifact
 from manabot.remote import job_client, supervisor
+from manabot.remote.job_store import cancellation_requested
 from manabot.remote.jobs import CreateClaim, RemoteJobRecord, RemoteJobSpec, Resource
 from manabot.remote.plan import HardwareMix, compile_plan
 from manabot.remote.provider import ProviderError
@@ -315,14 +316,14 @@ def test_worker_cancellation_mailbox_exists_before_rental(store: FileStore) -> N
     # A scoped S3 reader can read existing keys but lacks ListBucket, so a missing
     # cancel key would return AccessDenied rather than an absent result.
     assert store.read("cancel.json") is not None
-    assert job_client.cancellation_requested(store) is None
+    assert cancellation_requested(store) is None
     with ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(lambda _: job_client.cancel_job(spec, store=store), range(4)))
-    first = job_client.cancellation_requested(store)
+    first = cancellation_requested(store)
     assert first is not None
     assert specification(store).deadline == spec.deadline
     job_client.cancel_job(spec, store=store)
-    assert job_client.cancellation_requested(store) == first
+    assert cancellation_requested(store) == first
 
 
 def test_rejected_rental_is_deleted_before_setup(store: FileStore) -> None:

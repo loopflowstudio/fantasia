@@ -14,7 +14,7 @@ from typing import Any, Protocol
 
 from manabot.infra.artifacts import split_s3_uri
 
-from .jobs import RemoteJobSpec
+from .jobs import Cancellation, RemoteJobSpec
 
 
 @dataclass(frozen=True)
@@ -27,6 +27,14 @@ class JobStore(Protocol):
     def read(self, key: str) -> StoredValue | None: ...
     def create(self, key: str, data: bytes) -> bool: ...
     def replace(self, key: str, data: bytes, etag: str) -> bool: ...
+
+
+def cancellation_requested(store: JobStore) -> float | None:
+    """Read the shared mailbox; an empty or absent request means no cancellation."""
+    value = store.read("cancel.json")
+    if value is None:
+        return None
+    return Cancellation.model_validate_json(value.data).requested_at
 
 
 class S3JobStore:
