@@ -284,3 +284,87 @@ a fixed-input attempt declined it without collecting data. ETU-103 waited and
 preserved that owner. Both four-game checks and the final input collection used
 the shared lease. Concurrent sustained campaigns still require a tested handoff;
 no learner is displaced and no timing correction is invented.
+
+### Bounded CUDA learning schedule (before scoring)
+
+The two-card probes remain pinned to `7316da5d`. The L4 grid completed 47 cells
+and retained one optimizer OOM at width384/depth8, fixed batch1024. Its closed
+277-file, 1,735,865,605-byte bundle verified through an independent bulk return.
+The redundant per-file transfer was deliberately interrupted after verification;
+the original interrupted receipt remains, deletion was confirmed, and its
+intent-to-deletion rental estimate is $0.1903964333. This is transfer recovery,
+not a repeated measurement or a rewritten successful deployment. The A40 receives
+the identical grid/source. Bulk transfer and explicit phase timestamps are being
+added for later jobs; historical phase splits remain unavailable where not recorded.
+
+Timing-only selection will use one common measured GPU, batch and stream count
+for both scientific capacities. Width64/depth2 and width384/depth8 remain the
+comparison; the small model is scalar value-token, no history, with the same
+inputs, Ataraxos learning, filtering, schedules, Adam and current-self opponent.
+The fixed terminal count per capacity is
+`20 * floor(900 / (1.5 * measured_seconds_per_update * 20))`, split into two equal
+linked halves. The rate is the maximum of the selected three-update run/3,
+stage time/3, and either of its last two update intervals. Fewer than 20 admitted
+updates stops allocation. The 50% timing margin is conservative extrapolation,
+not a sustained timing proof. Unused time buys no extra updates. Different counts
+are declared cost-targeted endpoints; sample/exposure comparisons use overlapping
+observed support. Each run has a 1,200-second watchdog and 590 seconds per half.
+
+Three paired seeds 10351–10353 run small/large, large/small, small/large. Six
+2,100-second rental ceilings reserve 12,600 seconds. Each run has four separate
+100-game cohorts, each with a 1,200-second CPU process ceiling: initialization
+and midpoint versus greedy on development deals 1910103510–1910103534; terminal
+raw versus greedy on untouched deals 1910103610–1910103634; then a separately
+scheduled terminal random diagnostic on 1910103710–1910103734. Four deck/seat
+legs stay together. The 24 cohorts reserve 28,800 evaluator seconds; publication
+and reporting reserve 1,800 seconds. These sum to the approved 43,200-second
+comparison ceiling. Rental and evaluator occupied time are charged separately
+even when they overlap. Publication during a rental is a subset of its time;
+post-rental publication/reporting consumes the final reserve. Transfers, setup,
+idle and deletion stay inside rental time. The $15 ceiling includes all earlier
+calibration rentals and a $1 storage/report allowance; no increase is justified.
+
+Initialization is exported without advancing learner or sampling RNG state.
+Immutable exports become available to the ordinary CPU checkpoint queue while
+training continues. The existing shared evaluator lease is acquired before any
+scientific rental; an ETU-118 owner prevents admission without displacing its
+learner. W&B is a bounded projection and S3 retains original producer bytes with
+transport path resolution. Local evidence survives publication failures. A
+checkpoint-safe pause is between complete independent seed/arm rentals only;
+there is no remote process recovery or automatic retry. Any training, replay,
+legality, cohort deadline or required artifact failure retains the attempt and
+stops the comparison. A flat curve alone does not stop it.
+
+The early window is 600 training seconds and the descriptive progress threshold
+is 50% score versus greedy. Report first observed crossing intervals or censor
+at the last observed non-hit. Common-support step-function area uses development
+points only, without extrapolation; initialization and one midpoint give a sparse
+curve, not precise learning onset. Final deals are plotted distinctly and never
+reclassified as development evidence. Report raw terminal contrasts with separate
+seed, paired-deal and joint percentile intervals (10,000 resamples, seed1035106).
+Three training seeds remain a small method cohort. One CPU thread and one sampled
+policy pass fix the inference rule, not equal latency or FLOPs across capacities.
+Retain the current fast-model default unless consistent early gains justify a
+follow-up; a promotion-capacity recommendation needs a terminal gain of at least
+five points with positive paired-seed interval and no negative seed contrast.
+Such a recommendation is input to ETU-118, not automatic baseline or chapter
+promotion. Negative or inconclusive outcomes retain both scientific limits and
+all attempts.
+
+Before freezing this schedule, one final live-workflow calibration may use at most
+1,250 remaining seconds of the original two-hour clock: a 1,100-second rental,
+128 small-model updates, one four-game initialization timing cohort, and bounded
+collection profiling. The profiler compares the existing 4/64-stream settings
+at 512 total transitions for both capacities. It records actual inference batch
+sizes and the union of traced GPU kernel/copy intervals within collection;
+profiler overhead makes it diagnostic, separate from throughput. GPU gaps do
+not by themselves identify the engine as the cause. No collection software Task
+is justified merely by high collection share or one execution worker.
+
+A timing-only fit-bracketing amendment adds width384/depth8 at fixed model batch512
+on each card, using the same real input, two warmups and three timed windows.
+The original 48-cell grids remain unchanged. A40 runs this separate 70-second
+child after its grid has closed, within that rental's existing deadline; L4 runs
+it in the final live-workflow calibration. Supplemental manifests retain source,
+results, exit/OOM logs and costs. This closes the untested gap between batches256
+and1024 without changing a scientific model or examining strength scores.

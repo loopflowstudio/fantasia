@@ -15,9 +15,8 @@ no strength-guided tuning. Main supports CUDA float32, not process recovery.
 
 Calibration must cover CUDA updates/memory/export/return/CPU reload and timed
 complete games. Freeze counts, seeds10351–10353, development/final deals, costs
-and stop rules before scientific scoring. Live initial/milestone evaluation and
-random diagnostic need integration; the existing remote CLI only returns exports
-after the full job. Do not launch the scientific cohort without those contracts.
+and stop rules before scientific scoring. Live-export and initial/milestone/random scheduling now have bounded software
+contracts; actual remote live-workflow admission remains before scientific launch.
 CPU coordination uses the account-wide checkpoint-evaluator.lock shared with
 ETU-118, which currently prepares calibration. Do not displace its active owner.
 
@@ -43,8 +42,18 @@ Original calibration drivers live in /tmp/etu103-*.py and will be copied alongsi
 the retained receipts. Both original deployments bind b6bbd1a4; following software
 changes require a new exact source binding, not rewritten receipts.
 
-Next: publish the two-card sweep and live-export integration; each new sweep job
-has 2,100 s total, 900 s grid, $0.50 cap, remaining original calibration admission.
-No scientific count/capacity freeze or comparison launch exists yet. Preserve all
-.runs paths. Basic affected check: 80 passed, one CUDA-host skip; new transport tests
-pending. No Rust edits or native rebuild.
+The two-card grids bind published `7316da5d` (PR253). L4 finished 47 cells and
+one optimizer OOM at w384/d8 batch1024. Its complete 277-file/1,735,865,605-byte
+bundle verified under calibration-l4-sweep/bulk-return. The duplicate per-file
+transfer was deliberately interrupted; original failure retained, deletion
+confirmed, estimated rental $0.19039643325805666. A40 is running the same source
+and grid. Its remote checkout/native remain pinned while local follow-up code is
+validated. Read-only telemetry and recovery drivers are retained with the evidence.
+
+Local follow-up adds bulk archive admission, phase timestamps, protocol-bound
+live/endpoint/random evaluation, a six-run/24-cohort freeze and notebook/report.
+All scientific updates remain unfrozen and no scientific scores were inspected.
+The prospective schedule and optional final 1,250-second live-workflow/profiler
+calibration are in experiments/model-capacity.md. The original calibration clock
+starts 1791328605.990033 and ends 1791335805.990033; no reset or extension.
+Basic check: 93 passed, one CUDA-host skip; no Rust/native changes.

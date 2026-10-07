@@ -220,3 +220,33 @@ def test_relocated_checkpoint_keeps_producer_binding(
         assert source.read_bytes() == original
     finally:
         monitor.close()
+
+
+def test_completed_worker_survives_delayed_parent_poll(
+    tmp_path: Path, fake_process: list[Process]
+) -> None:
+    source = tmp_path / "run.json"
+    run_fixture(source)
+    clock = Clock()
+    monitor = queue.CheckpointQueue(
+        tmp_path / "monitor",
+        queue.MonitoringBudget(seconds=10, attempt_seconds=5),
+        clock=clock,
+        lease=tmp_path / "lease",
+    )
+    try:
+        monitor.tick([source])
+        result = _manifest()
+        result.rows = [ArenaRow.model_validate(r) for r in _rows(result)]
+        _summarize(result)
+        directory = monitor._directory(monitor.attempts[0]) / "evaluation"
+        directory.mkdir()
+        atomic_json(directory / "monitor.json", result.model_dump(mode="json"))
+        fake_process[0].code = 0
+        clock.now = 8
+        monitor.tick([source], launch=False)
+        assert monitor.attempts[0].status == "completed"
+        # Parent observation lag remains conservatively charged, never hidden.
+        assert monitor.charged_seconds == 8
+    finally:
+        monitor.close()
