@@ -5,11 +5,15 @@ identity is supplied by the CLI so compilation itself needs no provider or GPU.
 """
 
 import hashlib
+import math
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from manabot.training.models import TrainingRegime, TrainSelfPlay
+from manabot.training.preparation import ActiveTrainingBudget
+
+MAX_JOB_SECONDS = 12 * 3600
 
 
 class Frozen(BaseModel):
@@ -128,3 +132,67 @@ def compile_plan(
         seed=seed,
         projected_dollars=mix.projected_dollars,
     )
+
+
+class LeaseRequirements(Frozen):
+    """Planning bounds for bounded workers, not a continuation implementation.
+
+    Every projected worker reserves setup, gated initialization, export/run
+    overhead, evaluation drain and cleanup. Replacement overhead is a declared
+    estimate, not evidence that a CUDA snapshot can be restored on another host.
+    """
+
+    training: ActiveTrainingBudget
+    mix: HardwareMix
+    credential_seconds: float = Field(gt=0)
+    replacement_seconds: float = Field(ge=0)
+
+    @property
+    def boundary_seconds(self) -> float:
+        return (
+            self.mix.setup_seconds
+            + self.mix.transfer_seconds
+            + self.mix.cleanup_seconds
+            + self.training.evaluation_seconds
+            + self.training.stage_overhead_seconds
+            + self.training.run_overhead_seconds
+            + self.training.evaluation_tail_seconds
+        )
+
+    @property
+    def active_seconds_per_worker(self) -> float:
+        return self.mix.wall_seconds - self.boundary_seconds - self.replacement_seconds
+
+    @property
+    def workers_per_run(self) -> int:
+        # First worker does not restore; every subsequent worker does. Full lease
+        # ceilings (including a partially used final worker) bound projected spend.
+        remaining = max(
+            0.0,
+            self.training.active_seconds - (self.mix.wall_seconds - self.boundary_seconds),
+        )
+        return 1 + math.ceil(remaining / self.active_seconds_per_worker)
+
+    @property
+    def unavailable(self) -> tuple[str, ...]:
+        missing: list[str] = []
+        if self.workers_per_run > 1:
+            missing.extend((
+                "durable complete-state CUDA checkpoints and measured recovery",
+                "replacement-worker admission with exclusive ownership and nonduplicated costs/samples",
+                "renewable job-scoped access across replacement workers",
+            ))
+        if self.mix.wall_seconds > min(self.credential_seconds, MAX_JOB_SECONDS):
+            missing.append("in-worker credential renewal through the lease deadline")
+        return tuple(missing)
+
+    def admit(self) -> None:
+        """Reject unavailable capabilities before producing executable deploy inputs."""
+        if self.unavailable:
+            raise ValueError("execution unavailable: " + "; ".join(self.unavailable))
+
+    @model_validator(mode="after")
+    def usable_lease(self) -> "LeaseRequirements":
+        if self.active_seconds_per_worker <= 0:
+            raise ValueError("worker lease reserves leave no active training capacity")
+        return self

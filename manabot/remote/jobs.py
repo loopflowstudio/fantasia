@@ -14,7 +14,7 @@ from pydantic import Field, model_validator
 from manabot.infra.artifacts import StoredArtifact, split_s3_uri
 from manabot.training.checkpoint_queue import MonitoringBudget
 
-from .plan import DeploymentPlan, Frozen, digest
+from .plan import MAX_JOB_SECONDS, DeploymentPlan, Frozen, digest
 from .provider import Pod
 
 DEFAULT_JOBS = "s3://etudefantasia/manabot/jobs"
@@ -42,7 +42,7 @@ class RemoteJobSpec(Frozen):
             raise ValueError("job destination requires a literal private S3 prefix")
         if self.deadline != self.created_at + self.plan.mix.wall_seconds:
             raise ValueError("job deadline must bind the original rental allowance")
-        if self.plan.mix.wall_seconds > 12 * 3600:
+        if self.plan.mix.wall_seconds > MAX_JOB_SECONDS:
             raise ValueError(
                 "remote job credential lifetime is bounded to twelve hours"
             )
