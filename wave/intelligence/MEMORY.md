@@ -1216,14 +1216,9 @@ owns the public API and cost limitations; publication is not strength admission.
 
 ## Mini depth screen authorization (ETU-103, 2026-10-06)
 
-Jack Heart selected width64/depth1 versus width64/depth2, heads4, as the first
-mini experiment, superseding ETU-105 filter-scope selection. The eight-hour mini
-allocation includes calibration, training, raw midpoint/endpoint greedy scoring
-and report. Three paired seeds share a timing-only calibrated update count;
-scalar value-token/no-history and all learning controls stay fixed. This is a
-separate bounded screen, not the proposed WDL full-capacity study or permission
-to alter ETU-106's live laptop history run. Existing mini native and `.runs`
-evidence remain preserved. The shared history supervisor now accepts a typed
-depth specification; the existing regime/arena/report remain authoritative.
-See [the fixed protocol](../../experiments/model-capacity.md). No strength or
-default-model conclusion exists before the retained cohort completes.
+Jack Heart allocated eight inclusive mini hours to width64/depth1 versus depth2,
+heads4, scalar value-token/no-history, three paired seeds and timing-only counts.
+This separate screen does not authorize changing ETU-106 or restarting the mini.
+Preserve its source/native and ignored evidence. Original authorization detail
+remains at `0145f77f`; the [protocol](../../experiments/model-capacity.md) owns
+results and limits. GPU work neither replaces nor extends this allocation.
