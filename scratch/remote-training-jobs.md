@@ -26,6 +26,18 @@ relocation are shared. Arbitrary client SSH callbacks fail before rental; pinned
 historical examples retain low-level helpers for reproduction. Capacity science
 was not launched.
 
+Resource admission now belongs to `Resource.validate_for`; cancellation reads
+belong to `job_store`. Both client and supervisor consume those shared contracts,
+so the worker no longer imports the submission client. Behavior and persisted
+schemas are unchanged.
+
+## Delete — do not maintain
+
+Completed: client-owned bootstrap/train/transfer/finally-delete orchestration,
+the old CLI namespace, and the client-private `_bound_resource` helper. Keep
+legacy receipt cleanup and worked-example transport helpers for frozen
+reproduction. No further deletion targets remain in this cut.
+
 Scoped SSO worker credentials required a dedicated role trusting the current
 principal, with no provider account access. The role-chain deadline is under one
 hour including reserves. The first paid attempt exposed missing-key S3 403 behavior;
@@ -47,13 +59,21 @@ admitted four policies and regenerated notebook/HTML after deletion. The final
 status poll lagged at 139; the authoritative database held 160. Current status
 uses that database, with a regression; frozen evidence is unchanged.
 
-The final API/reporting corrections are published in PR #254. The walkthrough
-binds implementation head `b4e861e4`; later heads change review artifacts only.
-Desktop/narrow layout and code excerpts were rendered and inspected. Remaining:
-the saved Flow must reach its pr-review boundary, and Jack Heart reviews before
-any merge. This running implement Session cannot mark that human review complete. Full private
+The refreshed walkthrough pins source `81100af3`, including the shared-contract
+refactor at `8ecf6e45`; subsequent handoff edits change review artifacts and these
+notes only. All eight code excerpts match the pinned source exactly. The fetch/report
+transcript remains attributed to its earlier deploy-only review pass at `b4e861e4`.
+Rendering is unavailable in this headless Session; retained desktop/narrow PNGs
+predate this refresh. HTML and the focused code-capture page are updated.
+
+The publication copy retains deploy-only commands, the completed live proof and
+its source limits. CI run `37566288029` has passed Python, protocol conformance
+and clean-machine play; Rust and the visual gate are still running, with no
+reported failures at this check. Gate owns any remaining affected-suite checks.
+The next boundary is Jack Heart's saved pr-review; publication neither completes
+that review nor permits merge. Full private
 proof stays in `.runs/etu123-disconnect`; compact hashes/costs are in
 `experiments/data/etu123-remote-jobs`. The requested proof was not restarted for
 CLI naming or the counter repair.
 
-Check: `uv run pytest tests/remote tests/training/test_checkpoint_queue.py tests/training/test_artifact_storage.py -q` — 94 passed, one CUDA-host skip; live proof above.
+Check: `uv run pytest tests/remote/test_jobs.py tests/remote/test_cli.py -q` — 32 passed after the shared-contract refactor; focused Ruff and diff checks passed. Earlier 94-check gate and live proof remain retained. Handoff check: eight exact source excerpts, internal links, capture-page pin and `git diff --check` passed; rendering unavailable.
