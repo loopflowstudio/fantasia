@@ -14,10 +14,11 @@ from typing import TYPE_CHECKING, Callable, Literal
 from manabot.infra.artifacts import S3ArtifactStore
 from manabot.training.checkpoint_queue import MonitoringBudget
 
-from .deploy import verify_public_source
+from .deploy import current_source, verify_public_source
 from .job_store import JobStore, S3JobStore, worker_credentials
 from .jobs import (
     DEFAULT_JOBS,
+    Cancellation,
     CreateClaim,
     Deletion,
     RemoteJobRecord,
@@ -177,7 +178,11 @@ def prepare_job(
             exclude={"created_at", "deadline"}
         ):
             raise ValueError("job ID already binds different immutable content")
-        return previous
+        spec = previous
+    # S3 returns 403, not 404, for missing keys to a role without ListBucket.
+    # Provision the readable mailbox before delegation; no bucket-list privilege
+    # is needed just to distinguish "no cancellation requested".
+    store.create("cancel.json", Cancellation().model_dump_json().encode())
     return spec
 
 
@@ -204,9 +209,16 @@ def submit_job(
     provider = provider or RunPod()
     if store.read("runtime/record.json") is not None:
         return job_status(spec, store=store, provider=provider)
-    if time.time() >= spec.work_deadline or store.read("cancel.json") is not None:
+    if time.time() >= spec.work_deadline or cancellation_requested(store) is not None:
         raise ValueError(
             "job deadline expired or cancellation requested; inspect/cancel this ID"
+        )
+    if (
+        store.read("training-claim.json") is None
+        and current_source(Path.cwd()) != spec.plan.source
+    ):
+        raise ValueError(
+            "new submission requires the exact clean source of the compiled plan"
         )
     verify_public_source(spec.plan.source)
     # Resolve credentials before acquiring the provider-create fence or spending.
@@ -336,19 +348,34 @@ def job_status(
         else Deletion(confirmed_at=time.time(), estimated_dollars=costs)
     )
     return RemoteJobStatus(
-        spec=spec, record=record, provider_state=state, cleanup=cleanup
+        spec=spec,
+        record=record,
+        provider_state=state,
+        cleanup=cleanup,
+        cancel_requested_at=cancellation_requested(store),
     )
+
+
+def cancellation_requested(store: JobStore) -> float | None:
+    value = store.read("cancel.json")
+    if value is None:
+        return None
+    return Cancellation.model_validate_json(value.data).requested_at
 
 
 def cancel_job(spec: RemoteJobSpec, *, store: JobStore | None = None) -> None:
-    """Request remote cancellation. Status distinguishes request from acknowledgement."""
+    """Request cancellation once; concurrent callers preserve its first timestamp."""
     store = store or S3JobStore(spec.prefix)
-    store.create(
-        "cancel.json",
-        json.dumps(
-            {"requested_at": time.time(), "spec_sha256": spec.identity}
-        ).encode(),
-    )
+    request = Cancellation(requested_at=time.time()).model_dump_json().encode()
+    while True:
+        current = store.read("cancel.json")
+        if current is None:
+            if store.create("cancel.json", request):
+                return
+        elif Cancellation.model_validate_json(current.data).requested_at is not None:
+            return
+        elif store.replace("cancel.json", request, current.etag):
+            return
 
 
 def fetch_job(spec: RemoteJobSpec, output: Path) -> Path:

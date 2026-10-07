@@ -79,6 +79,10 @@ class RemoteJobSpec(Frozen):
         )
 
 
+class Cancellation(Frozen):
+    requested_at: float | None = None
+
+
 class CreateClaim(Frozen):
     spec_sha256: str
     name: str
@@ -123,6 +127,7 @@ class RemoteJobStatus(Frozen):
     record: RemoteJobRecord | None
     provider_state: Literal["present", "absent", "unknown", "not-created", "ambiguous"]
     cleanup: Deletion | None = None
+    cancel_requested_at: float | None = None
     observed_at: float = Field(default_factory=time.time)
 
     @property

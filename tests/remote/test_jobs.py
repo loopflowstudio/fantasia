@@ -306,3 +306,18 @@ def test_guardian_deletes_without_supervisor(tmp_path: Path) -> None:
     finally:
         os.killpg(process.pid, signal.SIGKILL)
         process.wait(timeout=5)
+
+
+def test_worker_cancellation_mailbox_exists_before_rental(store: FileStore) -> None:
+    spec = specification(store)
+    # A scoped S3 reader can read existing keys but lacks ListBucket, so a missing
+    # cancel key would return AccessDenied rather than an absent result.
+    assert store.read("cancel.json") is not None
+    assert job_client.cancellation_requested(store) is None
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda _: job_client.cancel_job(spec, store=store), range(4)))
+    first = job_client.cancellation_requested(store)
+    assert first is not None
+    assert specification(store).deadline == spec.deadline
+    job_client.cancel_job(spec, store=store)
+    assert job_client.cancellation_requested(store) == first

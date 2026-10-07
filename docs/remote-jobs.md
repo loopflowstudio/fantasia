@@ -132,3 +132,11 @@ and every ETU-123 attempt; they are never fresh additive allowances. Per-deploym
 below-$5 admission remains intact. Mini ETU-105 and laptop ETU-118 are untouched.
 The live result will be recorded here after the bounded proof; offline lifecycle
 fixtures alone do not establish CUDA disconnect acceptance or learning strength.
+
+The first live attempt at `70f76e0f` reached remote acceptance, then failed before
+learner launch: a job-scoped S3 reader without ListBucket receives HTTP 403 for a
+missing cancellation key. Scoped readback reproduced that response. The job
+published its setup evidence and deleted; those original records remain retained.
+Submission now creates the readable empty cancellation mailbox before renting,
+and concurrent cancellation requests preserve the first timestamp. No bucket-list
+permission was added. A subsequent proof uses a new ID and retains this charge.

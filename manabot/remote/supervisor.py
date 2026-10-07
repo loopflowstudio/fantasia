@@ -5,32 +5,51 @@ prevents container restart from silently restarting training. The shell guardian
 independent of this process and retains the original absolute billing deadline.
 """
 
+import json
 import os
 from pathlib import Path
 import signal
 import subprocess
 import time
-from typing import Callable
+import traceback
+from typing import Protocol
 
 from manabot.infra.artifacts import StoredArtifact
 from manabot.training.checkpoint_queue import CheckpointQueue
 from manabot.training.models import TrainingRun
 
-from .job_client import _bound_resource
+from .job_client import _bound_resource, cancellation_requested
 from .job_store import JobStore, S3JobStore, StoredValue
 from .jobs import RemoteJobRecord, RemoteJobSpec, Resource
 from .snapshots import publish_snapshot
 
 
+class SnapshotPublisher(Protocol):
+    def __call__(
+        self,
+        spec: RemoteJobSpec,
+        root: Path,
+        generation: int,
+        *,
+        complete: bool,
+    ) -> StoredArtifact: ...
+
+
 def stop_process(process: subprocess.Popen[bytes]) -> None:
-    """Stop the entire learner process group before taking final evidence."""
-    if process.poll() is None:
+    """Stop the learner group, including descendants of an already exited parent."""
+    try:
         os.killpg(process.pid, signal.SIGTERM)
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait(timeout=5)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait(timeout=5)
 
 
 def supervise(
@@ -40,7 +59,7 @@ def supervise(
     pod_id: str,
     *,
     command: list[str] | None = None,
-    publish: Callable[..., StoredArtifact] = publish_snapshot,
+    publish: SnapshotPublisher = publish_snapshot,
 ) -> RemoteJobRecord:
     """Execute once. Injection points support real-process offline lifecycle tests."""
     resource_value = store.read("training.json")
@@ -85,7 +104,7 @@ def supervise(
     recipe.write_text(spec.plan.regime.model_dump_json(indent=2))
     run_path = root / "run/run.json"
     try:
-        if store.read("cancel.json") is not None:
+        if cancellation_requested(store) is not None:
             record = record.model_copy(
                 update={"phase": "cancelled", "cancel_acknowledged_at": time.time()}
             )
@@ -120,7 +139,7 @@ def supervise(
             persist()
             last_upload = float("-inf")
             while True:
-                if store.read("cancel.json") is not None:
+                if cancellation_requested(store) is not None:
                     record = record.model_copy(
                         update={
                             "phase": "cancelled",
@@ -215,6 +234,24 @@ def supervise(
                         break
                 time.sleep(1)
     except Exception as error:
+        # Capture locations, never locals, provider payloads or credential-bearing
+        # exception messages. This remains useful when the learner never started.
+        (root / "supervisor-error.json").write_text(
+            json.dumps(
+                {
+                    "error_type": type(error).__name__,
+                    "frames": [
+                        {
+                            "file": frame.filename,
+                            "line": frame.lineno,
+                            "function": frame.name,
+                        }
+                        for frame in traceback.extract_tb(error.__traceback__)
+                    ],
+                },
+                indent=2,
+            )
+        )
         record = record.model_copy(
             update={
                 "phase": "failed",
@@ -264,7 +301,14 @@ def main() -> None:
     pod_id = os.environ["RUNPOD_POD_ID"]
     # A lost create response can delay admission; a fresh submitter can reconcile
     # it without starting another rental. Never train before price admission.
-    while store.read("training.json") is None and time.time() < spec.work_deadline:
+    while time.time() < spec.work_deadline:
+        try:
+            if store.read("training.json") is not None:
+                break
+        except RuntimeError:
+            # A missing resource receipt is deliberately unreadable to the
+            # scoped role until the client reconciles it (no ListBucket grant).
+            pass
         time.sleep(2)
     try:
         supervise(spec, store, Path("/workspace/evidence"), pod_id)
