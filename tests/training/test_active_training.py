@@ -1,6 +1,7 @@
 """Active-time endpoints count completed learner work, excluding slow exports."""
 
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import time
 from typing import ParamSpec, TypeVar
@@ -112,3 +113,58 @@ def test_old_recipe_bytes_and_invalid_endpoint() -> None:
     payload["schedule_clock"] = "iteration_fraction"
     with pytest.raises(ValueError, match="active-time process recovery"):
         TrainingRegime.model_validate(payload)
+
+
+@pytest.mark.parametrize("admitted", [True, False])
+def test_initial_admission_precedes_collection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, admitted: bool
+) -> None:
+    clock = Clock()
+    monkeypatch.setattr(execution, "time", clock)
+    monkeypatch.setattr(
+        execution, "update_iteration", clock.charge(execution.update_iteration, 10)
+    )
+    gate = tmp_path / "initial-admission"
+    out = tmp_path / "run"
+
+    def train() -> TrainingRun:
+        with VerifyStore(tmp_path / "training.sqlite") as store:
+            return execution.execute_regime(
+                recipe(),
+                10351,
+                out,
+                store,
+                checkpoint_seconds=5,
+                initial_admission=gate,
+            )
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(train)
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            if (out / "run.json").exists():
+                run = TrainingRun.model_validate_json((out / "run.json").read_text())
+                if run.stages and "initial_raw" in run.stages[0].artifacts:
+                    break
+            if future.done():
+                future.result()
+            time.sleep(0.05)
+        else:
+            gate.write_text("timeout")
+            pytest.fail("initial checkpoint unavailable")
+        assert run.updates_through() == 0
+        assert run.stages[0].learner_transitions == 0
+        # A slow admission cannot consume the active training allocation.
+        clock.offset += 100
+        digest = run.stages[0].artifacts["initial_raw"]["sha256"]
+        gate.write_text(digest if admitted else "wrong-checkpoint")
+        if admitted:
+            finished = future.result(timeout=30)
+            assert finished.status == "completed"
+            assert len(finished.stages[0].diagnostics) == 2
+        else:
+            with pytest.raises(ValueError, match="admission differs"):
+                future.result(timeout=30)
+            failed = TrainingRun.model_validate_json((out / "run.json").read_text())
+            assert failed.updates_through() == 0
+            assert failed.stages[0].learner_transitions == 0

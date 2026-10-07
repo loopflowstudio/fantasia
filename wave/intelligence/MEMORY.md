@@ -48,15 +48,18 @@ $3 ETU-123 proof reservation and all historical charges stay inside it. A prepar
 six × seven-hour L4 plan projects $26.556 all-in at the observed $0.49/hour quote,
 including reserves. It is not launch admission or scientific evidence.
 
-PR254 supplies disconnect-safe jobs. On 2026-10-07 Jack Heart authorized a
-dedicated IAM issuer restricted to assuming the existing worker role, its key
-in Doppler etude/prd, and narrow additional trust preserving SSO. Reconcile
-existing users/keys before creation; only job-scoped STS credentials reach pods.
-Setup remains unperformed: the default SSO token expired at 04:26:28 UTC and
-both SDK and CLI refresh failed at 15:15 UTC. Renewing that login needs no new
-issuer permission. No account changes or rentals occurred; inventory was empty.
-PR255 has auto-merge enabled; remaining CI, full-duration credential admission,
-remote 100-game timing/publication and final freeze still precede launch.
+PR254 supplies disconnect-safe jobs. Jack Heart authorized the restricted IAM
+issuer and renewed SSO on 2026-10-07. Setup now retains one Doppler key, only
+AssumeRole permission and the original SSO trust. A seven-hour job-scoped STS
+session passed expiry/identity admission; no issuer key reaches pods. The first
+trust update hit IAM propagation delay; retry reused the same user. No rental
+occurred during setup. Prior expired-login failure remains at `cf8c581f`.
+
+Each scheduled 100-game initialization cohort now gates learning on the same
+rental: completion and durable publication precede collector/optimizer work.
+Wait counts toward the unchanged watchdog/cost, not active training. Failure
+retains the attempt without a replacement. PR255 delivery and source freeze
+precede launch; this admission mechanism is not scientific evidence.
 ETU-118 owns baseline promotion; ETU-105/106/108 retain learning, representation
 and distributed work. No model is selected from timing alone.
 

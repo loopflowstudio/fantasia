@@ -16,6 +16,8 @@ from manabot.remote.job_store import cancellation_requested
 from manabot.remote.jobs import CreateClaim, RemoteJobRecord, RemoteJobSpec, Resource
 from manabot.remote.plan import HardwareMix, compile_plan
 from manabot.remote.provider import ProviderError
+from manabot.training.checkpoint_queue import Attempt, CheckpointQueue, MonitoringBudget
+from manabot.training.models import TrainingRun
 from manabot.verify.store import VerifyStore
 from tests.remote.job_fixtures import FileStore
 from tests.remote.test_compile import ROOT, SOURCE
@@ -64,6 +66,77 @@ def published(
     return StoredArtifact(
         uri=f"{spec.prefix}/runtime/{generation}", sha256="f" * 64, bytes=0
     )
+
+
+@pytest.mark.parametrize("success", [True, False])
+def test_initial_admission_requires_completed_published_evaluation(
+    tmp_path: Path, store: FileStore, monkeypatch: pytest.MonkeyPatch, success: bool
+) -> None:
+    spec = specification(store).model_copy(
+        update={
+            "monitoring": MonitoringBudget(
+                seconds=60,
+                attempt_seconds=30,
+                include_initial=True,
+                require_initial_admission=True,
+            )
+        }
+    )
+    resource = admitted(spec, store)
+    root = tmp_path / "evidence"
+    run = run_fixture(tmp_path / "fixture.json")
+    run.status = "completed"
+    for stage in run.stages:
+        stage.diagnostics = []
+    run.stages[0].artifacts["initial_raw"] = {
+        "path": "initial.pt",
+        "sha256": "a" * 64,
+        "bytes": 1,
+    }
+
+    def retained(root: Path) -> TrainingRun:
+        return run
+
+    def tick(
+        self: CheckpointQueue, sources: list[Path], *, launch: bool = True
+    ) -> None:
+        self.attempts = [
+            Attempt(
+                ordinal=0,
+                identity="initial",
+                job_sha256="b" * 64,
+                status="completed" if success else "failed",
+                reserved_seconds=30,
+            )
+        ]
+
+    seen: list[bool] = []
+
+    def publish(
+        spec: RemoteJobSpec, root: Path, generation: int, *, complete: bool
+    ) -> StoredArtifact:
+        if not complete:
+            seen.append((root / "initial-evaluation-admitted").exists())
+        return published(spec, root, generation, complete=complete)
+
+    monkeypatch.setattr(supervisor, "_training_run", retained)
+    monkeypatch.setattr(CheckpointQueue, "tick", tick)
+    code = "import pathlib,sys,time\np=pathlib.Path(sys.argv[1])\nwhile not p.exists(): time.sleep(.05)\nassert p.read_text().strip() == 'a'*64"
+    result = supervisor.supervise(
+        spec,
+        store,
+        root,
+        resource.pod.id,
+        command=[sys.executable, "-c", code, str(root / "initial-evaluation-admitted")],
+        publish=publish,
+    )
+    if success:
+        assert result.phase == "completed"
+        assert seen and seen[0] is False
+        assert (root / "initial-evaluation-admitted").read_text().strip() == "a" * 64
+    else:
+        assert result.phase == "failed"
+        assert not (root / "initial-evaluation-admitted").exists()
 
 
 def test_repeated_and_concurrent_intent_retains_deadline(store: FileStore) -> None:

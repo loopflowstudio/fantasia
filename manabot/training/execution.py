@@ -159,9 +159,18 @@ def execute_regime(
     *,
     resume_from: str | None = None,
     checkpoint_seconds: float | None = None,
+    initial_admission: Path | None = None,
 ) -> TrainingRun:
     """Execute under a local lease, including admission and crash settlement."""
     regime = validate_regime(regime)
+    if initial_admission is not None and (
+        checkpoint_seconds is None
+        or resume_from is not None
+        or len(regime.stages) != 1
+        or not isinstance(regime.stages[0], TrainSelfPlay)
+        or initial_admission.exists()
+    ):
+        raise ValueError("initial admission requires a fresh single self-play stage")
     if checkpoint_seconds is not None and (
         not np.isfinite(checkpoint_seconds) or checkpoint_seconds <= 0
     ):
@@ -199,6 +208,7 @@ def execute_regime(
             store,
             resume_from=resume_from,
             checkpoint_seconds=checkpoint_seconds,
+            initial_admission=initial_admission,
         )
 
 
@@ -210,6 +220,7 @@ def _execute_regime(
     *,
     resume_from: str | None = None,
     checkpoint_seconds: float | None = None,
+    initial_admission: Path | None = None,
 ) -> TrainingRun:
     regime = validate_regime(regime)
     parent = store.training_run(resume_from) if resume_from is not None else None
@@ -941,6 +952,19 @@ def _execute_regime(
                         record.artifacts["initial_raw"] = artifact(target)
                         record.export_seconds += time.perf_counter() - tick
                         persist()
+                        if initial_admission is not None:
+                            # The supervisor releases this exact checkpoint only
+                            # after its initialization cohort is complete and
+                            # durably published. Waiting consumes the watchdog,
+                            # never collection/learning time or RNG draws.
+                            while not initial_admission.exists():
+                                check()
+                                time.sleep(0.2)
+                            if (
+                                initial_admission.read_text().strip()
+                                != record.artifacts["initial_raw"]["sha256"]
+                            ):
+                                raise ValueError("initial evaluation admission differs")
                     collector = SeatRoutedCollector(
                         space,
                         Match(regime.match),

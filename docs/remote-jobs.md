@@ -48,11 +48,17 @@ plus a 60-second reserve, applies the same job-prefix session policy, and verifi
 returned expiration before provider creation. Role duration/trust/permissions
 remain enforced by AWS. A temporary-role source still fails above one hour.
 
-This does not create an issuer, key or trust policy. ETU-103's observed account
-has only SSO configured; the repository operator must authorize a dedicated
-least-privilege issuer or another supported authentication path before a long
-rental. The issuer needs only `sts:AssumeRole` on the worker role, which needs a
-matching narrow trust entry. General account credentials never reach the worker.
+Issuer account setup remains an explicitly authorized operation. ETU-103's
+restricted issuer was configured on 2026-10-07, with its sole AssumeRole key in
+Doppler and the existing SSO trust preserved; no key enters source or workers.
+The runtime only consumes that configured profile and verifies delegated expiry.
+
+`MonitoringBudget.require_initial_admission` optionally holds a fresh single
+self-play stage after initial export. The supervisor releases the exact artifact
+only after its initialization cohort completes and the evidence generation is
+published. Failure prevents learning; upload failure keeps the gate closed.
+Waiting uses the stage watchdog/rental allowance, not active training time.
+This evaluates initialization on the training rental without another smoke job.
 
 A monitoring budget may also supply `terminal_protocols`. The last completed
 stage's raw export alone gets these disjoint cohorts; initialization and live

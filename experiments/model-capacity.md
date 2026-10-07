@@ -435,7 +435,7 @@ admission, phase receipts and client-observed exports for reuse. No default or
 promotion model is selected from hardware throughput.
 
 
-### Four-hour preparation and authentication blocker — 2026-10-06
+### Four-hour preparation and admission — 2026-10-07
 
 `cuda_capacity --prepare-four-hour` exports ordinary DeploymentPlans from the
 existing Experiment baseline and retained calibration input. It prepares L4,
@@ -495,19 +495,44 @@ profile uses `credential_process`; issuer keys never enter pods, artifacts,
 logs or chat. Each issued session retains the single-job-prefix restriction
 and must cover the full rental deadline before rental admission.
 
-The 2026-10-07 execution attempt found a new authentication blocker: the default
-SSO token expired at 04:26:28 UTC, and both boto3 and AWS CLI automatic refresh
-failed at 15:15 UTC. Doppler remained reachable and contained no AWS issuer key.
-No IAM user, policy, trust or credential was changed. An authenticated operator
-must run `aws sso login --profile default` before the authorized setup can
-proceed; issuer permission is already granted. The read-only `manabot deploy
-status` inventory contained zero rentals. No additional rental charge or
-scientific scoring occurred; the historical evidence and allocations remain.
+The initial 2026-10-07 setup attempt stopped on expired SSO, before any IAM
+mutation or rental (`cf8c581f`). After Jack Heart renewed SSO, the dedicated
+`manabot-remote-issuer` was created with only AssumeRole on the existing worker
+role. One key was stored and read back in Doppler; the `manabot-issuer` profile
+uses credential_process. Original SSO trust and the worker storage policy remain.
+The initial trust update met IAM propagation delay; retry reconciled the same
+user and created no duplicate key. A 25,200-second worker session plus the issuer
+reserve passed expiry admission and STS identity verification on 2026-10-07.
+The private receipt is `.runs/etu103-issuer-admission-20261007.json` (no keys).
 
-PR254's delivered deploy lifecycle is integrated. Its
-remote supervisor can consume the declarative monitoring budget; reconnect uses
-the original job ID and cannot restart training. Dedicated-profile IAM issuance is implemented with unchanged per-job policy and
-expiry admission; no issuer is configured. Remaining work includes remote evaluation admission, live W&B/report
-publication and the final six-run source/protocol freeze. The old client-driven
-scientific launcher stays disabled. The editable hardware notebook and all
-private bundles remain unchanged; no capacity winner or learning result exists.
+A live read at Unix 1791394251.337 again quoted L4/A40 at $0.49/hour and found
+zero pods. The conservative $26.5559766177 plan remains valid, including the full
+$3 proof reservation rather than spending its unused balance. Actual historical
+shared spend remains $0.6518216. No new rental is part of credential verification.
+
+**Initialization admission amendment, fixed before scoring:** each real run's
+required 100-game initialization cohort also establishes its remote evaluation
+cost. The learner exports its exact initial checkpoint, then waits before creating
+the collector or taking an optimizer step. The remote supervisor releases it only
+after a complete cohort within 1,800 seconds and successful durable publication.
+A failed cohort stops that attempt without learning or a replacement rental.
+A failed upload leaves the gate closed under the original watchdog/deadline.
+This reuses the scheduled initialization cohort on the same rental; it adds no
+smoke rental or scored games. The earlier four-game timings justify the bounded
+initial admission attempt, not a claim of measured 100-game remote performance.
+
+Admission wait is excluded from active collection/learning, included in the
+five-hour stage watchdog and seven-hour billing deadline. The projected half-hour
+initial evaluation leaves four training hours and half an hour stage overhead;
+final evaluations retain the remaining rental tail. All six jobs use this same
+gate. Initialization scores never select capacity or alter learning/endpoints.
+If overhead exhausts a watchdog, preserve the failed attempt and stop the cohort;
+CUDA cannot resume. Initialization and final evaluation are serial with learning;
+hourly evaluation shares the allocated remote CPUs and memory without a throughput
+correction. Neither ETU-118 nor the mini gets a laptop evaluator.
+
+PR254's deploy supervisor owns execution, the evaluation gate, checkpoint queue,
+S3 generations and deletion. Reconnecting cannot restart training. PR255 delivery,
+the final exact source/protocol freeze and per-rental live admission precede
+submission. The old client-driven scientific launcher stays disabled. The editable
+hardware notebook and private bundles remain; no capacity winner exists.

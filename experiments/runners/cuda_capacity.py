@@ -815,6 +815,7 @@ def prepare_four_hour(
         seconds=10800,
         attempt_seconds=1800,
         include_initial=True,
+        require_initial_admission=True,
         protocol=MonitorProtocol(deal_seeds=protocol.anchor_deals),
         terminal_protocols=(
             MonitorProtocol(

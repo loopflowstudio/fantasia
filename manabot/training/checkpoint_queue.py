@@ -47,12 +47,17 @@ class MonitoringBudget(Strict):
     attempt_seconds: float = Field(default=600, gt=0)
     protocol: MonitorProtocol = Field(default_factory=MonitorProtocol)
     include_initial: bool = Field(default=False, exclude_if=lambda value: not value)
+    require_initial_admission: bool = Field(
+        default=False, exclude_if=lambda value: not value
+    )
     terminal_protocols: tuple[MonitorProtocol, ...] = Field(
         default=(), exclude_if=lambda value: not value
     )
 
     @model_validator(mode="after")
     def separate_terminal_deals(self) -> "MonitoringBudget":
+        if self.require_initial_admission and not self.include_initial:
+            raise ValueError("initial admission requires initialization evaluation")
         used = set(self.protocol.deal_seeds)
         for protocol in self.terminal_protocols:
             if used.intersection(protocol.deal_seeds):
