@@ -261,6 +261,15 @@ def supervise(
                             }
                         )
                         break
+                    if queue is not None:
+                        # A learner can finish during publication, after the
+                        # preceding queue scan. Discover its final exports from
+                        # the now-closed run before deciding the queue is empty.
+                        queue.tick(
+                            [run_path] if run_path.exists() else [],
+                            launch=time.time() + queue.config.attempt_seconds
+                            < spec.work_deadline,
+                        )
                     if queue is None or (
                         queue.process is None
                         and (
@@ -286,8 +295,9 @@ def supervise(
                                     "error": "learner exited without completed TrainingRun",
                                 }
                             )
-                        elif queue is not None and any(
-                            a.status != "completed" for a in queue.attempts
+                        elif queue is not None and (
+                            queue.pending
+                            or any(a.status != "completed" for a in queue.attempts)
                         ):
                             record = record.model_copy(
                                 update={
