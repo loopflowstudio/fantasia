@@ -136,6 +136,12 @@ Full editable notebook analysis still uses the ordinary `deploy fetch/report` pa
 Unpublished data is unavailable, not a zero, and a saved timestamp is not a live
 heartbeat. A network outage retains the earlier local evidence.
 
+The queue index at `monitoring/dashboard.json` is not a Dashboard export. The
+projector reads the per-run files, including protocol-specific dashboard names.
+In-progress evaluation counts remain visible in local exports and W&B summaries;
+only settled evaluation rows enter W&B's append-only history. A later completed
+or failed attempt appends once, while rewriting a published result still fails.
+
 The report service has its own process/host lock and cannot submit training.
 It polls every five minutes by default, with 120-second child attempts and a
 cumulative 3,600-second allowance inside the declared controller allocation.
@@ -276,6 +282,13 @@ weights or the database; a newer remote generation cannot change the observed
 log's identity mid-fetch. Report generation reuses the existing
 create-once editable notebook and offline HTML dashboard. It needs neither the
 rental nor SSH. Existing notebook edits survive refresh.
+
+Within one supervisor, intermediate snapshots reuse immutable S3 version receipts
+that this process has already verified by full readback. Local snapshot bytes still
+receive digest/size checks. New content and unversioned (`null`) objects always
+receive full readback; failed publications never populate this cache. Losing the
+process loses the cache. Final publication re-verifies every artifact remotely
+before declaring complete, including unchanged checkpoints and closed evaluations.
 
 `attach` follows published log prefixes like `logs --follow`; Ctrl-C stops
 observation only. Log freshness is limited by the declared publication interval.

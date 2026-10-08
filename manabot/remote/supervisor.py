@@ -5,6 +5,7 @@ prevents container restart from silently restarting training. The shell guardian
 independent of this process and retains the original absolute billing deadline.
 """
 
+from functools import partial
 import json
 import os
 from pathlib import Path
@@ -73,6 +74,10 @@ def supervise(
     publish: SnapshotPublisher = publish_snapshot,
 ) -> JobRecord:
     """Execute once. Injection points support real-process offline lifecycle tests."""
+    if publish is publish_snapshot:
+        # Only this process's successful readbacks can skip repeat remote reads.
+        # Final publication rechecks every artifact before declaring completion.
+        publish = partial(publish_snapshot, verified={})
     resource_value = store.read("training.json")
     if resource_value is None:
         raise ValueError("client has not admitted this rental; reconcile submission")
