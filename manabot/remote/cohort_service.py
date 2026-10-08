@@ -75,7 +75,8 @@ def supervise_cohort(plan: Path, directory: Path, *, interval: float = 30) -> No
                 "cohort_sha256": cohort.identity,
             },
         )
-        while True:
+        observation_deadline = cohort.deadline + 1800
+        while time.time() < observation_deadline:
             supervisor: CohortSupervisor | None = None
             try:
                 # Reload after every uncertain network write; CAS and the host lock
@@ -84,7 +85,7 @@ def supervise_cohort(plan: Path, directory: Path, *, interval: float = 30) -> No
                 state = supervisor.tick()
                 atomic_json(directory / "status.json", state.model_dump(mode="json"))
                 (directory / "error.json").unlink(missing_ok=True)
-                if state.settled or time.time() >= cohort.deadline + 1800:
+                if state.settled:
                     return
             except Exception as error:
                 if supervisor is not None:
@@ -103,7 +104,7 @@ def supervise_cohort(plan: Path, directory: Path, *, interval: float = 30) -> No
                         "pid": os.getpid(),
                     },
                 )
-            time.sleep(interval)
+            time.sleep(min(interval, max(0, observation_deadline - time.time())))
 
 
 def _systemd_quote(value: str, *, command: bool = False) -> str:

@@ -49,6 +49,40 @@ def wait_path(path: Path, timeout: float = 20) -> None:
         time.sleep(0.05)
 
 
+def test_storage_outage_cannot_extend_observation_deadline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    value = plan()
+    file = tmp_path / "cohort.json"
+    file.write_text(value.model_dump_json())
+    now = value.deadline + 1799
+    attempts = 0
+
+    def unavailable(*args: object) -> None:
+        nonlocal attempts
+        attempts += 1
+        raise ConnectionError("private transport detail")
+
+    def sleep(seconds: float) -> None:
+        nonlocal now
+        assert seconds == 1
+        now += seconds
+
+    monkeypatch.setattr(cohort_service, "CohortSupervisor", unavailable)
+    monkeypatch.setattr(cohort_service, "_machine_identity", lambda: "test-machine")
+    monkeypatch.setattr(cohort_service.time, "time", lambda: now)
+    monkeypatch.setattr(cohort_service.time, "sleep", sleep)
+    directory = tmp_path / "service"
+    cohort_service.supervise_cohort(file, directory)
+    assert attempts == 1
+    error = json.loads((directory / "error.json").read_text())
+    assert error["error_type"] == "ConnectionError"
+    assert "private transport detail" not in (directory / "error.json").read_text()
+    # Restart at the same absolute deadline cannot reset the observation window.
+    cohort_service.supervise_cohort(file, directory)
+    assert attempts == 1
+
+
 def test_launcher_exit_and_forced_supervisor_restart(tmp_path: Path) -> None:
     (tmp_path / "cohort.json").write_text(plan().model_dump_json())
     pid: int | None = None
