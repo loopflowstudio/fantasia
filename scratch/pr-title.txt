@@ -1,0 +1,1 @@
+Resume evidence retrieval and keep reports updating independently

@@ -1,0 +1,9 @@
+Reconnects previously failed when a generation directory already existed, and reading logs downloaded the complete artifact bundle. Fetch now resumes verified files and installs new files atomically; log readers retrieve the pinned manifest and log only. Conflicting local bytes remain intact and fail verification.
+
+`deploy cohort start --reports` installs an independent bounded report service. It retains existing Dashboard exports and JSON/HTML status before optional W&B publication. Publication retries use acknowledged history, unchanged exports are skipped, interruption retains process-budget reservations, and each child owns its deadline. Scheduling never waits for telemetry. The existing rejected-artifact snapshot path is covered for ETU-127's numerical failure bundles.
+
+Controller ownership now uses stable OS machine identity to reject matching hostnames on different hosts. Settled services exit; unresolved observation/reporting has a bounded cleanup window. No training recipe, scientific allocation or frozen ETU-103/Mini evidence changed.
+
+Validation: 153 affected checks passed with one expected skip, including the native launchd restart proof; Ruff and whitespace checks passed. An overly broad subprocess mock in the reporting-budget fixture was corrected and the projection suite passed afterward. Tests cover interrupted/idempotent retrieval, log-only reads, retained telemetry failures, publication deduplication, ownership and child deadlines. No paid compute or live W&B service was exercised.
+
+Live recovery still requires the numerical fix to land, a chosen always-on credentialed controller, a versioned attempt/protocol and all prior dollars admitted within the existing $30 total. CUDA exact resume and automatic cross-host takeover remain unsupported. This PR leaves ETU-126 open.
