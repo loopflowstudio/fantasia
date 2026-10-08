@@ -833,3 +833,47 @@ Local verification: `uv run pytest tests/remote/test_cohort_service.py -q` passe
 8 tests with one platform skip; focused Ruff checks passed. The retained live
 proof establishes queue ownership/restart behavior, not completion of 100k updates,
 CUDA continuation learning, the remaining science cohort, or a strength result.
+
+### Queued price admission recovery (2026-10-08)
+
+Jack Heart requested immediate continuation within the existing $100 inclusive
+ceiling. Job1 completed all 15,600 updates, final publication and cleanup, with
+estimated rental/storage cost $5.0351287061433. The queued 63k continuation had
+persisted intent but no provider create claims or rentals. L4 had risen from
+$0.49 to $0.59/hour; the original ceiling correctly refused admission.
+
+An explicit offline operational migration repriced only the six unstarted entries:
+$7.30 per 11.95-hour allocation, $5.80 per 9.5-hour allocation, retaining the
+$0.02/hour storage allowance. Original full caps plus revised future reservations
+are $67.36791836919004; settled charges plus remaining reservations are
+$64.17539333263252. Both include prior/controller allowances and remain below $100;
+these are conservative estimates, not final invoiced costs.
+
+The same Mini launchd owner and report companion were unloaded, its owner lock
+acquired, empty provider inventory and absent guardian/training claims verified,
+and the exact before/after cohort, state and pending Job archived before CAS
+writes. The create-only audit is `migrations/price-admission-20261008-v1.json` under
+the existing cohort and pending-job prefixes; the journal SHA-256 is
+`b939d71dabebb5ae2f73d6e241d8a0c4a05c4b9d0c31f36cc8df1209f6812518`.
+Mini retains the journal, old local files and completion receipt under
+`~/.local/state/manabot/etu103-recovery-v3-science/price-admission-20261008-v1/`.
+The original no-create rejection remains evidence, not an erased failed rental.
+No existing provider or learning attempt was replaced.
+
+The operational cohort digest changed from `1e14b164…` to `21574a8e…`; the pending
+Job digest changed from `db983a1a…` to `f7181151…`. This is not a claim of immutable
+operational bytes: their originals are archived. Scientific sources `45940fe3`,
+continuation source `69594494`, exact recipes, seeds, update targets, continuation
+inputs, schedules, cadence, job IDs, admitted deadline and consumed costs did not
+change. Jobs2–5 remain ordered after the 63k and 100k segments. No credential scope,
+allocation lifetime or overall dollar ceiling increased.
+
+Inspection also caught a second queued-clock defect before the training rental:
+bootstrap still counted its setup allowance from queue admission and would have
+received a one-second timeout. The operational launcher now uses a fresh bounded
+setup cutoff at submission without extending the original job deadline; guardian
+reconnect and training acceptance retain their claim clocks. The existing Mini
+controller received this repair before the training create. No frozen worker
+source was edited. The guardian proof passed and a single L4 training rental
+`f1591g22k1rpcg` was created at $0.59/hour. Bootstrap alone does not establish
+CUDA continuation or advancing learning; that requires the saved runtime counters.

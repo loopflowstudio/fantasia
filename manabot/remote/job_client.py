@@ -266,12 +266,15 @@ def submit_job(
                 "guardian deletion unconfirmed; cancel this job before further rental"
             )
     environment.update({"MANABOT_JOB_PREFIX": spec.prefix})
-    _provision(
+    training = _provision(
         spec, store, provider, "training", spec.deadline, job_startup(spec), environment
     )
     # Once launched, all setup/training/upload/deletion is remote-owned. A lost
     # acknowledgement is resolved by this same read; no finally block cancels it.
-    while time.time() < spec.created_at + spec.plan.spec.setup_seconds:
+    acceptance_deadline = min(
+        training.claim.intent_time + spec.plan.spec.setup_seconds, spec.work_deadline
+    )
+    while time.time() < acceptance_deadline:
         status = job_status(spec, store=store, provider=provider)
         if status.record is not None:
             return status
