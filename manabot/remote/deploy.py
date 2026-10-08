@@ -9,6 +9,7 @@ from contextlib import contextmanager
 import fcntl
 import json
 import math
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -121,6 +122,25 @@ def verify_public_source(source: Source) -> None:
     except HTTPError as error:
         if error.code != 403:
             raise ValueError("committed source is not publicly fetchable") from None
+        gh = shutil.which("gh")
+        if gh is not None:
+            # Reuse the host login without extracting or forwarding its token.
+            result = subprocess.run(
+                [
+                    gh,
+                    "api",
+                    f"repos/loopflowstudio/fantasia/git/commits/{source.commit}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            if result.returncode == 0:
+                value = json.loads(result.stdout)
+                if value["sha"] != source.commit or value["tree"]["sha"] != source.tree:
+                    raise ValueError("authenticated public source identity differs")
+                return
         _verify_public_source_git(source)
     except (URLError, TimeoutError, KeyError):
         raise ValueError(
