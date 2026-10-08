@@ -234,6 +234,9 @@ def main() -> None:
             recover=tuple(args.recover),
         )
         report(out)
+    elif args.phase == "diagnostic":
+        with attempt_lock(Path.home() / ".cache/manabot/checkpoint-evaluator.lock"):
+            diagnostic(out)
     else:
         {
             "diagnostic": diagnostic,
