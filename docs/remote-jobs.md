@@ -527,3 +527,15 @@ absolute permission/shutdown bounds, paused artifact publication and native CPU
 pause/recovery equivalence. They do not establish live IAM enforcement, CUDA
 recovery, or month-long operation. No rental or scientific scoring is needed to
 run them.
+
+### Final checkpoint discovery
+
+A learner may finish while its supervisor uploads an intermediate snapshot.
+After observing learner exit, supervision scans the closed TrainingRun again
+before deciding evaluation is finished. Pending checkpoints with exhausted
+allowance make the job failed; they cannot become a completed job merely because
+no evaluator process is running. The CUDA recovery pilot exposed this race:
+its original record says completed despite omitting its endpoint evaluation.
+Keep that record as evidence; a separately recovered evaluation does not rewrite
+it or establish remote lifecycle acceptance. See the
+[capacity recovery record](../experiments/model-capacity.md#live-cuda-recovery--2026-10-08).
