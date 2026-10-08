@@ -22,6 +22,32 @@ owns semantics, overhead and CUDA admission. CPU proofs
 and positive toy learning establish no CUDA validation, MTG strength or historical
 causal attribution. ETU-103/Mini source and artifacts remain untouched.
 
+## Durable cohort owner (ETU-126, 2026-10-07)
+
+Jack Heart authorized autonomous MLOps delivery within the inclusive $30 GPU cap.
+ETU-103's controller died at agent-turn exit, independently of its later learner
+failure. Verified count 17,283 exceeds stale remote 16,694; active coordinate
+9,884.38 seconds differs from inflated failure accounting. ETU-127 owns numerics,
+failure snapshots and accounting; frozen source/evidence remain unchanged.
+
+Experiment.jobs now freezes into manabot deploy cohorts. S3 owns intent, attempts,
+cancellation and deadlines; launchd/systemd owns the process on a selected online
+host. Host binding/flock exclude competing owners; no automatic host takeover.
+Reconnect preserves create claims and inclusive budget reservations. Failed,
+paused or uncertain attempts never spawn replacements. Final manifest/cleanup
+admit later jobs; downloads/reporting stay outside scheduling. Terminal progress
+refreshes after stopping writers.
+
+Offline faults and native launchd SIGKILL/restart completed two fake jobs without
+duplicates. No live cloud cohort, Linux host acceptance, CUDA continuation, rental
+or Mini mutation follows. [Remote contracts](../../docs/remote-jobs.md#cohorts-need-an-independent-owner)
+own commands/limits. Offline-client W&B projection and lost-host recovery remain
+open. ETU-103 restart needs both fixes landed, an online credentialed host, frozen
+new attempt/protocol and live prices; all earlier charges, including the failed
+$3.63056534815828 estimate, stay inside $30. Retain four active hours unless
+explicitly superseded; one repaired run is not six-run acceptance. Preserve Mini order.
+
+
 ## Step targets and machine allocations (ETU-124, 2026-10-07)
 
 Jack Heart approved step-target TrainingRegimes and reusable JobSpecs.
@@ -341,17 +367,10 @@ so this is not a critic-only intervention. Historical initialization/equations
 remain intact; equal-shaped pooling variants require saved architecture metadata.
 Later empirical dispositions above supersede this software-only stage.
 
-The eight-recipe smoke completed training and 32 raw/EMA export admissions, then
-failed on underscore-containing arena IDs after 36.12 seconds. Jack Heart approved
-evaluation-only recovery and landing. Aliases changed without retraining or
-rewriting artifacts; all 16 raw checkpoints played 120 exact-replayed games in
-382.86 cumulative seconds, within 900. Offline metrics/reports regenerated
-identically. EMA exports were not scored. PR #222 merged at `a371af46` and was
-integrated into ETU-104. The 108-test integrated suite, 15 focused fix checks and
-base-byte comparison establish software behavior, not strength, demo/chapter
-acceptance or human review. The [value-model protocol](../../experiments/value-models.md)
-owns recovery details; full historical account remains in this file at `7316da5d`.
-ETU-91's frozen checkout/evidence were untouched.
+Jack Heart approved evaluation-only recovery and landing. PR222 proved software,
+not strength/chapter acceptance; ETU-91 stayed untouched. Failure/recovery and
+validation remain in the [protocol](../../experiments/value-models.md) and
+this memory at `7316da5d`.
 
 ## Operating principle
 
@@ -577,11 +596,8 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-Detail remains at `59f16e0d` / `60e2f897`; GOAL.md owns ETU-21's abandonment,
-ETU-31's deferral and ETU-34's completion. Bounded demos prove no strength or
-conditional student flips. ed2 survives; unavailable advice/checkpoints remain
-subject to [the live-advice plan](../../docs/plans/live-belief-advice.md).
-Rules owns history semantics; check existing Tasks before overlapping work.
+GOAL.md owns ETU-21/31/34 dispositions; `59f16e0d` / `60e2f897` retain history.
+Unavailable ed2 advice/checkpoints follow the [live-advice plan](../../docs/plans/live-belief-advice.md).
 
 ## Corrected-world training binding (2026-09-29)
 
@@ -1066,46 +1082,33 @@ owns the support semantics and remaining limits.
 
 ## Architecture-recipe implementation boundary (ETU-104, 2026-10-05)
 
-Jack Heart approved incremental recipe implementation and landing. AgentSpec
-remains the model authority; helpers construct ordinary TrainingRegime values
-without a registry or weight port. All eight value-study digests remained fixed.
-The 348.04-second fixture completed 32 admitted exports and 120 replayed games,
-not strength or chapter acceptance; ETU-91 remained untouched. ETU-109 supersedes
-this authoring stage. The [design](../../docs/plans/modular-architecture-recipes.md)
-owns scope; full delivery/recovery detail remains in this memory at `64bdbca6`.
+Jack Heart approved implementation and landing. AgentSpec owns model configuration;
+helpers construct TrainingRegime values without registries, migrations or weight
+ports. Complete snapshots retain eight value-study digests; duplicate labels fail.
+The `486739d5` proof establishes composition/reload, not strength or chapter
+acceptance. ETU-91 stayed untouched. Merged PR223's detailed
+proof/history remains at `33bce999` and `64bdbca6`; the
+[design](../../docs/plans/modular-architecture-recipes.md) owns scope and deferrals.
+
 
 ## Training dashboard software (ETU-101, 2026-10-05)
 
-Jack Heart authorized dashboard implementation, publication and landing using
-saved evidence and tiny fixtures, without changing ETU-91's frozen checkout.
-TrainingRun/VerifyStore remain the metric authority. Epoch/update diagnostics
-now retain original counters, elapsed cost and resource observations; historical
-rows without those coordinates stay explicitly incomplete. W&B is a resumable
-projection with stable run/group identities, prefix checks, default panels and
-local JSON backfill. PPO's clipped objective is not teacher cross-entropy.
+Jack Heart authorized software delivery with tiny fixtures and preserved ETU-91.
+TrainingRun/VerifyStore own diagnostics and original coordinates; W&B is a
+resumable projection, not an authority or learning dependency. Missing historical
+coordinates remain incomplete. Fixed whole-game teacher validation remains separate
+from growing validation; its first targets survive later treatment changes.
+Hourly raw exports preserve live RNG/Adam/collector state and exclude export time
+from learning schedules while charging resource budgets. Monitoring is not recovery.
 
-The first distillation cohort freezes whole validation games and source bytes,
-remains excluded from later training, and is reported beside growing validation.
-Its first reference target stays fixed even when later stages change their
-training target; rejecting such changes would break existing local-update controls.
-TrainingRun's globally assigned game IDs survive shard composition. Optional
-hourly raw exports occur at learner boundaries, preserve RNG and Adam/collector
-state, and exclude their measured duration from the learning schedule while
-remaining charged to resource budgets. Monitoring is separate from recovery.
+The independent bounded arena follower evaluates reserved development deals across
+all four seat/deck legs. Failed/incomplete cohorts retain replay/cost evidence and
+have no aggregate rate; deal-cluster intervals do not measure training-seed
+uncertainty. The [dashboard contract](../../docs/training-monitoring.md) owns
+commands and limits. The local gate and real untrained four-game fixture passed;
+no live W&B service, strength, chapter or scientific acceptance followed. Detailed
+software proofs remain at `64bdbca6`; ETU-91's frozen checkout stays unchanged.
 
-The independent arena follower evaluates 25 reserved monitoring deals across all
-four seat/deck legs versus source-pinned scripted greedy. Incomplete cohorts have
-no aggregate rates; failed attempts, Commands/replay, costs and contention
-observations remain saved. Deal-cluster intervals condition on a checkpoint,
-not training seeds. These inspected deals are not scientific held-out evidence.
-The [dashboard contract](../../docs/training-monitoring.md) owns launch/backfill
-commands and limits. Software fixtures do not establish strength, live W&B
-service acceptance or chapter completion; no scientific campaign ran here.
-
-ETU-101's focused gate passed 78 checks; the final monitoring suite passed 22,
-including four complete games through an untrained checkpoint and native arena,
-retained timeout prefixes, fixed-reference isolation and idempotent backfill.
-The live W&B service was not exercised. These remain software fixtures.
 
 ## Capacity software receipt boundary (ETU-102, 2026-10-05)
 
