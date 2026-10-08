@@ -19,8 +19,8 @@ now preserves the full compiled manifest and semantic IDs. Fixed stream strata
 balance learner transitions and deck/play-order marginals, not completed games.
 Mirror evaluation is an explicit roster-repetition capability; default checkpoint
 admission stays exact. The [protocol](../../experiments/mirror-curriculum.md)
-owns calibration, timing-only admission, counts, source receipts and pending
-curriculum comparison. No training-arm conclusion is available yet.
+owns calibration, admission, counts, receipts and pending comparison.
+No curriculum conclusion is available.
 
 
 ## Numerical policy contract (ETU-127, 2026-10-07)
