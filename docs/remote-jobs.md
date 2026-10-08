@@ -544,9 +544,11 @@ it or establish remote lifecycle acceptance. See the
 
 `manabot deploy cohort insert --cohort-id ID --plan insertion.json` atomically
 adds a `CohortInsertion` after one original job. Original cohort bytes, scientific
-entries, attempts, spending ceiling and deadline remain unchanged. The operation
+entries, attempts and spending ceiling remain unchanged. The operation
 rejects an already admitted successor, excess aggregate reservations, duplicate
-IDs and allocations that cannot fit the remaining deadline. A lost response is
+IDs and allocations that cannot fit the remaining deadline. An explicit insertion
+may extend the cohort deadline within a separately admitted access expiry; it
+never changes an existing job deadline or resets consumed money. A lost response is
 reconciled by rereading the same insertion; it never admits a replacement job.
 
 Each added `CohortEntry.continuation` names an earlier job, its stage and expected

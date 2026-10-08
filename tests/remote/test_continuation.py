@@ -199,3 +199,19 @@ def test_failed_predecessor_does_not_admit_continuation(harness: Harness) -> Non
     assert state.phase == "failed"
     assert len(state.attempts) == 1
     assert harness.provider.created == 1
+
+
+def test_explicit_deadline_extension_keeps_admitted_job_deadline(
+    harness: Harness,
+) -> None:
+    first = harness.launch()
+    insertion = insertion_for(harness)
+    extended = CohortInsertion.model_validate(
+        {**insertion.model_dump(), "deadline": 200000, "access_expires_at": 200000}
+    )
+    state = insert_cohort(harness.cohort, extended, store=harness.store)
+    assert state.effective_deadline(harness.cohort) == 200000
+    assert state.attempts[0].spec.deadline == first.deadline
+    assert harness.cohort.deadline == 100000
+    with pytest.raises(ValueError, match="access lifetime"):
+        CohortInsertion.model_validate({**insertion.model_dump(), "deadline": 200000})

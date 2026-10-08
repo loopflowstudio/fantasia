@@ -116,6 +116,18 @@ class CohortInsertion(Frozen):
 
     after_job: str
     entries: tuple[CohortEntry, ...] = Field(min_length=1)
+    deadline: float | None = Field(default=None, gt=0)
+    access_expires_at: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def bounded_deadline(self) -> "CohortInsertion":
+        if self.deadline is not None and (
+            self.access_expires_at is None or self.deadline > self.access_expires_at
+        ):
+            raise ValueError(
+                "extended deadline requires sufficient admitted access lifetime"
+            )
+        return self
 
 
 class CohortState(Frozen):
@@ -147,6 +159,11 @@ class CohortState(Frozen):
             *self.insertion.entries,
             *cohort.entries[index + 1 :],
         )
+
+    def effective_deadline(self, cohort: Cohort) -> float:
+        if self.insertion is not None and self.insertion.deadline is not None:
+            return self.insertion.deadline
+        return cohort.deadline
 
     @property
     def settled(self) -> bool:
@@ -224,6 +241,8 @@ def insert_cohort(
             raise ValueError("cohort already binds another insertion")
         return state
     updated = state.model_copy(update={"insertion": insertion})
+    if updated.effective_deadline(cohort) < cohort.deadline:
+        raise ValueError("insertion cannot shorten original cohort deadline")
     entries = updated.entries(cohort)
     if len({e.job_id for e in entries}) != len(entries):
         raise ValueError("inserted job IDs must be unique")
@@ -248,11 +267,9 @@ def insert_cohort(
     active_deadline = (
         state.attempts[-1].spec.deadline if state.attempts else time.time()
     )
-    if (
-        max(time.time(), active_deadline)
-        + sum(e.plan.spec.lifetime_seconds for e in remaining)
-        > cohort.deadline
-    ):
+    if max(time.time(), active_deadline) + sum(
+        e.plan.spec.lifetime_seconds for e in remaining
+    ) > updated.effective_deadline(cohort):
         raise ValueError("remaining allocations cannot fit cohort deadline")
     data = updated.model_dump_json().encode()
     if not store.replace("state.json", data, raw.etag):
@@ -367,7 +384,7 @@ class CohortSupervisor:
     def tick(self) -> CohortState:
         cohort = self.cohort
         cancelled = cancellation_requested(self.store) is not None
-        expired = time.time() >= cohort.deadline
+        expired = time.time() >= self.state.effective_deadline(cohort)
         attempts = self.state.attempts
         if attempts:
             attempt = attempts[-1]
@@ -443,7 +460,7 @@ class CohortSupervisor:
                     "continuation predecessor has no verified final evidence"
                 )
             spec = self.bind(entry, parent.observation, self.cache)
-        if spec.deadline > cohort.deadline:
+        if spec.deadline > self.state.effective_deadline(cohort):
             return self._save(
                 phase="deadline", error="remaining cohort time cannot fit allocation"
             )

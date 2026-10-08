@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Iterator
 
 from manabot.training.execution import atomic_json
 
-from .cohort import Cohort, CohortSupervisor
+from .cohort import Cohort, CohortState, CohortSupervisor
 from .deploy import current_source
 from .job_client import submit_job
 from .jobs import Job, JobStatus
@@ -79,6 +79,12 @@ def supervise_cohort(plan: Path, directory: Path, *, interval: float = 30) -> No
             },
         )
         observation_deadline = cohort.deadline + 1800
+        retained = directory / "status.json"
+        if retained.exists():
+            state = CohortState.model_validate_json(retained.read_bytes())
+            if state.cohort_sha256 != cohort.identity or state.owner != owner:
+                raise ValueError("retained state belongs to a different cohort owner")
+            observation_deadline = state.effective_deadline(cohort) + 1800
 
         def submit(spec: Job) -> JobStatus:
             # A controller upgrade does not rewrite frozen worker sources. Paths
@@ -97,6 +103,7 @@ def supervise_cohort(plan: Path, directory: Path, *, interval: float = 30) -> No
                     cohort, owner, directory / "cache", submit=submit
                 )
                 state = supervisor.tick()
+                observation_deadline = state.effective_deadline(cohort) + 1800
                 atomic_json(directory / "status.json", state.model_dump(mode="json"))
                 (directory / "error.json").unlink(missing_ok=True)
                 if state.settled:

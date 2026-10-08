@@ -304,7 +304,19 @@ def follow_projection(
                 raise ValueError(
                     "projection allocation already binds different content"
                 )
-        while time.time() < cohort.deadline + 1800:
+        deadline = cohort.deadline
+        while True:
+            try:
+                raw = S3JobStore(cohort.prefix).read("state.json")
+                if raw is not None:
+                    state = CohortState.model_validate_json(raw.data)
+                    if state.cohort_sha256 != cohort.identity:
+                        raise ValueError("projection cohort identity differs")
+                    deadline = state.effective_deadline(cohort)
+            except Exception:
+                pass  # Retain the last bounded cutoff across storage outages.
+            if time.time() >= deadline + 1800:
+                return
             remaining = config.total_seconds - ledger.charged_seconds
             if remaining < config.attempt_seconds:
                 return
@@ -323,7 +335,7 @@ def follow_projection(
                         str(
                             min(
                                 attempt.started_at + config.attempt_seconds,
-                                cohort.deadline + 1800,
+                                deadline + 1800,
                             )
                             - 10
                         ),
@@ -336,7 +348,7 @@ def follow_projection(
                     code = child.wait(
                         timeout=min(
                             config.attempt_seconds,
-                            max(1, cohort.deadline + 1800 - time.time()),
+                            max(1, deadline + 1800 - time.time()),
                         )
                     )
                 except subprocess.TimeoutExpired:
