@@ -43,20 +43,20 @@ One cohort/six job prefixes have 96-hour S3 expiry; live conditional writes/read
 outside-prefix denial and worker session admission passed. Existing issuer stays
 restricted; no personal SSO moved. Mini launchd owns scheduling and local projection
 in a dedicated checkout. Owner SIGKILL restarted in 2.2 seconds with one attempt
-and the same pod; a second controller was rejected. At 2026-10-08 12:26 UTC, job0 had exported
-26,000 updates; final upload/cleanup remained pending and jobs1–5 queued.
+and the same pod; a second controller was rejected. Job0 completed 26,000 updates,
+seven evaluations, final publication and cleanup (estimated $2.9223462573).
+Job1 subsequently started; jobs2–5 remain queued.
 Verified Adam contains 61 states at step 208,000; EMA binds iteration 26,000.
 Raw/EMA/optimizer match run `c2b8c6e731ee4126a2c2d18514dea4d1`. Collector/RNG
-recovery is absent; these artifacts permit learning-state continuation in
-principle, not exact CUDA recovery. The 526MB run JSON creates transfer overhead.
+state is absent; continuation resets streams. The 526MB run JSON adds transfer cost.
 
 Jack Heart authorized 100k-total exploratory continuation after job1, retaining
 paired jobs and the &#36;100 ceiling. Actual small throughput projects 12.54 more
-active hours, requiring segments. Implementation/queue admission remain open:
-the requested 100k schedule denominator conflicts with the frozen recipe's
-absolute-iteration rates, which never used the 26k target. A new rate formula
-is unresolved; no learner treatment was selected. Live queue/allocations remain
-unchanged. Source/protocol at `45940fe3` retain the original science meaning.
+active hours, requiring segments. Jack Heart corrected the assistant's denominator
+mistake on 2026-10-08: retain existing absolute-iteration rates from 26,001, as if
+100k were planned initially. No schedule decision remains. Implementation and
+queue admission are open; preserve Adam/EMA/counters and explicitly reset game
+streams. Original science source/protocol at `45940fe3` remain unchanged.
 
 Mini needs its account online/logged in; W&B credentials are absent there, while
 local reports refresh. New large 11.95h/$6.20 JobSpecs implement eight hours within

@@ -126,7 +126,7 @@ def _write_report(
             "cohort_sha256": cohort.identity,
             "observed_at": time.time(),
             "cohort_phase": state.phase,
-            "intended_jobs": len(cohort.entries),
+            "intended_jobs": len(state.entries(cohort)),
             "admitted_jobs": len(state.attempts),
             "supervisor_heartbeat_at": state.heartbeat_at,
             "charged_or_reserved_dollars": state.charged_dollars(cohort),
@@ -135,7 +135,7 @@ def _write_report(
     )
     body = [
         f"<h1>{escape(cohort.cohort_id)}</h1>",
-        f"<p>Admitted {len(state.attempts)} of {len(cohort.entries)} intended jobs.</p>",
+        f"<p>Admitted {len(state.attempts)} of {len(state.entries(cohort))} intended jobs.</p>",
         f"<p>Saved at {time.time():.0f} Unix seconds. Cohort: {escape(state.phase)}. "
         f"Supervisor heartbeat: {state.heartbeat_at:.0f}. Charged/reserved: ${state.charged_dollars(cohort):.4f}.</p>",
         "<p>Reload to see refreshed saved observations. Development monitoring is not a completed scientific comparison.</p>",

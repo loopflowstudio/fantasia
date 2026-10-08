@@ -2,15 +2,11 @@
 
 Jack Heart authorized optimizer-preserving continuation of the first small run to
 100,000 total updates after science job1, without interrupting live work or
-replacing the remaining paired jobs. The supplied instruction requires a 100,000
-learning-rate/regularization denominator. This is a substantive unresolved
-schedule definition: the frozen Ataraxos recipe explicitly has no total-update
-normalization (`target_count_rescales_rates: false`). Its formulas are
-`clip(0.5 / iteration**1.1, 5e-6, 1e-4)` and `0.05 / iteration**0.3`.
-`update_iteration` ignores fractional progress for this recipe. Preserving these
-formulas gives LR 6.957944302072213e-6 and tau .0023684978179155515 at 26,001;
-a denominator-dependent treatment requires a newly specified formula. No
-alternative learner treatment or weights-only restart was selected.
+replacing the remaining paired jobs. Jack Heart corrected the earlier assistant
+wording on 2026-10-08: rates must behave as if 100k had been planned initially.
+Keep the existing absolute-iteration Ataraxos formulas unchanged and resume at
+26,001. No denominator or human schedule decision is outstanding. Preserve raw,
+Adam, EMA and counters; reset collector/game/RNG streams explicitly.
 
 Actual verified source `45940fe3587fe37851267d0c903c6030a3a64a92`, TrainingRun
 `c2b8c6e731ee4126a2c2d18514dea4d1`, regime
@@ -31,11 +27,9 @@ The completed record contains 26,000 diagnostics, 13,312,000 learner transitions
 Optimizer-preserving restart on fresh game streams is feasible in principle;
 exact CUDA process recovery is not established.
 
-At observation 1791462373, the independent Mini controller was fresh, job0 was
-finalizing at 26k on its existing pod, and jobs1–5 remained queued. Cohort phase
-was uncertain due to the stale worker heartbeat. A 526,403,838-byte run JSON
-explains substantial transfer work; completion/cleanup remained unverified.
-No live job, source, controller credential or queue was changed.
+Job0 subsequently completed: final manifest verified, seven evaluations, confirmed
+provider absence, estimated charge $2.9223462572991847. Job1 is independently
+running on Mini; jobs2–5 remain queued. No training was interrupted.
 
 Live L4 quote was $0.49/hour. Existing inclusive reservation is $48.867918369190;
 admitted jobs plus prior/shared allowances are $20.367918369190, not settled cost.
@@ -45,12 +39,13 @@ raise the reservation to $61.267918369190 before any extra reserves. This is not
 price/allocation/credential admission. Segment design must allow evaluation,
 large final exports, shared cohort deadline and restricted prefix authorization.
 
-Remaining implementation: verified learning-state import/export and absolute
-counters; explicit schedules after the definition is resolved; segmented
-continuation; immutable queue interposition after job1 preserving jobs2–5;
-controller/source/access admission, tests, landing and live queue verification.
-PR5 delivery reconciled to merge 2a4fd419; rotated empty PR6 branch
-`jack/keep-experiment-cohorts-running-and-optimizer-continuation`.
+Implementation now adds typed learner-state import with original wire-digest
+admission, unchanged absolute schedules, fresh collector streams, preserved
+Adam/EMA, inherited monitoring coordinates, and immutable queue interposition.
+The controller binds only final manifests; workers fetch exact versioned inputs.
+Remaining: finish gate, land software, admit two 37k segments with realistic
+reserves, upgrade the existing Mini service in place and verify durable ordering.
+No deletion targets; frozen six-job scientific definitions remain unchanged.
 
-Check: verified live artifact hashes/contents and source formulas; no training,
-rental, learner edit or continuation queue admission occurred.
+Check: isolated remote suite 158 passed/2 expected skips; updated initial admission
+and service checks 30 passed/1 expected skip; explicit source-upgrade fixture passed.
