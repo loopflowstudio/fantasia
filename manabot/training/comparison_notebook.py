@@ -36,6 +36,7 @@ def write_comparison_notebook(data_root: Path, output: Path) -> Path:
             "from manabot.training.report_study import load_study, study_strength_figures\n\n"
             f"DATA_ROOT = Path({relative!r}).resolve()\n"
             "OUTPUT = Path('comparison.html')\n"
+            f"NOTEBOOK = Path({output.name!r})\n"
             f"METRIC_DOCS = {docs!r}\n"
             "QUESTION = 'How do the declared variants progress at shared training milestones?'\n"
             "# Narrow DATA_ROOT to a retained execution; never combine incompatible studies.\n"
@@ -70,7 +71,7 @@ def write_comparison_notebook(data_root: Path, output: Path) -> Path:
             "# For deeper analysis, add e.g. metric_figure(evidence, 'rl/collection_kl')."
         ),
         nbformat.v4.new_code_cell(
-            "report = write_dashboard(evidence, OUTPUT, question=QUESTION, docs=METRIC_DOCS, sections=sections, notes=NOTES, study=study)\n"
+            "report = write_dashboard(evidence, OUTPUT, question=QUESTION, docs=METRIC_DOCS, sections=sections, notes=NOTES, study=study, notebook=NOTEBOOK)\n"
             "print(f'Read-only report: {report.resolve()}')"
         ),
         nbformat.v4.new_markdown_cell(

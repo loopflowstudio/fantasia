@@ -120,6 +120,9 @@ def checkpoint_panels(evidence: "ReportEvidence") -> tuple[CheckpointPanel, ...]
         identity = canonical_sha256(
             {
                 "run": result.run_id,
+                "candidate_spec": result.candidate.player_spec,
+                "observation_abi": result.candidate.observation_abi_sha256,
+                "action_abi": result.candidate.action_abi_sha256,
                 "protocol": result.protocol.model_dump(mode="json"),
                 "opponent": result.opponent.model_dump(mode="json"),
                 "arena": result.key.model_dump(mode="json"),
@@ -141,7 +144,14 @@ def checkpoint_panels(evidence: "ReportEvidence") -> tuple[CheckpointPanel, ...]
                 )
             ),
         )
-        for key, values in groups.items()
+        for key, values in sorted(
+            groups.items(),
+            key=lambda item: (
+                item[1][0].protocol.opponent != "scripted_greedy",
+                item[1][0].training_seed,
+                item[0],
+            ),
+        )
     )
 
 
@@ -167,7 +177,12 @@ def _table(headers: list[str], rows: list[list[str]]) -> str:
         + "".join(f'<th scope="col">{escape(h)}</th>' for h in headers)
         + "</tr></thead><tbody>"
         + "".join(
-            "<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row) + "</tr>"
+            "<tr>"
+            + "".join(
+                f'<td data-label="{escape(h, quote=True)}">{escape(c)}</td>'
+                for h, c in zip(headers, row, strict=True)
+            )
+            + "</tr>"
             for row in rows
         )
         + "</tbody></table></div>"
@@ -190,7 +205,7 @@ def panel_figures(
     for deck in decks:
         points = [(r, d) for r, values in measured for d in values if d.deck == deck]
         fig = Figure(figsize=(5.1, 2.7), layout="constrained", facecolor="#fffdf8")
-        ax = fig.subplots(facecolor="#fffdf8")
+        ax = fig.subplots(subplot_kw={"facecolor": "#fffdf8"})
         x = [
             getattr(r.coordinates, axis) / (3600 if axis == "training_seconds" else 1)
             for r, _ in points
@@ -290,7 +305,7 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
         + "</div>"
     )
     rows: list[list[str]] = []
-    lags: list[str] = []
+    losses: list[str] = []
     for run in evidence.runs:
         metrics = evidence.metrics(run)
         latest = metrics[-1] if metrics else {}
@@ -315,10 +330,21 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
             if last and isinstance(updates, (int, float))
             else "unavailable"
         )
-        if last:
-            lags.append(
-                f"{evidence.label(run.id)}: last evaluation at {last.coordinates.updates:,}; lag {lag}."
+        loss_key = next(
+            (k for k in ("rl/loss", "distillation/train_cross_entropy") if k in latest),
+            None,
+        )
+        if loss_key:
+            semantics = (
+                "RL minibatch objective (not log loss)"
+                if loss_key == "rl/loss"
+                else "teacher cross-entropy (nats)"
             )
+            losses.append(
+                f"{evidence.label(run.id)}: {semantics} {_number(latest[loss_key])}"
+            )
+        else:
+            losses.append(f"{evidence.label(run.id)}: latest loss unavailable")
         rows.append(
             [
                 evidence.label(run.id),
@@ -335,7 +361,8 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
             ]
         )
     parts.append(
-        _table(
+        '<div class="progress">'
+        + _table(
             [
                 "Arm / seed",
                 "Updates / plan",
@@ -347,12 +374,14 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
             ],
             rows,
         )
+        + "</div>"
     )
     if attempts:
         pending = [
             f"{a.case} / seed {a.seed}: {a.status}"
             for a in attempts
             if a.run_id not in {r.id for r in evidence.runs}
+            and (a.case, a.seed) not in {(r.regime.id, r.seed) for r in evidence.runs}
         ]
         if pending:
             parts.append(
@@ -363,7 +392,33 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
     parts.append(
         f'<p class="muted"><a href="{escape(docs)}#learning">Updates, clocks &amp; throughput</a> · Active = collection + optimization when recorded; unavailable is not zero. Recorded training can include overhead. Host cost is a receipt, not an invoice; external charges are unknown.</p>'
     )
+    parts.append(
+        f'<p class="muted"><a href="{escape(docs)}#learning">Latest loss</a> · {escape("; ".join(losses))}</p>'
+    )
     panels = checkpoint_panels(evidence)
+    parts.append('<div class="latest-grid">')
+    for panel in panels:
+        completed = [r for r in panel.results if r.status == "completed"]
+        if not completed:
+            continue
+        last = completed[-1]
+        parts.append(
+            f'<div class="latest"><b>{escape(evidence.label(panel.run_id))} · vs {escape(last.opponent.display_name)}</b><div>'
+        )
+        for d in deck_results(last):
+            parts.append(
+                f"<span>{escape(_deck_name(d.deck))} <strong>{d.interval.mean:.0%}</strong> <small>{d.wins}/{d.games} wins<br>95%: {d.interval.lower:.0%}–{d.interval.upper:.0%}</small></span>"
+            )
+        finished = getattr(last, "finished_unix", None)
+        observed = (
+            datetime.fromtimestamp(finished, timezone.utc).isoformat(timespec="seconds")
+            if finished
+            else "time unavailable"
+        )
+        parts.append(
+            f"</div><small>Update {last.coordinates.updates:,} · evaluated {escape(observed)}</small></div>"
+        )
+    parts.append("</div>")
     parts.append(
         '<section id="strength"><div class="section-label">01 / PLAYING STRENGTH</div><h2>Separate the decks. Keep the opponent fixed.</h2>'
     )
@@ -375,6 +430,9 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
             "<p>No monitoring evaluations retained. Learning direction is unavailable.</p>"
         )
     checkpoint_rows: list[list[str]] = []
+    table_decks = sorted(
+        {d.deck for panel in panels for r in panel.results for d in deck_results(r)}
+    )
     for index, panel in enumerate(panels):
         result = panel.results[-1]
         complete = [r for r in panel.results if r.status == "completed"]
@@ -399,12 +457,16 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
             latest = deck_results(last)
             observations = []
             for d in latest:
-                baseline = initial[d.deck]
-                delta = 100 * (d.interval.mean - baseline.interval.mean)
+                baseline = initial.get(d.deck)
+                delta = (
+                    100 * (d.interval.mean - baseline.interval.mean)
+                    if baseline
+                    else None
+                )
                 change = (
                     f"{delta:+.1f} points since update {first.coordinates.updates:,}"
-                    if first != last
-                    else "one checkpoint; direction unavailable"
+                    if first != last and delta is not None
+                    else "baseline or trend unavailable"
                 )
                 values = [
                     v.interval.mean
@@ -432,48 +494,34 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
             + "</div></details></details>"
         )
         for r in reversed(panel.results):
-            values = deck_results(r)
-            if not values:
-                checkpoint_rows.append(
-                    [
-                        evidence.label(r.run_id),
-                        r.opponent.display_name,
-                        f"{r.coordinates.updates:,}",
-                        _hours(r.coordinates.training_seconds),
-                        "unavailable",
-                        f"{sum(row.valid for row in r.rows)}/{r.expected_games} valid",
-                        r.status,
-                        "unavailable",
-                    ]
+            values = {d.deck: d for d in deck_results(r)}
+            row = [
+                evidence.label(r.run_id),
+                r.opponent.display_name,
+                f"{r.coordinates.updates:,}",
+                _hours(r.coordinates.training_seconds),
+            ]
+            for deck in table_decks:
+                d = values.get(deck)
+                row.append(
+                    f"{d.wins}/{d.games} · {d.interval.mean:.0%} [{d.interval.lower:.0%}–{d.interval.upper:.0%}]"
+                    + (f" · {d.draws} draws" if d.draws else "")
+                    if d
+                    else f"unavailable · {r.status}; {sum(row.valid for row in r.rows)}/{r.expected_games} valid games"
                 )
-            for d in values:
-                checkpoint_rows.append(
-                    [
-                        evidence.label(r.run_id),
-                        r.opponent.display_name,
-                        f"{r.coordinates.updates:,}",
-                        _hours(r.coordinates.training_seconds),
-                        _deck_name(d.deck),
-                        f"{d.wins}/{d.games} ({d.draws} draws)",
-                        f"{d.interval.mean:.1%}",
-                        f"{d.interval.lower:.1%}–{d.interval.upper:.1%}",
-                    ]
-                )
+            checkpoint_rows.append(row)
     parts.append(
         f'<p class="muted"><a href="{escape(docs)}#opponent-asymmetry">Opponent asymmetry hypothesis</a>: greedy may pilot Allies creature/attack choices better than Lessons targeting. A model playing Lessons faces Allies. Scores alone do not establish this strategic cause.</p></section>'
     )
     parts.append(
-        '<section id="checkpoints"><div class="section-label">02 / CHECKPOINTS</div><h2>The scores behind the curves</h2>'
+        '<section id="checkpoints"><div class="section-label">02 / CHECKPOINTS</div><h2>The scores behind the curves</h2><p class="muted">Wins / games · win rate [95% paired-deal interval]. Draws are not wins. Each row keeps its original checkpoint and opponent.</p>'
         + _table(
             [
                 "Arm / seed",
                 "Opponent",
                 "Update",
                 "Training time",
-                "Model deck",
-                "Wins / games",
-                "Win rate",
-                "95% deal interval",
+                *[f"Model playing {_deck_name(deck)}" for deck in table_decks],
             ],
             checkpoint_rows,
         )
@@ -484,4 +532,8 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
 
 DASHBOARD_CSS = """
 body{font:15px/1.5 'Avenir Next',system-ui,sans-serif;color:#23342d;background:#fffdf8;max-width:1120px;margin:40px auto;padding:0 28px}h1{font:46px/1.12 Georgia,serif;letter-spacing:-1px;margin:12px 0}h2{font:28px/1.2 Georgia,serif;margin:12px 0}a{color:#176b57;text-underline-offset:3px}.eyebrow,.section-label{font-size:11px;letter-spacing:2px;font-weight:700;color:#66776d}.stamp,.muted{font-size:12px;color:#627067}nav{display:flex;gap:24px;margin:22px 0;font-weight:600}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid #284b3b;border-bottom:1px solid #bbc4b8;margin:22px 0}.stats>div{padding:16px 12px}.stats span{display:block;font-size:12px;color:#627067}.stats strong{font:28px Georgia,serif}.table{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}th{text-align:left;color:#627067;font-weight:600}td,th{padding:10px 8px;border-bottom:1px solid #e0e3d9;vertical-align:top}section{margin-top:36px}summary{cursor:pointer;font-weight:600;padding:12px 0}details.panel{border-top:1px solid #bbc4b8}.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.charts svg{width:100%;height:auto}.reading{background:#eff2e8;border-left:3px solid #718764;padding:12px 18px;font-size:13px;margin:12px 0}.reading p{margin:6px 0}.figure svg{width:100%;height:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere}#details{margin-top:36px;border-top:2px solid #bbc4b8}#details h1{font-size:26px}@media(max-width:650px){body{margin:24px auto;padding:0 16px}h1{font-size:34px}h2{font-size:24px}nav{gap:14px;font-size:12px}.stats strong{font-size:22px}.stats>div{padding:12px 6px}.charts{grid-template-columns:1fr}.table{max-width:100%}td,th{min-width:78px}summary{font-size:13px}}@media print{details{display:block}section{break-inside:avoid}}
+"""
+
+DASHBOARD_CSS += """
+.latest-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}.latest{border:1px solid #d7dfce;padding:12px 16px;font-size:12px}.latest>div{display:flex;gap:28px;margin:8px 0}.latest strong{font:25px Georgia,serif}.latest small{color:#627067}.progress td{white-space:nowrap}@media(max-width:650px){.latest-grid{grid-template-columns:1fr}.progress thead{display:none}.progress tr{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #bbc4b8}.progress td{display:block;white-space:normal;border:0;padding:5px 8px}.progress td:before{content:attr(data-label);display:block;font-size:11px;color:#627067}.progress td:first-child{grid-column:1/-1}}
 """
