@@ -1,7 +1,0 @@
-A cloud training job survived laptop disconnection, but its local serial controller died with the launching agent turn. Later jobs had no surviving scheduler. `Experiment.cohort` now freezes the existing job order for `manabot deploy cohort start`, which installs an independent launchd/systemd service. Reconnecting clients can inspect and cancel the same durable cohort.
-
-S3 retains job identities, original deadlines, cancellation and inclusive budget reservations. Restart reconciles provider claims and final manifests; failed, paused, missing or uncertain attempts never spawn replacement training. Host binding and flock prevent competing owners. Downloads and reporting stay outside scheduling. Failed learners now refresh terminal progress from VerifyStore after writers stop, fixing counts that lagged during uploads.
-
-Validation: isolated remote/Experiment suite: 140 passed, 2 expected skips; focused Ruff checks passed. A real launchd SIGKILL/restart check completed two fake jobs after a lost create response with no duplicate rental. No paid compute ran and frozen ETU-103/Mini work stayed untouched.
-
-Requires a selected always-on host and renewable controller credentials. Native Linux service acceptance, cross-host takeover, automatic offline-client W&B projection and live cloud cohort recovery remain open. CUDA exports do not supply exact process recovery. ETU-103 restart still requires the numerical fix and a new frozen admission including all previous spend within $30.
