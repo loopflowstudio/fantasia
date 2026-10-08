@@ -58,8 +58,11 @@ Calibration seed 12550 never enters scientific results. Twenty updates per arm
 measure whole execution cost, including recovery export. Freeze a common even
 multiple-of-20 target, at most 400 updates, from the slower calibration with 1.6×
 headroom. Reserve evaluation from measured diagnostic seconds/game with 1.6×
-headroom, at least 2,400 seconds, and 600 seconds for final reporting. Require
-three paired seeds and at least 100 updates; otherwise stop with failed admission.
+headroom, at least 2,400 seconds, and 600 seconds for final reporting. Prefer
+three paired seeds and at least 100 updates. If timing cannot admit that floor,
+admit seeds 12551/12552 as an explicitly labeled two-seed pilot at the same
+minimum target and per-cell counts; otherwise stop with failed admission. This
+timing-only fallback was recorded before calibration or scored training.
 The exact plan is recorded before training. No outcome chooses counts or seeds.
 
 ## Evaluation and reporting

@@ -99,5 +99,5 @@ def test_authored_mirrors_keep_complete_content_manifest() -> None:
         assert engine.content_pack_manifest() == expected
         wrong = mirror.to_rust()
         wrong[0].content_pack = None
-        with pytest.raises(ValueError, match="explicit pack"):
+        with pytest.raises(RuntimeError, match="explicit pack"):
             engine.reset(wrong)

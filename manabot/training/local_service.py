@@ -18,6 +18,7 @@ import time
 import psutil
 from pydantic import Field
 
+from manabot.training.clock import watchdog_seconds
 from manabot.training.execution import atomic_json
 from manabot.training.models import Strict
 from manabot.training.recovery import attempt_lock
@@ -68,6 +69,7 @@ def supervise(path: Path) -> None:
         or allocation.deadline_unix - allocation.started_unix > allocation.seconds
     ):
         raise ValueError("invalid or expired local allocation")
+    continuous_deadline = watchdog_seconds() + remaining
     directory = path.parent
     with attempt_lock(directory / "owner.lock"):
         if (directory / "status.json").exists():
@@ -120,7 +122,10 @@ def supervise(path: Path) -> None:
                 state["child_pid"] = child.pid
                 last_report = time.time()
                 while child.poll() is None:
-                    if time.time() >= allocation.deadline_unix:
+                    if (
+                        time.time() >= allocation.deadline_unix
+                        or watchdog_seconds() >= continuous_deadline
+                    ):
                         raise TimeoutError(
                             "absolute local allocation deadline exhausted"
                         )

@@ -12,6 +12,8 @@ from pathlib import Path
 import socket
 import time
 
+from nbclient import NotebookClient
+import nbformat
 import torch
 
 from manabot.arena.models import file_sha256
@@ -23,11 +25,7 @@ from manabot.training.experiment_execution import (
     Hardware,
     HardwareInventory,
 )
-from manabot.training.experiment_report import (
-    RetainedRun,
-    load_evidence,
-    write_dashboard,
-)
+from manabot.training.experiment_report import RetainedRun
 from manabot.training.experiment_runner import run_experiment
 from manabot.training.experiments import Baseline, Case, Experiment, Pipeline
 from manabot.training.models import TrainingCoordinates, TrainingRegime, TrainSelfPlay
@@ -102,8 +100,10 @@ def calibrate(out: Path) -> None:
     with VerifyStore(out / "calibration.sqlite") as store:
         for arm in ARMS:
             start = time.time()
+            calibration_recipe = recipe(arm, 20, 600)
+            calibration_recipe.id = "calibration-" + arm
             run = execute_regime(
-                recipe(arm, 20, 600),
+                calibration_recipe,
                 12550,
                 out / "calibration" / arm,
                 store,
@@ -131,25 +131,36 @@ def freeze(out: Path) -> None:
     diagnostic_result = json.loads(
         (out / "diagnostic/scripted_greedy/monitor.json").read_text()
     )
-    per_game = (
-        diagnostic_result["evaluation_seconds"] / diagnostic_result["expected_games"]
+    random_result = json.loads((out / "diagnostic/random/monitor.json").read_text())
+    if any(r["status"] != "completed" for r in (diagnostic_result, random_result)):
+        raise ValueError("calibration requires both completed diagnostic anchors")
+    per_checkpoint = (
+        diagnostic_result["evaluation_seconds"] + random_result["evaluation_seconds"]
     )
-    # Three checkpoints x six runs. Ten greedy/four random games in each of four cells.
-    evaluation_reserve = max(2400.0, 1.6 * per_game * 3 * 6 * 56)
+    attempt_seconds = max(
+        600.0,
+        max(r["evaluation_seconds"] for r in (diagnostic_result, random_result)) * 2.5,
+    )
+    # Prefer three paired seeds; admit a two-seed pilot only from timing.
     per_update = max(calibration["seconds"].values()) / 20 * 1.6
-    allowance = (remaining - evaluation_reserve) / 6
-    updates = min(400, int((allowance - 120) / per_update) // 20 * 20)
-    if updates < 100:
+    for seed_count in (3, 2):
+        evaluation_reserve = max(2400.0, 1.6 * per_checkpoint * 3 * 2 * seed_count)
+        allowance = (remaining - evaluation_reserve) / (2 * seed_count)
+        updates = min(400, int((allowance - 120) / per_update) // 20 * 20)
+        if updates >= 100:
+            break
+    else:
         raise RuntimeError(
-            "three paired seeds at 100 updates cannot fit remaining allocation"
+            "two paired seeds at 100 updates cannot fit remaining allocation"
         )
     allowance = min(allowance, updates * per_update + 120)
     plan = {
-        "seeds": SEEDS,
+        "seeds": SEEDS[:seed_count],
+        "scope": "three-seed-screen" if seed_count == 3 else "two-seed-pilot",
         "updates": updates,
         "run_allowance_seconds": allowance,
         "evaluation_reserve_seconds": evaluation_reserve,
-        "attempt_seconds": max(600.0, per_game * 40 * 2.5),
+        "attempt_seconds": attempt_seconds,
         "wall_seconds": remaining,
         "created_unix": time.time(),
         "calibration_sha256": file_sha256(out / "calibration.json"),
@@ -186,7 +197,7 @@ def declaration(out: Path) -> Experiment:
             wall_seconds=plan["wall_seconds"],
             process_seconds=plan["wall_seconds"],
             checkpoint_seconds=86400,
-            order=((0, 1), (1, 0), (0, 1)),
+            order=((0, 1), (1, 0), (0, 1))[: len(plan["seeds"])],
             monitoring=MonitoringBudget(
                 seconds=plan["evaluation_reserve_seconds"],
                 attempt_seconds=plan["attempt_seconds"],
@@ -199,14 +210,27 @@ def declaration(out: Path) -> Experiment:
 
 
 def report(out: Path) -> None:
-    write_comparison_notebook(out, out / "comparison.ipynb")
-    write_dashboard(
-        load_evidence(out),
-        out / "comparison.html",
-        question="Does mirror-inclusive self-play improve Lessons learning and cross-deck strength?",
-        notes="ETU-125 exploratory screen. Four actual deck cells; fixed greedy and random anchors stay separate. Initialization is the frozen/no-update control on the same paired deals. Pending seeds and cells are unavailable, never zero. The Mini diagnostic is supplemental, not part of the randomized training contrast.",
-        notebook=out / "comparison.ipynb",
-    )
+    path = out / "comparison.ipynb"
+    fresh = not path.exists()
+    write_comparison_notebook(out, path)
+    notebook = nbformat.read(path, as_version=4)
+    if fresh:
+        source = notebook.cells[1].source
+        source = source.replace(
+            "QUESTION = 'How do the declared variants progress at shared training milestones?'",
+            "QUESTION = 'Does mirror-inclusive self-play improve Lessons learning and cross-deck strength?'",
+        )
+        source += "\nfrom experiments.runners.mirror_analysis import analyze\nNOTES = analyze(DATA_ROOT) + ' ETU-125 exploratory screen. Initialization is the frozen/no-update control. The Mini diagnostic and calibration are separate from randomized training. Per-cell gains and paired-seed effects are retained in contrasts.json.'"
+        notebook.cells[1].source = source
+        nbformat.write(notebook, path)
+    # Execute the editable generator in memory: refresh HTML without overwriting
+    # notebook edits or manufacturing new measurements.
+    NotebookClient(
+        notebook,
+        timeout=180,
+        kernel_name="python3",
+        resources={"metadata": {"path": str(out)}},
+    ).execute()
 
 
 def main() -> None:

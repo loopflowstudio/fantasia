@@ -231,6 +231,24 @@ def _summarize(result: MonitorResult) -> None:
         if coordinate not in expected or coordinate in seen:
             raise ValueError("unexpected or duplicate monitoring deal/leg")
         seen.add(coordinate)
+        if result.protocol.include_mirrors:
+            expected_decks = (
+                ["ur_lessons", "gw_allies"]
+                if row.leg < 2
+                else ["gw_allies", "ur_lessons"]
+                if row.leg < 4
+                else ["ur_lessons", "ur_lessons"]
+                if row.leg < 6
+                else ["gw_allies", "gw_allies"]
+            )
+            extra = row.model_extra or {}
+            if (
+                extra.get("seat_decks") != expected_decks
+                or extra.get("player_a_seat") != row.leg % 2
+            ):
+                raise ValueError(
+                    "mirror row differs from its actual authored deck/seat leg"
+                )
         if (
             row.arena_key != result.key
             or row.player_a != result.candidate.player_id

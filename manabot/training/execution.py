@@ -1124,6 +1124,12 @@ def _execute_regime(
                             iteration=iteration + 1,
                             bootstrap_agent=behavior_agent,
                         )
+                        if stage.matchup_curriculum != "fixed":
+                            diagnostic["matchup_curriculum"] = stage.matchup_curriculum
+                            diagnostic["cumulative_games_by_stream"] = {
+                                str(k): v
+                                for k, v in trainer.collector.stats.games_by_stream.items()
+                            }
                         diagnostic["behavior"] = stage.behavior
                         diagnostic["behavior_iteration"] = iteration
                         if stage.learning.gradient != "ataraxos_move":
