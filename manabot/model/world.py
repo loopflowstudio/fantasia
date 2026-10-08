@@ -35,9 +35,18 @@ def _setups(player_configs) -> list[dict]:
     )
 
 
-def validate_agent_setup(agent: Any, player_configs) -> None:
+def validate_agent_setup(
+    agent: Any, player_configs, *, allow_deck_repetition: bool = False
+) -> None:
     """Check an admitted policy against the actual match at execution time."""
     binding = getattr(agent, "world_binding", None)
+    if binding is not None and allow_deck_repetition:
+        actual = _setups(player_configs)
+        if len(actual) != 2 or any(setup not in binding["setups"] for setup in actual):
+            raise ValueError(
+                "execution deck is outside checkpoint's exact setup roster"
+            )
+        return
     if binding is not None and binding["setups"] != _setups(player_configs):
         raise ValueError("checkpoint setup differs from the execution match")
 

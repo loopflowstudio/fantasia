@@ -86,6 +86,26 @@ fn select_authored_runtime<'a>(
     player_configs: &[PlayerConfig],
     catalog: &'a [AuthoredRuntime],
 ) -> Result<Option<&'a AuthoredRuntime>, IrError> {
+    if let Some(key) = player_configs.iter().find_map(|p| p.content_pack.as_ref()) {
+        let runtime = catalog
+            .iter()
+            .find(|r| &r.pack_key == key)
+            .ok_or_else(|| IrError::Malformed(format!("unknown explicit content pack {key}")))?;
+        if player_configs.len() != 2
+            || player_configs.iter().any(|p| {
+                p.content_pack.as_ref() != Some(key)
+                    || !runtime
+                        .setups
+                        .iter()
+                        .any(|s| s.decklist == p.decklist && s.sideboard == p.sideboard)
+            })
+        {
+            return Err(IrError::Malformed(
+                "explicit pack requires two admitted authored setups".into(),
+            ));
+        }
+        return Ok(Some(runtime));
+    }
     let matches = catalog
         .iter()
         .filter(|runtime| runtime.matches(player_configs))

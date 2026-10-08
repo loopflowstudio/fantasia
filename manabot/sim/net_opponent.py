@@ -53,6 +53,7 @@ from manabot.sim.rollout import (
     RandomBatchController,
     _allocate_buffers,
 )
+from manabot.training.matchups import Curriculum, stream_matches
 import managym
 
 OPPONENT_MODES = ("random", "frozen", "self")
@@ -175,6 +176,7 @@ class SeatRoutedCollector:
         opponent_agent: Agent | None = None,
         device: str = "cpu",
         recovery_max_microsteps: int | None = None,
+        matchup_curriculum: Curriculum = "fixed",
     ) -> None:
         if opponent_mode not in OPPONENT_MODES:
             raise ValueError(
@@ -203,7 +205,13 @@ class SeatRoutedCollector:
         )
         self._buffers = _allocate_buffers(observation_space, num_envs)
         self._env.set_buffers(self._buffers)
-        self._env.reset_all_into_buffers(match.to_rust())
+        self.stream_matches = stream_matches(match, num_envs, matchup_curriculum)
+        if matchup_curriculum == "fixed":
+            self._env.reset_all_into_buffers(match.to_rust())
+        else:
+            self._env.reset_each_into_buffers(
+                [m.to_rust() for m in self.stream_matches]
+            )
 
         #: Learner seat per stream: stream s seats the learner at s % 2, so
         #: half the streams have the learner on the play — seat-balanced.

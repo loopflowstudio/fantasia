@@ -1000,6 +1000,7 @@ def _execute_regime(
                         else "self",
                         opponent_agent=opponent_agent,
                         recovery_max_microsteps=regime.recovery_max_microsteps,
+                        matchup_curriculum=stage.matchup_curriculum,
                         device=stage.execution.device,
                     )
                     experiment = Experiment(

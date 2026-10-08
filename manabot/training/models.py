@@ -197,10 +197,19 @@ class TrainSelfPlay(Stage):
     )
     streams: int = Field(default=4, ge=2)
     transitions: int = Field(default=256, ge=1)
+    matchup_curriculum: Literal["fixed", "cross-balanced", "mirrors-balanced"] = Field(
+        default="fixed", exclude_if=lambda value: value == "fixed"
+    )
     learning: Learning | AtaraxosMoveLearning = Learning()
 
     @model_validator(mode="after")
     def valid_behavior(self) -> "TrainSelfPlay":
+        if self.matchup_curriculum != "fixed":
+            width = 12 if self.matchup_curriculum == "mirrors-balanced" else 4
+            if self.streams % width or self.behavior != "current-self":
+                raise ValueError(
+                    "balanced matchups require current-self and complete stream strata"
+                )
         if self.active_seconds is not None:
             if self.active_seconds >= self.execution.wall_seconds:
                 raise ValueError("active endpoint requires additional watchdog reserve")
