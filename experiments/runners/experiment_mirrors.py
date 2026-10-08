@@ -54,6 +54,29 @@ def recipe(arm: str, updates: int, allowance: float) -> TrainingRegime:
     return TrainingRegime.model_validate(value.model_dump())
 
 
+def long_recipe(arm: str, allowance: float) -> TrainingRegime:
+    """Fresh 10k trajectory with global iteration schedules and fixed milestones."""
+    value = recipe(arm, 10000, allowance)
+    first = value.stages[0]
+    assert isinstance(first, TrainSelfPlay)
+    stages: list[TrainSelfPlay] = []
+    for name, updates in (
+        ("update-2500", 2500),
+        ("midpoint", 2500),
+        ("endpoint", 5000),
+    ):
+        stage = first.model_copy(deep=True)
+        stage.id = name
+        stage.initial = stages[-1].id if stages else None
+        stage.updates = updates
+        stage.execution.wall_seconds = (allowance - 600) * updates / 10000
+        stages.append(stage)
+    value.stages = list(stages)
+    value.recovery_max_microsteps = 20_000_000
+    value.recovery_every_updates = 250
+    return TrainingRegime.model_validate(value.model_dump())
+
+
 def diagnostic(out: Path) -> None:
     """Score the unchanged Mini 2,500-update bytes on new, labeled matrix deals."""
     torch.set_num_threads(1)
@@ -183,19 +206,30 @@ def freeze(out: Path) -> None:
 def declaration(out: Path) -> Experiment:
     plan = json.loads((out / "plan.json").read_text())
     regimes = [
-        recipe(arm, plan["updates"], plan["run_allowance_seconds"]) for arm in ARMS
+        long_recipe(arm, plan["run_allowance_seconds"])
+        if plan.get("scope") == "two-seed-10k"
+        else recipe(arm, plan["updates"], plan["run_allowance_seconds"])
+        for arm in ARMS
     ]
     greedy = MonitorProtocol(
         include_mirrors=True,
         deal_seeds=tuple(
-            range(1_912_510_000, 1_912_510_000 + plan["greedy_games_per_cell"] // 2)
+            range(
+                plan.get("greedy_deal_start", 1_912_510_000),
+                plan.get("greedy_deal_start", 1_912_510_000)
+                + plan["greedy_games_per_cell"] // 2,
+            )
         ),
     )
     random = MonitorProtocol(
         include_mirrors=True,
         opponent="random",
         deal_seeds=tuple(
-            range(1_912_520_000, 1_912_520_000 + plan["random_games_per_cell"] // 2)
+            range(
+                plan.get("random_deal_start", 1_912_520_000),
+                plan.get("random_deal_start", 1_912_520_000)
+                + plan["random_games_per_cell"] // 2,
+            )
         ),
     )
     return Experiment(
@@ -206,8 +240,9 @@ def declaration(out: Path) -> Experiment:
             seeds=tuple(plan["seeds"]),
             hardware="etu125-laptop",
             wall_seconds=plan["wall_seconds"],
-            process_seconds=plan["wall_seconds"],
-            checkpoint_seconds=86400,
+            process_seconds=plan.get("process_seconds", plan["wall_seconds"]),
+            checkpoint_seconds=plan.get("checkpoint_seconds", 86400),
+            disk_reserve_bytes=plan.get("disk_reserve_bytes", 4 * 1024**3),
             order=((0, 1), (1, 0), (0, 1))[: len(plan["seeds"])],
             monitoring=MonitoringBudget(
                 seconds=plan["evaluation_reserve_seconds"],

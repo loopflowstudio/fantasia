@@ -518,7 +518,10 @@ def _execute_regime(
             if not restoring_completed:
                 record.actual_threads = torch.get_num_threads()
 
+            last_memory_sample = float("-inf")
+
             def check() -> None:
+                nonlocal last_memory_sample
                 charged = (
                     run.prior_watchdog_seconds + watchdog_seconds() - watchdog_start
                 )
@@ -541,6 +544,13 @@ def _execute_regime(
                     )
                 ):
                     raise TimeoutError("training resource wall deadline exceeded")
+                # Deadline checks run at every native step. On macOS, recursive
+                # child discovery scans the whole host process table; sampling
+                # RSS once per second avoids making supervision the workload.
+                now = time.perf_counter()
+                if now - last_memory_sample < 1.0:
+                    return
+                last_memory_sample = now
                 process = psutil.Process()
                 memory = process.memory_info().rss + sum(
                     p.memory_info().rss
@@ -1158,7 +1168,8 @@ def _execute_regime(
                         < stage.active_seconds
                     ):
                         monitor_checkpoint(trainer.agent)
-                    checkpoint(f"update-{iteration:08d}")
+                    if iteration == 1 or iteration % regime.recovery_every_updates == 0:
+                        checkpoint(f"update-{iteration:08d}")
                     persist(progress=True)
                 if stage.active_seconds is not None and (
                     record.collection_seconds + record.learning_seconds

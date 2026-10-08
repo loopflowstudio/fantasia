@@ -14,6 +14,7 @@ import signal
 import subprocess
 import sys
 import time
+from typing import Literal
 
 import psutil
 from pydantic import Field
@@ -39,6 +40,9 @@ class LocalCommand(Strict):
     cwd: str
     argv: list[str]
     report_argv: list[str] = []
+    # Standard avoids macOS Background QoS throttling; thread bounds still apply.
+    process_type: Literal["Background", "Standard"] = "Background"
+    report_every_seconds: float = Field(default=180, ge=60)
 
 
 def _stop(process: subprocess.Popen[bytes]) -> None:
@@ -140,7 +144,7 @@ def supervise(path: Path) -> None:
                     if (
                         command.report_argv
                         and reporter is None
-                        and time.time() - last_report >= 180
+                        and time.time() - last_report >= command.report_every_seconds
                     ):
                         reporter = subprocess.Popen(
                             command.report_argv,
@@ -197,7 +201,7 @@ def install(path: Path, label: str) -> None:
         ],
         "WorkingDirectory": command.cwd,
         "RunAtLoad": True,
-        "ProcessType": "Background",
+        "ProcessType": command.process_type,
         "Nice": 10,
         "StandardOutPath": str(path.parent / "service.log"),
         "StandardErrorPath": str(path.parent / "service.log"),

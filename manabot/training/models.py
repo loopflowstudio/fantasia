@@ -343,7 +343,11 @@ class TrainingRegime(Strict):
     schedule_clock: Literal["run_elapsed_budget", "iteration_fraction"] = (
         "run_elapsed_budget"
     )
-    recovery_max_microsteps: int | None = Field(default=None, ge=1, le=1_000_000)
+    recovery_max_microsteps: int | None = Field(default=None, ge=1, le=20_000_000)
+    # Cadence affects replayable progress only, never optimizer/collector updates.
+    recovery_every_updates: int = Field(
+        default=1, ge=1, le=1000, exclude_if=lambda value: value == 1
+    )
     selection: Literal["last-complete-raw"] = "last-complete-raw"
 
     @model_validator(mode="after")

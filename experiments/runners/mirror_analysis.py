@@ -1,6 +1,7 @@
 """Paired contrasts from the mirror screen's retained arena rows, without reruns."""
 
 from collections import defaultdict
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import time
@@ -131,6 +132,62 @@ def analyze(root: Path) -> str:
                 )
             if result.coordinates.stage_id == "endpoint" and run.status == "completed":
                 endpoints[(run.seed, run.regime.id, opponent)] = cells(result)
+    common_time: list[dict[str, object]] = []
+    for seed in seeds:
+        for opponent in ("scripted_greedy", "random"):
+            histories = [
+                sorted(
+                    (
+                        result
+                        for (run_id, anchor), results in grouped.items()
+                        if anchor == opponent
+                        and (run := runs.get(run_id)) is not None
+                        and run.seed == seed
+                        and run.regime.id == f"etu125-mirrors-{arm}"
+                        for result in results
+                    ),
+                    key=lambda result: result.coordinates.training_seconds,
+                )
+                for arm in ("cross-balanced", "mirrors-balanced")
+            ]
+            if not all(histories):
+                continue
+            limit = min(
+                history[-1].coordinates.training_seconds for history in histories
+            )
+            cutoffs = sorted(
+                {
+                    result.coordinates.training_seconds
+                    for history in histories
+                    for result in history
+                    if 0 < result.coordinates.training_seconds <= limit
+                }
+            )
+            for cutoff in cutoffs:
+                available = [
+                    [r for r in history if r.coordinates.training_seconds <= cutoff]
+                    for history in histories
+                ]
+                if not all(available):
+                    continue
+                left, right = (history[-1] for history in available)
+                left_cells, right_cells = cells(left), cells(right)
+                for cell in left_cells.keys() & right_cells.keys():
+                    common_time.append(
+                        {
+                            "seed": seed,
+                            "opponent": opponent,
+                            "cell": cell,
+                            "recorded_training_cutoff_seconds": cutoff,
+                            "cross_updates": left.coordinates.updates,
+                            "mirror_updates": right.coordinates.updates,
+                            "cross_checkpoint_seconds": left.coordinates.training_seconds,
+                            "mirror_checkpoint_seconds": right.coordinates.training_seconds,
+                            "mirror_minus_cross": paired(
+                                right_cells[cell], left_cells[cell]
+                            ),
+                        }
+                    )
     effects: list[dict[str, object]] = []
     for opponent in ("scripted_greedy", "random"):
         for cell in (
@@ -175,10 +232,11 @@ def analyze(root: Path) -> str:
             else "Mirror inclusion does not meet the exploratory retention criterion; retain the negative or unresolved result."
         )
     if len(seeds) < 3 and isinstance(primary, dict):
-        conclusion = "Two-seed pilot complete: effects are descriptive; no retention decision is supported."
+        conclusion = "Two-seed comparison complete: effects are descriptive; no retention decision is supported."
     allocation = json.loads((root / "allocation.json").read_text())
     elapsed = min(time.time(), allocation["deadline_unix"]) - allocation["started_unix"]
-    allocation_note = f"Allocation elapsed {elapsed / 3600:.2f} / {allocation['seconds'] / 3600:.0f} hours, including preparation and interruptions; hard stop 2026-10-08 14:00 UTC."
+    deadline = datetime.fromtimestamp(allocation["deadline_unix"], timezone.utc)
+    allocation_note = f"Allocation elapsed {elapsed / 3600:.2f} / {allocation['seconds'] / 3600:.0f} hours, including preparation and interruptions; hard stop {deadline:%Y-%m-%d %H:%M UTC}."
     atomic_json(
         root / "contrasts.json",
         {
@@ -188,6 +246,8 @@ def analyze(root: Path) -> str:
             "gains": gains,
             "diagnostic": diagnostic,
             "endpoint_effects": effects,
+            "common_time_effects": common_time,
+            "common_time_rule": "Last observed checkpoint at/before shared recorded-training cutoff; no interpolation. Sparse milestones do not resolve within-interval efficiency. Evaluator and allocation costs remain separate.",
             "conclusion": conclusion,
             "uncertainty": "Cell/gain/diagnostic intervals resample whole paired deals; endpoint effect intervals resample the admitted paired training seeds. These are distinct uncertainty levels.",
         },

@@ -2,25 +2,29 @@
 
 ## Mirror curriculum and frozen-opponent diagnostic (ETU-125, 2026-10-08)
 
-Jack Heart authorized a CPU-only laptop screen, 06:00–14:00 UTC on 2026-10-08,
-including interruptions, with supervision/recovery. Preserve ETU-118/Mini and
-ETU-126 evaluation; no ETU-128 training, rental or AWS credential work.
+Jack Heart authorized a fresh laptop comparison: two curricula × seeds 12551/12552,
+10,000 updates each. This supersedes the completed 120-update pilot endpoint,
+not its frozen evidence. The pilot's eight-hour cutoff does not bind the new run;
+measure throughput and freeze sufficient calendar/worker budgets before launch.
+Preserve Mini ETU-118, GPU ETU-126 and staged ETU-128; no paid compute.
 
 The unchanged Mini seed-11851 update-2500 checkpoint scored against greedy:
 Allies versus Allies/Lessons 4/10 and 8/10; Lessons versus Allies/Lessons 1/10 and
-7/10. Switching the opponent to Lessons gives paired-deal gains +40 [10,70] and
-+60 [50,80] points (five deals, both seats). This supports opponent sensitivity,
-not a unique cause or general strength; matchup effects remain confounded.
-All 56 greedy/random diagnostic games completed with exact replay. A final report
-call failed; retained results regenerated without replaying games.
+7/10. Opponent switches gave +40 [10,70] and +60 [50,80] points over five paired
+deals. All 56 greedy/random games completed with exact replay. This supports
+opponent sensitivity, not unique cause or general strength; matchup remains
+confounded. A failed report call regenerated from saved games. The pilot's Lessons
+cross-deck mirror-minus-cross differences were 0/−16.67 points: descriptive,
+not evidence of improvement. Keep these results separate from the 10k cohort.
 
-Authored mirrors previously fell back to legacy content. Explicit pack binding
-now preserves the full compiled manifest and semantic IDs. Fixed stream strata
-balance learner transitions and deck/play-order marginals, not completed games.
-Mirror evaluation is an explicit roster-repetition capability; default checkpoint
-admission stays exact. The [protocol](../../experiments/mirror-curriculum.md)
-owns calibration, admission, counts, receipts and pending comparison.
-No curriculum conclusion is available.
+Explicit pack binding preserves the full compiled manifest/semantic IDs in mirrors.
+Stream strata balance learner transitions and deck/play-order marginals, not
+completed games. Mirror evaluation is explicit roster repetition; default admission
+stays exact. Profiling found process-tree resource scans dominating short CPU runs;
+RSS sampling can reduce overhead without changing learning. Long native-replay
+recovery needs an explicit journal ceiling, sparse snapshots and storage reserves.
+The [protocol](../../experiments/mirror-curriculum.md) owns admission, paired
+100-game greedy cells, receipts, allocations and pending curriculum comparison.
 
 
 ## Numerical policy contract (ETU-127, 2026-10-07)
@@ -708,33 +712,20 @@ competence, or the chapter's human-challenger outcome.
 
 ## Direct self-play treatment contracts (2026-10-04)
 
-Self-play transitions use end-of-transition terminal flags. Stock PPO's
-start-of-episode GAE convention cannot consume them unchanged. Collection must
-pause fast streams at their exact next learner observation, preserve every
-observation tensor and recompute actions under the next collection policy;
-banking surplus transitions across updates breaks that contract. Collection
-KL uses the saved full legal behavior distribution, not reconstructed updated
-weights. Independent policy/value estimators, filtering, reference choices and
-schedules are runnable treatments, not exact Ataraxos reproduction.
+Self-play uses end-of-transition terminal flags and pauses streams at exact next
+learner observations. Never bank transitions across updated policies or feed these
+flags unchanged to episode-start GAE. Collection KL uses saved full legal behavior
+distributions. Independent estimators/filtering/references are declared treatments,
+not exact Ataraxos reproduction.
 
-EMA is an evaluation artifact with a collect/update-iteration clock, including
-empty-filter skips. Its helper averages parameters and copies buffers without
-changing learner/behavior weights. Local ETU-90 proofs exercise an empty-filter
-continuation: learner weights stay fixed while the evaluation average advances.
-Collector match metadata passes through the Trainer env shim for ordinary
-checkpoint admission.
-
-ETU-90 independently validated the integrated semantic ABI on 2026-10-04 after
-syncing published parent `9a1b90df`. The retained normal and empty-filter runs
-in `.runs/etu90-semantic-final` each completed 14 games and 1,024 learner
-transitions across two stages. All eight raw/EMA artifacts passed the ordinary
-loader with semantic inputs and authored sideboards. Empty-filter continuation
-retained learner weights with zero optimizer exposures while EMA advanced;
-collection, learning and export costs remained recorded. The affected Python
-suite passed 65 tests (one notebook dependency skip), and six native debug
-vector tests passed after rebuilding the extension. These are current-ABI
-workflow and treatment-correctness proofs, not strength or human-play results.
-ETU-91 retains ownership of final replayed study/notebook evidence.
+EMA evaluates averaged parameters plus copied buffers on a collect/update clock,
+including empty-filter skips; ordinary behavior and gradients retain raw weights.
+The empty-filter proof kept the learner fixed while EMA advanced. ETU-90's bounded
+semantic runs exported eight admitted artifacts; 65 Python checks and six native
+debug checks passed. These are workflow/correctness proofs, not strength or chapter
+acceptance. ETU-91 owns replayed study evidence. Full original receipts and
+implementation detail remain at `0c164870`; [training regimes](../../docs/training-regimes.md)
+owns the contract.
 
 ## Compound decision implementation (2026-10-04)
 
