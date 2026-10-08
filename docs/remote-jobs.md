@@ -113,7 +113,7 @@ MANABOT_TEST_LAUNCHD=1 uv run --extra dev --extra artifacts pytest \
 This proof rents nothing and establishes no live cloud cohort, systemd host
 acceptance, CUDA recovery or scientific result. ETU-103's failed frozen attempt
 remains unchanged; its recovery additionally requires the numerical-health fix,
-a versioned attempt, live-price admission and all earlier charges within $30.
+a versioned attempt, live-price admission and all earlier charges within $100.
 
 ## Reports while clients are offline
 
