@@ -1067,15 +1067,13 @@ owns the support semantics and remaining limits.
 
 ## Architecture-recipe implementation boundary (ETU-104, 2026-10-05)
 
-Jack Heart approved implementation and landing. AgentSpec remains the sole model
-configuration authority; recipe helpers construct ordinary TrainingRegime values,
-without a registry, checkpoint migration or weight port. Complete configuration
-snapshots retain the eight value-study digests and protocol; duplicate labels fail.
-ETU-106 was integrated before verification. The retained `486739d5` workflow
-completed eight regimes, 32 admitted exports and 120 exact-replayed games in
-348.04 seconds; notebook recovery required no retraining and regenerated identical
-reports. These are composition/reload proofs, not strength or chapter acceptance.
-ETU-91 stayed untouched. Merged PR223 history remains at `33bce999`; the
+Jack Heart approved implementation and landing. AgentSpec owns model configuration;
+helpers construct TrainingRegime values without registries, migrations or weight
+ports. Complete snapshots retain eight value-study digests; duplicate labels fail.
+ETU-106 integration preceded the retained `486739d5` composition/reload proof;
+notebook recovery regenerated identical reports without retraining. No strength or
+chapter acceptance followed; ETU-91 stayed untouched. Merged PR223's detailed
+proof/history remains at `33bce999` and `64bdbca6`; the
 [design](../../docs/plans/modular-architecture-recipes.md) owns scope and deferrals.
 
 
