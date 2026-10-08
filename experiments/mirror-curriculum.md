@@ -58,11 +58,14 @@ Calibration seed 12550 never enters scientific results. Twenty updates per arm
 measure whole execution cost, including recovery export. Freeze a common even
 multiple-of-20 target, at most 400 updates, from the slower calibration with 1.6×
 headroom. Reserve evaluation from measured diagnostic seconds/game with 1.6×
-headroom, at least 2,400 seconds, and 600 seconds for final reporting. Prefer
-three paired seeds and at least 100 updates. If timing cannot admit that floor,
-admit seeds 12551/12552 as an explicitly labeled two-seed pilot at the same
-minimum target and per-cell counts; otherwise stop with failed admission. This
-timing-only fallback was recorded before calibration or scored training.
+headroom, at least 2,400 seconds, and 600 seconds for final reporting. Require at least 100 updates. Timing-only admission tries, in order:
+three seeds with 10 greedy/4 random games per cell; two seeds with those counts;
+three seeds with 6 greedy/2 random games per cell; two seeds with reduced counts.
+Two seeds always means seeds 12551/12552. Reduced counts or two seeds are labeled
+pilot. If none fits, stop. The smaller-cell fallback was registered after the
+cross-deck timing calibration (394.925 seconds for 20 updates), before mirror
+calibration completed or either scientific arm ran. Outcomes do not enter admission.
+A two-seed result is descriptive and cannot trigger the retention decision.
 The exact plan is recorded before training. No outcome chooses counts or seeds.
 
 ## Evaluation and reporting
@@ -70,8 +73,8 @@ The exact plan is recorded before training. No outcome chooses counts or seeds.
 All arms use the same eight-leg deal block: both policy seats in each of the
 four policy-deck/opponent-deck cells. Greedy and uniform legal random source
 identities, artifact hashes, actual seat decks and exact replay travel with rows.
-Each initialization, midpoint and endpoint receives 10 games per greedy cell
-and 4 per random cell. Monitoring namespaces 1912510000 and 1912520000 are
+Each initialization, midpoint and endpoint receives the same timing-admitted
+per-cell counts (10 greedy/4 random preferred; 6/2 pilot fallback). Monitoring namespaces 1912510000 and 1912520000 are
 held out from training and shared across arms/seeds/checkpoints. They are repeated
 screen evaluations, not untouched final-confirmatory deals. Initialization bytes
 are the frozen/no-update control: all gains subtract this same policy's paired
@@ -100,5 +103,44 @@ follows automatically from this screen.
 
 ## Execution evidence
 
-Pending calibration and independent launch. Full retained artifacts live in
-`.runs/etu125-overnight`; exact plan and launch receipts will be linked here.
+The supplemental diagnostic completed all 56 games with exact replay. Counts:
+
+| Policy deck | Greedy Allies | Greedy Lessons | Random Allies | Random Lessons |
+| --- | ---: | ---: | ---: | ---: |
+| Allies | 4/10 | 8/10 | 3/4 | 4/4 |
+| Lessons | 1/10 | 7/10 | 3/4 | 3/4 |
+
+Within-deck greedy-opponent switches favor Lessons by +40 [10,70] points for
+the Allies policy and +60 [50,80] for the Lessons policy (95% whole-deal bootstrap,
+five paired deals). This small sample supports the opponent-quality hypothesis;
+deck matchup effects remain confounded, and no unique mechanism or self-targeting
+claim follows. The randomized curriculum effect remains unavailable.
+
+[Hash-bound raw diagnostic rows](data/etu125/diagnostic.json) retain registration,
+source, setup, timing and replay identities. Original traces, producer snapshot and
+checkpoint remain under `.runs/etu125-overnight`. The diagnostic's final report
+call failed on missing arguments after all games completed; the corrected editable
+notebook regenerated HTML from saved results without rerunning any game.
+
+Both timing calibrations completed: cross-only 394.970 seconds and mixed
+391.435 seconds for 20 updates each, seed 12550, source `b6cd4405`.
+The [frozen plan](data/etu125/plan.json) admits a **two-seed pilot**, seeds
+12551/12552, 120 updates (46,080 learner transitions) per arm, midpoint 60,
+and 6 greedy / 2 random games per cell at all three checkpoints. Four runs use
+AB/BA order. Each run has a 3,911.711-second ceiling; evaluation reserves
+7,705.485 seconds. The original absolute deadline overrides every inner allowance.
+The [calibration receipt](data/etu125/calibration.json) and
+[allocation](data/etu125/allocation.json) retain exact values. Post-calibration
+changes add admission checks and timing-based cohort selection/reporting; the
+measured collector, learner, model and recovery work remain unchanged.
+
+Independent scientific launch is prepared under
+`com.manabot.etu125-training-1`; launch receipt, heartbeat and worker log live in
+`.runs/etu125-overnight/training-service/`. TrainingRun and Experiment receipts
+under `.runs/etu125-overnight/science/` bind the final source, world, artifacts
+and actual progress. The create-once notebook and HTML live at
+`.runs/etu125-overnight/comparison.{ipynb,html}`. Launch is only established by
+that service's receipt and observed updates, not this preparation record. Python focused checks passed 41 tests after repairing malformed
+pack admission and rerunning the source-sensitive recovery case against stable
+source; the preceding suite passed 70 other checks. All 60 native library tests
+passed in debug. These checks and the diagnostic are not curriculum evidence.

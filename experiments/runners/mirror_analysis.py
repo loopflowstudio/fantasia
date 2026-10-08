@@ -3,6 +3,7 @@
 from collections import defaultdict
 import json
 from pathlib import Path
+import time
 from typing import TypedDict
 
 import numpy as np
@@ -173,9 +174,16 @@ def analyze(root: Path) -> str:
             if primary["lower"] > 0 and protection["mean"] >= -0.05
             else "Mirror inclusion does not meet the exploratory retention criterion; retain the negative or unresolved result."
         )
+    if len(seeds) < 3 and isinstance(primary, dict):
+        conclusion = "Two-seed pilot complete: effects are descriptive; no retention decision is supported."
+    allocation = json.loads((root / "allocation.json").read_text())
+    elapsed = min(time.time(), allocation["deadline_unix"]) - allocation["started_unix"]
+    allocation_note = f"Allocation elapsed {elapsed / 3600:.2f} / {allocation['seconds'] / 3600:.0f} hours, including preparation and interruptions; hard stop 2026-10-08 14:00 UTC."
     atomic_json(
         root / "contrasts.json",
         {
+            "allocation_elapsed_seconds": elapsed,
+            "allocation": allocation,
             "cells": rows,
             "gains": gains,
             "diagnostic": diagnostic,
@@ -184,4 +192,4 @@ def analyze(root: Path) -> str:
             "uncertainty": "Cell/gain/diagnostic intervals resample whole paired deals; endpoint effect intervals resample the admitted paired training seeds. These are distinct uncertainty levels.",
         },
     )
-    return conclusion
+    return conclusion + " " + allocation_note

@@ -134,16 +134,22 @@ def freeze(out: Path) -> None:
     random_result = json.loads((out / "diagnostic/random/monitor.json").read_text())
     if any(r["status"] != "completed" for r in (diagnostic_result, random_result)):
         raise ValueError("calibration requires both completed diagnostic anchors")
-    per_checkpoint = (
-        diagnostic_result["evaluation_seconds"] + random_result["evaluation_seconds"]
-    )
     attempt_seconds = max(
         600.0,
         max(r["evaluation_seconds"] for r in (diagnostic_result, random_result)) * 2.5,
     )
     # Prefer three paired seeds; admit a two-seed pilot only from timing.
     per_update = max(calibration["seconds"].values()) / 20 * 1.6
-    for seed_count in (3, 2):
+    for seed_count, greedy_count, random_count in (
+        (3, 10, 4),
+        (2, 10, 4),
+        (3, 6, 2),
+        (2, 6, 2),
+    ):
+        per_checkpoint = (
+            diagnostic_result["evaluation_seconds"] * greedy_count / 10
+            + random_result["evaluation_seconds"] * random_count / 4
+        )
         evaluation_reserve = max(2400.0, 1.6 * per_checkpoint * 3 * 2 * seed_count)
         allowance = (remaining - evaluation_reserve) / (2 * seed_count)
         updates = min(400, int((allowance - 120) / per_update) // 20 * 20)
@@ -166,8 +172,8 @@ def freeze(out: Path) -> None:
         "calibration_sha256": file_sha256(out / "calibration.json"),
         "baseline_sha256": file_sha256(BASE),
         "source_sha256": file_sha256(Path(__file__)),
-        "greedy_games_per_cell": 10,
-        "random_games_per_cell": 4,
+        "greedy_games_per_cell": greedy_count,
+        "random_games_per_cell": random_count,
     }
     target = out / "plan.json"
     with target.open("x") as stream:
@@ -180,12 +186,17 @@ def declaration(out: Path) -> Experiment:
         recipe(arm, plan["updates"], plan["run_allowance_seconds"]) for arm in ARMS
     ]
     greedy = MonitorProtocol(
-        include_mirrors=True, deal_seeds=tuple(range(1_912_510_000, 1_912_510_005))
+        include_mirrors=True,
+        deal_seeds=tuple(
+            range(1_912_510_000, 1_912_510_000 + plan["greedy_games_per_cell"] // 2)
+        ),
     )
     random = MonitorProtocol(
         include_mirrors=True,
         opponent="random",
-        deal_seeds=tuple(range(1_912_520_000, 1_912_520_002)),
+        deal_seeds=tuple(
+            range(1_912_520_000, 1_912_520_000 + plan["random_games_per_cell"] // 2)
+        ),
     )
     return Experiment(
         name="etu125-mirrors",

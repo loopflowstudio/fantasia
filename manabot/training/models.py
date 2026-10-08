@@ -518,12 +518,13 @@ class TrainingRegime(Strict):
                     parent.execution.device != stage.execution.device
                     or parent.behavior != stage.behavior
                     or parent.streams != stage.streams
+                    or parent.matchup_curriculum != stage.matchup_curriculum
                     or parent.learning.ema != stage.learning.ema
                     or parent.opponent != stage.opponent
                     or parent.learning.gradient != stage.learning.gradient
                 ):
                     raise ValueError(
-                        "live self-play continuation must preserve streams, gradient, EMA clock and opponent"
+                        "live self-play continuation must preserve streams, curriculum, gradient, EMA clock and opponent"
                     )
             if isinstance(stage, TrainCompound):
                 if initial and parent is not latest_compound:
