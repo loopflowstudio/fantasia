@@ -1,5 +1,27 @@
 # Intelligence memory
 
+## Numerical policy contract (ETU-127, 2026-10-07)
+
+Jack Heart authorized autonomous numerical repairs and ineffective-update
+instrumentation, not another paid cohort. Final ETU-103 analysis still lacks the
+failed batch: underflow is demonstrated, not proven as its historical trigger.
+
+Ordinary self-play retains normalized legal logs beside sampling weights; reverse
+KL no longer reconstructs logs from rounded zeros. PPO's clamped KL approximation
+also changes. No floor or corrupt-batch skip is introduced. Rounded-zero actions
+remain unsampleable; numerical repair does not restore exploration. New runs need
+a new source freeze, not reinterpretation of frozen evidence.
+
+Local health separates forced/filtered zeros, absent/zero gradients and actual
+parameter movement. Detailed effect measurements sample one step every 25
+iterations; rejected updates remain separate from completed counts. Private,
+bounded failure state uses existing rejected-artifact publication. Failed active
+operations are timed directly; accumulated overhead cannot become learning time.
+ETU-126 owns lifecycle/upload. The [contract](../../docs/numerical-health.md)
+owns semantics, overhead and CUDA admission. CPU proofs
+and positive toy learning establish no CUDA validation, MTG strength or historical
+causal attribution. ETU-103/Mini source and artifacts remain untouched.
+
 ## Step targets and machine allocations (ETU-124, 2026-10-07)
 
 Jack Heart approved step-target TrainingRegimes and reusable JobSpecs.
@@ -1044,19 +1066,13 @@ owns the support semantics and remaining limits.
 
 ## Architecture-recipe implementation boundary (ETU-104, 2026-10-05)
 
-Jack Heart approved the incremental recipe design, implementation and landing.
-AgentSpec remains the single model configuration authority; Python recipe helpers
-construct ordinary TrainingRegime values without a registry, checkpoint migration
-or weight port. Component variations snapshot/validate complete configurations,
-reject duplicate labels and preserve the eight resolved value-study digests and
-protocol. ETU-106 was integrated before verification. The retained `486739d5`
-workflow completed eight regimes, 32 admitted exports and 120 exact-replayed games
-in 348.04 seconds; notebook dependency recovery required no retraining and offline
-regeneration was identical. These are composition/reload proofs, not strength or
-chapter acceptance. ETU-91 remained untouched. PR #223's merged status is recorded
-in the later ETU-109 entry. Full implementation/delivery history remains at
-`33bce999`; the [design](../../docs/plans/modular-architecture-recipes.md) owns
-scope and deferred architecture sketches.
+Jack Heart approved incremental recipe implementation and landing. AgentSpec
+remains the model authority; helpers construct ordinary TrainingRegime values
+without a registry or weight port. All eight value-study digests remained fixed.
+The 348.04-second fixture completed 32 admitted exports and 120 replayed games,
+not strength or chapter acceptance; ETU-91 remained untouched. ETU-109 supersedes
+this authoring stage. The [design](../../docs/plans/modular-architecture-recipes.md)
+owns scope; full delivery/recovery detail remains in this memory at `64bdbca6`.
 
 ## Training dashboard software (ETU-101, 2026-10-05)
 
@@ -1093,21 +1109,13 @@ The live W&B service was not exercised. These remain software fixtures.
 
 ## Capacity software receipt boundary (ETU-102, 2026-10-05)
 
-Jack Heart authorized independent software delivery. AgentSpec and with_capacity
-remain configuration owners; derived architecture receipts bind resolved model
-meaning and actual component parameter totals. Absent historical receipts retain
-world/weight checks; present contradictory metadata fails admission. World,
-source/runtime and checkpoint bytes remain separate. No weight port or changed
-forward equation was introduced. Trainable counts are export flags, not exposures.
-
-The retained `90c55627` CPU ladder completed in 212.56 seconds: six admitted raw
-checkpoints and 40 exact-replayed games. Semantic 64/1, 64/2, 128/2 models had
-138,434 / 188,418 / 712,706 parameters. High host load and differing inference
-batches prevent capacity-only timing claims. A retained timeout was fixed within the original cap.
-Full timing definitions and integration evidence remain at `fd7437df` and in the
-[calibration guide](../../docs/training-calibration.md). These are software proofs;
-no scientific allocation, strength, demo or chapter acceptance follows. ETU-91
-remained untouched.
+Jack Heart authorized independent software delivery. AgentSpec/with_capacity own
+configuration; derived receipts validate architecture meaning and parameter totals
+without porting weights. The 212.56-second CPU ladder admitted six raw policies
+and replayed 40 games; contention and unequal batches prevent capacity timing or
+strength claims. ETU-91 stayed untouched. Exact counts, admission limits and
+recovery remain in the [calibration guide](../../docs/training-calibration.md)
+and this memory at `64bdbca6`.
 
 ## Larger ordinary models (ETU-115, 2026-10-06)
 
