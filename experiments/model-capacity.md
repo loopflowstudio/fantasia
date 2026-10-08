@@ -877,3 +877,24 @@ controller received this repair before the training create. No frozen worker
 source was edited. The guardian proof passed and a single L4 training rental
 `f1591g22k1rpcg` was created at $0.59/hour. Bootstrap alone does not establish
 CUDA continuation or advancing learning; that requires the saved runtime counters.
+
+The [saved continuation/restart receipt](data/etu126/queued-admission-20261008.json)
+binds successful CUDA admission (16.15 seconds), initial evaluation completion
+(401.15 evaluator seconds), run `109eaf87193c42a9acb3f03be27d936b`, and advancing
+absolute counters: 26,128, then 26,203 before a controller SIGKILL and 26,207 after
+its independent restart. Launchd restored the same owner in 9.79 seconds, retained
+three attempts, the same single rental and the entire eight-entry queue, and
+rejected a competing owner. The learner was not restarted. The report companion's
+local plan was also refreshed from the audited intent, retaining its old copy.
+This proves running learner-state continuation, not completion of 63k/100k or the
+six-member comparison. Original and resumed sources/artifact identities remain
+separate. The deployed operational controller overlay has retained file digests.
+
+Checks: `uv run --extra dev --extra artifacts pytest tests/remote/ -q` passed
+171 tests with two skips; focused Ruff passed. The original guardian fixture
+failed twice because its freshly created executable dispatch stalled locally;
+sourced shell-function fakes passed with the same five-second deadline. Two
+isolated dependency environments stalled before Python startup (sampled at
+`dyld_start`) and were terminated, not counted as passing. CI owns isolated
+clean-environment coverage. No learner, experiment or provider state was changed
+by these test repairs.

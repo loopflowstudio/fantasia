@@ -55,7 +55,7 @@ extends within the existing 96-hour grant; job deadlines stay fixed. SIGKILL
 restarted the upgraded owner in 7.70s with two attempts and the same job1 pod;
 competing ownership was rejected. An asynchronous launchd handoff failed first,
 then recovered without touching training; the follow-up fixes lock-release waits.
-CUDA continuation admission, 100k completion and final results remain pending;
+CUDA continuation admission passed; 100k completion and final results remain pending;
 original science stays at `45940fe3`.
 
 Mini requires login; local reports refresh without W&B credentials. Large
@@ -84,16 +84,15 @@ new service. GitHub API 403 admission now falls back to existing host gh/public 
 L4 price rose to $0.59/hour. The pending continuation had no create claims/rental.
 An offline, owner-locked/CAS migration archives before/after cohort,
 state and pending Job in private S3 and Mini `price-admission-20261008-v1`.
-Original sources/recipes/targets/cadence/inputs and deadlines remain unchanged;
+Sources/recipes/targets/cadence/inputs/deadlines remain unchanged;
 operational cohort identity changes, not scientific learning contracts.
 Future caps are $7.30/11.95h and $5.80/9.5h; settled plus reserved is $64.1753933326,
 conservative original caps plus future reservations $67.3679183692. Costs are estimates.
 
 Queue delay exposed setup clocks incorrectly tied to queue creation. Guardian and
 bootstrap now start at provider admission, retaining claim cutoffs on reconnect and
-never extending allocation deadlines. Same Mini owner restarted; guardian passed,
-one continuation rental was accepted. Saved advancing CUDA updates remain to be
-verified; acceptance/bootstrap is not learning. The [capacity record](../../experiments/model-capacity.md#queued-price-admission-recovery-2026-10-08)
+never extending allocation deadlines. CUDA admission and initial evaluation passed. Saved updates advanced
+26,203→26,207 across a 9.79-second owner restart, retaining one rental and queue. The [capacity record](../../experiments/model-capacity.md#queued-price-admission-recovery-2026-10-08)
 owns migration identities and evidence; remaining science/100k/settlement stay open.
 
 ## Step targets and machine allocations (ETU-124, 2026-10-07)
@@ -633,8 +632,7 @@ ablation screen. The root session owns the single launch; workers must not
 start competing training. Counts and allocations must be frozen from measured
 integrated CPU calibration before scoring; smoke does not freeze them.
 
-The current chapter remains Trained Challengers; older conditional-teacher
-priorities are research background, not authorization for a new costly cycle.
+Trained Challengers remains the chapter; older priorities authorize no costly cycle.
 Infrastructure workers run only bounded proof; no paid compute is authorized.
 
 `TrainingRegime` and `TrainingRun` now execute the existing search-supervised
