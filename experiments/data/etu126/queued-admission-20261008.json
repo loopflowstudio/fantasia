@@ -121,5 +121,45 @@
     "Updates are absolute; new game/RNG streams. No exact CUDA process recovery.",
     "Initial evaluation admitted continuation; no strength or completed 63k/100k/cohort claim.",
     "Costs are estimated/reserved, not final invoices."
-  ]
+  ],
+  "report_restored": {
+    "observed_at": 1791502630.052892,
+    "intended_jobs": 8,
+    "admitted_jobs": 3,
+    "jobs": [
+      {
+        "job_id": "etu103-recovery-v3-science-0",
+        "phase": "completed",
+        "updates": 26000,
+        "evaluations": 7,
+        "error": null
+      },
+      {
+        "job_id": "etu103-recovery-v3-science-1",
+        "phase": "completed",
+        "updates": 15600,
+        "evaluations": 11,
+        "error": null
+      },
+      {
+        "job_id": "etu126-small-63000",
+        "phase": "running",
+        "updates": 26609,
+        "evaluations": 1,
+        "error": null
+      }
+    ]
+  },
+  "reporting_allocation": {
+    "previous_total_seconds": 3600,
+    "total_seconds": 14400,
+    "retained_charged_seconds": 3481.2078501805663,
+    "interval_seconds": 900,
+    "attempt_seconds": 120,
+    "reporting_reserve_dollars": 4,
+    "unreconciled_reserve_dollars": 3,
+    "controller_aggregate_dollars": 10.7,
+    "cohort_total_limit_dollars": 100,
+    "pricing_assumption": "$1 per controller active wall-hour; existing reporting/unreconciled reserves reallocated, no additional provider rental"
+  }
 }

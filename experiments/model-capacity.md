@@ -898,3 +898,16 @@ isolated dependency environments stalled before Python startup (sampled at
 `dyld_start`) and were terminated, not counted as passing. CI owns isolated
 clean-environment coverage. No learner, experiment or provider state was changed
 by these test repairs.
+
+The companion report also needed explicit identity rebinding and an allowance
+renewal: its old ledger had charged 3,481.21 of 3,600 seconds, leaving less than
+one 120-second attempt. Owner/config and ledger originals are archived under the
+same migration prefix. All 163 attempts and consumed seconds remain; the new
+cumulative limit is 14,400 seconds, with 120-second attempts and a 15-minute poll
+interval. At the declared $1/controller-active-hour accounting assumption, $4
+reporting plus $3 unreconciled-cost reserve replaces $2 plus $5 inside the same
+$10.70 combined reserve. No overall reservation, rental or credential scope grew.
+This operational report clock changes no scientific checkpoint/evaluation cadence.
+The refreshed report shows eight intended jobs, three admitted, completed
+26,000/15,600-update originals (seven/eleven evaluations), and the running
+continuation at 26,609 with one evaluation and no per-job projection errors.

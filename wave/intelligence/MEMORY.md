@@ -58,7 +58,7 @@ then recovered without touching training; the follow-up fixes lock-release waits
 CUDA continuation admission passed; 100k completion and final results remain pending;
 original science stays at `45940fe3`.
 
-Mini requires login; local reports refresh without W&B credentials. Large
+Mini requires login; W&B-free reports refresh every 15 minutes within a $4 cap. Large
 11.95h/$6.20 JobSpecs retain fixed caps. Final evaluation/artifacts/cleanup
 gate successors.
 After settlement revoke the controller identity and remove copied secrets/services;
