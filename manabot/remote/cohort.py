@@ -11,14 +11,12 @@ from typing import Callable, Literal
 
 from pydantic import Field, model_validator
 
-from manabot.infra.artifacts import S3ArtifactStore
 from manabot.training.checkpoint_queue import MonitoringBudget
 
-from .job_client import cancel_job, persist_job, reconcile_job, submit_job
+from .job_client import cancel_job, job_manifest, persist_job, reconcile_job, submit_job
 from .job_store import JobStore, S3JobStore, cancellation_requested
 from .jobs import Cancellation, Job, JobStatus
 from .plan import AccessScope, DeploymentPlan, Frozen, digest
-from .snapshots import JobManifest
 
 DEFAULT_COHORTS = "s3://etudefantasia/manabot/cohorts"
 
@@ -187,9 +185,7 @@ def verify_manifest(status: JobStatus, cache: Path) -> str:
     record = status.record
     if record is None or record.manifest is None or not record.artifacts_complete:
         raise ValueError("final artifact commit missing")
-    manifest = JobManifest.model_validate_json(
-        S3ArtifactStore().fetch(record.manifest, cache).read_bytes()
-    )
+    manifest = job_manifest(status.spec, record, cache)
     if (
         manifest.spec_sha256 != status.spec.identity
         or manifest.generation != record.generation

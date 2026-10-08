@@ -192,7 +192,13 @@ uv run --extra artifacts --extra notebook manabot deploy report \
 `deploy submit` is the explicit equivalent. `deploy --regime ... --spec ... --job-id ...`
 compiles and submits in one invocation. No previous CLI namespace is registered.
 
-The generation number comes from `fetch`. Report generation reuses the existing
+The generation number comes from `fetch`. Repeating a fetch verifies and reuses
+completed files; interruption can be resumed into the same output directory.
+Files are installed atomically and the complete bundle marker is written last.
+Corrupt or conflicting retained bytes fail explicitly and are not overwritten.
+`logs`/`attach` retrieve only the pinned manifest and training log, never model
+weights or the database; a newer remote generation cannot change the observed
+log's identity mid-fetch. Report generation reuses the existing
 create-once editable notebook and offline HTML dashboard. It needs neither the
 rental nor SSH. Existing notebook edits survive refresh.
 
