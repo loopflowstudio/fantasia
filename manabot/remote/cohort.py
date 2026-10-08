@@ -112,6 +112,27 @@ class CohortState(Frozen):
     attempts: tuple[CohortAttempt, ...] = ()
     error: str | None = None
 
+    @property
+    def settled(self) -> bool:
+        """No further autonomous observation can admit or clean up a job."""
+        if self.phase == "completed":
+            return True
+        if self.phase not in {
+            "failed",
+            "paused",
+            "cancelled",
+            "deadline",
+            "missing",
+            "budget-exhausted",
+        }:
+            return False
+        if not self.attempts:
+            return True
+        observed = self.attempts[-1].observation
+        return observed is not None and (
+            observed.cleanup is not None or observed.provider_state == "not-created"
+        )
+
     def charged_dollars(self, cohort: Cohort) -> float:
         """Unsettled jobs retain their entire reservation; settled charges count once."""
         return (

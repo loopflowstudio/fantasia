@@ -94,8 +94,12 @@ with (root/'service.log').open('ab') as log:
 
 
 @pytest.mark.parametrize("platform", ["darwin", "linux"])
+@pytest.mark.parametrize("reports", [False, True])
 def test_start_cli_installs_restartable_service_without_secrets(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, platform: str
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    platform: str,
+    reports: bool,
 ) -> None:
     value = plan()
     file = tmp_path / "input.json"
@@ -126,21 +130,28 @@ def test_start_cli_installs_restartable_service_without_secrets(
             str(file),
             "--state-dir",
             str(tmp_path / "state"),
+            *(["--reports"] if reports else []),
         ],
     )
     assert result.exit_code == 0, result.output
     if platform == "darwin":
-        target = next(tmp_path.glob("Library/LaunchAgents/*.plist"))
+        target = tmp_path / "Library/LaunchAgents/manabot.cohort.process-proof.plist"
         unit = plistlib.loads(target.read_bytes())
         assert unit["KeepAlive"] == {"SuccessfulExit": False}
         assert "supervise" in unit["ProgramArguments"]
         assert commands[-1][:2] == ["launchctl", "bootstrap"]
     else:
-        target = next(tmp_path.glob(".config/systemd/user/*.service"))
+        target = tmp_path / ".config/systemd/user/manabot.cohort.process-proof.service"
         assert "Restart=on-failure" in target.read_text()
         assert commands[-1][:4] == ["systemctl", "--user", "enable", "--now"]
     assert "do-not-copy" not in target.read_text()
     assert "named-profile" in target.read_text()
+    companion = target.with_name(target.stem + ".projection" + target.suffix)
+    assert companion.exists() == reports
+    if reports:
+        content = companion.read_text()
+        assert "project" in content and "--follow" in content
+        assert "do-not-copy" not in content
 
 
 @pytest.mark.skipif(
