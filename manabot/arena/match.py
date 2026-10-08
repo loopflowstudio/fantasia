@@ -300,6 +300,7 @@ def play_cell(
     comparison_seed_aliases: dict[str, str] | None = None,
     game_seconds: float = 120.0,
     max_commands: int = 10_000,
+    include_mirrors: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     if not math.isfinite(game_seconds) or game_seconds <= 0 or max_commands < 1:
         raise ValueError("game limits must be finite and positive")
@@ -330,6 +331,17 @@ def play_cell(
                 or player.matchup_sha256 != canonical_sha256(match.model_dump())
             ):
                 raise ValueError("player is not bound to the selected matchup")
+    if include_mirrors and not selected:
+        raise ValueError("mirror matrix requires the selected authored deck roster")
+    if include_mirrors:
+        for player in (player_a, player_b):
+            if (
+                player.runner_kind == "checkpoint"
+                and player.player_spec.get("allow_deck_repetition") is not True
+            ):
+                raise ValueError(
+                    "mirror matrix requires explicit checkpoint deck repetition admission"
+                )
     games, rows = [], []
     pair = (player_a.player_id, player_b.player_id)
     cell_id = "__".join(sorted(pair))
@@ -347,7 +359,7 @@ def play_cell(
             )
             for p in (player_a, player_b)
         }
-        for leg in range(4 if selected else 2):
+        for leg in range(8 if include_mirrors else 4 if selected else 2):
             seat_players = (
                 [player_a, player_b] if leg % 2 == 0 else [player_b, player_a]
             )
@@ -361,6 +373,11 @@ def play_cell(
             seat_decks = ["ur_lessons", "gw_allies"]
             if leg >= 2:
                 seat_decks.reverse()
+            if leg >= 4:
+                deck = "ur_lessons" if leg < 6 else "gw_allies"
+                setup = MatchHypers.authored("ur-lessons-vs-gw-allies", deck, deck)
+                setup.content_pack = "ur-lessons-vs-gw-allies"
+                seat_decks = [deck, deck]
             setup.hero, setup.villain = [p.player_id for p in seat_players]
             game = {
                 "match_id": f"{key.arena_version}:{cell_id}:{deal_seed}:{leg}",

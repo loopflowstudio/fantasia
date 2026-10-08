@@ -1,5 +1,28 @@
 # Intelligence memory
 
+## Mirror curriculum and frozen-opponent diagnostic (ETU-125, 2026-10-08)
+
+Jack Heart authorized a CPU-only laptop screen, 06:00–14:00 UTC on 2026-10-08,
+including interruptions, with supervision/recovery. Preserve ETU-118/Mini and
+ETU-126 evaluation; no ETU-128 training, rental or AWS credential work.
+
+The unchanged Mini seed-11851 update-2500 checkpoint scored against greedy:
+Allies versus Allies/Lessons 4/10 and 8/10; Lessons versus Allies/Lessons 1/10 and
+7/10. Switching the opponent to Lessons gives paired-deal gains +40 [10,70] and
++60 [50,80] points (five deals, both seats). This supports opponent sensitivity,
+not a unique cause or general strength; matchup effects remain confounded.
+All 56 greedy/random diagnostic games completed with exact replay. A final report
+call failed; retained results regenerated without replaying games.
+
+Authored mirrors previously fell back to legacy content. Explicit pack binding
+now preserves the full compiled manifest and semantic IDs. Fixed stream strata
+balance learner transitions and deck/play-order marginals, not completed games.
+Mirror evaluation is an explicit roster-repetition capability; default checkpoint
+admission stays exact. The [protocol](../../experiments/mirror-curriculum.md)
+owns calibration, admission, counts, receipts and pending comparison.
+No curriculum conclusion is available.
+
+
 ## Numerical policy contract (ETU-127, 2026-10-07)
 
 Jack Heart authorized autonomous numerical repairs and ineffective-update
@@ -367,18 +390,12 @@ compatibility remains a proposal. No scientific allocation follows.
 
 ## Focused value-model software (ETU-106, 2026-10-05)
 
-Jack Heart authorized historical/masked means and one-/two-layer width64 value
-tokens crossed with scalar/WDL heads; history follows and learned recurrence
-remains deferred. The compound decoder owns a separate critic. Attention masks
-padded outputs, but biased projection before fixed-slot averaging creates a
-padding dependency. Tokens share attention and change policy representations,
-so this is not a critic-only intervention. Historical initialization/equations
-remain intact; equal-shaped pooling variants require saved architecture metadata.
-Later empirical dispositions above supersede this software-only stage.
+Jack Heart authorized value-pooling/head software and evaluation-only recovery.
+The later completed screens above own empirical dispositions; no default was
+promoted. Original shared-representation cautions, PR222 proof and frozen
+ETU-91 preservation remain in [the protocol](../../experiments/value-models.md)
+and memory at `7316da5d`.
 
-Jack Heart approved evaluation-only recovery and landing. PR222 proved software,
-not strength/chapter acceptance; ETU-91 stayed untouched. Failure/recovery and
-validation: [protocol](../../experiments/value-models.md) and memory at `7316da5d`.
 
 ## Operating principle
 
@@ -721,29 +738,12 @@ ETU-91 retains ownership of final replayed study/notebook evidence.
 
 ## Compound decision implementation (2026-10-04)
 
-Jack Heart authorized ETU-94's bounded implementation and landing separately
-from frozen ETU-91. `train_compound` connects a recurrent legal-offer decoder,
-complete-game collection, grouped joint versus sequential conditional credit,
-outcome/bootstrap estimators and ordinary world-bound exports. The sequential
-control uses the same decoder, not the historical flat policy. Native lowering
-owns legality and canonical Commands; consumers drain sampled suffixes without
-resampling and reject stale/interrupted continuations.
+Jack Heart authorized bounded ETU-94 software delivery independently of frozen
+ETU-91. The later compound-completion entry and [contract](../../docs/training-regimes.md#compound-decisions)
+own current scope. Initial grouped/sequential credit semantics, 268/224-second
+proofs and their limits remain at `388947de`. Preserve
+`.runs/etu94-compound-smoke-{1,final}`; these were workflow proofs, not strength.
 
-Terminal rewards are per seat; updates never occur inside a game/declaration.
-Comparison recipes use gamma=1; grouping otherwise changes trace/discount clocks.
-Forced decoder factors and optionless native resolution are separately counted.
-Sampled-prefix reverse KL is not exact joint reverse KL. Prefix values are scalar;
-the GRU is not the paper's setup-network reproduction. Object representation in
-set-valued choices remains limited to public labels and pooled viewer state.
-
-Two retained one-thread executions completed four arms in 268/224 seconds with
-8 admitted exports and 56 exact-replayed arena games each; reports regenerated
-unchanged. Fixtures cover gradients, hidden-world invariance, large declarations
-and native parity. These establish software behavior, not scientific strength,
-calibration or challenger acceptance. No scientific allocation transfers from
-ETU-91. Preserve `.runs/etu94-compound-smoke-{1,final}`. Details remain at
-`388947de`; [compound contracts](../../docs/training-regimes.md#compound-decisions)
-and the later software-completion entry own supported grouping boundaries.
 
 ## Ataraxos source correction and move recipe (2026-10-04)
 
