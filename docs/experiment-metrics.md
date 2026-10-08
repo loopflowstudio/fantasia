@@ -20,7 +20,9 @@ not wall-clock time since export. Missing time coordinates are unavailable.
 
 Progress is shown separately for each variant and independent training seed.
 Updates are collect/update iterations, including empty-filter skips; planned
-updates come from declared stages. Learner transitions, native decisions and
+updates come from declared stages. Supervised epoch counters are labeled as
+such; an active-time recipe labels its update safety ceiling separately from
+the active-hour target. Learner transitions, native decisions and
 optimizer exposures count different work. SPS explicitly means cumulative
 learner transitions divided by recorded training seconds at the latest diagnostic.
 It includes measured training overhead, not just model inference. Host contention

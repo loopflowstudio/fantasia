@@ -175,3 +175,29 @@ def test_snapshot_reads_wal_consistently_and_preserves_payloads(tmp_path: Path) 
     with pytest.raises(FileExistsError):
         snapshot_report(source, output)
     con.close()
+
+
+def test_supervised_epoch_plans_are_not_reported_as_zero_updates(
+    tmp_path: Path,
+) -> None:
+    from manabot.training.models import TrainSupervised
+
+    evidence = load_evidence(DEMO)
+    run = evidence.runs[0]
+    stage = TrainSupervised(
+        id=run.stages[0].id,
+        operation="train_supervised",
+        datasets=["teacher"],
+        epochs=7,
+    )
+    run = run.model_copy(
+        update={"regime": run.regime.model_copy(update={"stages": [stage]})}
+    )
+    html = write_dashboard(
+        replace(evidence, runs=(run,), monitors=()),
+        tmp_path / "report.html",
+        question="Epoch plan",
+        docs="missing.md",
+        sections=[],
+    ).read_text()
+    assert "7 (includes epochs)" in html

@@ -310,7 +310,17 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
         metrics = evidence.metrics(run)
         latest = metrics[-1] if metrics else {}
         updates = latest.get("progress/updates")
-        target = sum(getattr(s, "updates", 0) for s in run.regime.stages)
+        target = sum(
+            getattr(s, "updates", getattr(s, "epochs", 0)) for s in run.regime.stages
+        )
+        target_label = f"{target:,}" if target else "unavailable"
+        if any(s.operation == "train_supervised" for s in run.regime.stages):
+            target_label += " (includes epochs)"
+        active_target = sum(
+            getattr(s, "active_seconds", None) or 0 for s in run.regime.stages
+        )
+        if active_target:
+            target_label += f" ceiling; {_hours(active_target)} active target"
         active = latest.get("progress/active_training_seconds")
         # Older receipts have no active clock. Collection + learning counters are
         # only usable when recorded; zeros in a running stage can be placeholders.
@@ -348,9 +358,9 @@ def learning_story(evidence: "ReportEvidence", docs: str) -> str:
         rows.append(
             [
                 evidence.label(run.id),
-                f"{int(updates):,} / {target:,}"
+                f"{int(updates):,} / {target_label}"
                 if isinstance(updates, (int, float))
-                else f"unavailable / {target:,}",
+                else f"unavailable / {target_label}",
                 run.status,
                 _hours(active),
                 _hours(recorded),
