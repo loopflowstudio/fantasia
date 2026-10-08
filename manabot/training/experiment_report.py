@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 from manabot.arena.models import canonical_sha256, file_sha256
 from manabot.training.experiment_execution import ExperimentRun
+from manabot.training.learning_dashboard import DASHBOARD_CSS, learning_story
 from manabot.training.models import TrainingRun
 from manabot.training.monitor_evaluation import MonitorResult
 from manabot.training.monitoring import Scalar, training_dashboard
@@ -727,9 +728,15 @@ def write_dashboard(
         + "</pre></details>"
     )
     html = (
-        '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Experiment report</title><style>body{font:16px/1.5 system-ui;color:#202d35;background:#fafbf9;max-width:1080px;margin:40px auto;padding:0 24px}h1{font-size:30px}h2{font-size:20px;margin:24px 0 10px}a{color:#146a76;text-underline-offset:3px}.muted{color:#55646b;font-size:14px}table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid #ccd6d7}svg{width:100%;height:auto}.figure{overflow-x:auto}.figure svg{min-width:740px}section{margin-top:40px}pre{white-space:pre-wrap;overflow-wrap:anywhere}.table{overflow-x:auto}@media(max-width:600px){body{margin:20px auto;padding:0 14px}table{font-size:12px}td,th{padding:6px}h1{font-size:25px}}@media print{body{max-width:none}section{break-inside:avoid}}</style><main>'
+        '<!doctype html><html lang="en"><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<title>Learning progress · manabot</title><style>"
+        + DASHBOARD_CSS
+        + "</style><main>"
+        + learning_story(evidence, docs)
+        + '<details id="details"><summary>03 / Diagnostics, costs, failures &amp; source evidence</summary>'
         + "".join(parts)
-        + "</main></html>"
+        + "</details></main></html>"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html)

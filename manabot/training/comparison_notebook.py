@@ -25,7 +25,7 @@ def write_comparison_notebook(data_root: Path, output: Path) -> Path:
             "# Experiment report generator\n\nRun All reads saved evidence and writes `comparison.html`, "
             "the default viewing surface. No training, evaluation games or tracker access. "
             "Edit discovery, question and plotting code below; report refresh never overwrites this notebook. "
-            "Figures render only in HTML. Interpretation and research-ledger updates belong to the experiment skill."
+            "Figures render only in HTML. A reproducible descriptive reading is derived from saved rows; research decisions remain separate."
         ),
         nbformat.v4.new_code_cell(
             "from pathlib import Path\n"
@@ -52,7 +52,7 @@ def write_comparison_notebook(data_root: Path, output: Path) -> Path:
         ),
         nbformat.v4.new_markdown_cell(
             "## Choose the report\n\nChange metrics or axes here. `evidence.metrics(run)` exposes every "
-            "saved scalar; `metric_figure` plots any of them. Strength panels require matched milestones. "
+            "saved scalar; `metric_figure` plots any of them. The default dashboard shows each seed separately; cross-run comparisons require matched milestones. "
             "No notebook cell displays or launches a figure inline."
         ),
         nbformat.v4.new_code_cell(
@@ -62,11 +62,6 @@ def write_comparison_notebook(data_root: Path, output: Path) -> Path:
             "    sections += [\n"
             "        ('Scientific checkpoint strength', 'comparisons', study_strength_figures(study)),\n"
             "        ('Scientific checkpoints at recorded cost', 'comparisons', study_strength_figures(study, 'training_seconds')),\n"
-            "    ]\n"
-            "if evidence.monitors or study is None:\n"
-            "    sections += [\n"
-            "        ('Monitoring strength versus time', 'comparisons', strength_figures(evidence, 'training_seconds')),\n"
-            "        ('Monitoring strength versus work', 'comparisons', strength_figures(evidence, 'environment_decisions')),\n"
             "    ]\n"
             "sections += [\n"
             "    ('Policy, value, regularization and sample retention', 'sampling', diagnostic_figures(evidence)),\n"
