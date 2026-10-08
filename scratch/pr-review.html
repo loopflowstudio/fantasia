@@ -1,0 +1,261 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>manabot — Training regime technical review</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f4f2eb;color:#202d33;font:17px/1.65 system-ui,sans-serif}a{color:#146b75;text-underline-offset:3px}a:focus-visible,pre:focus-visible,summary:focus-visible{outline:3px solid #ce7733;outline-offset:4px}header{background:#153c43;color:#faf5e8;padding:60px max(24px,calc((100% - 1060px)/2)) 48px}header p{max-width:760px;color:#d5e3df}h1{font:500 clamp(38px,6vw,68px)/1.1 Georgia,serif;max-width:900px;margin:15px 0 22px}.eyebrow{font:700 12px/1.4 system-ui;letter-spacing:.18em;text-transform:uppercase}.badge{display:inline-block;padding:5px 12px;border:1px solid #75969a;border-radius:4px;font-size:13px}nav{max-width:1108px;margin:auto;padding:24px;display:flex;gap:10px 22px;flex-wrap:wrap;border-bottom:1px solid #c8cfc8}nav a{font-size:14px;font-weight:650}main{max-width:1060px;margin:auto;padding:0 24px 80px}section{padding:40px 0 12px;border-bottom:1px solid #c8cfc8;scroll-margin-top:20px}h2{font:500 30px/1.25 Georgia,serif;margin:0 0 24px}p{max-width:850px;margin:16px 0}figure{margin:24px 0;background:#fffdf8;border:1px solid #d1d7cf;border-radius:6px;overflow:hidden}figcaption{padding:12px 18px;font-size:13px;overflow-wrap:anywhere}small{display:block;color:#607177;margin-top:4px}pre{margin:0;padding:18px;background:#172c34;color:#e3ede9;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto;tab-size:4}p code,li code{font-size:.86em;overflow-wrap:anywhere}aside{border-left:3px solid #bb6e37;padding:14px 20px;background:#ebe5d6;margin:26px 0}aside strong{color:#78421e;font-size:13px;letter-spacing:.04em}aside p{margin:8px 0}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:12px;text-align:left;border-bottom:1px solid #c8cfc8}thead{background:#dfe8df}.table{overflow:auto}.caption{font-size:13px;color:#50636b}li{margin:12px 0}details{padding:16px 0}summary{cursor:pointer;font-weight:600}@media(max-width:600px){body{font-size:16px}header{padding:36px 20px}main{padding:0 18px 48px}nav{padding:18px;gap:10px 18px}h2{font-size:26px}pre{font-size:12px}section{padding-top:32px}aside{padding:12px 15px}}@media print{body{background:white;color:black;font-size:11pt}header{background:white;color:black;padding:0}header p{color:black}nav{display:none}main{max-width:none;padding:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f2f2;color:black;font-size:8pt}figure,aside{break-inside:avoid}section{padding-top:20px}a{color:black}}</style></head><body><header><div class="eyebrow">Etude Fantasia / manabot / technical walkthrough</div><h1>What, exactly, are we teaching the policy?</h1><p>A source-backed route through the training regime, the implemented gradient, and the two frozen studies. Prepared for Jack Heart’s technical feedback.</p><span class="badge">Review updated · 4 October 2026 · recovery attempt running</span></header><nav aria-label="Reading route"><a href="#recipe">Recipe</a><a href="#horizon">Horizon</a><a href="#gradient">Gradient</a><a href="#filter">Filtering</a><a href="#teacher">Teacher</a><a href="#arms">Arms</a><a href="#evaluation">Evaluation</a><a href="#failure">Recovery</a><a href="#quality">Code quality</a><a href="#evidence">Evidence</a></nav><main><details><summary>How to read this review</summary><p>Stops 1–5 explain the training behavior. Stops 6–8 explain what the experiments can establish and how failures behave. Stop 9 covers maintainability. Amber prompts identify choices for feedback, not changes already approved or applied.</p></details><section id="recipe"><h2>01 / A recipe becomes a bounded, recorded run</h2><p>The accepted goal is to make training alternatives easy to compare. A <b>TrainingRegime</b> holds ordered stages; a <b>TrainingRun</b> records one seeded execution. A study combines planned runs, an evaluation protocol, and offline reports. There is no additional general-purpose Experiment database model.</p><p>The delivered API is intentionally bounded: three stage operations, a shared architecture per regime, and CPU/float32 execution. It does not yet express training a belief model after freezing a policy.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/models.py#L96-L111">manabot/training/models.py · TrainingRegime · L96–111</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>Operation = Annotated[
+    CollectSearch | TrainSupervised | TrainSelfPlay, Field(discriminator=&quot;operation&quot;)
+]
+
+
+class TrainingRegime(Strict):
+    schema_version: Literal[1] = 1
+    id: str
+    world: str
+    match: MatchHypers
+    observation: ObservationSpaceHypers = ObservationSpaceHypers()
+    agent: AgentHypers = AgentHypers()
+    stages: list[Operation] = Field(min_length=1)
+    wall_seconds: float = Field(default=900, gt=0)
+    schedule_clock: Literal[&quot;run_elapsed_budget&quot;] = &quot;run_elapsed_budget&quot;
+    selection: Literal[&quot;last-complete-raw&quot;] = &quot;last-complete-raw&quot;</code></pre></figure><p>Concrete caller journey: the scientific CLI validates a frozen plan, then executes each seeded recipe. In the direct-RL arm, <code>policy-0</code> collects fresh experience, updates weights, and exports a checkpoint. <code>policy-1</code> continues the live collector and Adam state. The eventual report selects only checkpoints available at each measured cost.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/experiments/runners/run_training_regimes.py#L627-L644">experiments/runners/run_training_regimes.py · main · L627–644</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>        report(args.report_only.resolve())
+        return
+    if args.out is None:
+        parser.error(&quot;--out is required&quot;)
+    plan = None
+    if args.profile != &quot;smoke&quot;:
+        if args.plan is None:
+            parser.error(
+                &quot;calibration/scientific profiles require --plan with resolved recipes&quot;
+            )
+        plan = ResolvedStudy.model_validate_json(args.plan.read_text())
+        if plan.protocol.purpose != args.profile or plan.protocol.study != args.study:
+            parser.error(&quot;profile/study differs from frozen plan&quot;)
+    elif args.plan is not None:
+        parser.error(&quot;smoke does not accept a scientific plan&quot;)
+    torch.set_num_threads(1)
+    out = args.out.resolve()
+    run_study(args.study, out, plan, resume=args.resume)</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/models.py#L128-L145">manabot/training/models.py · TrainingRegime.references · L128–145</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>            initial = getattr(stage, &quot;initial&quot;, None)
+            parent = previous.get(initial)
+            if initial and type(parent) is not type(stage):
+                raise ValueError(
+                    &quot;continuation requires an earlier stage of the same operation&quot;
+                )
+            if isinstance(stage, TrainSelfPlay) and initial:
+                if parent is not latest_self_play:
+                    raise ValueError(
+                        &quot;live self-play continuation cannot branch from an older collector&quot;
+                    )
+                if (
+                    parent.streams != stage.streams
+                    or parent.learning.ema != stage.learning.ema
+                ):
+                    raise ValueError(
+                        &quot;live self-play continuation must preserve streams and EMA clock&quot;
+                    )</code></pre></figure><aside><strong>For technical feedback</strong><p>Does a regime-wide architecture and same-operation continuation cover the next experiments? RL → frozen belief training → search currently needs new stage operations and artifact contracts.</p></aside></section><section id="horizon"><h2>02 / Long games become learner-decision transitions</h2><p>Self-play uses the current learner on both seats. The collector stores designated learner decisions, with alternating learner seats across streams; opponent steps advance the environment without becoming that stream’s training rows. Four streams collect 256 learner transitions each per update.</p><p>The shared attention model has hidden width 64 and four heads, semantic cards for Allies/Lessons, and no belief input in these plans. Both arms use that architecture; RL trains policy and value, while distillation trains policy only.</p><p>Discounting is γ = 1. Separate GAE passes can give the policy and critic different trace lengths. A terminal flag stops the recurrence; a nonterminal batch boundary bootstraps from the critic. Even λ = 1 here is not necessarily a full-game Monte Carlo return.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/execution.py#L213-L224">manabot/training/execution.py · execute self-play stage · L213–224</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>                    trainer, ema, iteration = self_play_session
+                else:
+                    torch.manual_seed(seeds[&quot;initialization&quot;])
+                    agent = Agent(space, regime.agent)
+                    collector = SeatRoutedCollector(
+                        space,
+                        Match(regime.match),
+                        Reward(RewardHypers()),
+                        num_envs=stage.streams,
+                        seed=seeds[&quot;collection&quot;],
+                        opponent_mode=&quot;self&quot;,
+                    )</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/sim/net_opponent.py#L394-L405">manabot/sim/net_opponent.py · transition_gae · L394–405</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>def transition_gae(rewards, values, ends, next_value, gamma, lam):
+    &quot;&quot;&quot;GAE for transition-end flags; terminal rewards credit their own episode.&quot;&quot;&quot;
+    advantages = torch.zeros_like(rewards)
+    tail = torch.zeros_like(rewards[0])
+    following = next_value.reshape(-1)
+    for step in reversed(range(len(rewards))):
+        live = (~ends[step].bool()).to(rewards.dtype)
+        delta = rewards[step] + gamma * live * following - values[step]
+        tail = delta + gamma * lam * live * tail
+        advantages[step] = tail
+        following = values[step]
+    return advantages, advantages + values</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/objectives.py#L57-L66">manabot/training/objectives.py · update_iteration estimators · L57–66</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>    with torch.no_grad():
+        next_value = trainer.agent.get_value(
+            trainer._obs_to_tensors(batch.next_obs, dev)
+        )
+        advantages, _ = transition_gae(
+            rewards, values, ends, next_value, learning.gamma, learning.policy_lambda
+        )
+        _, returns = transition_gae(
+            rewards, values, ends, next_value, learning.gamma, learning.value_lambda
+        )</code></pre></figure><aside><strong>For technical feedback</strong><p>Policy λ remains 0.95 in every core arm: its trace decays across learner decisions, even with γ = 1. Is the critic-only λ change the horizon intervention intended for this first screen? Compound decisions are not grouped into a new joint action here.</p></aside></section><section id="gradient"><h2>03 / The update is PPO with explicit regularization</h2><p>This implementation uses a <b>PPO-style clipped objective with coordinated regularization</b>. Ataraxos itself uses importance-ratio clipping and a KL penalty to the collection policy; those features are not departures from the paper. Its damping coordinates regularization strength and update size. See the <a href="https://www.nature.com/articles/s41586-026-11036-y#Sec2">Methods: Dynamically damped self-play</a>. The current manabot implementation has four optimizer epochs and four minibatches; full fidelity still requires checking estimators, filtering, normalization, schedules and update organization against the supplement. The policy objective is combined with critic regression and two forward KL penalties: new policy ‖ reference, and new policy ‖ collection policy.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/objectives.py#L116-L141">manabot/training/objectives.py · update_iteration objective · L116–141</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>            logits, value = trainer.agent({k: v[indices] for k, v in obs.items()})
+            dist = torch.distributions.Categorical(logits=logits)
+            ratio = (dist.log_prob(actions[indices]) - old_logs[indices]).exp()
+            adv = advantages[indices]
+            policy = torch.maximum(
+                -adv * ratio, -adv * ratio.clamp(1 - learning.clip, 1 + learning.clip)
+            ).mean()
+            probs = dist.probs
+            logs = probs.clamp_min(1e-12).log()
+            kl_ref = (
+                (probs * (logs - reference[indices].clamp_min(1e-12).log()))
+                .sum(-1)
+                .mean()
+            )
+            kl_behavior = (
+                (probs * (logs - behavior[indices].clamp_min(1e-12).log()))
+                .sum(-1)
+                .mean()
+            )
+            value_loss = 0.5 * (value.flatten() - returns[indices]).square().mean()
+            loss = (
+                policy
+                + learning.value_weight * value_loss
+                + diagnostics[&quot;tau&quot;] * kl_ref
+                + learning.collection_kl * kl_behavior
+            )</code></pre></figure><p>With a uniform legal-offer reference, the reference KL has the same parameter gradient as a negative entropy bonus for a fixed observation. A separate action-type-uniform option exists, but none of the core frozen arms uses it. That distinction matters when one action family has many more legal offers.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/objectives.py#L8-L22">manabot/training/objectives.py · reference_distribution · L8–22</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>def reference_distribution(obs, kind):
+    if kind not in {&quot;uniform&quot;, &quot;action_type_uniform&quot;}:
+        raise ValueError(f&quot;unknown reference: {kind}&quot;)
+    valid = obs[&quot;actions_valid&quot;] &gt; 0
+    if not valid.any(-1).all():
+        raise ValueError(&quot;reference requires at least one legal offer per row&quot;)
+    if kind == &quot;uniform&quot;:
+        return valid / valid.sum(-1, keepdim=True)
+    action_types = obs[&quot;actions&quot;][..., :-1]
+    types = action_types.argmax(-1)
+    # Count each type once per row without an offers-by-offers matrix.
+    counts = action_types.new_zeros(*types.shape[:-1], action_types.shape[-1])
+    counts.scatter_add_(-1, types, valid.to(counts.dtype))
+    weights = valid / counts.gather(-1, types).clamp_min(1)
+    return weights / weights.sum(-1, keepdim=True)</code></pre></figure><aside><strong>For technical feedback</strong><p>The current experiment measures selected controls in our existing PPO-style trainer. Clipping and KL alone neither distinguish it from Ataraxos nor establish full fidelity. Paper-faithful implementation and the equation-by-equation paper/supplement comparison are explicitly tracked in <a href="https://linear.app/loopflow/issue/ETU-92">ETU-92</a>. The full <a href="../experiments/planning/ataraxos-coverage.md">lesson coverage map</a> connects the remaining mechanisms to their Tasks.</p></aside></section><section id="filter"><h2>04 / Filtering changes both the actor and the critic</h2><p>The filter keeps the largest absolute advantages by batch rank, then applies a minimum magnitude. It is not merely a fixed threshold. Advantages are normalized using the retained subset. The same selected indices feed <em>every</em> loss, including value regression and both KL penalties.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/objectives.py#L25-L29">manabot/training/objectives.py · selected_rows · L25–29</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>def selected_rows(advantages, fraction, minimum):
+    magnitude = advantages.abs()
+    count = max(1, math.ceil(len(magnitude) * fraction))
+    indices = torch.argsort(magnitude, descending=True, stable=True)[:count]
+    return indices[magnitude[indices] &gt;= minimum]</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/objectives.py#L103-L115">manabot/training/objectives.py · selection and normalization · L103–115</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>    if not len(selected):
+        diagnostics[&quot;skipped&quot;] = &quot;empty advantage filter&quot;
+        return diagnostics
+    advantages = (advantages - advantages[selected].mean()) / advantages[selected].std(
+        unbiased=False
+    ).clamp_min(1e-8)
+    for group in trainer.optimizer.param_groups:
+        group[&quot;lr&quot;] = diagnostics[&quot;learning_rate&quot;]
+    reference = reference_distribution(obs, learning.reference)
+    size = max(1, math.ceil(len(selected) / learning.minibatches))
+    for _ in range(learning.epochs):
+        order = selected[torch.as_tensor(rng.permutation(len(selected)), device=dev)]
+        for indices in order.split(size):</code></pre></figure><p>The critic consequence is visible in the preceding objective: <code>returns[indices]</code> uses that same filtered minibatch. Low-advantage decisions disappear from critic training as well as policy training. A high minimum can remove every row; the implementation records a skipped update and does not step Adam.</p><aside><strong>For technical feedback</strong><p>Should the value head learn from all rows while only policy updates are filtered? This is a substantive algorithm choice, especially because the critic supplies the next batch’s advantages. The current five-arm study conflates both effects under “advantage filtering.”</p></aside></section><section id="teacher"><h2>05 / Search teaches a fixed policy target</h2><p>The teacher arm collects visit distributions from uniform-prior determinized PUCT, then fits the policy on accumulated shards. Later stages continue weights and Adam state. They do not feed the newly trained policy back into the teacher. This compares fixed-search distillation with direct self-play RL, rather than an AlphaZero-style improving search teacher.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/models.py#L58-L67">manabot/training/models.py · CollectSearch · L58–67</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>class CollectSearch(Stage):
+    operation: Literal[&quot;collect_search&quot;]
+    policy: Literal[&quot;uniform-prior-determinized-puct&quot;] = (
+        &quot;uniform-prior-determinized-puct&quot;
+    )
+    target: Literal[&quot;visit_distribution&quot;] = &quot;visit_distribution&quot;
+    games: int = Field(ge=2)
+    simulations: int = Field(default=64, ge=1)
+    worlds: int = Field(default=4, ge=1)
+    max_steps: int = Field(default=2000, ge=1)</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/execution.py#L284-L310">manabot/training/execution.py · supervised stage · L284–310</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>                dataset = load_shards(
+                    [p for ref in stage.datasets for p in outputs[ref]]
+                )
+                validation = {
+                    int(g) for g in np.unique(dataset[&quot;game_index&quot;]) if int(g) % 10 == 0
+                }
+                previous = outputs.get(stage.initial, {})
+                continuation = {}
+                phase = &quot;learning_seconds&quot;
+                tick = time.perf_counter()
+                agent, _, _, history = train_search_supervised(
+                    dataset,
+                    policy_target_kind=&quot;visit_distribution&quot;,
+                    value_weight=0,
+                    agent_hypers=regime.agent,
+                    observation_hypers=regime.observation,
+                    epochs=stage.epochs,
+                    batch_size=stage.batch_size,
+                    lr=stage.learning_rate,
+                    seed=seeds[&quot;initialization&quot;],
+                    minibatch_seed=seeds[&quot;minibatches&quot;],
+                    validation_games=validation,
+                    initial_agent_state=previous[&quot;agent&quot;].state_dict()
+                    if previous
+                    else None,
+                    optimizer_state=previous.get(&quot;optimizer_state&quot;),
+                    continuation=continuation,</code></pre></figure><p>Each of four collection rounds has 161 games. The direct arm has four stages of 1,789 updates. These counts came from timing calibration; the comparison charges teacher collection as well as optimization. The validation split uses whole game IDs divisible by ten.</p><aside><strong>For technical feedback</strong><p>Is this the right “search-as-teacher” baseline for the immediate decision? It tests the existing fixed teacher’s learning curve, not the ceiling of search combined with a progressively stronger policy/value network.</p></aside></section><section id="arms"><h2>06 / The frozen screen tests three controls and their combination</h2><p>All five arms share γ = 1, policy λ = 0.95, collection KL coefficient 0.1, uniform-offer reference, initial learning rate 0.00025, and initial reference coefficient 0.01. EMA is disabled in all five. This control already includes some proposed improvements, so it cannot isolate their benefit over the historical PPO baseline.</p><div class="table"><table><thead><tr><th>Arm</th><th>Value λ</th><th>Rows kept</th><th>Decay</th><th>Updates / stage</th></tr></thead><tbody><tr><th scope="row">rl-control</th><td>0.95</td><td>100%</td><td>0</td><td>103</td></tr><tr><th scope="row">separate-estimators</th><td>1.0</td><td>100%</td><td>0</td><td>104</td></tr><tr><th scope="row">advantage-filtering</th><td>0.95</td><td>50%</td><td>0</td><td>136</td></tr><tr><th scope="row">coordinated-decay</th><td>0.95</td><td>100%</td><td>9</td><td>102</td></tr><tr><th scope="row">combined</th><td>1.0</td><td>50%</td><td>9</td><td>134</td></tr></tbody></table></div><p class="caption">Extracted from local frozen ablation-scientific-reboot.json at 89a45d63. Three seeds (601, 1601, 2601), three checkpoints per arm; calibrated counts differ to approximate equal time.</p><p>The decay formula below applies to both learning rate and reference coefficient. Progress is elapsed run time divided by the run’s wall-time budget, including collection: 5,400 seconds for each ablation run and 64,800 seconds for each learning-comparison run. Training that finishes before its cap does not reach the final scheduled value.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/models.py#L14-L23">manabot/training/models.py · Schedule.at · L14–23</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>class Schedule(Strict):
+    initial: float = Field(ge=0)
+    decay: float = Field(default=0, ge=0)
+    power: float = Field(default=1, ge=0)
+
+    def at(self, progress: float) -&gt; float:
+        return (
+            self.initial
+            * (1 + self.decay * min(1.0, max(0.0, progress))) ** -self.power
+        )</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/execution.py#L255-L266">manabot/training/execution.py · schedule clock · L255–266</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>                    check()
+                    phase = &quot;learning_seconds&quot;
+                    tick = time.perf_counter()
+                    diagnostic = update_iteration(
+                        trainer,
+                        batch,
+                        stage.learning,
+                        (time.perf_counter() - start) / regime.wall_seconds,
+                        rng,
+                    )
+                    iteration += 1
+                    if ema is not None:</code></pre></figure><p>The learning-speed study is already frozen to the combined RL configuration; it does not automatically pick a winning screen arm. It uses seeds 5601, 6601, 7601 and four checkpoints. The active ablation reserves 30.5 hours: 22.5 for training and 8 for evaluation. Each run has a 5,400-second ceiling and each stage has 1,800 seconds. The learning comparison reserves 132 hours: 108 for training and 24 for evaluation. Together with 3.24 hours charged for prior attempts and calibration, the maximum is 165.74 of the 168-hour campaign budget. The interrupted second attempt is charged conservatively from launch to the next boot; that interval is not measured training time.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/objectives.py#L32-L39">manabot/training/objectives.py · update_ema contract · L32–39</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>@torch.no_grad()
+def update_ema(averaged, learner, rate):
+    &quot;&quot;&quot;Advance once per collection/update iteration, including filtered skips.
+
+    Initialize with a deep copy of the learner. Parameters are averaged;
+    buffers describe the current model and are copied exactly. Collection
+    continues to use the learner, never this evaluation-only model.
+    &quot;&quot;&quot;</code></pre></figure><aside><strong>For technical feedback</strong><p>Should a later study include policy trace length, structured reference, collection KL, or averaged-policy behavior? EMA support currently exports an evaluation-only model; it neither collects experience nor participates in the core raw-only arena. The screen is a selected ablation, not a comprehensive test of Ataraxos.</p></aside></section><section id="evaluation"><h2>07 / The report compares weights that actually existed at each cost</h2><p>Development and untouched endpoint deals are disjoint. Every deal has four seat/deck legs, stochastic policy inference, and random, scripted-greedy, and PUCT-64 anchors. Learning-speed endpoints cover all nine cross-seed pairs; the ablation uses matched seeds.</p><p>The report uses the last measured checkpoint available at a cost. It does not interpolate future strength backward. When observed cost ranges do not overlap, the comparison is unavailable. This occurred in calibration and is an informative boundary, not a tie.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/analysis.py#L38-L51">manabot/training/analysis.py · cost_comparison · L38–51</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>    }
+    start = max(points[0][&quot;training_seconds&quot;] for points in groups.values())
+    end = min(points[-1][&quot;training_seconds&quot;] for points in groups.values())
+    if end &lt; start:
+        return {
+            &quot;status&quot;: &quot;unavailable&quot;,
+            &quot;reason&quot;: &quot;observed cost ranges do not overlap&quot;,
+        }
+    results = []
+    for (regime, seed, variant), points in sorted(groups.items()):
+        # Each checkpoint supplies the score until the next observed checkpoint.
+        available = [p for p in points if p[&quot;training_seconds&quot;] &lt;= end]
+        selected = available[-1]
+        area = 0.0</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/analysis.py#L10-L17">manabot/training/analysis.py · valid_game · L10–17</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>def valid_game(row):
+    &quot;&quot;&quot;Only authoritative terminal outcomes with exact replay can be scored.&quot;&quot;&quot;
+    return (
+        row[&quot;failure&quot;] is None
+        and row[&quot;terminated&quot;]
+        and not row[&quot;truncated&quot;]
+        and row[&quot;replay_passed&quot;]
+    )</code></pre></figure><p>Ablation development has two paired/anchor deal blocks; endpoints have four. Learning-speed development has twelve; endpoints have 96 paired and 24 anchor blocks. Three training seeds provide exploratory descriptive uncertainty, not a robustness or exploitability certificate. Invalid, truncated, or unreplayed games cannot become scored draws.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/experiments/runners/training_protocol.py#L78-L88">experiments/runners/training_protocol.py · EvaluationProtocol.disjoint · L78–88</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>                self.endpoint_seed_pairs
+            ) != len(expected_pairs):
+                raise ValueError(
+                    &quot;endpoint seed schedule must cover the declared cross-seed comparison&quot;
+                )
+        families = (
+            self.paired_deals,
+            self.anchor_deals,
+            self.endpoint_paired_deals,
+            self.endpoint_anchor_deals,
+        )</code></pre></figure><aside><strong>For technical feedback</strong><p>Are these fixed anchors and endpoint matchups sufficient to decide the next training investment? The small ablation endpoints can screen for large effects, but close differences need more evidence. No trained exploiter is part of this protocol.</p></aside></section><section id="failure"><h2>08 / An exported file must load before it is admitted</h2><p>After optimization, export writes a temporary checkpoint, renames it, and loads it through the ordinary checkpoint player. If admission fails, the candidate is recorded as rejected; it is not silently promoted. The run records failures and accumulated cost before raising the error.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/execution.py#L349-L359">manabot/training/execution.py · checkpoint admission · L349–359</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>                    candidate = artifact(target)
+                    try:
+                        load_checkpoint_agent(str(target))
+                    except Exception:
+                        record.rejected_artifacts[name] = candidate
+                        raise
+                    record.artifacts[name] = candidate
+                optimizer_path = out / f&quot;{stage.id}-optimizer.pt&quot;
+                torch.save(
+                    optimizer_state,
+                    optimizer_path.with_suffix(&quot;.tmp&quot;),</code></pre></figure><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/manabot/training/execution.py#L377-L390">manabot/training/execution.py · failure record · L377–390</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>    except BaseException as error:
+        run.status = (
+            &quot;interrupted&quot;
+            if isinstance(error, (KeyboardInterrupt, TimeoutError))
+            else &quot;failed&quot;
+        )
+        run.error = f&quot;{type(error).__name__}: {error}&quot;
+        if run.stages:
+            run.stages[-1].status = run.status
+            run.stages[-1].error = run.error
+            run.stages[-1].seconds = time.perf_counter() - stage_start
+            record = run.stages[-1]
+            record.cpu_seconds = time.process_time() - cpu_start
+            unaccounted = max(</code></pre></figure><p>Live collector continuation works between stages in one process. Saving optimizer weights is not a complete process-resume implementation. Study <code>--resume</code> is for evaluation after every frozen training run has completed.</p><figure><figcaption><a href="https://github.com/loopflowstudio/etude/blob/8c1869208a6abe3340ce5670eea80e01699413a6/experiments/runners/run_training_regimes.py#L215-L225">experiments/runners/run_training_regimes.py · resume boundary · L215–225</a><small>Published source 8c186920 · exact excerpt</small></figcaption><pre tabindex="0"><code>    if resume:
+        if retained[&quot;protocol_sha256&quot;] != canonical_sha256(
+            protocol.model_dump(mode=&quot;json&quot;)
+        ):
+            raise ValueError(&quot;resume protocol differs from frozen cohort&quot;)
+        if {(r.regime.id, r.seed) for r in resumed_runs} != {
+            (r.id, seed) for r in recipes for seed in protocol.training_seeds
+        }:
+            raise ValueError(
+                &quot;resume requires every frozen training run to have completed&quot;
+            )</code></pre></figure><aside><strong>For technical feedback</strong><p>Before larger campaigns, should recovery preserve partial training progress, RNG state, collector state, and schedule time? That is separate from the scientific comparison and should preserve the identity and cost of every attempt.</p></aside></section><section id="quality"><h2>09 / Make the next algorithm review easier</h2><p>Jack requested fully typed Python, more useful comments, and organization that emphasizes key data structures and APIs. The AGENTS.md guidance, landed in <a href="https://github.com/loopflowstudio/etude/pull/204">PR #204</a>, adopts those conventions after comparison with Loopflow’s guide.</p><p>The source above shows specific cleanup opportunities: the central objective and GAE functions lack parameter/return annotations; analysis passes nested untyped records; and optimizer behavior is packed into one routine. Prefer named batch/diagnostic/result types, documented tensor dimensions and ownership, and short sections that separate estimator construction, selection, objective evaluation, and updates. Preserve the numerical behavior with focused checks when implementing that cleanup.</p><p><b>This review changes no training code.</b> The conventions are a landed documentation change. They do not imply the existing code is fully typed, or that a configured type checker has passed.</p><aside><strong>For technical feedback</strong><p>Feedback can refer to a numbered stop: desired behavior, the current choice to change, and the experiment that would distinguish alternatives. Algorithm changes should become a versioned plan or new run rather than silently changing the active cohort.</p></aside></section><section id="evidence"><h2>Evidence and scope</h2><p>Published implementation is reviewed at <code>8c1869208a6abe3340ce5670eea80e01699413a6</code>, aggregating training-related changes since <code>1116937986ee87231d73a559e81815df23283cb6</code>. <a href="https://github.com/loopflowstudio/etude/pull/200">PR #200</a> introduced the training foundation; <a href="https://github.com/loopflowstudio/etude/pull/201">#201</a> added runtime proof; <a href="https://github.com/loopflowstudio/etude/pull/203">#203</a> delivered the study workflow. This is a cross-PR technical walkthrough, not the current branch’s unrelated full diff.</p><p>Frozen scientific plans are local-only at <code>89a45d63</code>. The active campaign executes the retained checkout at 9acb8a47; its training source was compared with merged 8c186920. Excerpts here come directly from the merged revision.</p><ul><li><b>Recorded verification:</b> PR #203 had all ten CI checks pass; the prior gate recorded 14 focused study tests and six debug vector tests. Broader testing had four documented historical arena-fixture failures. These checks were not rerun for this HTML review.</li><li><b>Observed campaign evidence:</b> both calibration studies completed, with 56 and 152 arena games respectively. They establish workflow feasibility, not which regime learns faster.</li><li><b>Status snapshot, 2026-10-04:</b> the third ablation attempt was running when this review was refreshed; its first checkpoint completed and its second was training. The first attempt stopped at its stage deadline (98/104 updates), before scientific arena scoring; its artifacts and 4,761.41 seconds remain retained. Jack Heart reported a computer restart during the second attempt. Its artifacts are retained, and the third attempt uses a fresh output cohort because partial training cannot be resumed. The current ablation retains the second attempt’s 50% larger stage and run limits with unchanged seeds, update counts, and evaluation. The larger run denominator also slows time-based decay. No scientific winner is claimed.</li><li><b>Not established here:</b> exact fidelity to the final Ataraxos supplement, strong-opponent robustness, belief-model training, joint compound-action optimization, or search improvement on a strong trained policy.</li></ul><p>Local plans: <a href="../experiments/plans/20261004/ablation-scientific-reboot.json">ablation</a> · <a href="../experiments/plans/20261004/learning-scientific-reboot.json">learning speed</a>. Local guidance: <a href="../AGENTS.md">AGENTS.md</a>. The page and excerpts work offline; remote source links require a connection.</p></section></main></body></html>
