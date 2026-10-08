@@ -176,6 +176,10 @@ extra, then the supervised process runs the frozen numerical contract tests with
 starting the declared TrainingRegime. A missing GPU or failed test blocks learning;
 there is no CPU fallback or automatic replacement.
 
+Experiment authors can set `PlannedRun(validate_numerics=True)` for the same
+gate through `prepare_job` or a frozen cohort. It stays attached to each admitted
+job across supervisor restarts; omitted/false flags preserve historical identities.
+
 ```bash
 uv run --extra artifacts manabot deploy submit --plan validation-plan.json \
   --job-id capacity-validation-v2 --validate-numerics
