@@ -369,8 +369,7 @@ Later empirical dispositions above supersede this software-only stage.
 
 Jack Heart approved evaluation-only recovery and landing. PR222 proved software,
 not strength/chapter acceptance; ETU-91 stayed untouched. Failure/recovery and
-validation remain in the [protocol](../../experiments/value-models.md) and
-this memory at `7316da5d`.
+validation: [protocol](../../experiments/value-models.md) and memory at `7316da5d`.
 
 ## Operating principle
 
