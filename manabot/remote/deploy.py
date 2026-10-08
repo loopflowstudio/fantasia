@@ -12,6 +12,7 @@ import math
 from pathlib import Path
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 import time
 from typing import TYPE_CHECKING, Callable, Iterator, Literal
 
@@ -117,10 +118,53 @@ def verify_public_source(source: Source) -> None:
             value = json.load(response)
         if value["sha"] != source.commit or value["tree"]["sha"] != source.tree:
             raise ValueError("public source identity differs")
-    except (HTTPError, URLError, TimeoutError, KeyError):
+    except HTTPError as error:
+        if error.code != 403:
+            raise ValueError("committed source is not publicly fetchable") from None
+        _verify_public_source_git(source)
+    except (URLError, TimeoutError, KeyError):
         raise ValueError(
             "committed source is not publicly fetchable; publish before rental"
         ) from None
+
+
+def _verify_public_source_git(source: Source) -> None:
+    """Verify public commit/tree/lock bytes when the unauthenticated API is limited."""
+    with TemporaryDirectory(prefix="manabot-public-source-") as directory:
+
+        def git(*args: str) -> str:
+            result = subprocess.run(
+                ["git", "-C", directory, *args],
+                capture_output=True,
+                text=True,
+                timeout=90,
+                check=False,
+            )
+            if result.returncode:
+                raise ValueError("public Git source verification failed")
+            return result.stdout.strip()
+
+        git("init", "--bare", "--quiet")
+        git(
+            "fetch",
+            "--quiet",
+            "--depth=1",
+            "https://github.com/loopflowstudio/fantasia.git",
+            source.commit,
+        )
+        if (
+            git("rev-parse", "FETCH_HEAD") != source.commit
+            or git("rev-parse", "FETCH_HEAD^{tree}") != source.tree
+        ):
+            raise ValueError("public Git source identity differs")
+        lock = subprocess.run(
+            ["git", "-C", directory, "show", "FETCH_HEAD:uv.lock"],
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        if lock.returncode or digest(lock.stdout) != source.lock_sha256:
+            raise ValueError("public Git lock identity differs")
 
 
 def _save_cleanup(path: Path, receipt: Receipt) -> None:

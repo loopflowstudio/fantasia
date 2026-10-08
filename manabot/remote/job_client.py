@@ -239,7 +239,7 @@ def submit_job(
     environment = credentials(spec)
     probe_key = "guardian-proof.json"
     if store.read(probe_key) is None:
-        deadline = min(spec.created_at + 90, spec.work_deadline)
+        deadline = min(time.time() + 90, spec.work_deadline)
         # No SSH connection or private key is needed to prove self-deletion.
         probe = _provision(
             spec,
@@ -250,6 +250,8 @@ def submit_job(
             startup(int(deadline), "ssh-ed25519 AAAA manabot-probe"),
             {},
         )
+        # A reconnect observes the original probe, never a renewed deadline.
+        deadline = probe.claim.deadline
         while time.time() < deadline + 30:
             if provider.get(probe.pod.id) is None:
                 if time.time() < deadline - 2:
