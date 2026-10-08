@@ -6,6 +6,7 @@ learners. No artifact download, notebook or telemetry runs in the scheduling loo
 """
 
 from pathlib import Path
+import re
 import time
 from typing import Callable, Literal
 
@@ -158,8 +159,6 @@ def prepare_cohort(cohort: Cohort, store: JobStore | None = None) -> None:
 
 
 def load_cohort(cohort_id: str, destination: str = DEFAULT_COHORTS) -> Cohort:
-    import re
-
     if re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}", cohort_id) is None:
         raise ValueError("invalid cohort ID")
     AccessScope(destination=destination)
