@@ -32,6 +32,7 @@ from manabot.training.experiment_runner import run_experiment
 from manabot.training.experiments import Baseline, Case, Experiment, Pipeline
 from manabot.training.models import TrainingCoordinates, TrainingRegime, TrainSelfPlay
 from manabot.training.monitor_evaluation import MonitorProtocol, evaluate_checkpoint
+from manabot.training.recovery import attempt_lock
 from manabot.verify.store import VerifyStore
 
 ROOT = Path(__file__).resolve().parents[2]
