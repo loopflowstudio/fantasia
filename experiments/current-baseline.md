@@ -1,8 +1,215 @@
 # Current learning baseline — ETU-118
 
 Status: the selected 3 × 10,000-update mini cohort launched on 2026-10-07 after
-current-source calibration and admission. Historical failures remain charged.
-No baseline promotion or daily-test validation has occurred.
+current-source calibration and admission, and all three seeds completed training
+on 2026-10-09. Development-deal monitoring shows every seed improving against both
+anchors; the pre-set criteria are **not yet judged** because the held-out final
+comparison was still running when the results below were written. Historical
+failures remain charged. No baseline promotion or daily-test validation has occurred.
+
+## Sustained mini cohort results (2026-10-09)
+
+Read at 2026-10-09 10:09–10:19 UTC from a JSON-only copy of the mini run
+directory (`.runs/etu118-mini-20261007-1/science-20261009` in this checkout;
+`experiment.json` SHA-256 `a6f05d03…cdbf530`, `monitoring/dashboard.json`
+`f5f53796…2882b0c9`). No process was signalled and `experiment.sqlite` was not
+opened. "From files" below means a value copied from those records; "derived"
+means arithmetic over their rows, done for this report and not by the frozen
+analysis.
+
+### State of the run
+
+- From files: `experiment.json` is `completed`, three attempts `completed`, no
+  error, downtime and uncertain seconds both 0. The monitoring queue finished
+  90 of 90 cohorts with none pending.
+- The experiment stayed `running` for about 12 minutes after the last learner
+  finished (09:56:50 UTC) only because the last queued monitoring cohorts were
+  still playing. Nothing was stalled.
+- The coordinator (mini PID 86658) then entered the predeclared final comparison
+  on its own, as `run` is written to do. `final-result.json` is `running` from
+  10:09:03 UTC, bound to plan `46aabdb0…034bb7`. It plays 24 cells of 400 games:
+  greedy first, then random; each of initialization, 800, 1240 and 10000 for each
+  seed. The first cell covered 49 of 100 deals in 9.6 minutes, so roughly 20
+  minutes per cell and about 8 hours in all (inferred from that one cell; near
+  18:00–20:00 UTC). No final cell had completed at the time of writing.
+- The supervisor's HTML refresh stopped at 2026-10-08 19:21 UTC after 298
+  successful refreshes because it had used 3480.5 of its 3600-second reserve; this
+  is the designed bound, not a failure. `finalize` refreshes once more at its end.
+- If the final comparison is interrupted, the retained-evidence resume is, from
+  the frozen bundle on the mini (do not run while PID 86658 lives):
+  `cd /Users/jack/src/etude/.runs/etu118-mini-20261007-1/source && .venv/bin/python -m experiments.runners.sustained_baseline finalize ../plan.json ../science --resume`
+
+### What ran
+
+From files (stage totals in each seed's `training-dashboard.json`, attempt process
+seconds in `experiment.json`); rates derived.
+
+| Seed | Updates | Learner transitions | Optimizer exposures | Self-play games | Active hours | Transitions/s | s/update |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 11851 | 10,000 | 2,560,000 | 624,379 | 34,623 | 12.98 | 54.8 | 4.67 |
+| 11852 | 10,000 | 2,560,000 | 631,502 | 33,720 | 14.16 | 50.2 | 5.10 |
+| 11853 | 10,000 | 2,560,000 | 636,151 | 35,995 | 13.21 | 53.9 | 4.75 |
+
+Seeds ran one after another on one learner thread with the evaluator overlapping.
+The filter retained 24.4–24.8% of collected rows for optimization and no update
+was skipped. Learning rate followed the absolute-iteration schedule from 1e-4
+through update 1240 down to 1.99e-5 at update 10000. Collection and learning each
+took about half of training time. Whole experiment: 146,016.7 elapsed seconds
+(40.56 hours), 171,708.6 additive process seconds including 26,431.3 evaluator
+seconds, against the 514,044.9-second schedule allowance and the 86,400-second
+monitoring reserve. Actual pace was 4.7–5.1 s/update against the admitted
+conservative 8.455.
+
+### Learning curves on monitoring deals
+
+Each cell is one 100-game cohort (25 deals × 4 deck/seat legs), policy sampling
+one stochastic forward pass. Per-seed brackets are the saved 95% deal-block
+bootstrap interval (from files). The mean and the pooled interval (resampling the
+25 shared deals, conditioning on the three trained seeds) are derived. All 9,000
+monitoring games terminated, replayed exactly, and had no truncations or draws.
+
+Win rate (%) against scripted greedy:
+
+| Update | 11851 | 11852 | 11853 | Mean | Pooled deal interval |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 30 [24, 36] | 31 [25, 37] | 30 [24, 36] | 30.3 | [24.0, 36.3] |
+| 400 | 41 [36, 46] | 42 [37, 46] | 28 [21, 35] | 37.0 | [32.3, 41.3] |
+| 620 | 43 [38, 47] | 46 [42, 50] | 39 [33, 44] | 42.7 | [39.0, 46.0] |
+| 800 | 44 [39, 49] | 44 [39, 49] | 40 [34, 45] | 42.7 | [38.3, 46.7] |
+| 1240 | 47 [43, 51] | 46 [41, 50] | 44 [39, 49] | 45.7 | [41.7, 49.3] |
+| 2500 | 46 [42, 49] | 47 [43, 51] | 45 [41, 48] | 46.0 | [42.7, 49.0] |
+| 5000 | 47 [41, 54] | 53 [49, 57] | 45 [39, 51] | 48.3 | [44.3, 52.7] |
+| 7500 | 55 [47, 63] | 52 [46, 59] | 56 [50, 63] | 54.3 | [48.7, 60.0] |
+| 10000 | 53 [47, 59] | 51 [43, 59] | 59 [52, 66] | 54.3 | [49.7, 59.0] |
+
+Win rate (%) against uniform legal random (separate deals 1911185000–1911185024):
+
+| Update | 11851 | 11852 | 11853 | Mean | Pooled deal interval |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 47 [40, 54] | 44 [36, 52] | 46 [39, 53] | 45.7 | [38.3, 52.7] |
+| 400 | 67 [60, 74] | 70 [62, 78] | 64 [56, 72] | 67.0 | [62.3, 72.0] |
+| 620 | 64 [58, 71] | 68 [61, 75] | 71 [64, 78] | 67.7 | [63.7, 71.7] |
+| 800 | 64 [58, 70] | 76 [69, 82] | 76 [70, 82] | 72.0 | [68.0, 76.3] |
+| 1240 | 76 [70, 82] | 71 [64, 78] | 78 [71, 85] | 75.0 | [70.7, 79.3] |
+| 2500 | 81 [76, 86] | 79 [71, 86] | 78 [71, 84] | 79.3 | [74.0, 84.7] |
+| 5000 | 88 [81, 94] | 84 [76, 90] | 77 [68, 86] | 83.0 | [78.0, 88.0] |
+| 7500 | 86 [81, 91] | 85 [78, 92] | 87 [82, 92] | 86.0 | [82.0, 90.0] |
+| 10000 | 89 [83, 94] | 89 [83, 94] | 86 [79, 92] | 88.0 | [83.7, 92.0] |
+
+Greedy was also scored at roughly hourly exports (20, 22 and 21 cohorts per
+seed). Averaging each seed's cohorts from update 5000 on gives 50.6, 51.9 and
+52.7%, against 45.9, 47.3 and 47.0% for updates 1240–4999 (derived). Single
+cohorts in that late range span 45–59%, so one endpoint cohort is uncertain by
+several points.
+
+### The headline number is mostly a deck matchup
+
+Derived from the same rows. Wins per leg are per seed (11851/11852/11853, each
+out of 25) and pooled out of 75. Seat is the recorded `player_a_seat`; which seat
+acts first was not checked.
+
+Against scripted greedy:
+
+| Update | Allies, seat 0 | Allies, seat 1 | Lessons, seat 0 | Lessons, seat 1 | Allies | Lessons |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | 13/13/13 = 39 | 16/17/16 = 49 | 1/1/1 = 3 | 0/0/0 = 0 | 58.7% | 2.0% |
+| 800 | 18/19/17 = 54 | 23/23/20 = 66 | 3/2/3 = 8 | 0/0/0 = 0 | 80.0% | 5.3% |
+| 1240 | 22/21/20 = 63 | 23/23/23 = 69 | 2/2/1 = 5 | 0/0/0 = 0 | 88.0% | 3.3% |
+| 2500 | 22/21/21 = 64 | 23/23/21 = 67 | 1/3/2 = 6 | 0/0/1 = 1 | 87.3% | 4.7% |
+| 5000 | 19/23/18 = 60 | 22/23/21 = 66 | 5/3/4 = 12 | 1/4/2 = 7 | 84.0% | 12.7% |
+| 7500 | 20/21/22 = 63 | 23/23/23 = 69 | 8/7/6 = 21 | 4/1/5 = 10 | 88.0% | 20.7% |
+| 10000 | 21/19/21 = 61 | 24/22/24 = 70 | 7/4/10 = 21 | 1/6/4 = 11 | 87.3% | 21.3% |
+
+Against random:
+
+| Update | Allies, seat 0 | Allies, seat 1 | Lessons, seat 0 | Lessons, seat 1 | Allies | Lessons |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | 15/14/15 = 44 | 15/15/15 = 45 | 9/8/9 = 26 | 8/7/7 = 22 | 59.3% | 32.0% |
+| 800 | 24/24/24 = 72 | 24/24/24 = 72 | 5/14/12 = 31 | 11/14/16 = 41 | 96.0% | 48.0% |
+| 1240 | 25/24/24 = 73 | 25/24/24 = 73 | 15/11/13 = 39 | 11/12/17 = 40 | 97.3% | 52.7% |
+| 5000 | 25/25/23 = 73 | 25/24/21 = 70 | 20/15/17 = 52 | 18/20/16 = 54 | 95.3% | 70.7% |
+| 10000 | 25/24/25 = 74 | 25/24/24 = 73 | 20/21/20 = 61 | 19/20/17 = 56 | 98.0% | 78.0% |
+
+What this shows:
+
+- An untrained policy already wins 59% piloting Allies against either anchor, and
+  2% piloting Lessons against greedy. The 30% starting point is the average of
+  those two, not a measure of weak play in general.
+- Piloting Allies against greedy saturated near 87–88% by update 1240 and did not
+  move afterwards. Every point of greedy gain after 1240 came from piloting
+  Lessons: 5/150 wins at 1240, 19/150 at 5000, 32/150 at 10000.
+- Against random, Lessons piloting rose steadily from 32% to 78%; Allies was
+  already at 96% by update 800.
+- Seat matters less than deck. Against greedy the policy did better in seat 1
+  with Allies (70 vs 61 of 75 at the end) and in seat 0 with Lessons (21 vs 11);
+  pooled over decks the seats are level (54.7% vs 54.0%).
+
+### Seed-to-seed spread
+
+- At the endpoint the three seeds span 51–59% against greedy (SD 4.2 points) and
+  86–89% against random (SD 1.7). Late Lessons-versus-greedy wins differ most:
+  8, 10 and 14 of 50.
+- The three initialization cohorts are not independent measurements. Different
+  initial weights, same deals and action seeds: game outcomes agree in 99–100 of
+  100 games against greedy and 97–99 against random (derived). The initial score
+  is effectively one 100-game sample, so "every seed gained" is weaker evidence
+  than three independent starting points would give.
+- Trained endpoints agree on 83–87 of 100 outcomes between seeds, so the seeds
+  did diverge in play.
+
+### Pre-set criteria
+
+The criteria are defined on the held-out final deals 1911184000–1911184099, 400
+games per cell. Those cells are still being played, so **no criterion has passed
+or failed**. The table applies the same rule (mean of per-seed gains; 95%
+percentile bootstrap over the three seeds, generator seed 118 as in
+`sustained_baseline_result.analyze`) to the monitoring cohorts instead. This is a
+derived preview on inspected development deals with a quarter of the games. It
+is not the predeclared test and cannot substitute for it.
+
+| Criterion (greedy unless noted) | Threshold | Monitoring-deal gains per seed | Mean | Seed interval | Held-out verdict |
+| --- | --- | --- | --- | --- | --- |
+| Gain over initialization | ≥ 10, every seed > 0, lower bound > 0 | +23, +20, +29 | +24.0 | [+20, +29] | pending |
+| Gain over update 800 | ≥ 5, lower bound > 0 | +9, +7, +19 | +11.7 | [+7, +19] | pending |
+| Gain over update 1240 | ≥ 5, lower bound > 0 | +6, +5, +15 | +8.7 | [+5, +15] | pending |
+| Random change from initialization | ≥ −5 | +42, +45, +40 | +42.3 | [+40, +45] | pending |
+
+On monitoring deals all four would be met. The gain over initialization and the
+random criterion have wide margins and are unlikely to reverse. The two
+later-reference criteria are less secure: seed 11852's gains of +7 and +5 points
+are inside the ±5–8 point interval of a single 100-game cohort, and the pooled
+deal-block interval for the gain over 1240 is [+4.0, +13.7]. Whether training
+past update 5000 still helps against greedy is not established here: gains from
+5000 to 10000 are +6, −2 and +14.
+
+### Limits
+
+- Monitoring deals were visible throughout the run and are 25 deals per cohort.
+  The held-out comparison is the evidence the protocol accepts; it is unfinished.
+- Three seeds. With n = 3 the seed bootstrap's lower bound equals the smallest
+  seed's gain, so "positive lower bound" adds nothing beyond "positive in every
+  seed". The interval says little about other seeds.
+- Scripted greedy is a weak and lopsided reference. It loses 59% of games to an
+  untrained policy when it holds Lessons and beats that policy 98% of the time
+  when it holds Allies, so
+  results against it mostly measure which deck the policy holds. These records
+  cannot separate deck imbalance from greedy piloting Lessons badly.
+- Random is weaker still, and the Allies legs against both anchors are near
+  ceiling, leaving only the Lessons legs able to show further progress.
+- All evaluation is sampled play by raw weights against two fixed anchors on one
+  two-deck matchup. Nothing here measures strength against people, against other
+  trained policies or with other decks.
+- The local HTML regeneration used this checkout's report code at `05da79a9`,
+  not the frozen bundle `ba0ae3e9`; the mini's last own refresh is kept beside it
+  as `comparison.mini-20261008T1221.html`.
+
+### Still open
+
+Held-out final comparison and its `conclusion.json`; the three demo-loaded
+executions with both deck assignments; S3 model publication (credentials were
+unavailable at launch and have not been rechecked); W&B projection for seeds
+11852 and 11853 (not checked); daily-test derivation and independent validation. None of these
+is claimed.
 
 ## Current mini execution direction (2026-10-07)
 
