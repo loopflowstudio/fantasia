@@ -33,6 +33,7 @@ player), so only the deal is shared between pairings, not the action noise.
 import argparse
 from collections.abc import Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ProcessPoolExecutor, wait
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import asdict, dataclass, replace
 import json
 import multiprocessing as mp
@@ -561,11 +562,16 @@ def run(
                 elif _free_gib(out) < min_free_gib:
                     stop_reason.append("free disk fell below the floor")
             while pending and not stop_reason and len(active) < workers:
-                active.add(
-                    pool.submit(
-                        _play_unit, pending.pop(), admitted, str(out), GAME_SECONDS
+                try:
+                    active.add(
+                        pool.submit(
+                            _play_unit, pending[-1], admitted, str(out), GAME_SECONDS
+                        )
                     )
-                )
+                    pending.pop()
+                except BrokenProcessPool:
+                    # A worker died abruptly; the pool accepts nothing further.
+                    stop_reason.append("a worker process died")
             if not active:
                 break
             finished, active = wait(active, timeout=5, return_when=FIRST_COMPLETED)
