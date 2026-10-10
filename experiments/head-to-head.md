@@ -350,3 +350,9 @@ silent retries. A new invocation has its own explicit wall cap.
 The operator still owns appending `w32-floor003`, `w128-d4-floor003` and
 `w128-d4-floor010` with their actual seed-10352 receipts and running the Mini
 evaluation. This software Task launches no full cohort.
+
+Validation boundary (2026-10-10): synthetic cross/mirror report goldens match
+`c9c28153`. The two completed 2026-10-09 run bundles are absent from this
+checkout; byte-identical regeneration of their JSON and rendered reports remains
+an acceptance check for gate/operator with those originals. Synthetic parity
+is not a substitute for that check. No real games ran for MTG-134.

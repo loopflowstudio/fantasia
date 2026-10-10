@@ -1208,6 +1208,6 @@ units are reused, failed directories never silently retried. Greedy remains the
 rating zero, distinct from the declared reference.
 
 The [protocol](../../experiments/head-to-head.md#roster-files-mtg-134-2026-10-10)
-owns schema and commands; the grid file pins three seed-10351 final models.
-The operator owns appending the remaining cells and Mini evaluation. Synthetic
-continuation/report checks establish software behavior only, not strength.
+owns schema, grid receipts and remaining Mini work. Synthetic parity is not
+completed-run regeneration; the latter awaits retained bundles at gate/operator.
+No strength claim follows.
