@@ -1201,14 +1201,14 @@ results and limits. GPU work neither replaces nor extends this allocation.
 ## Mirror head-to-head evaluation (MTG-131, 2026-10-09)
 
 Jack Heart requested same-deck comparisons without touching active experiments.
-Mirror-only play keeps the frozen roster, 25 scheduled pairings and greedy zero;
-it repeats exact authored decks/sideboards with an explicit native compiled-pack
-binding. List repetition without that binding can select the wrong world.
+Mirror-only play retains 25 pairings as a scope assumption, plus the roster and
+greedy zero. Exact deck/sideboard repetition requires native compiled-pack
+binding; lists alone can select the wrong world.
 Per-deck scores, play/draw splits, contrasts and ratings resample whole deals;
 invalid/unfinished units suppress estimates rather than scoring survivors.
 All trained entrants except `etu125-mirrors-10k` learned only cross-deck play.
 
 The [protocol](../../experiments/head-to-head.md#mirror-only-follow-up-mtg-131-2026-10-09)
-owns reserved seeds and commands. A bounded saved-model smoke completed 24 valid,
-exact-replayed games; this is workflow evidence, not strength. The training manager owns the unstarted full Mini run.
-No running experiment or frozen checkpoint was changed.
+owns seeds and commands. The 24-game exact-replayed smoke binds `001e6920`;
+later report parity does not rebind its source or prove strength. The training
+manager owns the unstarted full Mini run. Active experiments/checkpoints stayed fixed.

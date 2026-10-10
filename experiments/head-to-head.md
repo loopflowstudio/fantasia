@@ -1,7 +1,8 @@
 # Head-to-head play between trained policies
 
-Status: queued on the M1 mini on 2026-10-09 to start after the early
-learning-rate screen releases the host. No results yet. This is **exploratory**:
+Original cross-deck freeze (2026-10-09): queued on the M1 mini after the early
+learning-rate screen, before results. The later MTG-131 request reports partial
+cross-deck results; this document does not track that run's live status. This is **exploratory**:
 one checkpoint per model, one training seed behind each, and no result here
 changes a recipe by itself.
 
@@ -206,7 +207,10 @@ head-to-head finishes. No running experiment is changed by this follow-up.
 ### Frozen schedule and interpretation
 
 `--matchups mirrors` keeps the same ten entrants and **25 scheduled pairings**,
-not a new 45-pair round robin. Every pairing receives the same 100 deal seeds,
+not a new 45-pair round robin. This is the implementation assumption for “redo
+the head-to-heads”: all deck/seat combinations within the existing schedule,
+not an independently approved expansion of the model pairings.
+Every pairing receives the same 100 deal seeds,
 **1,913,131,000–1,913,131,099**, reserved for MTG-131 and disjoint from the
 cross-deck and existing study/monitoring cohorts. Each deal has four games:
 
@@ -284,6 +288,10 @@ Original design, rows, traces, replay receipts and reports remain in
 `.runs/mtg131-mirror-smoke`; its `smoke-receipt.json` binds them by SHA-256
 (`8356e32d9e134d7199f7caa67d7a01b3b0cd6016c55588c62ab7b60f7ba59635`).
 The receipt also pins runner/arena source and the rebuilt native extension.
+Those source hashes match `001e6920`, before the shared leg-layout simplification
+in `0e1d0e57`. Offline reconciliation on 2026-10-09 verified all 28 retained file
+hashes and reproduced the saved JSON/text report with the simplified code;
+it did not rerun games or replace the original smoke's source identity.
 Host load was high and changed during the smoke; do not extrapolate this rate
 as uncontended Mini throughput. No large-model mirror timing or full-roster
 result is claimed.
