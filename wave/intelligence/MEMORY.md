@@ -1,5 +1,22 @@
 # Intelligence memory
 
+## Question-first research map (MTG-130, 2026-10-09)
+
+Jack Heart requested a ranked area/question/experiment hierarchy and confidence
+picture. [The map](../../research/manabot/README.md) pins reports to `43c6e479`,
+retains failures and pending branch evidence, and separates software correctness
+from useful learning. Agent drafts await Jack Heart's review; they are not
+allocations or recipe choices. GOAL.md's Trained Challengers chapter supersedes
+README.md's July work queue. Etude's research shape is preserved without another
+runtime or edits to its checkout.
+
+The dated task snapshot reports baseline held-out improvement, capacity
+cancellation, a disk-stopped LR restart and unfinished mirror/early-LR/head-to-head
+work. These supersede older operational snapshots, not verified final analysis;
+local-only results remain pending. History continuation's committed report is
+inconclusive, not absent. Early floor/architecture screens do not identify a
+late-training cause; greedy progress, general strength and human acceptance differ.
+
 ## Numerical policy contract (ETU-127, 2026-10-07)
 
 Jack Heart authorized autonomous numerical repairs and ineffective-update
@@ -443,29 +460,13 @@ I1–I6 ordering at `fd7437df` is superseded by later reprioritizations below.
 
 ## Results-first reprioritization (2026-07-18)
 
-- The convergence push was described as landing every planned instrument:
-  world/query kernel, exact-range tracker/player, conditional search, advice,
-  shards, visit teacher, and arena. That description missed an integration gap:
-  temporal beliefs fed the specialized search player, root beliefs fed search,
-  and positional condition tags fed the neural student. The general neural
-  agent still lacked a semantic belief lifecycle. The architecture itself had
-  not rejected that lifecycle.
-- Measured basis: the shipped belief comparison moves the advice policy by at
-  most 0.125 and never flips the top action (`top_action_changed` 0.0 in every
-  retained condition); INT-7 value heads improved held-out Brier while
-  weakening every complete player; INT-8 killed one-seed learned priors inside
-  PUCT (paired score −0.15 chosen / −0.10 visit vs uniform); the INT-4
-  production harness has never run (frozen Teacher-0 control bytes absent);
-  the arena has anchors and one challenger but no rating run.
-- Decision: the unit of progress is a frozen result on an existing instrument.
-  The R1–R4 results ladder in `docs/plans/results-first-roadmap.md` supersedes
-  the I1–I6 build ordering.
-  At that time the supervised belief head was deferred with wider content and
-  new planners. The belief-forming branch supersedes the head deferral and
-  teacher-first integration order; it preserves the results' evidence gates.
-- Near-term strongest-player hypothesis: belief-weighted, uniform-prior
-  determinized PUCT at a larger declared budget. Learned components re-enter
-  only through arena admission.
+The R1–R4 [results ladder](../../docs/plans/results-first-roadmap.md) replaced
+I1–I6 instrument-building. Later belief-forming work superseded the head deferral
+and teacher-first integration, not evidence gates. The convergence claim missed
+the neural belief-lifecycle gap. INT-7/8 retain negative player results; INT-4
+production lacks frozen controls. Full rationale and measurements remain at
+`43c6e479:wave/intelligence/MEMORY.md`; current questions and their separately
+scoped evidence live in [the research map](../../research/manabot/README.md).
 
 ## Ownership boundaries
 

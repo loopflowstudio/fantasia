@@ -145,6 +145,10 @@ and [the calibration command](../docs/training-calibration.md#capacity-ladder-so
 
 ## Research program
 
+Start with the [current questions and confidence map](../research/manabot/README.md):
+five ranked research questions, the experiment evidence beneath them, pending
+results and explicitly draft findings.
+
 [RESEARCH.md](RESEARCH.md) is the durable map from runnable manabots to a
 bounded superhuman claim. It records the builder's loop, the world-pinned skill
 rating we are establishing, accepted evidence, and the value-learning,

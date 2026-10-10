@@ -1,11 +1,16 @@
 # Intelligence
 
-> Architecture priority updated 2026-07-17 after the interactive search and
-> learning review. The top-down contract is
-> [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md). Predecessor
-> strategy/history remains in [03-search-era-notes.md](03-search-era-notes.md),
-> the earlier beliefs exploration in [02-beliefs-design.md](02-beliefs-design.md),
-> and the cycle log in [01-experiment-loop.md](01-experiment-loop.md).
+> **Current direction:** [GOAL.md](GOAL.md) owns the accepted Trained
+> Challengers chapter (2026-09-24). The [research map](../../research/manabot/README.md)
+> lays out the 2026-10-09 questions, evidence and confidence; its ranking and
+> findings await Jack Heart's review and authorize no experiments.
+>
+> **Historical roadmap below:** the 2026-07-17 conditional-belief priorities
+> preceded that chapter; they are not the current work queue.
+> [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) owns the architecture contract.
+> Earlier strategy remains in [03-search-era-notes.md](03-search-era-notes.md),
+> beliefs exploration in [02-beliefs-design.md](02-beliefs-design.md), and the
+> cycle log in [01-experiment-loop.md](01-experiment-loop.md).
 
 ## Thesis question
 
