@@ -4,7 +4,7 @@
 
 All ordinary source links below are pinned to `43c6e479c25399665b56b43e2bb6906b1ea37113` by [sources.json](sources.json). Report source keys use `fantasia:report:<ID>`; existing Etude report keys are reused. The capacity scientific cohort retains its distinct `fantasia:collection:etu103-recovery-v3-science` key below; its report, pilot and continuations are not synonyms for that collection. Additional software-proof IDs are local catalog identities, not claims that tracker records already exist. A future import must join/register the actual tracker records before publishing findings.
 
-Every attachment names a question and why the experiment bears on it. These reasons are mapper inferences unless they repeat the experiment’s stated contrast. Summary/result wording is agent draft, not reviewer approval. Historical summaries reuse the unchanged ideaspace inventory; source reports remain authoritative. A `protocol` is not a completed experiment; `systems` is not strength. Game counts in historical summaries are not independent training seeds. Earlier-world results never certify the current recipe.
+Every attachment names a question and why the experiment bears on it. These reasons are mapper inferences unless they repeat the experiment’s stated contrast. Summary/result wording is agent draft, not reviewer approval. Historical summaries reuse the unchanged ideaspace inventory; source reports remain authoritative. A `protocol` is not a completed experiment; `systems` is not strength. Game counts in historical summaries are not independent training seeds. Historical entries describe source-bound workloads, not current-runtime certification. Earlier-world results never certify the current recipe. Unless an entry names an evidence unit, consult its source; no method-level uncertainty is inferred.
 
 [Pending evidence](#pending-evidence) retains local-only and task-reported results. [Findings](findings.md) gives the principal scoped conclusions.
 
@@ -18,7 +18,6 @@ Ten entrants including scripted greedy; 25 pairings × 100 shared four-leg deals
 **Question attachments:**
 
 - `greedy-validity@1` — Prospectively compares greedy-score contrasts with direct trained-policy matches on shared deals.
-
 - `larger-models@1` — Compares admitted small and large artifacts, but one lineage/seed and unequal endpoints cannot estimate a capacity method effect.
 
 ## early-learning-rate
@@ -42,7 +41,6 @@ Keep separate: (a) original three-capacity WDL proposal never executed; (b) Mini
 **Question attachments:**
 
 - `larger-models@1` — Contains distinct proposed, Mini and GPU capacity work; endpoints and actual exposure differ.
-
 - `model-fit@1` — Tests or prepares architectural alternatives; cost, information and sample exposure must remain separate.
 
 - `machine-fit@1` — Measures source/host-bound workload costs or resource limits; contention and failed attempts constrain hardware conclusions.
@@ -57,7 +55,6 @@ Three paired seeds, 1,240 updates each; 2,400 monitoring plus 1,200 held-out fin
 **Question attachments:**
 
 - `continued-learning@1` — Separates runnable learning-rule contrasts from a demonstrated improvement mechanism.
-
 - `filter-scope@1` — Direct actor-only versus actor-and-critic intervention, with equal updates and unequal cost.
 
 ## pooling-filter-followup
@@ -70,7 +67,6 @@ Four arms × three paired seeds, 600 updates rather than the timing-infeasible 8
 **Question attachments:**
 
 - `pooling-floor-interaction@1` — The explicit factorial measures floor removal separately under both pooling choices.
-
 - `late-selection@1` — Records selected-sample counts or empty updates; early-run evidence motivates but cannot settle late-training starvation.
 
 - `model-fit@1` — Tests or prepares architectural alternatives; cost, information and sample exposure must remain separate.
@@ -85,7 +81,6 @@ Nine runs, three paired seeds, 800 updates and 1,800 exact-replayed screening ga
 **Question attachments:**
 
 - `late-selection@1` — Records selected-sample counts or empty updates; early-run evidence motivates but cannot settle late-training starvation.
-
 - `aggregation-at-small-capacity@1` — Contrasts critic aggregation while retaining shared policy representations, so a critic-only explanation is not identified.
 
 - `model-fit@1` — Tests or prepares architectural alternatives; cost, information and sample exposure must remain separate.
@@ -100,7 +95,6 @@ Later history-off/on continuation: three seeds, 250/500 updates (64k/128k transi
 **Question attachments:**
 
 - `recent-history-input@1` — Supplies the completed cohort absent from the initial failed-calibration report.
-
 - `schedule-exploration@1` — Bounds what recorded entropy can say about policy support.
 
 - `late-selection@1` — Observed filtering losses do not identify a beneficial intervention.
@@ -110,18 +104,17 @@ Later history-off/on continuation: three seeds, 250/500 updates (64k/128k transi
 **failed calibration, repaired; later cohort separate** · `fantasia:report:history-input`  
 [Source](../../experiments/history-input.md) · locator: Failed calibration and reload repair; Explicit pre-admission continuation.
 
-The first attempt failed after 91.156 seconds: history-off reached 40 updates, then Adam bytes were passed to the policy loader; history-on and scientific admission did not run. Repair re-admitted bytes without overwriting failure. Do not mistake this report for the last history result: history-results below documents the later completed three-seed continuation.
+The first attempt failed after 91.156 seconds: history-off reached 40 updates, then Adam bytes were passed to the policy loader; history-on and scientific admission did not run. Repair re-admitted bytes without overwriting failure. Do not mistake this report for the last history result: [history-results](#history-results) documents the later completed three-seed continuation.
 
 **Question attachments:**
 
 - `late-selection@1` — Records selected-sample counts or empty updates; early-run evidence motivates but cannot settle late-training starvation.
-
 - `recent-history-input@1` — Retains the failed initial history calibration; the separate history-results entry supplies later scientific evidence.
 
 ## training-regimes
 
 **systems** · `fantasia:report:training-regimes`  
-[Source](../../experiments/training-regimes.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/training-regimes.md)
 
 Integrated workflow smoke completed; scientific protocol is not a completed comparative result. Scope: Current recipe infrastructure; source-bound smoke. Evidence unit: One-seed/one-deal smoke; no scientific-cohort conclusion.
 
@@ -132,9 +125,9 @@ Integrated workflow smoke completed; scientific protocol is not a completed comp
 ## ataraxos-mtg-ablations
 
 **protocol** · `fantasia:report:ataraxos-mtg-ablations`  
-[Source](../../experiments/ataraxos-mtg-ablations.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/ataraxos-mtg-ablations.md)
 
-Five-arm ablation design and smoke path; no completed scientific benefit claimed. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Five-arm ablation design and smoke path; no completed scientific benefit claimed.
 
 **Question attachments:**
 
@@ -154,40 +147,37 @@ Selectable discount/trace/reference/KL/filter/EMA contrasts; behavior-EMA smoke 
 ## value-models
 
 **systems** · `fantasia:report:value-models`  
-[Source](../../experiments/value-models.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/value-models.md)
 
-Eight-arm training/export smoke and evaluation-only recovery completed; not architecture strength evidence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Eight-arm training/export smoke and evaluation-only recovery completed; not architecture strength evidence.
 
 **Question attachments:**
 
 - `aggregation-at-small-capacity@1` — Contrasts critic aggregation while retaining shared policy representations, so a critic-only explanation is not identified.
-
 - `model-fit@1` — Tests or prepares architectural alternatives; cost, information and sample exposure must remain separate.
 
 ## ataraxos-transfer
 
 **protocol** · `fantasia:report:ataraxos-transfer`  
-[Source](../../experiments/ataraxos-transfer.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/ataraxos-transfer.md)
 
-Prospective sampler, search, distillation and attack comparisons; no workload results. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Prospective sampler, search, distillation and attack comparisons; no workload results.
 
 **Question attachments:**
 
 - `belief-utility@1` — Tests or prepares the belief-to-strategy path; failures and mechanism proofs cannot substitute for held-out calibration and gameplay benefit.
-
 - `search-as-teacher@1` — Preserves unexecuted search/distillation comparisons and their dependency on a frozen producer.
 
 ## training-regime-followups
 
 **protocol** · `fantasia:report:training-regime-followups`  
-[Source](../../experiments/training-regime-followups.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/training-regime-followups.md)
 
-Historical mechanism proposals with later ownership corrections; no allocation or result. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Historical mechanism proposals with later ownership corrections; no allocation or result.
 
 **Question attachments:**
 
 - `belief-utility@1` — Tests or prepares the belief-to-strategy path; failures and mechanism proofs cannot substitute for held-out calibration and gameplay benefit.
-
 - `search-as-teacher@1` — Preserves unexecuted search/distillation comparisons and their dependency on a frozen producer.
 
 ## etu-87-allies-lessons-balance
@@ -222,7 +212,6 @@ Four sizes including width128/depth2 each took one CPU training update, eight tr
 **Question attachments:**
 
 - `larger-models@1` — Proves sizes can execute, not that intermediate or larger models learn stronger policies.
-
 - `machine-fit@1` — Retains device/memory feasibility without asserting an uncontended ranking.
 
 ## numerical-health
@@ -235,7 +224,6 @@ Normalized legal log probabilities avoid reconstructing KL logs from rounded-zer
 **Question attachments:**
 
 - `schedule-exploration@1` — A repaired numerical failure is distinct from a policy with no useful exploration.
-
 - `execution-reliability@1` — Captures failure health without silently skipping corrupt batches.
 
 ## remote-execution
@@ -248,7 +236,6 @@ ETU-123 client exited at zero updates; pinned worker completed 160 CUDA updates,
 **Question attachments:**
 
 - `execution-reliability@1` — Directly tests whether work and evidence survive losing the submitting client.
-
 - `machine-fit@1` — Lifecycle/upload/setup costs constrain a complete experiment, not just optimizer time.
 
 ## remote-training-proof
@@ -283,7 +270,6 @@ ETU-94 joint versus sequential conditional credit uses the same recurrent decode
 **Question attachments:**
 
 - `continued-learning@1` — Compound credit and collector/estimator repairs are plausible treatments, but no scientific superiority is shown.
-
 - `world-integrity@1` — Legal complete Commands and same-viewer terminal boundaries are prerequisites, not learned tactics.
 
 ## local-search-sampler
@@ -296,7 +282,6 @@ Frozen-policy physical/learned-hand search and distillation run on tiny supporte
 **Question attachments:**
 
 - `belief-utility@1` — Working materialization/search does not establish belief quality or conditional strategic utility.
-
 - `search-as-teacher@1` — Tiny relabel/distill proof cannot supply independent-seed strength or repeated improvement.
 
 ## sampler-quality
@@ -320,7 +305,6 @@ Saved S1–S5 roots admit only exact custom-world/setup bindings; selected-match
 **Question attachments:**
 
 - `lessons-combat@1` — Existing tactical machinery cannot diagnose current Lessons without compatible meaningful roots.
-
 - `greedy-validity@1` — Competency software exists; a selected-world competence result does not.
 
 ## allies-lessons-arena
@@ -344,7 +328,6 @@ Four small teacher/train/demo attempts including two 8-game runs; authored sideb
 **Question attachments:**
 
 - `world-integrity@1` — Shows why sideboards, observations and execution source must accompany checkpoint identity.
-
 - `execution-reliability@1` — Demonstrates bounded training-to-play loading, not sustained training acceptance.
 
 ## trained-challenger
@@ -383,9 +366,9 @@ CPU collect/update/export plus two checkpoints and eight replayed arena games; s
 ## card-conformance-audit
 
 **systems** · `fantasia:report:card-conformance-audit`  
-[Source](../../experiments/card-conformance-audit.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/card-conformance-audit.md)
 
-Card semantics audit repairs rules mismatches; it bounds the meaning of old gameplay evidence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Card semantics audit repairs rules mismatches; it bounds the meaning of old gameplay evidence.
 
 **Question attachments:**
 
@@ -394,9 +377,9 @@ Card semantics audit repairs rules mismatches; it bounds the meaning of old game
 ## exp-00-cost-basis
 
 **systems** · `fantasia:report:exp-00-cost-basis`  
-[Source](../../experiments/exp-00-cost-basis.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-00-cost-basis.md)
 
-Historical parameter/throughput accounting; cloud-equivalent cost is not a current price or actual laptop spend. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Historical parameter/throughput accounting; cloud-equivalent cost is not a current price or actual laptop spend.
 
 **Question attachments:**
 
@@ -405,9 +388,9 @@ Historical parameter/throughput accounting; cloud-equivalent cost is not a curre
 ## exp-00-decision-profile
 
 **historical** · `fantasia:report:exp-00-decision-profile`  
-[Source](../../experiments/exp-00-decision-profile.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-00-decision-profile.md)
 
-Decision and initialization diagnostics; original seat-strength interpretation qualified by exp-06. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Decision and initialization diagnostics; original seat-strength interpretation qualified by exp-06.
 
 **Question attachments:**
 
@@ -416,9 +399,9 @@ Decision and initialization diagnostics; original seat-strength interpretation q
 ## exp-00c-seat-balanced-baselines
 
 **historical** · `fantasia:report:exp-00c-seat-balanced-baselines`  
-[Source](../../experiments/exp-00c-seat-balanced-baselines.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-00c-seat-balanced-baselines.md)
 
-Original seat-balanced measurements remained single-deal; read with exp-06 correction. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Original seat-balanced measurements remained single-deal; read with exp-06 correction.
 
 **Question attachments:**
 
@@ -427,22 +410,21 @@ Original seat-balanced measurements remained single-deal; read with exp-06 corre
 ## exp-01-c1-training
 
 **counterevidence** · `fantasia:report:exp-01-c1-training`  
-[Source](../../experiments/exp-01-c1-training.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-01-c1-training.md)
 
-Shaped recipe failed on the interactive deck; seat-specialization interpretation is confounded by the later discovered deal bug. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Shaped recipe failed on the interactive deck; seat-specialization interpretation is confounded by the later discovered deal bug.
 
 **Question attachments:**
 
 - `trustworthy-evaluation@1` — Retains initialization/deal/seat confounds and corrections instead of treating old judged games as independent evidence.
-
 - `dense-reward@1` — Records shaped and terminal-only behavior; old pass-collapse claims do not survive the later control.
 
 ## exp-02-flat-mc
 
 **finding** · `fantasia:report:exp-02-flat-mc`  
-[Source](../../experiments/exp-02-flat-mc.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-02-flat-mc.md)
 
-Flat search supplied strong historical gameplay without policy training; simulation cost remains real. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Flat search supplied strong historical gameplay without policy training; simulation cost remains real.
 
 **Question attachments:**
 
@@ -451,9 +433,9 @@ Flat search supplied strong historical gameplay without policy training; simulat
 ## exp-03-distillation
 
 **finding** · `fantasia:report:exp-03-distillation`  
-[Source](../../experiments/exp-03-distillation.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-03-distillation.md)
 
-Search-to-policy distillation produced a useful raw policy; shaped PPO, architecture, cost and deal controls narrow the comparison. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: Checkpoint evaluation noise; not replicated method uncertainty.
+Search-to-policy distillation produced a useful raw policy; shaped PPO, architecture, cost and deal controls narrow the comparison. Evidence unit: Checkpoint evaluation noise; not replicated method uncertainty.
 
 **Question attachments:**
 
@@ -462,9 +444,9 @@ Search-to-policy distillation produced a useful raw policy; shaped PPO, architec
 ## exp-04-potential-shaping
 
 **finding** · `fantasia:report:exp-04-potential-shaping`  
-[Source](../../experiments/exp-04-potential-shaping.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-04-potential-shaping.md)
 
-Terminal-only learning refuted pass-collapse; early seat conclusions require exp-06 correction. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: Three training seeds per main arm; original judging conditional on deals.
+Terminal-only learning refuted pass-collapse; early seat conclusions require exp-06 correction. Evidence unit: Three training seeds per main arm; original judging conditional on deals.
 
 **Question attachments:**
 
@@ -473,27 +455,25 @@ Terminal-only learning refuted pass-collapse; early seat conclusions require exp
 ## exp-06-newworld-training
 
 **finding** · `fantasia:report:exp-06-newworld-training`  
-[Source](../../experiments/exp-06-newworld-training.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-06-newworld-training.md)
 
 Fresh-deal re-evaluation confirms trained policies beat random; earlier seat asymmetry was largely a deal artifact. Scope: Historical w2 interactive-deck mirror, corrected judging. Evidence unit: Three trained seeds; 400 game evaluations per checkpoint.
 
 **Question attachments:**
 
 - `trustworthy-evaluation@1` — Retains initialization/deal/seat confounds and corrections instead of treating old judged games as independent evidence.
-
 - `model-fit@1` — Historical observation expansion with three seeds tests representation growth, not modern capacity scaling.
 
 ## exp-07-expert-iteration
 
 **counterevidence** · `fantasia:report:exp-07-expert-iteration`  
-[Source](../../experiments/exp-07-expert-iteration.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-07-expert-iteration.md)
 
-Next student regressed after changed teacher economics; no demonstrated compounding. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: One iteration / retained student comparison.
+Next student regressed after changed teacher economics; no demonstrated compounding. Evidence unit: One iteration / retained student comparison.
 
 **Question attachments:**
 
 - `search-as-teacher@1` — Measures or bounds search-label/value utility and end-to-end teacher cost; software completion is kept separate from student strength.
-
 - `expert-iteration-compounds@1` — Returning a student to search is the relevant intervention; a weaker or unrun teacher provides no compounding result.
 
 - `machine-fit@1` — Batched inference changed label economics, illustrating why inference throughput is not full-loop learning progress.
@@ -501,9 +481,9 @@ Next student regressed after changed teacher economics; no demonstrated compound
 ## exp-08-two-deck-matchup
 
 **finding** · `fantasia:report:exp-08-two-deck-matchup`  
-[Source](../../experiments/exp-08-two-deck-matchup.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-08-two-deck-matchup.md)
 
-Pilot and deck interact in matchup outcomes; a deck table does not isolate policy intelligence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Pilot and deck interact in matchup outcomes; a deck table does not isolate policy intelligence.
 
 **Question attachments:**
 
@@ -512,9 +492,9 @@ Pilot and deck interact in matchup outcomes; a deck table does not isolate polic
 ## exp-08b-ancestral-dose
 
 **finding** · `fantasia:report:exp-08b-ancestral-dose`  
-[Source](../../experiments/exp-08b-ancestral-dose.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-08b-ancestral-dose.md)
 
-Exploratory card-quality intervention changes matchup outcomes; does not measure learning. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Exploratory card-quality intervention changes matchup outcomes; does not measure learning.
 
 **Question attachments:**
 
@@ -523,59 +503,55 @@ Exploratory card-quality intervention changes matchup outcomes; does not measure
 ## exp-09-control-competency
 
 **counterevidence** · `fantasia:report:exp-09-control-competency`  
-[Source](../../experiments/exp-09-control-competency.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-09-control-competency.md)
 
-High aggregate search scores coexist with failures on delayed-control scenarios. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: Five authored scenarios and action-level trials.
+High aggregate search scores coexist with failures on delayed-control scenarios. Evidence unit: Five authored scenarios and action-level trials.
 
 **Question attachments:**
 
 - `lessons-combat@1` — Known-line scenarios expose delayed planning failures hidden by aggregate wins; not current-world blocking diagnosis.
-
 - `greedy-validity@1` — Contrasts aggregate strength, decision competence or arena admission; useful metrics are not interchangeable.
 
 ## exp-10-value-gate
 
 **finding** · `fantasia:report:exp-10-value-gate`  
-[Source](../../experiments/exp-10-value-gate.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-10-value-gate.md)
 
 Search over learned V beats V-greedy after deal correction but loses to cheaper random-rollout search. Scope: Historical w2, one learned value checkpoint with deal-diverse rejudging. Evidence unit: One training seed; deal-level evaluation noise.
 
 **Question attachments:**
 
 - `greedy-validity@1` — Contrasts aggregate strength, decision competence or arena admission; useful metrics are not interchangeable.
-
 - `search-as-teacher@1` — Measures or bounds search-label/value utility and end-to-end teacher cost; software completion is kept separate from student strength.
 
 ## exp-11-curriculum-exploitability
 
 **finding** · `fantasia:report:exp-11-curriculum-exploitability`  
-[Source](../../experiments/exp-11-curriculum-exploitability.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/exp-11-curriculum-exploitability.md)
 
 Self-play is promising and bounded attackers fail against the student; neither is a general robustness certificate. Scope: Historical w2 opponent study. Evidence unit: Two training seeds per arm.
 
 **Question attachments:**
 
 - `training-opponent@1` — Direct random/frozen-student/current-self contrast with two training seeds and a bounded exploiter.
-
 - `greedy-validity@1` — Opponent-specific scores and a failed bounded attacker do not certify general strength or low exploitability.
 
 ## first-light-run-1
 
 **historical** · `fantasia:report:first-light-run-1`  
-[Source](../../experiments/first-light-run-1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/first-light-run-1.md)
 
-Early behavior drift and apparent win improvement; superseded for headline learning evidence by corrected later studies. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Early behavior drift and apparent win improvement; superseded for headline learning evidence by corrected later studies.
 
 **Question attachments:**
 
 - `trustworthy-evaluation@1` — Retains initialization/deal/seat confounds and corrections instead of treating old judged games as independent evidence.
-
 - `dense-reward@1` — Records shaped and terminal-only behavior; old pass-collapse claims do not survive the later control.
 
 ## int-11-semantic-runtime-policy
 
 **finding** · `fantasia:report:int-11-semantic-runtime-policy`  
-[Source](../../experiments/int-11-semantic-runtime-policy.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-11-semantic-runtime-policy.md)
 
 Learned structured commands execute; identity transfer does not isolate intact structure because shuffled control matches. Scope: Historical w2, tiny supervised fixtures. Evidence unit: Three initializations, tiny identity/composition holdouts.
 
@@ -586,9 +562,9 @@ Learned structured commands execute; identity transfer does not isolate intact s
 ## int-12-belief-strategy-advisor
 
 **systems** · `fantasia:report:int-12-belief-strategy-advisor`  
-[Source](../../experiments/int-12-belief-strategy-advisor.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-12-belief-strategy-advisor.md)
 
-Pinned viewer-safe beliefs change advice consistently in live and Study; no strategic-strength claim. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Pinned viewer-safe beliefs change advice consistently in live and Study; no strategic-strength claim.
 
 **Question attachments:**
 
@@ -597,9 +573,9 @@ Pinned viewer-safe beliefs change advice consistently in live and Study; no stra
 ## int-17-belief-calibration
 
 **systems** · `fantasia:report:int-17-belief-calibration`  
-[Source](../../experiments/int-17-belief-calibration.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-17-belief-calibration.md)
 
-Budget failure produced no calibration curves; absence of a result does not refute belief learning. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Budget failure produced no calibration curves; absence of a result does not refute belief learning.
 
 **Question attachments:**
 
@@ -608,7 +584,7 @@ Budget failure produced no calibration curves; absence of a result does not refu
 ## int-18-first-world-pinned-arena
 
 **finding** · `fantasia:report:int-18-first-world-pinned-arena`  
-[Source](../../experiments/int-18-first-world-pinned-arena.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-18-first-world-pinned-arena.md)
 
 Complete historical anchor arena rates dPUCT but cannot promote without a same-compute incumbent. Scope: Historical w2 arena-v1; code players, not learned-policy improvement. Evidence unit: 24 paired deal blocks per payoff cell; 720 total games.
 
@@ -619,9 +595,9 @@ Complete historical anchor arena rates dPUCT but cannot promote without a same-c
 ## int-4-visit-teacher-production
 
 **protocol** · `fantasia:report:int-4-visit-teacher-production`  
-[Source](../../experiments/int-4-visit-teacher-production.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-4-visit-teacher-production.md)
 
-Production harness exists but exact frozen Teacher-0 bytes are absent; no production result. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Production harness exists but exact frozen Teacher-0 bytes are absent; no production result.
 
 **Question attachments:**
 
@@ -630,9 +606,9 @@ Production harness exists but exact frozen Teacher-0 bytes are absent; no produc
 ## int-4-visit-teacher-smoke
 
 **systems** · `fantasia:report:int-4-visit-teacher-smoke`  
-[Source](../../experiments/int-4-visit-teacher-smoke.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-4-visit-teacher-smoke.md)
 
-Visit-teacher training and neural-search pipeline executes on a small retained corpus; not admission evidence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: 507 labels, one teacher/data seed.
+Visit-teacher training and neural-search pipeline executes on a small retained corpus; not admission evidence. Evidence unit: 507 labels, one teacher/data seed.
 
 **Question attachments:**
 
@@ -641,7 +617,7 @@ Visit-teacher training and neural-search pipeline executes on a small retained c
 ## int-7-value-target-comparison
 
 **counterevidence** · `fantasia:report:int-7-value-target-comparison`  
-[Source](../../experiments/int-7-value-target-comparison.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-7-value-target-comparison.md)
 
 Better scalar calibration changes PUCT choices but weakens complete players on the retained smoke corpus. Scope: Historical w2, 32-traversal PUCT. Evidence unit: Three student initializations over one 507-row teacher corpus.
 
@@ -652,22 +628,21 @@ Better scalar calibration changes PUCT choices but weakens complete players on t
 ## int-8-student-signal-guidance
 
 **counterevidence** · `fantasia:report:int-8-student-signal-guidance`  
-[Source](../../experiments/int-8-student-signal-guidance.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/int-8-student-signal-guidance.md)
 
 Both retained policy priors lose paired score to uniform PUCT and add cost. Scope: Historical w2 smoke; chosen-action and visit priors. Evidence unit: One teacher/data seed and two smoke deals.
 
 **Question attachments:**
 
 - `search-as-teacher@1` — Measures or bounds search-label/value utility and end-to-end teacher cost; software completion is kept separate from student strength.
-
 - `expert-iteration-compounds@1` — Returning a student to search is the relevant intervention; a weaker or unrun teacher provides no compounding result.
 
 ## milestone-1-two-deck-slice
 
 **systems** · `fantasia:report:milestone-1-two-deck-slice`  
-[Source](../../experiments/milestone-1-two-deck-slice.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/milestone-1-two-deck-slice.md)
 
-Rules/content vertical slice delivered; gameplay substrate, not trained strength. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Rules/content vertical slice delivered; gameplay substrate, not trained strength.
 
 **Question attachments:**
 
@@ -676,7 +651,7 @@ Rules/content vertical slice delivered; gameplay substrate, not trained strength
 ## opcode-alignment-v1
 
 **finding** · `fantasia:report:opcode-alignment-v1`  
-[Source](../../experiments/opcode-alignment-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/opcode-alignment-v1.md)
 
 Semantic-only model predicts held-out opcode labels, which are present in its input; not compositional reasoning. Scope: Static typed-opcode diagnostic. Evidence unit: Four programs × three model seeds; deterministic repeats excluded.
 
@@ -687,9 +662,9 @@ Semantic-only model predicts held-out opcode labels, which are present in its in
 ## rul-10-tla-jeong-increment-v1
 
 **systems** · `fantasia:report:rul-10-tla-jeong-increment-v1`  
-[Source](../../experiments/rul-10-tla-jeong-increment-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/rul-10-tla-jeong-increment-v1.md)
 
-Card-semantic vertical slice; product budget miss retained. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Card-semantic vertical slice; product budget miss retained.
 
 **Question attachments:**
 
@@ -698,9 +673,9 @@ Card-semantic vertical slice; product budget miss retained. Scope: Historical so
 ## rul-12-release-stack-budget-v1
 
 **systems** · `fantasia:report:rul-12-release-stack-budget-v1`  
-[Source](../../experiments/rul-12-release-stack-budget-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/rul-12-release-stack-budget-v1.md)
 
-Release-stack budget passed under its measured conditions. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Release-stack budget passed under its measured conditions.
 
 **Question attachments:**
 
@@ -709,9 +684,9 @@ Release-stack budget passed under its measured conditions. Scope: Historical sou
 ## rul-12-release-stack-budget-v1.contended-host-load
 
 **systems** · `fantasia:report:rul-12-release-stack-budget-v1.contended-host-load`  
-[Source](../../experiments/rul-12-release-stack-budget-v1.contended-host-load.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/rul-12-release-stack-budget-v1.contended-host-load.md)
 
-Contended-host budget miss preserved; not an algorithmic failure. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Contended-host budget miss preserved; not an algorithmic failure.
 
 **Question attachments:**
 
@@ -720,9 +695,9 @@ Contended-host budget miss preserved; not an algorithmic failure. Scope: Histori
 ## rul-12-release-stack-budget-v1.control-recovered-then-contended
 
 **systems** · `fantasia:report:rul-12-release-stack-budget-v1.control-recovered-then-contended`  
-[Source](../../experiments/rul-12-release-stack-budget-v1.control-recovered-then-contended.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/rul-12-release-stack-budget-v1.control-recovered-then-contended.md)
 
-Additional contention receipt preserved rather than selected away. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Additional contention receipt preserved rather than selected away.
 
 **Question attachments:**
 
@@ -731,9 +706,9 @@ Additional contention receipt preserved rather than selected away. Scope: Histor
 ## rul-13-prepared-possible-world-materializer
 
 **systems** · `fantasia:report:rul-13-prepared-possible-world-materializer`  
-[Source](../../experiments/rul-13-prepared-possible-world-materializer.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/rul-13-prepared-possible-world-materializer.md)
 
-Provider repair for INT-17; does not supply missing calibration curves. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Provider repair for INT-17; does not supply missing calibration curves.
 
 **Question attachments:**
 
@@ -742,9 +717,9 @@ Provider repair for INT-17; does not supply missing calibration curves. Scope: H
 ## rul-6-study-branch-v1
 
 **systems** · `fantasia:report:rul-6-study-branch-v1`  
-[Source](../../experiments/rul-6-study-branch-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/rul-6-study-branch-v1.md)
 
-Canonical fork/apply/return lifecycle and cost. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Canonical fork/apply/return lifecycle and cost.
 
 **Question attachments:**
 
@@ -753,9 +728,9 @@ Canonical fork/apply/return lifecycle and cost. Scope: Historical source-bound w
 ## rul-9-played-workloads-v1
 
 **systems** · `fantasia:report:rul-9-played-workloads-v1`  
-[Source](../../experiments/rul-9-played-workloads-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/rul-9-played-workloads-v1.md)
 
-Played workload receipt; live budget miss and training/capacity passes. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Played workload receipt; live budget miss and training/capacity passes.
 
 **Question attachments:**
 
@@ -764,9 +739,9 @@ Played workload receipt; live budget miss and training/capacity passes. Scope: H
 ## sps-closeout
 
 **systems** · `fantasia:report:sps-closeout`  
-[Source](../../experiments/sps-closeout.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/sps-closeout.md)
 
-Historical env/inference throughput locates a systems bottleneck; not a learning-rate forecast. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Historical env/inference throughput locates a systems bottleneck; not a learning-rate forecast.
 
 **Question attachments:**
 
@@ -775,9 +750,9 @@ Historical env/inference throughput locates a systems bottleneck; not a learning
 ## structured-policy-decoder
 
 **systems** · `fantasia:report:structured-policy-decoder`  
-[Source](../../experiments/structured-policy-decoder.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/structured-policy-decoder.md)
 
-Structured decoder and legacy adapter agree on actions; migration parity, not intelligence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Structured decoder and legacy adapter agree on actions; migration parity, not intelligence.
 
 **Question attachments:**
 
@@ -786,9 +761,9 @@ Structured decoder and legacy adapter agree on actions; migration parity, not in
 ## w2-179-content-pack-local-diagnostic
 
 **systems** · `fantasia:report:w2-179-content-pack-local-diagnostic`  
-[Source](../../experiments/w2-179-content-pack-local-diagnostic.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-179-content-pack-local-diagnostic.md)
 
-Immutable ContentPack seam; not a historical speedup measurement. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Immutable ContentPack seam; not a historical speedup measurement.
 
 **Question attachments:**
 
@@ -797,9 +772,9 @@ Immutable ContentPack seam; not a historical speedup measurement. Scope: Histori
 ## w2-182-search-branching-v1
 
 **systems** · `fantasia:report:w2-182-search-branching-v1`  
-[Source](../../experiments/w2-182-search-branching-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-182-search-branching-v1.md)
 
-Full-clone branching measurements under a fixed source/host contract. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Full-clone branching measurements under a fixed source/host contract.
 
 **Question attachments:**
 
@@ -808,9 +783,9 @@ Full-clone branching measurements under a fixed source/host contract. Scope: His
 ## w2-198-compact-clone-undo-v1
 
 **systems** · `fantasia:report:w2-198-compact-clone-undo-v1`  
-[Source](../../experiments/w2-198-compact-clone-undo-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-198-compact-clone-undo-v1.md)
 
-Compact clone/undo branching measurements; not learning evidence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Compact clone/undo branching measurements; not learning evidence.
 
 **Question attachments:**
 
@@ -819,9 +794,9 @@ Compact clone/undo branching measurements; not learning evidence. Scope: Histori
 ## w2-199-dense-page-cow-undo-v1
 
 **systems** · `fantasia:report:w2-199-dense-page-cow-undo-v1`  
-[Source](../../experiments/w2-199-dense-page-cow-undo-v1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-199-dense-page-cow-undo-v1.md)
 
-Dense-page copy-on-write branching measurements; not learning evidence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Dense-page copy-on-write branching measurements; not learning evidence.
 
 **Question attachments:**
 
@@ -830,9 +805,9 @@ Dense-page copy-on-write branching measurements; not learning evidence. Scope: H
 ## w2-208-content-pack-clone-allocations
 
 **systems** · `fantasia:report:w2-208-content-pack-clone-allocations`  
-[Source](../../experiments/w2-208-content-pack-clone-allocations.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-208-content-pack-clone-allocations.md)
 
-Exact forks share immutable allocations; no throughput claim. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Exact forks share immutable allocations; no throughput claim.
 
 **Question attachments:**
 
@@ -841,7 +816,7 @@ Exact forks share immutable allocations; no throughput claim. Scope: Historical 
 ## w2-214-structural-semantic-katas
 
 **counterevidence** · `fantasia:report:w2-214-structural-semantic-katas`  
-[Source](../../experiments/w2-214-structural-semantic-katas.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-214-structural-semantic-katas.md)
 
 Bag symmetry is exposed; structural candidate fails trainability/cost gates. Scope: Static semantic relations; no gameplay. Evidence unit: Per-kata training seeds.
 
@@ -852,9 +827,9 @@ Bag symmetry is exposed; structural candidate fails trainability/cost gates. Sco
 ## w2-215-semantic-projection
 
 **systems** · `fantasia:report:w2-215-semantic-projection`  
-[Source](../../experiments/w2-215-semantic-projection.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-215-semantic-projection.md)
 
-Projection size/latency baseline; not a training result. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Projection size/latency baseline; not a training result.
 
 **Question attachments:**
 
@@ -863,9 +838,9 @@ Projection size/latency baseline; not a training result. Scope: Historical sourc
 ## w2-223-typed-ir-interpreter
 
 **systems** · `fantasia:report:w2-223-typed-ir-interpreter`  
-[Source](../../experiments/w2-223-typed-ir-interpreter.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-223-typed-ir-interpreter.md)
 
-Typed-program interpreter admission; not generalization evidence. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Typed-program interpreter admission; not generalization evidence.
 
 **Question attachments:**
 
@@ -874,7 +849,7 @@ Typed-program interpreter admission; not generalization evidence. Scope: Histori
 ## w2-234-teacher0
 
 **finding** · `fantasia:report:w2-234-teacher0`  
-[Source](../../experiments/w2-234-teacher0.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-234-teacher0.md)
 
 100-game pilot demonstrates policy/value fitting and legal gameplay, not teacher recovery. Scope: Historical Teacher-0 pilot, flat-search labels. Evidence unit: One initialization; 100 random-control games per arm.
 
@@ -885,7 +860,7 @@ Typed-program interpreter admission; not generalization evidence. Scope: Histori
 ## w2-234-teacher0-partial-snapshot
 
 **finding** · `fantasia:report:w2-234-teacher0-partial-snapshot`  
-[Source](../../experiments/w2-234-teacher0-partial-snapshot.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-234-teacher0-partial-snapshot.md)
 
 512-game frozen prefix improves policy loss and value prediction; distinct from the pilot and uncompleted full production corpus. Scope: Historical Teacher-0 frozen prefix; raw policy evaluation. Evidence unit: One initialization / one corpus; 64 games per arm.
 
@@ -896,9 +871,9 @@ Typed-program interpreter admission; not generalization evidence. Scope: Histori
 ## w2-234-teacher1
 
 **systems** · `fantasia:report:w2-234-teacher1`  
-[Source](../../experiments/w2-234-teacher1.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-234-teacher1.md)
 
-Tree search and shard pipeline function; substrate success is not a strength result. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Tree search and shard pipeline function; substrate success is not a strength result.
 
 **Question attachments:**
 
@@ -907,20 +882,19 @@ Tree search and shard pipeline function; substrate success is not a strength res
 ## w2-234-teacher1-pilot
 
 **protocol** · `fantasia:report:w2-234-teacher1-pilot`  
-[Source](../../experiments/w2-234-teacher1-pilot.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-234-teacher1-pilot.md)
 
-Preregistered pilot remains unrun without frozen terminal Teacher-0 manifest and controls. Scope: Historical source-bound workload; not current-runtime certification. Evidence unit: See report; no method-level uncertainty inferred.
+Preregistered pilot remains unrun without frozen terminal Teacher-0 manifest and controls.
 
 **Question attachments:**
 
 - `search-as-teacher@1` — Measures or bounds search-label/value utility and end-to-end teacher cost; software completion is kept separate from student strength.
-
 - `expert-iteration-compounds@1` — Returning a student to search is the relevant intervention; a weaker or unrun teacher provides no compounding result.
 
 ## w2-266-structural-encoder-discriminator
 
 **counterevidence** · `fantasia:report:w2-266-structural-encoder-discriminator`  
-[Source](../../experiments/w2-266-structural-encoder-discriminator.md) · locator: Report summary/results; see source for attempt-level receipts.
+[Source](../../experiments/w2-266-structural-encoder-discriminator.md)
 
 Optimization/message-passing discriminator nominates no viable encoder. Scope: Static semantic diagnostic; no gameplay. Evidence unit: Per-family training seeds.
 

@@ -32,32 +32,35 @@ def _anchors(text: str) -> set[str]:
     }
 
 
-def check() -> list[str]:
-    errors: list[str] = []
-    manifest: object = json.loads((MAP / "sources.json").read_text())
+def _check_sources(manifest: object, errors: list[str]) -> set[str]:
+    """Verify evidence bytes and coverage; branch entries override the snapshot."""
     if not isinstance(manifest, dict):
-        return ["source manifest must be an object"]
+        errors.append("source manifest must be an object")
+        return set()
+    if manifest.get("repository") != "fantasia":
+        errors.append("source manifest repository must be fantasia")
+        return set()
     snapshot = manifest.get("snapshot")
     sources = manifest.get("sources")
     if not isinstance(snapshot, str) or not isinstance(sources, list):
-        return ["source manifest needs snapshot and sources"]
+        errors.append("source manifest needs snapshot and sources")
+        return set()
+    if not re.fullmatch(r"[a-f0-9]{40}", snapshot):
+        errors.append("invalid snapshot revision")
+        return set()
     pinned_reports: set[str] = set()
     identities: set[tuple[str, str]] = set()
     for source in sources:
         # JSON is untyped; narrow the fields once before using git or hashing.
         if not isinstance(source, dict) or not all(
-            isinstance(source.get(key), str)
-            for key in ("repository", "revision", "path", "sha256", "role")
+            isinstance(source.get(key), str) for key in ("path", "sha256", "role")
         ):
             errors.append("malformed source entry")
             continue
-        revision, path, digest = (
-            str(source[key]) for key in ("revision", "path", "sha256")
-        )
-        if source["repository"] != "fantasia" or not re.fullmatch(
-            r"[a-f0-9]{40}", revision
-        ):
-            errors.append(f"invalid repository/revision: {path}")
+        path, digest = (str(source[key]) for key in ("path", "sha256"))
+        revision = source.get("revision", snapshot)
+        if not isinstance(revision, str) or not re.fullmatch(r"[a-f0-9]{40}", revision):
+            errors.append(f"invalid source revision: {path}")
             continue
         identity = (revision, path)
         if identity in identities:
@@ -84,6 +87,11 @@ def check() -> list[str]:
     }
     for path in sorted(report_paths - pinned_reports):
         errors.append(f"unmapped snapshot report: {path}")
+    return pinned_reports
+
+
+def _check_catalog(pinned_reports: set[str]) -> list[str]:
+    errors: list[str] = []
     questions = (
         (MAP / "questions.md").read_text().split("## Complete attachment index")[0]
     )
@@ -111,6 +119,11 @@ def check() -> list[str]:
     for path in sorted(pinned_reports):
         if f"../../{path})" not in catalog:
             errors.append(f"pinned report absent from register: {path}")
+    return errors
+
+
+def _check_links() -> list[str]:
+    errors: list[str] = []
     for document in MAP.glob("*.md"):
         for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", document.read_text()):
             if "://" in target:
@@ -123,6 +136,13 @@ def check() -> list[str]:
                 if anchor not in _anchors(destination.read_text()):
                     errors.append(f"broken anchor in {document.name}: {target}")
     return errors
+
+
+def check() -> list[str]:
+    errors: list[str] = []
+    manifest: object = json.loads((MAP / "sources.json").read_text())
+    pinned_reports = _check_sources(manifest, errors)
+    return errors + _check_catalog(pinned_reports) + _check_links()
 
 
 def main() -> int:

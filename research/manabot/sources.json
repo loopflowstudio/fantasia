@@ -1,732 +1,528 @@
 {
+  "repository": "fantasia",
   "snapshot": "43c6e479c25399665b56b43e2bb6906b1ea37113",
   "author": "Codex (agent)",
   "review": "pending Jack Heart",
   "sources": [
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/head-to-head.md",
       "sha256": "ffe8c528f3b75620d224ea1d6258f0dd2e4735fcbbaf29fca76bbe5b20d3b981",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/early-learning-rate.md",
       "sha256": "3217cff25efcfae4d20d80a541d86dc447f4c437fc3a369327609122a2ef3022",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/model-capacity.md",
       "sha256": "d1fb7ef35df911669887ca7914988c6f2b86e57c38d1a1cf73217312ef15d25f",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/ataraxos-technique-screen.md",
       "sha256": "7e596965f219a571d57e517ec8307d965ae217ecf9b8bb71ead84332d1d3126a",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/pooling-filter-followup.md",
       "sha256": "e95667689ccfc872d9606ca38517bfefd811f6cd66c1eb58feeb94f84d254d04",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/pooling-filter/evidence.json",
       "sha256": "5fd1af3f1c6897e87fd1014b30f79102b4fee4102a43a9f40773954c13a4219d",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/value-token-screen.md",
       "sha256": "8c4ce7a2b56b9bcfebbfcbd3bfb1d7605c61b131bf0e58e2b8f53d98aad7e6ef",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/value-token-screen-result.json",
       "sha256": "a4d75fddfcea27554c51ff28a615548ef362789400d89e649f3056266d01cb5b",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/evidence/history-report-learning-2026-10-06.md",
       "sha256": "0222eba84a6b85b065933c54b5b3830b334f31710da00124ebefb0df3fdc24a7",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/history-input.md",
       "sha256": "64067e30bd98ee7f39df613e3e4efb4c26b48c19e98dc4209b93e3fa44da7078",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/training-regimes.md",
       "sha256": "2c89018d46f43f9fe72669b46aa18e981ef5a91d244d8bb5099c757f04690a2f",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/ataraxos-mtg-ablations.md",
       "sha256": "fc771e7eb3281cb1ddf79aa20da4acc6a6aa4af905ea0edb2628c206c60f75cc",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/ataraxos-omitted-controls.md",
       "sha256": "03d3c3f3aa758949420307fd9fc084501997ecfc9dda7ff79e170af3d2dd8249",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/value-models.md",
       "sha256": "1757cf6bddc62511e36ca2d8d853af22e95d6b77020f8627b0bbc38b0e131855",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/ataraxos-transfer.md",
       "sha256": "af84071ef8baeac9658c4ee25476cdbfc38046604d83a54236b920dfeb3bcac8",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/training-regime-followups.md",
       "sha256": "af6d17995cc13377c453bd8a984e665b55e36d0475d8c1a76299850663a3d653",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/etu-87-allies-lessons-balance.md",
       "sha256": "eb2115688352edd5cf8f6cd78ef366354d82fd5128c06d3f67cd173fe75ef6ab",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/distributed-rl.md",
       "sha256": "b57b87b634b837cb0e4bf04688b03474affdbce2be8e9db7c4ba222f952a37e4",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/evidence/ataraxos-scale-2026-10-06.md",
       "sha256": "7c0973eca3a955d8dfef56902f616beafb434071f4ed998ce0bf403f9b941c5a",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/numerical-health.md",
       "sha256": "bf81e1220724338d0ecbea883a0ec93ad6daabd2392d7c0baf9c8b30400dc57f",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/remote-jobs.md",
       "sha256": "91c41bf0eabfce89a6fc952b12dca9e2de8d7d1249fed543856bd1507cf91903",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/remote-training.md",
       "sha256": "ef081816b20e2915aa5ece0277ae822bb0a247d22aa91fe6d9ab2bd9e1f7da31",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/training-recovery.md",
       "sha256": "061b9978a2d8208c6a74b45e82da0d606d020f72050c1628b043f4cd2f3be1c0",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/training-regimes.md",
       "sha256": "cf4abfe667d3faf51844c863a13db58a878f4b37cc3efe33f5468cf89dce7b32",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/local-policy-search.md",
       "sha256": "c127dfe93b8ae0067c11eaea7ea7b45fb15589236fbdee801797edfff92ed519",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/belief-sampler.md",
       "sha256": "d008c6654bfc9ad8aa0cb76953917f44fcbc513333dc96b7158529af308092a0",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/checkpoint-scenarios.md",
       "sha256": "d3a6edfee072a88b8b8ce1d246b28d1c85fd805a1d7cc8ef5773fa2b78de4940",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/evidence/allies-lessons-arena-2026-09-29.md",
       "sha256": "24c617ebf84174e8a366c3817fa33d8fd6356e3911410e6983c55708258a62cd",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/evidence/corrected-world-training-2026-09-29.md",
       "sha256": "15cc7fdadf51dfcddf2a15032bd9f8a5d5bbe331cf8dce5be844e84d86257df8",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/evidence/trained-challenger-2026-09-25.md",
       "sha256": "991846aab9b0ea9c293b3a120355cbcae876ac4de40d29169effc1e0e37a45f5",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/evidence/learning-dashboard-2026-10-08.md",
       "sha256": "f0eb790aa8cd9bf4e06f4275fedb25895585f1247f0ccab59b698b4a9320ee08",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/training-calibration.md",
       "sha256": "00fba2bcbc2346492156b016705539e93a53ea485a20484b48b2588a4354e60f",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/card-conformance-audit.md",
       "sha256": "c911520cab15a4e8090f6e597fd1ba8625beac036023df9603606d028ba74c3d",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-00-cost-basis.md",
       "sha256": "6ff28365a5c4036d247665bcd93f395eeaa94892886b9971d2b5bfebc6da4069",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-00-decision-profile.md",
       "sha256": "59f11c9616c08656769d7f6402cdab97401bcd33ef35f51f9e413a649cedce07",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-00c-seat-balanced-baselines.md",
       "sha256": "f45e4f2fa5a5ca5517bb922d0e0372e9cfd60eb8cfb24107da732ff5b161e9be",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-01-c1-training.md",
       "sha256": "08342e4f0bd41d8ce3d16cb03fe0137722f33c52957f69647153e28df4f1f44b",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-02-flat-mc.md",
       "sha256": "789dcd129b6c4aec6ea9506ccdd96de8eafbd12d4d1a070f93eefe5c419fac2a",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/exp-02-flat-mc.json",
       "sha256": "9bf5dd1a5e6494f1c750736d8b969139c3a0f3818365ff74de4dc9859e3ab885",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-03-distillation.md",
       "sha256": "0d03d60c8e25a61065e208bd7f168b4275a7adc912c245cbb03738e5368b89d2",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/exp-03-distillation.json",
       "sha256": "57fd42f97ff8e33483fdbf083eef9ad46c32884b47b21670e97f866487ca7a92",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-04-potential-shaping.md",
       "sha256": "722766a53112fbcf08d3b99fc919a4ebf2f719bbce6175d128118f7928229557",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-06-newworld-training.md",
       "sha256": "bd429085f58286d6efab18b6bff93413c97c19a614f0beb2b33b98cd4880305d",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/exp-06-newworld-judging-fixed.json",
       "sha256": "d929f3e3f7907123f4b0947f16fc58870f88afa20f2361ac663597da5347d138",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-07-expert-iteration.md",
       "sha256": "e140b90902717045b810681c89e4823215d9ce453572a001ca8b39e5fd295d4a",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-08-two-deck-matchup.md",
       "sha256": "ce3b04942ff2151477e30750e7e3ba83b8dba91d6b388370abade5682705cd97",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/exp-08-two-deck-matchup.json",
       "sha256": "133ebce43950f8be9450837b8ac3831e4f47cd7865aa0de52b4881991586aace",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-08b-ancestral-dose.md",
       "sha256": "83f753eff027392d084c3bffc4c930788ca93a406aa6899b40ef9a04fc770ccc",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-09-control-competency.md",
       "sha256": "e59e969a8c9f3934047e58b9f7c72daf3ae150c711ed9b2aae62ac04accd1296",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/exp-09-micro.json",
       "sha256": "ff76e367e1db502698d1f7690230dff52886a8135ed4f54d7ecb24e722fb9116",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-10-value-gate.md",
       "sha256": "436cba6cff6c2b3334a855248e87f22e39952de790cedbae73cb68b6a0f69fa6",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/exp-10-value-gate.json",
       "sha256": "1f1d048567232455bf4268c23a85b3a01b2e3de0caa9ccbdca8f3b63f981b64e",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/exp-11-curriculum-exploitability.md",
       "sha256": "8fea97a511d4b476083865cd7ac65e54951b8d4c1fdbc0709d157fe2427e3612",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/exp-11-curriculum-exploitability.json",
       "sha256": "2ec3cc1f91f7baeed7e6a645c7cf89c2ee1c02ba76af587dca7cf9375fd1845f",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/first-light-run-1.md",
       "sha256": "f8d3b387e22744f62625d53d068ce3bd711aa330971470f336d56d7ab436ce43",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-11-semantic-runtime-policy.md",
       "sha256": "ceaf703d6b106230419743eb9a38905480b3dd29ccd831ee24b7349bb42ef79a",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/int-11-semantic-runtime-policy-v1.json",
       "sha256": "0a707e622ea2d83c1262408b04e9a6f415c8aaaa0a12c7bd0f42a179ac431067",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-12-belief-strategy-advisor.md",
       "sha256": "6222592ce5dbcfce7c23c60b13f68ab0a9edef20f3472eb19e9942a60ea9c9c7",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/int-12-belief-strategy-advisor-measurement-v1.json",
       "sha256": "f7d10ffb3d222bd69444d36337e0de37766ae9fed8d9fdcbed3d981a209b00ae",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-17-belief-calibration.md",
       "sha256": "d7aba7017220b07ff993b3b708f3c78a0c2e49253b286bc16d0c287cf07e3d13",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-18-first-world-pinned-arena.md",
       "sha256": "d5a58462365f06c24c6cc7239f076b101b99c07fee9433e3063f00e658a1f36a",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-4-visit-teacher-production.md",
       "sha256": "448d3d879167e93c0469f5843b43071fad6dff9a06182284af4b1d499a074e20",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-4-visit-teacher-smoke.md",
       "sha256": "462cb146adbf927a64dea4c9368c8610dcefdfe66e79260c364d722001e94a73",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/int-4-visit-teacher-smoke-v1.json",
       "sha256": "568630352f220c01fcd033e2a752e596edce2aeb0a4362862e050ccd53974358",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-7-value-target-comparison.md",
       "sha256": "f2e99a7a5b647df9c1000fb7dd9b775765c4f7058cc20e131952bd8c17067651",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/int-8-student-signal-guidance.md",
       "sha256": "e7d201341c5b737a4eb1d7c713a2c95f3ed8f0ffdfae7173d2ebf7cc87be69aa",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/milestone-1-two-deck-slice.md",
       "sha256": "cee6a6cb26bb5b4d3bb9a6409a8a50ef9050fb3019be06b4f7494771a80db3dc",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/opcode-alignment-v1.md",
       "sha256": "92de8dfc6770ef082d3b07d1e540c6a7ce2a5caab08f5eda15ba28008ecb16e3",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/opcode-alignment-v1.json",
       "sha256": "f645e2b876253be1357794bef82fd827f0089cdeb7170c7c376ffb43eeb64a5c",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/rul-10-tla-jeong-increment-v1.md",
       "sha256": "66669276a93290d506d44c34c452489f658cd75ed2a10b21c4db581b0cd9424d",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/rul-12-release-stack-budget-v1.md",
       "sha256": "b016267ff1161c91f43fd17729ab55cea14067d849ff9d3ea0f95a1937dc19d6",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/rul-12-release-stack-budget-v1.contended-host-load.md",
       "sha256": "48ffbcaf5d422445e54662408345fef10a3b405cc21b2590e92dcd0a5e645c5b",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/rul-12-release-stack-budget-v1.control-recovered-then-contended.md",
       "sha256": "25f1b7b02b3ca0284dad41b4982d2f7399d42ef46ba868de8a5ab29cc2745633",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/rul-13-prepared-possible-world-materializer.md",
       "sha256": "3fc8807d80c347e466a3c9906ba9f0e8e96adc628745c7332cf46750721f995f",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/rul-6-study-branch-v1.md",
       "sha256": "1bb421c1fd8c4af1cb324a02059d48d23baad80f654d3c9877fccce18e0c181a",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/rul-9-played-workloads-v1.md",
       "sha256": "1f36bb6925c2443274b7f116a939c3c1b5a431726755aa5d08925d73e2f1f2d7",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/sps-closeout.md",
       "sha256": "dceccbb379a39786f5157a93adf382f0fcc56e78b5a6ab9d2431aa01c951d851",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/structured-policy-decoder.md",
       "sha256": "f9fd5c17f25684c9681ade2a377a57e05c8a43b415538777ae3ef92aede18d5e",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-179-content-pack-local-diagnostic.md",
       "sha256": "f96764f79974f609101e2d6a65398e14c70246217609a1f391715da52775b452",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-182-search-branching-v1.md",
       "sha256": "2823ffdc6c8a76111a3029e896496ca649f854e23f783b1c7090aa56b829e8e5",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-198-compact-clone-undo-v1.md",
       "sha256": "9bd1a078df7912caab12420d5ca2fbbb7467e3b1e0f209abed461650af296b9f",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-199-dense-page-cow-undo-v1.md",
       "sha256": "00fb844c01d2e8ba1574e6cc3506fadd05c65d522264d92d43c9e1c8bf3eb6f8",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-208-content-pack-clone-allocations.md",
       "sha256": "94eca58e66bdb64fcf34fdf4f0cc5991f5302170dcf26fbedbdc3013d85b1005",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-214-structural-semantic-katas.md",
       "sha256": "514d82ef0e518f809aaca909f9da3341c57b5cff55a6bafe198a000220bb2985",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-215-semantic-projection.md",
       "sha256": "26aa31aab909de6e973986861d2429a8e9246720ae7b12cea1f67636de6fa6aa",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-223-typed-ir-interpreter.md",
       "sha256": "674e48457dbac19cd80e63581aa0572efe5522b154e150e0e7a4b2f54ab57ea5",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-234-teacher0.md",
       "sha256": "5a05eb8126472be25a4d71f9ab1590a6299fea2f45f4a69232fa8f1cd08b4d1f",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-234-teacher0-partial-snapshot.md",
       "sha256": "f112b95020137dabe0d8e0dd9846d5e9f4283baedcc208ddee34123a9c36f4a1",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/w2-234-teacher0-partial-v20.json",
       "sha256": "adcb9a628210ec8cfb4f7f90d205f5a7225164e0b30047c143e5e3330901cdf2",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-234-teacher1.md",
       "sha256": "71e5003db76d51d97bc20e187744556546958856d60db6e4cb2b6c1b883c6e46",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-234-teacher1-pilot.md",
       "sha256": "c45099f642cfc28cd7f2a31af8901edb80ce0f0adcfe10276437139ee40efd90",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/w2-266-structural-encoder-discriminator.md",
       "sha256": "a04d2fa3641352482603cbd2b32b3a8299ab1ba6a760b2f824fbe11689048835",
       "role": "report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "wave/intelligence/GOAL.md",
       "sha256": "664a9c9b92873ec0983c724af044e2c9d605a98e84e398bc4c21bf406a7e6209",
       "role": "context"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "wave/intelligence/04-2x2-diagnosis.md",
       "sha256": "27e21c06f0f2e2b8ba1ad05482e938b49fede8f25547cd869d0449b56fdaa01e",
       "role": "context"
     },
     {
-      "repository": "fantasia",
       "revision": "1c72ed1eb94c52fcc1900ee3ca0bbd5ba857ef41",
       "path": "experiments/current-baseline.md",
       "sha256": "6c6588f5affa45ed480fa8a8853cae1a11a11f24124de9e00943eb6343c98f2c",
       "role": "pending-branch-report"
     },
     {
-      "repository": "fantasia",
       "revision": "633569c780d2c7bc02f63c57acafda23f25b547d",
       "path": "experiments/restart-learning-rate.md",
       "sha256": "8efe79cab8355ca5e1bc60e16572cd5fa99c0cdfbb3a74d84c85aa317c811986",
       "role": "pending-branch-report"
     },
     {
-      "repository": "fantasia",
       "revision": "9649f42f7577a828d586327ee2c1f1d55b4aba96",
       "path": "experiments/mirror-curriculum.md",
       "sha256": "1091a33231469aacaf9b59ac86053e00285178c9771e8502f39a8de21b968d91",
       "role": "pending-branch-report"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/etu126/capacity-recovery-v3.json",
       "sha256": "89dc9c7590aa013524718ad327c7a7db1b9b95863e2744117dbe39de20a026d4",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/etu126/cohort-admission-20261008.json",
       "sha256": "af2f9d9c93c9536388cc6f1ad167b6c4bd94a8bcb5d9f9a69b5c25567135ecbf",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/etu126/controller-launch-20261008.json",
       "sha256": "8e7bf1d8d840955deea7286c116062e4af6c1ad6d8d4d985560e187c4554e444",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/cuda-capacity/capacity-report.json",
       "sha256": "8ba5c684855294aed83aa8b81a8b71c499376afa66ed8393de8e65154bf9e4af",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/etu105/final-files.json.gz",
       "sha256": "96405d96e0ec9ff251b1b46e8c5940667d592a757fca40720b34509b21aa8bc3",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "experiments/data/etu105/retained-files.json.gz",
       "sha256": "65dc5c11445e9536392cec97c4093e1963e8eba274e8744be81887fef697b6c0",
       "role": "data"
     },
     {
-      "repository": "fantasia",
-      "revision": "43c6e479c25399665b56b43e2bb6906b1ea37113",
       "path": "docs/evidence/ataraxos-scale-2026-10-06.json",
       "sha256": "e01c904c9076d1cb256f42fee1f906f35ee05db15c510dfa5cc3dd818cc74756",
       "role": "data"

@@ -19,7 +19,7 @@ Ranking is a proposed order of decision value, not an approved experiment queue.
 Child questions and exact area ownership are in [the hierarchy](questions.md).
 Experiments link to questions, never directly to areas; an experiment can inform
 several questions. Links below give the prominent evidence; each question's
-complete attachment list is in the register, including historical systems work.
+[complete attachment list](questions.md#complete-attachment-index) includes historical systems work.
 
 ### 1. Are we measuring stronger play, or just getting better at greedy?
 
@@ -187,8 +187,9 @@ Use small local controls for feasibility, not as evidence that a full cohort fit
 
 - Evidence snapshot: Fantasia `43c6e479c25399665b56b43e2bb6906b1ea37113`.
   Every local source link in the register means **that revision**, not moving main.
-  [sources.json](sources.json) records path, exact revision and SHA-256, including
-  older compact data references. A report's citation revision is distinct from
+  [sources.json](sources.json) records path and SHA-256 under that snapshot;
+  branch sources override the revision explicitly. Older compact data references
+  are included. A report's citation revision is distinct from
   its frozen execution source, world and checkpoint identities.
 - Local-only branch evidence is explicitly **pending**, even if committed locally.
   Task-reported live statuses are dated 2026-10-09, not independently polled here.
