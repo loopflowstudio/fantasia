@@ -36,6 +36,7 @@ from collections.abc import Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ProcessPoolExecutor, wait
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import asdict, dataclass, field, replace
+from functools import partial
 import json
 import multiprocessing as mp
 import os
@@ -74,6 +75,7 @@ from manabot.training.monitor_evaluation import ArenaRow
 from managym import WORLD_VERSION
 
 NAME = "head-to-head"
+GREEDY = "scripted-greedy"
 MIRROR_DEAL_SEEDS = tuple(range(1_913_131_000, 1_913_131_100))
 MIRROR_SMOKE_SEEDS = (1_913_131_100, 1_913_131_101)
 TRAINING_CAVEAT = (
@@ -118,7 +120,7 @@ class Entrant:
             self.training_seed,
             self.updates,
         )
-        if self.id == "scripted-greedy":
+        if self.id == GREEDY:
             if any(value is not None for value in identity):
                 raise ValueError("scripted greedy cannot carry checkpoint fields")
         else:
@@ -136,13 +138,12 @@ class Entrant:
                 or self.file in (".", "..")
             ):
                 raise ValueError("checkpoint file must be a basename under models")
-            if not re.fullmatch(r"[0-9a-f]{64}", self.sha256 or ""):
+            if not re.fullmatch(r"[0-9a-f]{64}", self.sha256):
                 raise ValueError("checkpoint sha256 must be 64 lowercase hex digits")
             if self.bytes <= 0 or self.training_seed < 0 or self.updates < 0:
                 raise ValueError("invalid checkpoint size, seed or updates")
 
 
-GREEDY = "scripted-greedy"
 # The candidate frozen-checkpoint opponent: the longest-trained policy we have.
 REFERENCE = "small-100k"
 
@@ -500,7 +501,6 @@ class Plan:
     pairings: tuple[tuple[str, str], ...]
     deal_seeds: tuple[int, ...]
     matchup_mode: MatchupMode = "cross"
-
     roster_spec: RosterSpec | None = None
 
     def units(self) -> list[Unit]:
@@ -516,9 +516,8 @@ def full_plan(
     matchup_mode: MatchupMode = "cross", roster: RosterSpec | None = None
 ) -> Plan:
     seeds = MIRROR_DEAL_SEEDS if matchup_mode == "mirrors" else DEAL_SEEDS
-    if roster is not None:
-        return Plan(roster.entrants, roster.pairings(), seeds, matchup_mode, roster)
-    return Plan(ROSTER, pairings(), seeds, matchup_mode)
+    spec = roster or default_roster()
+    return Plan(spec.entrants, spec.pairings(), seeds, matchup_mode, roster)
 
 
 def smoke_plan(
@@ -615,13 +614,11 @@ def _free_gib(path: Path) -> float:
 def _validate_extension(
     previous: dict[str, object], current: dict[str, object]
 ) -> None:
-    """Only additive rosters/schedules may reuse retained units.
+    """Compare JSON-form designs; only additive rosters/schedules may reuse units.
 
     Pair orientation binds action seeds and directory names. Runtime identities,
     old registrations, deals and inference bounds remain exact.
     """
-    previous = json.loads(json.dumps(previous))
-    current = json.loads(json.dumps(current))
     for key in previous.keys() | current.keys():
         old, new = previous.get(key), current.get(key)
         if key == "roster":
@@ -665,10 +662,12 @@ def run(
     """
     plan = plan or full_plan()
     design_path = out / "design.json"
-    if design_path.exists():
-        previous = json.loads(design_path.read_text())
-        if previous.get("matchup_mode", "cross") != plan.matchup_mode:
-            raise ValueError("this output directory holds a different matchup mode")
+    previous = json.loads(design_path.read_text()) if design_path.exists() else None
+    if (
+        previous is not None
+        and previous.get("matchup_mode", "cross") != plan.matchup_mode
+    ):
+        raise ValueError("this output directory holds a different matchup mode")
     out.mkdir(parents=True, exist_ok=True)
     started = time.time()
     units = plan.units()
@@ -693,47 +692,37 @@ def run(
         status.free_gib = _free_gib(out)
         atomic_json(out / "status.json", asdict(status))
 
-    if not design_path.exists():
+    if previous is None:
         publish()
     try:
         admitted = admit(models, plan.roster, matchup_mode=plan.matchup_mode)
     except Exception as error:
         status.state, status.reason = "incomplete", f"admission failed: {error}"
-        if not design_path.exists():
+        if previous is None:
             publish()
         raise
     design = {
         "name": NAME,
-        **(
-            {"roster_spec": plan.roster_spec.model_dump(mode="json")}
-            if plan.roster_spec is not None
-            else {}
-        ),
-        **(
-            {
-                "matchup_mode": "mirrors",
-                "training_caveat": (
-                    plan.roster_spec.training_caveat
-                    if plan.roster_spec
-                    else TRAINING_CAVEAT
-                ),
-            }
-            if plan.matchup_mode == "mirrors"
-            else {}
-        ),
         "roster": [asdict(entrant) for entrant in plan.roster],
         "pairings": [list(pair) for pair in plan.pairings],
         "deal_seeds": list(plan.deal_seeds),
         "game_seconds": GAME_SECONDS,
         "max_commands": MAX_COMMANDS,
-        "arena_key": admitted.key.model_dump(),
+        "arena_key": admitted.key.model_dump(mode="json"),
         "registrations": {
-            name: registration.model_dump()
+            name: registration.model_dump(mode="json")
             for name, registration in admitted.registrations.items()
         },
     }
-    if design_path.exists():
-        _validate_extension(json.loads(design_path.read_text()), design)
+    if plan.roster_spec is not None:
+        design["roster_spec"] = plan.roster_spec.model_dump(mode="json")
+    if plan.matchup_mode == "mirrors":
+        design["matchup_mode"] = "mirrors"
+        design["training_caveat"] = (
+            plan.roster_spec.training_caveat if plan.roster_spec else TRAINING_CAVEAT
+        )
+    if previous is not None:
+        _validate_extension(previous, design)
     atomic_json(design_path, design)
 
     pending: list[Unit] = []
@@ -1051,8 +1040,7 @@ def _score_panel(
     contrast_pairs: tuple[tuple[str, str], ...],
 ) -> ScorePanel:
     """Use the same paired-deal estimator on the full matrix or a single deck."""
-    scheduled = list(cells)
-    scores = tuple(_pairing_score(pair, cells[pair]) for pair in scheduled)
+    scores = tuple(_pairing_score(pair, cell) for pair, cell in cells.items())
     usable = {
         pair: cell
         for pair, cell in cells.items()
@@ -1132,7 +1120,17 @@ def report(out: Path) -> Report:
         if mode == "mirrors"
         else {}
     )
-    found = Report(
+    # Select the schema before construction; legacy JSON has no roster fields.
+    report_type = (
+        partial(
+            RosterReport,
+            reference=spec.reference,
+            training_caveat=spec.training_caveat,
+        )
+        if spec is not None
+        else Report
+    )
+    return report_type(
         panel.pairings,
         panel.contrasts,
         panel.ratings,
@@ -1141,13 +1139,6 @@ def report(out: Path) -> Report:
         mode,
         decks,
     )
-    if spec is not None:
-        return RosterReport(
-            **{name: getattr(found, name) for name in found.__dataclass_fields__},
-            reference=spec.reference,
-            training_caveat=spec.training_caveat,
-        )
-    return found
 
 
 def _points(interval: Interval | None, *, signed: bool = False) -> str:
