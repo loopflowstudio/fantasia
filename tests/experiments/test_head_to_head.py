@@ -63,7 +63,9 @@ def _write_unit(
     atomic_json(directory / "rows.json", rows)
 
 
-def test_report_splits_and_orients_scores(tmp_path: Path) -> None:
+def test_report_splits_and_orients_scores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # "strong" is scheduled as player_b of its meeting with "weak", so the
     # contrast must flip that cell to read it from strong's side.
     pairings = [("strong", GREEDY), ("weak", GREEDY), ("weak", "strong")]
@@ -74,12 +76,8 @@ def test_report_splits_and_orients_scores(tmp_path: Path) -> None:
         _write_unit(tmp_path, ("strong", GREEDY), seed, (0.0, 1.0, 1.0, 1.0))
         _write_unit(tmp_path, ("weak", GREEDY), seed, (0.0, 1.0, 1.0, 0.0))
         _write_unit(tmp_path, ("weak", "strong"), seed, (0.0, 0.0, 1.0, 0.0))
-    original = head_to_head.CONTRASTS
-    head_to_head.CONTRASTS = (("strong", "weak"),)
-    try:
-        found = head_to_head.report(tmp_path)
-    finally:
-        head_to_head.CONTRASTS = original
+    monkeypatch.setattr(head_to_head, "CONTRASTS", (("strong", "weak"),))
+    found = head_to_head.report(tmp_path)
 
     strong = found.pairings[0]
     assert strong.games == 12 and strong.rejected is None

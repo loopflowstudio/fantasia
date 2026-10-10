@@ -51,7 +51,13 @@ import numpy as np
 from pydantic import ValidationError
 
 from manabot.arena import players
-from manabot.arena.match import SELECTED_SUITE, play_cell, selected_match
+from manabot.arena.match import (
+    SELECTED_SUITE,
+    MatchupMode,
+    play_cell,
+    selected_decks,
+    selected_match,
+)
 from manabot.arena.models import (
     ArenaKey,
     PlayerRegistration,
@@ -66,7 +72,6 @@ from manabot.training.monitor_evaluation import ArenaRow
 from managym import WORLD_VERSION
 
 NAME = "head-to-head"
-MatchupMode = Literal["cross", "mirrors"]
 MIRROR_DEAL_SEEDS = tuple(range(1_913_131_000, 1_913_131_100))
 MIRROR_SMOKE_SEEDS = (1_913_131_100, 1_913_131_101)
 TRAINING_CAVEAT = (
@@ -571,7 +576,6 @@ def run(
             for name, registration in admitted.registrations.items()
         },
     }
-    design_path = out / "design.json"
     if design_path.exists():
         if json.loads(design_path.read_text()) != json.loads(json.dumps(design)):
             raise ValueError("this output directory holds a different design")
@@ -756,6 +760,10 @@ def _load_cell(
     invalid = 0
     failed_units = 0
     seconds = 0.0
+    expected_decks = {
+        leg: list(selected_decks(leg))
+        for leg in (range(4, 8) if matchup_mode == "mirrors" else range(4))
+    }
     for seed in deal_seeds:
         path = out / "units" / Unit(*pairing, seed).directory / "rows.json"
         if not path.exists():
@@ -768,41 +776,26 @@ def _load_cell(
             invalid += max(4, len(raw_rows))
             continue
         bad = sum(not row.valid for row in rows)
-        expected_legs = set(range(4, 8) if matchup_mode == "mirrors" else range(4))
-        if bad or len(rows) != 4 or {row.leg for row in rows} != expected_legs:
+        if bad or len(rows) != 4 or {row.leg for row in rows} != expected_decks.keys():
             invalid += bad or max(4, len(rows))
             continue
         ordered = sorted(zip(rows, raw_rows, strict=True), key=lambda item: item[0].leg)
-        seats: list[int] = []
-        decks: list[list[str]] = []
-        for row, raw in ordered:
-            expected_decks = (
-                ["ur_lessons", "ur_lessons"]
-                if row.leg in (4, 5)
-                else ["gw_allies", "gw_allies"]
-                if row.leg in (6, 7)
-                else ["ur_lessons", "gw_allies"]
-                if row.leg < 2
-                else ["gw_allies", "ur_lessons"]
-            )
-            if (
-                (row.player_a, row.player_b) != pairing
-                or row.deal_seed != seed
-                or raw.get("player_a_seat") != row.leg % 2
-                or raw.get("seat_decks") != expected_decks
-            ):
-                bad += 1
-            seats.append(row.leg % 2)
-            decks.append(expected_decks)
+        bad = sum(
+            (row.player_a, row.player_b) != pairing
+            or row.deal_seed != seed
+            or raw.get("player_a_seat") != row.leg % 2
+            or raw.get("seat_decks") != expected_decks[row.leg]
+            for row, raw in ordered
+        )
         if bad:
             invalid += bad
             continue
         kept.append(seed)
         scores.append([float(row.score_a or 0.0) for row, _ in ordered])
         lessons.append(
-            [d[s] == "ur_lessons" for d, s in zip(decks, seats, strict=True)]
+            [expected_decks[row.leg][row.leg % 2] == "ur_lessons" for row, _ in ordered]
         )
-        play.append([seat == 0 for seat in seats])
+        play.append([row.leg % 2 == 0 for row, _ in ordered])
         seconds += sum(row.game_seconds for row in rows)
         # The rating bootstrap resamples `deal_block`; the arena numbers blocks
         # within one call, so rebind it to this deal's place in the cohort.

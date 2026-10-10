@@ -6,12 +6,32 @@ from types import SimpleNamespace
 import pytest
 from test_match import selected_players
 
-from manabot.arena.match import play_cell, selected_match
+from manabot.arena.match import play_cell, selected_decks, selected_match
 from manabot.env import Match, ObservationSpace
 from manabot.infra.hypers import MatchHypers
 from manabot.model.world import checkpoint_world, validate_agent_setup
 from manabot.training.monitor_evaluation import ArenaRow
 from managym import Env
+
+
+def test_selected_leg_layout_preserves_cross_setups() -> None:
+    match = Match(selected_match())
+    for leg in range(8):
+        decks = selected_decks(leg)
+        actual = MatchHypers.authored(
+            "ur-lessons-vs-gw-allies", *decks, hero=match.hero, villain=match.villain
+        )
+        if leg < 4:
+            expected = match if leg < 2 else match.swapped()
+            actual.hero, actual.villain = expected.hero, expected.villain
+            assert actual.model_dump() == expected.hypers.model_dump()
+        else:
+            deck = "ur_lessons" if leg < 6 else "gw_allies"
+            assert decks == (deck, deck)
+            assert actual.content_pack == "ur-lessons-vs-gw-allies"
+    for leg in (-1, 8):
+        with pytest.raises(ValueError, match="leg"):
+            selected_decks(leg)
 
 
 def test_authored_mirrors_keep_compiled_manifest_and_strict_roster() -> None:
