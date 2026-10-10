@@ -1,5 +1,10 @@
 # Manabot research
 
+> For the current ranked questions, experiment coverage and confidence picture,
+> start at [the research snapshot](../research/manabot/README.md). This document
+> retains the longer-term thesis and historical frontiers; its older “next”
+> builds are not the current execution plan or evidence of current-world strength.
+
 Manabot is Etude Fantasia's program for building increasingly strong Magic:
 The Gathering agents. The objective is not to accumulate isolated model
 results. It is to build agents that play real `managym` games, measure them

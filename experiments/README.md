@@ -31,6 +31,10 @@ Run provenance lives in the verify store (`.runs/verify.sqlite`).
 
 ## Index
 
+For a question-first view, see the [manabot research map](../research/manabot/README.md).
+It distinguishes results, failed attempts, unexecuted protocols and pending
+reports, with revision-pinned sources and draft confidence assessments.
+
 [ETU-105 mini filter scope](ataraxos-technique-screen.md#mini-result--completed-2026-10-07):
 actor-only gained +3.33 [−4.33, 11.33] points against held-out greedy at 45% extra
 training cost; unpromoted. All 3,600 monitoring/final games replayed exactly.
