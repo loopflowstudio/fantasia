@@ -42,7 +42,6 @@ Keep separate: (a) original three-capacity WDL proposal never executed; (b) Mini
 
 - `larger-models@1` — Contains distinct proposed, Mini and GPU capacity work; endpoints and actual exposure differ.
 - `model-fit@1` — Tests or prepares architectural alternatives; cost, information and sample exposure must remain separate.
-
 - `machine-fit@1` — Measures source/host-bound workload costs or resource limits; contention and failed attempts constrain hardware conclusions.
 
 ## ataraxos-technique-screen
@@ -68,7 +67,6 @@ Four arms × three paired seeds, 600 updates rather than the timing-infeasible 8
 
 - `pooling-floor-interaction@1` — The explicit factorial measures floor removal separately under both pooling choices.
 - `late-selection@1` — Records selected-sample counts or empty updates; early-run evidence motivates but cannot settle late-training starvation.
-
 - `model-fit@1` — Tests or prepares architectural alternatives; cost, information and sample exposure must remain separate.
 
 ## value-token-screen
@@ -82,7 +80,6 @@ Nine runs, three paired seeds, 800 updates and 1,800 exact-replayed screening ga
 
 - `late-selection@1` — Records selected-sample counts or empty updates; early-run evidence motivates but cannot settle late-training starvation.
 - `aggregation-at-small-capacity@1` — Contrasts critic aggregation while retaining shared policy representations, so a critic-only explanation is not identified.
-
 - `model-fit@1` — Tests or prepares architectural alternatives; cost, information and sample exposure must remain separate.
 
 ## history-results
@@ -96,7 +93,6 @@ Later history-off/on continuation: three seeds, 250/500 updates (64k/128k transi
 
 - `recent-history-input@1` — Supplies the completed cohort absent from the initial failed-calibration report.
 - `schedule-exploration@1` — Bounds what recorded entropy can say about policy support.
-
 - `late-selection@1` — Observed filtering losses do not identify a beneficial intervention.
 
 ## history-input
@@ -475,7 +471,6 @@ Next student regressed after changed teacher economics; no demonstrated compound
 
 - `search-as-teacher@1` — Measures or bounds search-label/value utility and end-to-end teacher cost; software completion is kept separate from student strength.
 - `expert-iteration-compounds@1` — Returning a student to search is the relevant intervention; a weaker or unrun teacher provides no compounding result.
-
 - `machine-fit@1` — Batched inference changed label economics, illustrating why inference throughput is not full-loop learning progress.
 
 ## exp-08-two-deck-matchup
