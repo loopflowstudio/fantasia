@@ -7,9 +7,10 @@ and operational evidence as well as successes. [Confidence](confidence.md) separ
 working software from effective learning. [Draft findings](findings.md) cite the
 experiments, not project completion.
 
-The immediate objective is a reproducibly trained Allies/Lessons challenger, not
-an unrestricted claim about Magic. **We have stronger evidence that the machinery
-works than that the current recipe keeps producing stronger players.** The latest
+The [accepted chapter](../../wave/intelligence/GOAL.md) seeks a reproducibly trained
+Allies/Lessons challenger, not an unrestricted claim about Magic. **We have stronger
+evidence that the machinery works than that the current recipe keeps producing
+stronger players.** The latest
 reported baseline gain is important but still pending committed final analysis in
 this snapshot. A flat greedy score is not yet a diagnosed learning ceiling.
 

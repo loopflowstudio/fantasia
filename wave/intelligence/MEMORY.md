@@ -2,20 +2,20 @@
 
 ## Question-first research map (MTG-130, 2026-10-09)
 
-Jack Heart requested a ranked area/question/experiment hierarchy and an honest
-confidence picture. [The map](../../research/manabot/README.md) pins reports to
-`43c6e479`, retains failures and pending branch evidence, and distinguishes
-software correctness from useful learning. Ranking and findings are agent drafts
-awaiting Jack Heart, not approved allocations or recipe choices. Etude's research
-shape is preserved; no second runtime or external checkout was changed.
+Jack Heart requested a ranked area/question/experiment hierarchy and confidence
+picture. [The map](../../research/manabot/README.md) pins reports to `43c6e479`,
+retains failures and pending branch evidence, and separates software correctness
+from useful learning. Agent drafts await Jack Heart's review; they are not
+allocations or recipe choices. GOAL.md's Trained Challengers chapter supersedes
+README.md's July work queue. Etude's research shape is preserved without another
+runtime or edits to its checkout.
 
-The task snapshot reports baseline held-out improvement, capacity cancellation,
-a disk-stopped LR restart and unfinished mirror/early-LR/head-to-head work.
-These supersede older operational snapshots as reported direction, not verified
-final analysis. Local-only results remain pending. History continuation did run
-after the failed calibration: its committed report is inconclusive, not absent.
-The floor/architecture screens do not identify a late-training cause; greedy
-progress, general strength and human-challenger acceptance stay distinct.
+The dated task snapshot reports baseline held-out improvement, capacity
+cancellation, a disk-stopped LR restart and unfinished mirror/early-LR/head-to-head
+work. These supersede older operational snapshots, not verified final analysis;
+local-only results remain pending. History continuation's committed report is
+inconclusive, not absent. Early floor/architecture screens do not identify a
+late-training cause; greedy progress, general strength and human acceptance differ.
 
 ## Numerical policy contract (ETU-127, 2026-10-07)
 
