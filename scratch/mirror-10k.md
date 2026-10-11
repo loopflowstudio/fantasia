@@ -22,8 +22,6 @@ The selected Standard/Nice=10 calibration completed in 43.50/40.93 seconds for
 Remaining: source commit/publication, independent launch, actual checkpoint +
 initial arena receipt and output paths. No strength conclusion before endpoints.
 
-Check: focused recovery/numerical/matchup tests passed; final Experiment/authoring
-suite passed 30 tests. No native edits; existing PR264 CI is historical.
 
 Launch verified at source `9649f42f`: actual updates/recovery artifact and replayed
 initialization games are in `.runs/etu125-10k/launch-evidence.json`. The launch-time
@@ -38,4 +36,4 @@ uncommitted notes are retained beside it. Delivery does not authorize a restart.
 The notebook selects `science/` so engineering calibration stays out of the primary
 dashboard. Service report refresh preserves this edit.
 
-Check: 15 focused Python and 61 native debug library tests passed after sync; broader affected checks are running.
+Check: 52 affected Python + 61 native debug tests passed; rebuilt extension passed 10 mirror checks. Recovery/dashboard/queue suite passed 36/37; the remaining source-identity check passed alone after publication stopped changing HEAD. No recovery code defect was found. CI reports on PR264.
