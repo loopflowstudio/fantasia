@@ -594,13 +594,13 @@ def test_sparse_recovery_replays_unsaved_updates_exactly(
         ).fetchone()
         failed = store.training_run(row[0])
         assert len(failed.stages[0].diagnostics) == 2
-        assert load_update(failed).iteration == 1
+        assert load_update(failed, store).iteration == 1
         resumed = execution.execute_regime(
             value, 197, tmp_path / "resumed", store, resume_from=failed.id
         )
         assert resumed.status == "completed"
         assert resumed.prior_seconds == failed.seconds
-        a, b = load_update(whole), load_update(resumed)
+        a, b = load_update(whole, store), load_update(resumed, store)
         for name in ("learner", "optimizer", "ema", "torch_rng", "minibatch_rng"):
             assert_state_equal(getattr(a, name), getattr(b, name))
         assert a.collector.journal == b.collector.journal
