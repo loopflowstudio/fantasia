@@ -25,6 +25,12 @@ RSS sampling can reduce overhead without changing learning. Long native-replay
 recovery needs an explicit journal ceiling, sparse snapshots and storage reserves.
 The [protocol](../../experiments/mirror-curriculum.md) owns admission, paired
 100-game greedy cells, receipts, allocations and pending curriculum comparison.
+The long cohort launched at `9649f42f`; exact HEAD binds same-host recovery.
+Jack Heart requested PR264 conflict/CI repair and landing on 2026-10-10.
+No cohort process remains active; four trajectories completed after retained
+disk-reserve failures, but Experiment remains incomplete (43 completed monitor
+records, one incomplete). Frozen source/notes are archived in `.runs/etu125-10k`.
+Delivery is not cohort acceptance or permission to restart on changed sources.
 
 
 ## Numerical policy contract (ETU-127, 2026-10-07)
@@ -392,13 +398,11 @@ arbitrary lag. Preserve same-viewer terminal/bootstrap boundaries, full behavior
 distributions, opponent versions, unique samples and one optimizer owner. Zero-lag
 compatibility remains a proposal. No scientific allocation follows.
 
-## Focused value-model software (ETU-106, 2026-10-05)
+## Focused value-model software (ETU-106)
 
-Jack Heart authorized value-pooling/head software and evaluation-only recovery.
-The later completed screens above own empirical dispositions; no default was
-promoted. Original shared-representation cautions, PR222 proof and frozen
-ETU-91 preservation remain in [the protocol](../../experiments/value-models.md)
-and memory at `7316da5d`.
+Software authorization and historical proofs remain at `9649f42f` and
+[the protocol](../../experiments/value-models.md); completed screens above own
+empirical dispositions. No default was promoted; ETU-91 remains untouched.
 
 
 ## Operating principle
