@@ -377,16 +377,6 @@ def _execute_regime(
     last_export = float("-inf")
     export_wait = PROGRESS_EXPORT_SECONDS
 
-    def save_run() -> None:
-        """Stamp normal progress and failures with the same allocation clocks."""
-        run.seconds = time.perf_counter() - start
-        run.watchdog_seconds = budget_now() - watchdog_start
-        run.last_recorded_wall_seconds = time.time()
-        run.last_recorded_active_seconds = time.monotonic()
-        run.calendar_seconds = max(0.0, run.last_recorded_wall_seconds - calendar_start)
-        run.downtime_seconds = max(0.0, run.calendar_seconds - run.seconds)
-        store.save_training_run(run)
-
     def persist(*, progress: bool = False) -> None:
         """Commit the run to the store and refresh its run.json export.
 
@@ -398,7 +388,13 @@ def _execute_regime(
         completion and failure always export.
         """
         nonlocal last_export, export_wait
-        save_run()
+        run.seconds = time.perf_counter() - start
+        run.watchdog_seconds = budget_now() - watchdog_start
+        run.last_recorded_wall_seconds = time.time()
+        run.last_recorded_active_seconds = time.monotonic()
+        run.calendar_seconds = max(0.0, run.last_recorded_wall_seconds - calendar_start)
+        run.downtime_seconds = max(0.0, run.calendar_seconds - run.seconds)
+        store.save_training_run(run)
         began = time.monotonic()
         if progress and began - last_export < export_wait:
             return
@@ -1579,13 +1575,13 @@ def _execute_regime(
         )
         run.error = f"{type(error).__name__}: {error}"
         if run.stages and run.stages[-1].status != "completed":
-            run.stages[-1].watchdog_seconds = (
+            record = run.stages[-1]
+            record.watchdog_seconds = (
                 prior_stage_watchdog + budget_now() - stage_watchdog_start
             )
-            run.stages[-1].status = run.status
-            run.stages[-1].error = run.error
-            run.stages[-1].seconds = time.perf_counter() - stage_start
-            record = run.stages[-1]
+            record.status = run.status
+            record.error = run.error
+            record.seconds = time.perf_counter() - stage_start
             retained_paths = {item["path"] for item in record.artifacts.values()}
             for journal in out.glob(f"{record.id}-*.receipts.jsonl"):
                 if str(journal) not in retained_paths:
@@ -1639,8 +1635,7 @@ def _execute_regime(
                 record.diagnostic_seconds += time.perf_counter() - capture_start
                 record.seconds = time.perf_counter() - stage_start
         try:
-            save_run()
-            export_training_run(run.id, store, out)
+            persist()
         except Exception as telemetry_error:
             error.add_note(
                 f"terminal telemetry failed: {type(telemetry_error).__name__}"

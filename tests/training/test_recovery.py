@@ -282,12 +282,9 @@ with VerifyStore(Path(sys.argv[2])) as store:
         assert resumed.prior_seconds == parent.seconds
         assert (failed_out / "run.json").read_bytes() == evidence
         whole = execution.execute_regime(value, 197, tmp_path / "whole", store)
-        assert_state_equal(
-            load_update(whole, store).learner, load_update(resumed, store).learner
-        )
-        assert_state_equal(
-            load_update(whole, store).optimizer, load_update(resumed, store).optimizer
-        )
+        a, b = load_update(whole, store), load_update(resumed, store)
+        assert_state_equal(a.learner, b.learner)
+        assert_state_equal(a.optimizer, b.optimizer)
 
 
 def test_live_lease_rejects_recovery(
