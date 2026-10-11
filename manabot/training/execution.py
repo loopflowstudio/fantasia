@@ -231,11 +231,8 @@ def execute_regime(
             leases.enter_context(
                 attempt_lock(Path(parent.recovery_lock_path), existing=True)
             )
-            if (
-                not regime.recoverable
-                or parent.seed != seed
-                or parent.regime_digest
-                != canonical_sha256(regime.model_dump(mode="json"))
+            if parent.seed != seed or parent.regime_digest != canonical_sha256(
+                regime.model_dump(mode="json")
             ):
                 raise ValueError("recovery recipe or seed mismatch")
             if (checkpoint_updates, checkpoint_seconds, checkpoint_milestones) != (
@@ -1641,9 +1638,8 @@ def _execute_regime(
                     record.error = run.error
                 record.diagnostic_seconds += time.perf_counter() - capture_start
                 record.seconds = time.perf_counter() - stage_start
-        save_run()
         try:
-            store.save_training_run(run)
+            save_run()
             export_training_run(run.id, store, out)
         except Exception as telemetry_error:
             error.add_note(
