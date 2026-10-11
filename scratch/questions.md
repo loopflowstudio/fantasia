@@ -47,3 +47,5 @@ Preserve the frozen duration cohort's tuple-valued explicit checkpoint milestone
 alongside main's integer cadence (distinct semantics, no cohort relaunch). Retain
 both current-game recovery and newer numerical/continuation instrumentation.
 Existing pinned Mini execution bytes and historical evidence remain untouched.
+
+Check: focused sync proof passed (7 report/allocation cases; 4 native cadence/recovery cases after rebuilding the stale local extension); no cohort execution or push.

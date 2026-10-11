@@ -8,9 +8,7 @@ This supersedes depth1/horizon selection, not promotion; ETU-116/82 belong here.
 ETU-105 released CPU. Preserve the single cohort and ETU-103 isolation.
 
 Mini source/native/environment `ba0ae3e9` remains frozen under
-`/Users/jack/src/etude/.runs/etu118-mini-20261007-1/source`. Plan `46aabdb0` binds
-seeds 11851–11853, 400/800 exports, milestones through 10000, separate 100-game
-anchors and 24 untouched final cells. Preserve absolute Ataraxos iterations and
+`/Users/jack/src/etude/.runs/etu118-mini-20261007-1/source`. Plan `46aabdb0` binds seeds, milestones and untouched final cells. Preserve absolute Ataraxos iterations and
 620+620 stages, despite the historical serialized elapsed-clock field.
 
 The [protocol/evidence](../../experiments/current-baseline.md) owns receipts,
@@ -22,10 +20,8 @@ Format-3 recovery retains VerifyStore prefixes and complete learning/game state;
 unknown gaps remain conservatively charged. Physical lid closure is untested;
 flat curves prompt review, not automatic failure.
 
-At launch S3 credentials were unavailable and W&B backfilled only 128 rows;
-no automatic later publication or auth repair is inferred. Sustained improvement,
-ordinary demo admission, published checkpoints and independent daily-test validation
-remain required; root controls and short-run gains cannot establish them.
+At launch S3 was credential-blocked; W&B backfilled 128 rows only. Sustained
+improvement, demo admission, archival and independent daily validation remain required.
 
 ## Numerical policy contract (ETU-127, 2026-10-07)
 
