@@ -9,13 +9,14 @@ from functools import partial
 import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import subprocess
 import time
 import traceback
 from typing import Protocol
 
-from manabot.infra.artifacts import StoredArtifact
+from manabot.infra.artifacts import S3ArtifactStore, StoredArtifact, verify_file
 from manabot.training.checkpoint_queue import CheckpointQueue
 from manabot.training.models import TrainingRun
 from manabot.verify.store import VerifyStore
@@ -134,6 +135,18 @@ def supervise(
         elif time.time() >= spec.work_deadline:
             record = record.model_copy(update={"phase": "deadline"})
         else:
+            if spec.learning_inputs:
+                artifacts = S3ArtifactStore()
+                inputs = Path("/opt/manabot/learning-inputs")
+                inputs.mkdir(parents=True, exist_ok=True, mode=0o700)
+                for role, reference in spec.learning_inputs.items():
+                    source = artifacts.fetch(reference, inputs / "cache")
+                    target = inputs / role
+                    shutil.copyfile(source, target)
+                    verify_file(target, reference.sha256, reference.bytes)
+                # Downloads consume the original allocation, never learner time.
+                if time.time() >= spec.work_deadline:
+                    raise TimeoutError("learning-state download exhausted allocation")
             if spec.monitoring is not None:
                 queue = CheckpointQueue(root / "monitoring", spec.monitoring)
             training_command = command or [
@@ -148,8 +161,11 @@ def supervise(
                 str(spec.plan.seed),
                 "--out",
                 str(root / "run"),
-                "--checkpoint-seconds",
-                str(spec.checkpoint_seconds),
+                *(
+                    ["--checkpoint-updates", str(spec.checkpoint_updates)]
+                    if spec.checkpoint_updates is not None
+                    else ["--checkpoint-seconds", str(spec.checkpoint_seconds)]
+                ),
                 *(
                     ["--allocation", str(allocation_path)]
                     if spec.allocation is not None
@@ -228,7 +244,12 @@ def supervise(
                         if queue.attempts and queue.attempts[0].status == "completed":
                             initial_run = _training_run(root)
                             assert initial_run is not None
-                            if initial_run.updates_through() != 0:
+                            inherited = sum(
+                                stage.learning_state_origin.iteration
+                                for stage in initial_run.stages
+                                if stage.learning_state_origin is not None
+                            )
+                            if initial_run.updates_through() != inherited:
                                 raise RuntimeError(
                                     "learning preceded initial admission"
                                 )

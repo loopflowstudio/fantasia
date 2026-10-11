@@ -1,5 +1,7 @@
 """Independent process lifetime and OS service installation, without live rentals."""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -17,7 +19,7 @@ from typer.testing import CliRunner
 from manabot.cli import app
 from manabot.remote import cohort_cli, cohort_service
 from manabot.remote.cohort import Cohort, CohortEntry, CohortState
-from manabot.remote.plan import JobSpec, compile_plan
+from manabot.remote.plan import JobSpec, Source, compile_plan
 from tests.remote.job_fixtures import FileStore
 from tests.remote.test_compile import ROOT, SOURCE
 
@@ -58,7 +60,7 @@ def test_storage_outage_cannot_extend_observation_deadline(
     now = value.deadline + 1799
     attempts = 0
 
-    def unavailable(*args: object) -> None:
+    def unavailable(*args: object, **kwargs: object) -> None:
         nonlocal attempts
         attempts += 1
         raise ConnectionError("private transport detail")
@@ -77,6 +79,9 @@ def test_storage_outage_cannot_extend_observation_deadline(
     assert attempts == 1
     error = json.loads((directory / "error.json").read_text())
     assert error["error_type"] == "ConnectionError"
+    assert error["error_location"][-1]["function"] == "unavailable"
+    assert error["error_location"][-1]["file"] == "test_cohort_service.py"
+    assert set(error["error_location"][-1]) == {"file", "function", "line"}
     assert "private transport detail" not in (directory / "error.json").read_text()
     # Restart at the same absolute deadline cannot reset the observation window.
     cohort_service.supervise_cohort(file, directory)
@@ -249,3 +254,67 @@ def test_launchd_restarts_killed_cohort_without_launcher(tmp_path: Path) -> None
             capture_output=True,
             timeout=10,
         )
+
+
+@pytest.mark.parametrize("loaded", [True, False])
+def test_controller_upgrade_retains_frozen_worker_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, loaded: bool
+) -> None:
+    cohort = plan()
+    old = tmp_path / "old"
+    old.mkdir()
+    new = tmp_path / "new"
+    new.mkdir()
+    source = Source(commit="d" * 40, tree="e" * 40, lock_sha256="f" * 64)
+    monkeypatch.chdir(new)
+    monkeypatch.setattr(
+        cohort_service, "current_source", lambda root: SOURCE if root == old else source
+    )
+    monkeypatch.setattr(cohort_service, "_machine_identity", lambda: "test")
+    monkeypatch.setattr(cohort_service.sys, "platform", "darwin")
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    commands: list[list[str]] = []
+    initially_loaded = loaded
+
+    def command(
+        args: list[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[bytes]:
+        nonlocal loaded
+        commands.append(args)
+        if args[1] == "print":
+            return subprocess.CompletedProcess(args, 0 if loaded else 1)
+        if args[1] == "bootout":
+            loaded = False
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(cohort_service.subprocess, "run", command)
+    original_lock = cohort_service.owner_lock
+    lock_attempts = 0
+
+    @contextmanager
+    def delayed_release(path: Path) -> Iterator[None]:
+        nonlocal lock_attempts
+        lock_attempts += 1
+        if lock_attempts < 3:
+            raise RuntimeError("cohort supervisor is already running")
+        with original_lock(path):
+            yield
+
+    monkeypatch.setattr(cohort_service, "owner_lock", delayed_release)
+    target = tmp_path / "Library/LaunchAgents/manabot.cohort.process-proof.plist"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"old service")
+    directory = tmp_path / "state"
+    with pytest.raises(ValueError, match="exact clean source"):
+        cohort_service.install_service(cohort, directory)
+    cohort_service.install_service(
+        cohort, directory, source_roots=(old,), replace_service=True
+    )
+    assert json.loads((directory / "sources.json").read_text()) == {
+        SOURCE.commit: str(old),
+        source.commit: str(new),
+    }
+    assert any(args[1] == "bootout" for args in commands) == initially_loaded
+    assert any(args[1] == "bootstrap" for args in commands)
+    assert lock_attempts == 3
+    assert (directory / "cohort.json").read_text() == cohort.model_dump_json(indent=2)

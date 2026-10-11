@@ -5,26 +5,91 @@ is explicitly configured, never provisioned. ExperimentRun records every actual
 process attempt; VerifyStore is its persistence owner.
 """
 
+import hashlib
+import math
 import os
 from pathlib import Path
 import socket
 from typing import Literal
 
-from pydantic import Field, JsonValue, model_validator
+from pydantic import ConfigDict, Field, JsonValue, model_validator
 
 from manabot.remote.plan import JobSpec
 from manabot.training.checkpoint_queue import MonitoringBudget
-from manabot.training.models import Strict
+from manabot.training.models import (
+    ArtifactReference,
+    CheckpointCadence,
+    Strict,
+    TrainingRun,
+    TrainSelfPlay,
+)
 
 
-class PlannedRun(Strict):
+class StepCalibration(Strict):
+    """Frozen throughput from an admitted completed pilot, not launch authority.
+
+    Convert requested active hours once before authoring targets. Preserve this
+    receipt beside the declaration; execution never consults it or retunes steps.
+    Pilot representativeness and runtime reserves remain experimental judgments.
+    """
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, frozen=True)
+    source_run: ArtifactReference
+    completed_updates: int = Field(gt=0, strict=True)
+    active_seconds: float = Field(gt=0)
+    learner_transitions: int = Field(gt=0, strict=True)
+
+    @classmethod
+    def from_export(cls, path: Path) -> "StepCalibration":
+        path = path.resolve()
+        payload = path.read_bytes()
+        run = TrainingRun.model_validate_json(payload)
+        if (
+            run.status != "completed"
+            or run.parent_run_id is not None
+            or len(run.stages) != 1
+            or len(run.regime.stages) != 1
+            or not isinstance(run.regime.stages[0], TrainSelfPlay)
+            or run.stages[0].status != "completed"
+            or run.stages[0].learning_state_origin is not None
+        ):
+            raise ValueError("calibration requires one completed fresh self-play stage")
+        stage = run.stages[0]
+        if (
+            not run.identities.get("training_source_sha256")
+            or "raw" not in stage.artifacts
+        ):
+            raise ValueError("calibration requires source and checkpoint receipts")
+        return cls(
+            source_run={
+                "path": str(path),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": len(payload),
+            },
+            completed_updates=len(stage.diagnostics),
+            active_seconds=stage.collection_seconds + stage.learning_seconds,
+            learner_transitions=stage.learner_transitions,
+        )
+
+    def updates_for(self, active_hours: float) -> int:
+        """Floor measured throughput to a positive count; no runtime hour trigger."""
+        if not math.isfinite(active_hours) or active_hours <= 0:
+            raise ValueError("requested active hours must be positive and finite")
+        updates = math.floor(
+            active_hours * 3600 * self.completed_updates / self.active_seconds
+        )
+        if updates < 1:
+            raise ValueError("requested active hours project fewer than one update")
+        return updates
+
+
+class PlannedRun(CheckpointCadence):
     """Bind one resolved case and training seed to allocation and evaluation intent."""
 
     case: str
     seed: int = Field(ge=0)
     spec: JobSpec
     monitoring: MonitoringBudget
-    checkpoint_seconds: float = Field(default=3600, gt=0)
     validate_numerics: bool = Field(default=False, exclude_if=lambda value: not value)
 
 
@@ -62,7 +127,7 @@ class HardwareInventory(Strict):
         raise ValueError(f"hardware is not configured: {name}")
 
 
-class ExperimentSchedule(Strict):
+class ExperimentSchedule(CheckpointCadence):
     """Frozen launch intent. Monitoring is exploratory and has its own deals."""
 
     seeds: tuple[int, ...]
@@ -71,7 +136,6 @@ class ExperimentSchedule(Strict):
     # Additive learner + evaluator process seconds, including overlap.
     process_seconds: float = Field(gt=0)
     monitoring: MonitoringBudget
-    checkpoint_seconds: float = Field(default=3600, gt=0)
     # Reserve existing scientific deal families without redefining their protocol.
     scientific_deal_seeds: tuple[int, ...] = ()
     # Case indexes per seed; empty means declaration order for every seed.

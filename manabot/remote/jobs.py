@@ -13,6 +13,7 @@ from pydantic import Field, model_validator
 
 from manabot.infra.artifacts import StoredArtifact, split_s3_uri
 from manabot.training.checkpoint_queue import MonitoringBudget
+from manabot.training.models import CheckpointCadence
 
 from .plan import MAX_JOB_SECONDS, Allocation, DeploymentPlan, Frozen, digest
 from .provider import Pod
@@ -30,7 +31,7 @@ JobPhase = Literal[
 ]
 
 
-class Job(Frozen):
+class Job(CheckpointCadence, Frozen):
     """Admitted execution intent: exact plan, identity and absolute deadline."""
 
     job_id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,62}$")
@@ -39,15 +40,43 @@ class Job(Frozen):
     deadline: float
     destination: str = DEFAULT_JOBS
     monitoring: MonitoringBudget | None = None
-    checkpoint_seconds: float = Field(default=60, gt=0)
     publish_seconds: float = Field(default=30, ge=5)
     # Optional original Experiment authoring receipt; not a second recipe owner.
     experiment_json: str | None = None
     # Omit the absent gate so historical job identities remain byte-for-byte stable.
     validate_numerics: bool = Field(default=False, exclude_if=lambda value: not value)
+    learning_inputs: dict[str, StoredArtifact] = Field(
+        default_factory=dict, exclude_if=lambda value: not value
+    )
 
     @model_validator(mode="after")
     def valid(self) -> "Job":
+        self.admit_regime(self.plan.regime)
+        if any(
+            getattr(stage, "pretrained", None) is not None
+            for stage in self.plan.regime.stages
+        ):
+            # A worker receives only bytes the controller staged and granted;
+            # pretrained weights have no such grant yet, so fail before renting.
+            raise ValueError("remote jobs cannot stage pretrained weights")
+        if self.learning_inputs:
+            from manabot.training.models import TrainSelfPlay
+
+            stage = self.plan.regime.stages[0]
+            if not isinstance(stage, TrainSelfPlay) or stage.learning_state is None:
+                raise ValueError(
+                    "learning inputs require an explicit learning-state import"
+                )
+            if set(self.learning_inputs) != {"source_run", "raw", "ema", "optimizer"}:
+                raise ValueError("incomplete learning-state inputs")
+            for role, artifact in self.learning_inputs.items():
+                reference = getattr(stage.learning_state, role)
+                if reference != {
+                    "path": f"/opt/manabot/learning-inputs/{role}",
+                    "sha256": artifact.sha256,
+                    "bytes": artifact.bytes,
+                }:
+                    raise ValueError("learning input differs from the frozen recipe")
         bucket, prefix = split_s3_uri(self.destination)
         if not prefix or any(c in prefix for c in "*?[]") or ".." in prefix.split("/"):
             raise ValueError("job destination requires a literal private S3 prefix")
@@ -62,6 +91,17 @@ class Job(Frozen):
             if self.destination != self.plan.spec.access.destination:
                 raise ValueError("job destination differs from JobSpec access scope")
         if self.monitoring is not None:
+            if (
+                self.checkpoint_updates is not None
+                and self.monitoring.require_initial_admission
+                and any(
+                    getattr(s, "learning_state", None) is not None
+                    for s in self.plan.regime.stages
+                )
+            ):
+                raise ValueError(
+                    "step continuation cannot repeat initialization admission"
+                )
             if self.monitoring.require_initial_admission and (
                 len(self.plan.regime.stages) != 1
                 or self.plan.regime.stages[0].operation != "train_self_play"

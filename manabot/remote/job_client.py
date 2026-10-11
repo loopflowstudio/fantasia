@@ -145,7 +145,8 @@ def prepare_job(
     *,
     destination: str | None = None,
     monitoring: MonitoringBudget | None = None,
-    checkpoint_seconds: float = 60,
+    checkpoint_seconds: float | None = None,
+    checkpoint_updates: int | None = None,
     publish_seconds: float = 30,
     experiment_json: str | None = None,
     validate_numerics: bool = False,
@@ -164,6 +165,7 @@ def prepare_job(
         else plan.spec.access.destination,
         monitoring=monitoring,
         checkpoint_seconds=checkpoint_seconds,
+        checkpoint_updates=checkpoint_updates,
         publish_seconds=publish_seconds,
         experiment_json=experiment_json,
         validate_numerics=validate_numerics,
@@ -202,6 +204,7 @@ def submit_job(
     store: JobStore | None = None,
     provider: RunPod | None = None,
     credentials: Callable[[Job], dict[str, str]] = worker_credentials,
+    source_root: Path | None = None,
 ) -> JobStatus:
     """Provision up to acceptance; interruption is reconciled with the same spec.
 
@@ -226,7 +229,7 @@ def submit_job(
         )
     if (
         store.read("training-claim.json") is None
-        and current_source(Path.cwd()) != spec.plan.source
+        and current_source(source_root or Path.cwd()) != spec.plan.source
     ):
         raise ValueError(
             "new submission requires the exact clean source of the compiled plan"
@@ -236,7 +239,7 @@ def submit_job(
     environment = credentials(spec)
     probe_key = "guardian-proof.json"
     if store.read(probe_key) is None:
-        deadline = min(spec.created_at + 90, spec.work_deadline)
+        deadline = min(time.time() + 90, spec.work_deadline)
         # No SSH connection or private key is needed to prove self-deletion.
         probe = _provision(
             spec,
@@ -247,6 +250,8 @@ def submit_job(
             startup(int(deadline), "ssh-ed25519 AAAA manabot-probe"),
             {},
         )
+        # A reconnect observes the original probe, never a renewed deadline.
+        deadline = probe.claim.deadline
         while time.time() < deadline + 30:
             if provider.get(probe.pod.id) is None:
                 if time.time() < deadline - 2:
@@ -261,12 +266,15 @@ def submit_job(
                 "guardian deletion unconfirmed; cancel this job before further rental"
             )
     environment.update({"MANABOT_JOB_PREFIX": spec.prefix})
-    _provision(
+    training = _provision(
         spec, store, provider, "training", spec.deadline, job_startup(spec), environment
     )
     # Once launched, all setup/training/upload/deletion is remote-owned. A lost
     # acknowledgement is resolved by this same read; no finally block cancels it.
-    while time.time() < spec.created_at + spec.plan.spec.setup_seconds:
+    acceptance_deadline = min(
+        training.claim.intent_time + spec.plan.spec.setup_seconds, spec.work_deadline
+    )
+    while time.time() < acceptance_deadline:
         status = job_status(spec, store=store, provider=provider)
         if status.record is not None:
             return status
@@ -523,7 +531,8 @@ def prepare_experiment_job(
     *,
     monitoring: MonitoringBudget,
     destination: str | None = None,
-    checkpoint_seconds: float = 60,
+    checkpoint_seconds: float | None = None,
+    checkpoint_updates: int | None = None,
     validate_numerics: bool = False,
 ) -> Job:
     """Compile one resolved Experiment case through the ordinary job lifecycle.
@@ -540,6 +549,7 @@ def prepare_experiment_job(
         else plan.spec.access.destination,
         monitoring=monitoring,
         checkpoint_seconds=checkpoint_seconds,
+        checkpoint_updates=checkpoint_updates,
         experiment_json=json.dumps(case.receipt(), sort_keys=True),
         validate_numerics=validate_numerics,
     )

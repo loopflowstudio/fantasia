@@ -143,6 +143,36 @@ mod catalog_tests {
     }
 
     #[test]
+    fn explicit_mirrors_preserve_pack_and_reject_unadmitted_setups() {
+        let catalog = authored_runtime_catalog().unwrap();
+        let runtime = catalog
+            .iter()
+            .find(|r| r.pack_key == "ur-lessons-vs-gw-allies")
+            .unwrap();
+        for setup in &runtime.setups {
+            let mut config = setup.clone();
+            config.content_pack = Some(runtime.pack_key.clone());
+            let pair = vec![config.clone(), config.clone()];
+            assert_eq!(
+                select_authored_runtime(&pair, &catalog)
+                    .unwrap()
+                    .unwrap()
+                    .pack_key,
+                runtime.pack_key
+            );
+            let mut wrong = pair.clone();
+            wrong[0].content_pack = None;
+            assert!(select_authored_runtime(&wrong, &catalog).is_err());
+            wrong = pair.clone();
+            wrong[0].decklist.clear();
+            assert!(select_authored_runtime(&wrong, &catalog).is_err());
+            wrong = pair.clone();
+            wrong[0].content_pack = Some("missing-pack".into());
+            assert!(select_authored_runtime(&wrong, &catalog).is_err());
+        }
+    }
+
+    #[test]
     fn duplicate_exact_catalog_entries_fail_closed() {
         let semantic = SemanticPack::jeong_increment().expect("Jeong IR parses");
         let player_configs = configs(&semantic, "ur_lessons", "gw_allies_jeong");

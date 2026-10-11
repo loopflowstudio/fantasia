@@ -442,7 +442,7 @@ experiment = Experiment(
     jobs=(PlannedRun(
         case="step-comparison", seed=197, spec=spec,
         monitoring=MonitoringBudget(seconds=600, attempt_seconds=120),
-        checkpoint_seconds=3600,   # monitoring cadence
+        checkpoint_updates=1000,   # frozen absolute iteration cadence
     ),),
 )
 source = Source.model_validate_json(Path("source.json").read_text())
@@ -539,3 +539,74 @@ its original record says completed despite omitting its endpoint evaluation.
 Keep that record as evidence; a separately recovered evaluation does not rewrite
 it or establish remote lifecycle acceptance. See the
 [capacity recovery record](../experiments/model-capacity.md#live-cuda-recovery--2026-10-08).
+
+## Segmented learner continuation
+
+`manabot deploy cohort insert --cohort-id ID --plan insertion.json` atomically
+adds a `CohortInsertion` after one original job. Original cohort bytes, scientific
+entries, attempts and spending ceiling remain unchanged. The operation
+rejects an already admitted successor, excess aggregate reservations, duplicate
+IDs and allocations that cannot fit the remaining deadline. An explicit insertion
+may extend the cohort deadline within a separately admitted access expiry; it
+never changes an existing job deadline or resets consumed money. A lost response is
+reconciled by rereading the same insertion; it never admits a replacement job.
+A cohort binds one insertion boundary. Later entries are added by submitting the
+bound insertion with new entries appended: existing entries, the boundary and
+admitted deadline or access limits cannot change, and the appended entries pass
+the same budget, deadline and admitted-successor checks.
+
+Each added `CohortEntry.continuation` names an earlier job, its stage and expected
+absolute iteration. After that job completes, publishes its final manifest and
+confirms cleanup, the existing controller binds its exact raw/EMA/Adam and
+TrainingRun artifacts into the new allocation. Only manifests cross the scheduler;
+the worker retrieves and verifies the four versioned objects. Its expiring STS
+policy grants read-only access to those exact inputs, alongside the ordinary
+job-scoped runtime permissions. No issuer/account credentials reach workers.
+A failed, paused or missing predecessor blocks dependent admission.
+
+Self-play `updates` is the absolute endpoint for these entries. For example,
+26,000 → 63,000 → 100,000 uses two separate allocations; the second cannot start
+without the first segment's completed exports. Ataraxos rates retain their existing
+absolute-iteration formulas. Raw policy, Adam moments, EMA and counters survive;
+collector/game/RNG streams explicitly restart. This is learner-state continuation,
+not exact CUDA process recovery. Each segment charges its own allocation, setup,
+evaluation, downloads and final publication, preserving inherited cost separately.
+
+A controller upgrade may retain multiple exact worker-source checkouts. On macOS,
+run `cohort start` from the new clean controller checkout with the same plan and
+state directory, `--source-root /absolute/original-worker-checkout`, and
+`--replace-service` (plus the original `--reports` options). It stops only the
+local service, reuses its permanent owner binding, and restarts under launchd;
+the active rental continues independently. Replacement waits up to 15 seconds for
+the old process to release its owner lock after launchd unloads it. A retry also
+handles a service already unloaded by an interrupted handoff; the report companion
+uses its own service lock. Source paths are recorded locally and
+checked against each frozen Source before new submissions. Upgrade before inserting
+entries, so an older controller never receives state it cannot parse. Keep original
+source checkouts and credentials until every dependent allocation settles.
+
+### Queued price rejection and startup clocks
+
+Public worker source is `loopflowstudio/fantasia`, not the private service repository
+`loopflowstudio/etude`. Admission checks the pinned commit/tree; Git fallback also
+checks lock bytes. An API 403 may use the controller's existing `gh` login, then
+public Git fetch. No controller GitHub credential is forwarded to the rental.
+
+Queue admission fixes the overall allocation deadline, but cannot start the
+90-second guardian proof or consume the bootstrap allowance before provider
+submission. A resumed probe keeps its original claim deadline. Bootstrap uses a
+submission-time setup cutoff bounded by the unchanged job work deadline;
+reconnecting retains the training claim's acceptance cutoff. None extends a lease.
+Controller errors retain code file/function/line coordinates without exception
+messages, source lines or locals, which may contain credentials.
+
+A live-price rejection before any create claim does not authorize silent mutation,
+replacement, or resetting costs. The ETU-126 2026-10-08 exception used an explicitly
+authorized offline migration: stop the owner and report companion, acquire the same
+owner lock, prove no create claims/resources and reconcile inventory, then archive
+original and proposed bytes in a create-only private S3 journal before CAS writes.
+Restart only after every write is reread and local projections agree. Any partial
+write leaves services stopped for journal reconciliation. This was a one-off
+operational repair, not a general repricing/retry API. Original scientific learning
+contracts and completed attempts remain unchanged; the operational cohort identity
+changes. See the [capacity record](../experiments/model-capacity.md#queued-price-admission-recovery-2026-10-08).

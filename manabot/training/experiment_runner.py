@@ -27,7 +27,7 @@ import torch
 
 from manabot.arena.models import canonical_sha256
 from manabot.sim.teacher1_evidence import source_bundle_sha256
-from manabot.training.checkpoint_queue import CheckpointQueue
+from manabot.training.checkpoint_queue import CheckpointQueue, stop_process_group
 from manabot.training.execution import atomic_json, execute_regime
 from manabot.training.experiment_execution import (
     ExperimentRun,
@@ -54,11 +54,7 @@ def _runtime() -> dict[str, str]:
 
 
 def _stop(process: subprocess.Popen[bytes]) -> None:
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-    process.wait()
+    stop_process_group(process)
 
 
 def run_experiment(
@@ -84,6 +80,8 @@ def run_experiment(
     selected = hardware.select(schedule.hardware)
     resolved = experiment.resolve()
     regimes = resolved.regimes
+    for regime in regimes.values():
+        schedule.admit_regime(regime)
     if any(
         getattr(stage, "execution", None) is not None
         and (
@@ -259,6 +257,7 @@ def run_experiment(
                         "store": str(store.path.resolve()),
                         "resume_from": attempt.recovery_parent,
                         "checkpoint_seconds": schedule.checkpoint_seconds,
+                        "checkpoint_updates": schedule.checkpoint_updates,
                         "allowance_seconds": attempt.allowance_seconds,
                         "deadline_unix": time.time() + attempt.allowance_seconds,
                     },
@@ -386,6 +385,7 @@ def main() -> None:
             store,
             resume_from=payload["resume_from"],
             checkpoint_seconds=payload["checkpoint_seconds"],
+            checkpoint_updates=payload.get("checkpoint_updates"),
         )
     if run.status != "completed":
         raise SystemExit(1)

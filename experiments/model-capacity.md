@@ -260,11 +260,11 @@ and final delivery still get full readback. The frozen pilot ran the earlier
 publisher, so it provides no measured speedup for that optimization. Every planned
 scientific job now binds the numerical-admission flag through Experiment/Cohort.
 
-### Measured targets and remaining admission
+### Measured targets and admitted cohort
 
 Targets are frozen prospectively from timing, without using pilot scores:
 
-| Arm | Iterations per seed | Transitions | Projected active hours | Proposed lease / hard cap |
+| Arm | Iterations per seed | Transitions | Projected active hours | Admitted lease / hard cap |
 | --- | ---: | ---: | ---: | --- |
 | Small width64/depth2 | 26,000 | 13,312,000 | 4.13 | 9.5 h / $4.95 |
 | Large width384/depth8 | 15,600 | 7,987,200 | 7.95 | 11.95 h / $6.20 |
@@ -285,9 +285,9 @@ ordinary Experiment/JobSpec plans compile without provisioning. Large reserves
 upload and the existing setup/checkpoint/cleanup reserves. Its 11.95-hour lease
 fits the worker's 11h59m admission ceiling, leaving issuance margin below the
 12-hour STS limit. Small keeps its shorter allocation and 30-minute evaluation
-attempts. No long job is admitted until final source, prices and authority agree.
+attempts. Final source, live prices and Mini authority were admitted before launch.
 
-At the observed quote, all six proposed caps total $33.45. Adding retained charges,
+At the admitted quote, all six caps total $33.45. Adding retained charges,
 $0.70 guardian reserve, $3 durable storage, $2 controller/reporting and $5
 unreconciled-cost reserve gives **$48.867918369190**, within $100. This is a
 conservative reservation, not additional invoices or automatic retry authority.
@@ -317,6 +317,36 @@ secrets; do not revoke shared original keys or alter Mini learning. The IAM expi
 bounds S3 authority but not copied provider-key authority, so host cleanup remains
 required after settlement. Final source and service admission are retained with
 the versioned preparation. No six-run result follows from one advancing job.
+
+### Independent controller launch
+
+Merged PR263 source `45940fe3587fe37851267d0c903c6030a3a64a92` owns the
+[frozen v3 protocol](data/etu126/capacity-recovery-v3.json) and
+[six-job admission](data/etu126/cohort-admission-20261008.json).
+The protocol was committed before initialization scoring. Cohort
+`etu103-recovery-v3-science` runs under Mini launchd with a separate projection
+service and the [admitted restricted identity](data/etu126/controller-admission-20261008.json).
+The launcher exited. Mini's dedicated source checkout leaves existing training
+checkouts and learners unchanged. A Loopflow sync push failed on Mini's absent
+GitHub HTTPS credentials; exact clean runtime source verification succeeded,
+and no unrelated GitHub credential was installed.
+
+The [live launch receipt](data/etu126/controller-launch-20261008.json) records a
+forced owner SIGKILL followed by launchd restart after 2.2 seconds, the same
+host binding and one admitted job on the same pod. A concurrent ordinary
+`deploy cohort supervise` invocation was rejected by the owner lock. The first
+small seed passed its own named CUDA gate, saved all 100 initialization games
+with zero invalid games, then advanced from 146 to 242 updates on successive
+observations. Game validity requires terminal completion and exact replay.
+Mini's local report refreshed after restart; no agent or laptop schedules later
+jobs. The account must stay online and logged in. Five jobs remain queued;
+this is launch/restart evidence, not a completed comparison or strength result.
+
+Final checkpoint evaluation, full artifact verification and confirmed provider
+cleanup still gate each successor. The remaining work is to retain every attempt,
+settle costs and compare the complete paired cohort at common sample/time support
+and its explicitly unequal endpoints, then revoke the experiment's controller
+access and remove its service/credential copies as specified above.
 
 ## Step-target recovery preparation — 2026-10-08
 
@@ -732,3 +762,152 @@ see [machine allocations](../docs/remote-jobs.md#step-targets-and-machine-alloca
 The calibration-era `cuda_capacity --freeze` authoring helper is retired; its
 source and two-stage protocol remain in Git at `33f68e07`. Saved schema-1 plans
 remain readable. This migration changes no frozen cohort or evidence.
+
+### Exploratory continuation of the first small seed (2026-10-08)
+
+Jack Heart authorized retaining the first small run's raw policy, Adam and EMA
+and continuing from 26,000 to 100,000 total updates after the first eight-hour
+large job (`etu103-recovery-v3-science-1`). The original six-member scientific
+cohort, remaining paired seeds and its frozen endpoint definitions remain intact.
+This is a separate exploratory continuation, not a replacement scientific arm or
+an equal-compute capacity result.
+
+Jack Heart corrected the earlier assistant-derived denominator instruction:
+Ataraxos rates should behave as if 100k had been planned initially. The existing
+formulas already depend only on absolute iteration; retain them from 26,001.
+No learning-rate/regularization formula is changed. Collector and RNG state were
+not exported, so each segment explicitly starts fresh game streams. Policy,
+populated Adam, EMA and inherited counters are verified from the original bytes.
+
+The planned segments end at 63,000 and 100,000. Each reserves 11.95 rental hours
+and $6.20 at a live-admitted L4 ceiling of $0.49/hour plus the existing storage
+allowance, with 900 seconds setup, 120 checkpoint, 3,600 upload and 180 cleanup.
+The observed first small run projects about 6.27 active hours for each 37k segment;
+this is extrapolation, not sustained continuation throughput. The original full
+reservations plus these allocations total $61.267918369190 inside the inclusive
+$100 ceiling. Admission also retains settled charges and remaining reservations.
+
+Queue insertion must follow job1 and precede scientific jobs2–5. The original
+cohort deadline cannot fit all remaining maximum leases plus both segments;
+an explicit extension ends one hour before the existing restricted controller's
+2026-10-12 06:23:20.880274 UTC access expiry. No admitted job deadline or consumed
+cost is reset. The controller grant and worker issuer permissions remain restricted.
+Continuation objects live beneath job0's already authorized prefix; workers receive
+read-only grants to four exact versioned parent objects.
+
+Continuation evaluations use the existing development monitoring deals, with
+initialization admission and hourly/endpoint checks. They do not consume the
+scientific cohort's reserved final deals or change its analysis. The named CUDA
+admission gate includes chained learner continuation before learning begins
+on a new continuation rental. No resumed CUDA update or 100k result is claimed by
+software tests or queue admission.
+
+PR266 merged as `69594494874d0bfa42c6ca4f7d49e05633add870`. The live
+[admission receipt](data/etu126/continuation-admission-20261008.json) binds that
+source, the verified parent run, price, scoped worker credentials and both
+allocations. Settled job0 cost plus remaining reservations is $59.24026462648922;
+the more conservative original-full-cap total above remains $61.267918369190.
+These are estimates/reservations, not a final invoice.
+
+The Mini controller accepted the insertion durably in S3 and reread this order:
+job0, job1, `etu126-small-63000`, `etu126-small-100000`, jobs2–5. The
+[restart receipt](data/etu126/continuation-restart-20261008.json) binds the insertion
+digest. After SIGKILL, launchd restarted the same owner in 7.70 seconds, retained
+exactly two attempts and the same active job1 pod, and rejected a competing owner.
+All six original scientific entries remained byte-identical. Job1 had 4,428
+updates at that observation; subsequent report refresh showed 4,537 updates,
+eight intended jobs, and no dashboard-fetch error. No continuation rental had
+started. No laptop session or agent turn owns scheduling.
+
+The first service upgrade failed because launchd returned before the old process
+released its lock; retry then encountered an already unloaded service. After
+verifying lock release, the original service label and state directory were
+reused with the merged controller checkout. The active rental was untouched.
+The software follow-up waits for lock release and handles an already unloaded
+service, including the report companion's separate lock. Both Mini services use
+the merged checkout while original scientific workers retain `45940fe3`.
+Job0's earlier finalization delay settled with all seven evaluations, final
+artifacts and confirmed deletion; no replacement or artifact rewrite was needed.
+
+Local verification: `uv run pytest tests/remote/test_cohort_service.py -q` passed
+8 tests with one platform skip; focused Ruff checks passed. The retained live
+proof establishes queue ownership/restart behavior, not completion of 100k updates,
+CUDA continuation learning, the remaining science cohort, or a strength result.
+
+### Queued price admission recovery (2026-10-08)
+
+Jack Heart requested immediate continuation within the existing $100 inclusive
+ceiling. Job1 completed all 15,600 updates, final publication and cleanup, with
+estimated rental/storage cost $5.0351287061433. The queued 63k continuation had
+persisted intent but no provider create claims or rentals. L4 had risen from
+$0.49 to $0.59/hour; the original ceiling correctly refused admission.
+
+An explicit offline operational migration repriced only the six unstarted entries:
+$7.30 per 11.95-hour allocation, $5.80 per 9.5-hour allocation, retaining the
+$0.02/hour storage allowance. Original full caps plus revised future reservations
+are $67.36791836919004; settled charges plus remaining reservations are
+$64.17539333263252. Both include prior/controller allowances and remain below $100;
+these are conservative estimates, not final invoiced costs.
+
+The same Mini launchd owner and report companion were unloaded, its owner lock
+acquired, empty provider inventory and absent guardian/training claims verified,
+and the exact before/after cohort, state and pending Job archived before CAS
+writes. The create-only audit is `migrations/price-admission-20261008-v1.json` under
+the existing cohort and pending-job prefixes; the journal SHA-256 is
+`b939d71dabebb5ae2f73d6e241d8a0c4a05c4b9d0c31f36cc8df1209f6812518`.
+Mini retains the journal, old local files and completion receipt under
+`~/.local/state/manabot/etu103-recovery-v3-science/price-admission-20261008-v1/`.
+The original no-create rejection remains evidence, not an erased failed rental.
+No existing provider or learning attempt was replaced.
+
+The operational cohort digest changed from `1e14b164…` to `21574a8e…`; the pending
+Job digest changed from `db983a1a…` to `f7181151…`. This is not a claim of immutable
+operational bytes: their originals are archived. Scientific sources `45940fe3`,
+continuation source `69594494`, exact recipes, seeds, update targets, continuation
+inputs, schedules, cadence, job IDs, admitted deadline and consumed costs did not
+change. Jobs2–5 remain ordered after the 63k and 100k segments. No credential scope,
+allocation lifetime or overall dollar ceiling increased.
+
+Inspection also caught a second queued-clock defect before the training rental:
+bootstrap still counted its setup allowance from queue admission and would have
+received a one-second timeout. The operational launcher now uses a fresh bounded
+setup cutoff at submission without extending the original job deadline; guardian
+reconnect and training acceptance retain their claim clocks. The existing Mini
+controller received this repair before the training create. No frozen worker
+source was edited. The guardian proof passed and a single L4 training rental
+`f1591g22k1rpcg` was created at $0.59/hour. Bootstrap alone does not establish
+CUDA continuation or advancing learning; that requires the saved runtime counters.
+
+The [saved continuation/restart receipt](data/etu126/queued-admission-20261008.json)
+binds successful CUDA admission (16.15 seconds), initial evaluation completion
+(401.15 evaluator seconds), run `109eaf87193c42a9acb3f03be27d936b`, and advancing
+absolute counters: 26,128, then 26,203 before a controller SIGKILL and 26,207 after
+its independent restart. Launchd restored the same owner in 9.79 seconds, retained
+three attempts, the same single rental and the entire eight-entry queue, and
+rejected a competing owner. The learner was not restarted. The report companion's
+local plan was also refreshed from the audited intent, retaining its old copy.
+This proves running learner-state continuation, not completion of 63k/100k or the
+six-member comparison. Original and resumed sources/artifact identities remain
+separate. The deployed operational controller overlay has retained file digests.
+
+Checks: `uv run --extra dev --extra artifacts pytest tests/remote/ -q` passed
+171 tests with two skips; focused Ruff passed. The original guardian fixture
+failed twice because its freshly created executable dispatch stalled locally;
+sourced shell-function fakes passed with the same five-second deadline. Two
+isolated dependency environments stalled before Python startup (sampled at
+`dyld_start`) and were terminated, not counted as passing. CI owns isolated
+clean-environment coverage. No learner, experiment or provider state was changed
+by these test repairs.
+
+The companion report also needed explicit identity rebinding and an allowance
+renewal: its old ledger had charged 3,481.21 of 3,600 seconds, leaving less than
+one 120-second attempt. Owner/config and ledger originals are archived under the
+same migration prefix. All 163 attempts and consumed seconds remain; the new
+cumulative limit is 14,400 seconds, with 120-second attempts and a 15-minute poll
+interval. At the declared $1/controller-active-hour accounting assumption, $4
+reporting plus $3 unreconciled-cost reserve replaces $2 plus $5 inside the same
+$10.70 combined reserve. No overall reservation, rental or credential scope grew.
+This operational report clock changes no scientific checkpoint/evaluation cadence.
+The refreshed report shows eight intended jobs, three admitted, completed
+26,000/15,600-update originals (seven/eleven evaluations), and the running
+continuation at 26,609 with one evaluation and no per-job projection errors.

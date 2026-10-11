@@ -13,7 +13,9 @@ from typing import Callable, Literal
 from pydantic import Field, model_validator
 
 from manabot.training.checkpoint_queue import MonitoringBudget
+from manabot.training.models import CheckpointCadence
 
+from .continuation import Continuation, bind_continuation
 from .job_client import cancel_job, job_manifest, persist_job, reconcile_job, submit_job
 from .job_store import JobStore, S3JobStore, cancellation_requested
 from .jobs import Cancellation, Job, JobStatus
@@ -22,15 +24,24 @@ from .plan import AccessScope, DeploymentPlan, Frozen, digest
 DEFAULT_COHORTS = "s3://etudefantasia/manabot/cohorts"
 
 
-class CohortEntry(Frozen):
+class CohortEntry(CheckpointCadence, Frozen):
     job_id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,62}$")
     plan: DeploymentPlan
     monitoring: MonitoringBudget | None = None
-    checkpoint_seconds: float = Field(default=3600, gt=0)
     experiment_json: str | None = None
     validate_numerics: bool = Field(default=False, exclude_if=lambda value: not value)
+    continuation: Continuation | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     def job(self, now: float) -> Job:
+        if (
+            self.continuation is not None
+            and self.checkpoint_updates is not None
+            and self.monitoring is not None
+            and self.monitoring.require_initial_admission
+        ):
+            raise ValueError("step continuation cannot repeat initialization admission")
         return Job(
             job_id=self.job_id,
             plan=self.plan,
@@ -39,6 +50,7 @@ class CohortEntry(Frozen):
             destination=self.plan.spec.access.destination,
             monitoring=self.monitoring,
             checkpoint_seconds=self.checkpoint_seconds,
+            checkpoint_updates=self.checkpoint_updates,
             experiment_json=self.experiment_json,
             validate_numerics=self.validate_numerics,
         )
@@ -107,6 +119,25 @@ class CohortAttempt(Frozen):
     manifest_verified: str | None = None
 
 
+class CohortInsertion(Frozen):
+    """One append-only addition; original scientific entries and dollars survive."""
+
+    after_job: str
+    entries: tuple[CohortEntry, ...] = Field(min_length=1)
+    deadline: float | None = Field(default=None, gt=0)
+    access_expires_at: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def bounded_deadline(self) -> "CohortInsertion":
+        if self.deadline is not None and (
+            self.access_expires_at is None or self.deadline > self.access_expires_at
+        ):
+            raise ValueError(
+                "extended deadline requires sufficient admitted access lifetime"
+            )
+        return self
+
+
 class CohortState(Frozen):
     cohort_sha256: str
     owner: str
@@ -114,6 +145,33 @@ class CohortState(Frozen):
     phase: Phase = "pending"
     attempts: tuple[CohortAttempt, ...] = ()
     error: str | None = None
+    insertion: CohortInsertion | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+    def entries(self, cohort: Cohort) -> tuple[CohortEntry, ...]:
+        if self.insertion is None:
+            return cohort.entries
+        index = next(
+            (
+                i
+                for i, entry in enumerate(cohort.entries)
+                if entry.job_id == self.insertion.after_job
+            ),
+            None,
+        )
+        if index is None:
+            raise ValueError("insertion boundary is not in original cohort")
+        return (
+            *cohort.entries[: index + 1],
+            *self.insertion.entries,
+            *cohort.entries[index + 1 :],
+        )
+
+    def effective_deadline(self, cohort: Cohort) -> float:
+        if self.insertion is not None and self.insertion.deadline is not None:
+            return self.insertion.deadline
+        return cohort.deadline
 
     @property
     def settled(self) -> bool:
@@ -171,6 +229,88 @@ def load_cohort(cohort_id: str, destination: str = DEFAULT_COHORTS) -> Cohort:
     if cohort.cohort_id != cohort_id or cohort.destination != destination:
         raise ValueError("cohort location differs")
     return cohort
+
+
+def _earlier(proposed: float | None, bound: float | None) -> bool:
+    """Whether a proposed limit drops or precedes one the cohort already admitted."""
+    return bound is not None and (proposed is None or proposed < bound)
+
+
+def insert_cohort(
+    cohort: Cohort, insertion: CohortInsertion, *, store: JobStore | None = None
+) -> CohortState:
+    """CAS the queue before its boundary; a racing admission never gets replaced.
+
+    A cohort binds one insertion boundary. Repeating the bound insertion is a
+    no-op; a superset that only appends entries extends the queue.
+    """
+    store = store or S3JobStore(cohort.prefix)
+    raw = store.read("state.json")
+    if raw is None:
+        raise ValueError("cohort owner has not established state")
+    state = CohortState.model_validate_json(raw.data)
+    if state.cohort_sha256 != cohort.identity:
+        raise ValueError("cohort identity differs")
+    if cancellation_requested(store) is not None or time.time() >= cohort.deadline:
+        raise ValueError("cannot insert into cancelled or expired cohort")
+    if state.insertion is not None:
+        if state.insertion == insertion:
+            return state
+        # A bound insertion is append-only: its boundary, existing entries and
+        # admitted limits survive. New entries queue after the bound ones and pass
+        # every check below, so an already admitted successor still rejects them.
+        bound = state.insertion
+        if (
+            insertion.after_job != bound.after_job
+            or len(insertion.entries) <= len(bound.entries)
+            or insertion.entries[: len(bound.entries)] != bound.entries
+        ):
+            raise ValueError("cohort already binds another insertion")
+        if _earlier(insertion.deadline, bound.deadline) or _earlier(
+            insertion.access_expires_at, bound.access_expires_at
+        ):
+            raise ValueError("appended insertion cannot shorten admitted limits")
+    updated = state.model_copy(update={"insertion": insertion})
+    if updated.effective_deadline(cohort) < cohort.deadline:
+        raise ValueError("insertion cannot shorten original cohort deadline")
+    entries = updated.entries(cohort)
+    if len({e.job_id for e in entries}) != len(entries):
+        raise ValueError("inserted job IDs must be unique")
+    original_prefix = [e.job_id for e in entries[: len(state.attempts)]]
+    if original_prefix != [a.spec.job_id for a in state.attempts]:
+        raise ValueError(
+            "insertion boundary already passed; admitted jobs are immutable"
+        )
+    previous_ids: set[str] = set()
+    for entry in entries:
+        entry.job(0)
+        if entry.continuation and entry.continuation.job_id not in previous_ids:
+            raise ValueError("continuation must reference an earlier entry")
+        previous_ids.add(entry.job_id)
+    remaining = entries[len(state.attempts) :]
+    if (
+        state.charged_dollars(cohort)
+        + sum(e.plan.spec.spending_limit for e in remaining)
+        > cohort.spending_limit
+    ):
+        raise ValueError("insertion exceeds inclusive budget")
+    active_deadline = (
+        state.attempts[-1].spec.deadline if state.attempts else time.time()
+    )
+    if max(time.time(), active_deadline) + sum(
+        e.plan.spec.lifetime_seconds for e in remaining
+    ) > updated.effective_deadline(cohort):
+        raise ValueError("remaining allocations cannot fit cohort deadline")
+    data = updated.model_dump_json().encode()
+    if not store.replace("state.json", data, raw.etag):
+        raise RuntimeError("cohort advanced during insertion; reread before retry")
+    observed = store.read("state.json")
+    if (
+        observed is None
+        or CohortState.model_validate_json(observed.data).insertion != insertion
+    ):
+        raise RuntimeError("insertion acknowledgement uncertain; reconcile state")
+    return CohortState.model_validate_json(observed.data)
 
 
 def cancel_cohort(
@@ -237,11 +377,13 @@ class CohortSupervisor:
         persist: Callable[[Job], Job] = persist_job,
         cancel: Callable[[Job], None] = cancel_job,
         verify: Callable[[JobStatus, Path], str] = verify_manifest,
+        bind: Callable[[CohortEntry, JobStatus, Path], Job] = bind_continuation,
     ) -> None:
         self.cohort, self.cache = cohort, cache
         self.store = store or S3JobStore(cohort.prefix)
         self.observe, self.submit, self.persist = observe, submit, persist
         self.cancel, self.verify = cancel, verify
+        self.bind = bind
         prepare_cohort(cohort, self.store)
         state = CohortState(cohort_sha256=cohort.identity, owner=owner)
         self.store.create("state.json", state.model_dump_json().encode())
@@ -272,7 +414,7 @@ class CohortSupervisor:
     def tick(self) -> CohortState:
         cohort = self.cohort
         cancelled = cancellation_requested(self.store) is not None
-        expired = time.time() >= cohort.deadline
+        expired = time.time() >= self.state.effective_deadline(cohort)
         attempts = self.state.attempts
         if attempts:
             attempt = attempts[-1]
@@ -323,7 +465,7 @@ class CohortSupervisor:
                 return self._save(phase="uncertain" if status.stale else "running")
         if cancelled or expired:
             return self._save(phase="cancelled" if cancelled else "deadline")
-        remaining = cohort.entries[len(attempts) :]
+        remaining = self.state.entries(cohort)[len(attempts) :]
         reserved = self.state.charged_dollars(cohort) + sum(
             e.plan.spec.spending_limit for e in remaining
         )
@@ -332,8 +474,23 @@ class CohortSupervisor:
         if not remaining:
             return self._save(phase="completed")
         entry = remaining[0]
-        spec = entry.job(time.time())
-        if spec.deadline > cohort.deadline:
+        if entry.continuation is None:
+            spec = entry.job(time.time())
+        else:
+            parent = next(
+                (a for a in attempts if a.spec.job_id == entry.continuation.job_id),
+                None,
+            )
+            if (
+                parent is None
+                or parent.observation is None
+                or parent.manifest_verified is None
+            ):
+                raise ValueError(
+                    "continuation predecessor has no verified final evidence"
+                )
+            spec = self.bind(entry, parent.observation, self.cache)
+        if spec.deadline > self.state.effective_deadline(cohort):
             return self._save(
                 phase="deadline", error="remaining cohort time cannot fit allocation"
             )
