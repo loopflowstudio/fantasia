@@ -73,7 +73,7 @@ impl VectorEnv {
         self.validate_actions_len(seeds.len())?;
         self.validate_ready_for_step()?;
         self.next_seeds = seeds;
-        self.reset_all_into(self.player_configs.clone(), write)
+        self.reset_each_into(self.player_configs.clone(), write)
     }
 
     /// Per-env `skip_trivial` collapse counters for the current games.
