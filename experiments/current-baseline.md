@@ -263,9 +263,10 @@ learning recipe or sustained endpoint. Actual costs are charged; unused reserve
 remains available. Full consumption leaves 594569.9884917501 seconds before other
 new charges. No automatic retry or overwrite of prior attempts is authorized.
 
-This amendment replaces the old 3600-second exploration ceiling for this new
+This amendment replaced the old 3600-second exploration ceiling for this new
 attempt only; all prior charges and historical receipts remain unchanged. The
-runner still implements the old cap and must be amended before execution.
+runner implements the 7200-second allowance; the execution receipt below records
+its completed calibration and preparation charges.
 Calibration scores cannot select recipes, seeds or endpoints. Jack Heart's roughly
 31-hour training estimate is a planning estimate, not current-source calibration.
 
@@ -564,36 +565,28 @@ The amendment follows observed partial results and is not independent confirmati
 
 ## Sustained-run ownership and daily validation
 
-Jack Heart explicitly authorized a week-long run on the **current laptop** after
-positive-control prerequisites and exact throughput calibration. ETU-103→ETU-116's
-mini sequence remains reserved. The earlier mini-only consumption proposal is
-superseded; coordinate compatible total-step evidence with
-[ETU-116](https://linear.app/loopflow/issue/ETU-116) without duplicating its study.
+Jack Heart's 2026-10-07 mini decision supersedes the earlier laptop placement
+and automatic horizon selection. The accepted cohort is three 10,000-update
+seeds of the ETU-105 actor-and-critic-filtered, depth2 masked-mean scalar recipe.
+ETU-116 duration and ETU-82 repeated training/export/play outcomes are consolidated
+here. Calibration, source freeze and training completed; the dated mini receipts
+above own their identities and costs. ETU-125 owns the next Mini workload;
+no automatic ETU-118 extension or duplicate laptop study follows.
 
-The subsequent recovery requirement is a launch prerequisite: complete learner,
-optimizer, EMA, RNG and collector state must survive sleep/restart, with safe
-checkpoint-boundary pause/resume and no duplicate committed work. Preserve attempt
-lineage and spent allocation. Seven active days with separately shown calendar
-downtime is the requested accounting direction; exact handling of abrupt-death
-uncertainty must be explicit and tested. No sleep-prevention tool substitutes for
-this contract. Existing lifetime journals and sleep-inclusive watchdogs are not
-sufficient for that claim. The sustained learner has **not started**.
+The original seven-active-day allocation remains nonrenewing, including every
+preparation failure, monitoring, recovery and final/reporting charge. Complete
+learner, optimizer, EMA, RNG and collector recovery retains attempt lineage and
+committed work. Bounded interruption/resume checks passed; physical lid closure
+remains untested. Unknown restart gaps remain conservative charges. The observed
+40.56-hour training/monitoring experiment is distinct from additive process cost
+and the still-unsettled final/reporting cost.
 
-Choose seed horizons from measured candidate throughput and reserve evaluation,
-reporting and recovery inside one nonrenewing allocation. Display last update and
-evaluation timestamps, checkpoint lag, throughput, failures, costs and repeated
-strength estimates with uncertainty. Operational stalls differ from statistical
-plateaus. Initially expose evidence and a manual safe pause; no automatic plateau
-stop is inferred from loss or a single noisy score.
-
-The shared evidence contract should include three independent seeds, the exact
-masked-mean current-self recipe, initialization and 400/800-update checkpoints,
-a meaningfully longer calibrated endpoint, fixed greedy and random anchors,
-paired deck/seat/deal blocks, all attempts, raw checkpoint identities and separate
-collection/learning/export/evaluation costs. Fix the iteration schedules across
-milestones; do not stretch schedules to produce favorable endpoint comparisons.
-Laptop calibration must measure that exact recipe. The 128-update random-opponent
-laptop cohort does not supply its rate, horizon or allocation.
+The frozen protocol above retains initialization, early and later milestones,
+fixed greedy/random anchors, paired deck/seat/deal blocks, separate development
+and final deals, and all seed/checkpoint identities. Its thresholds remain fixed.
+Monitoring improvements alone cannot establish held-out acceptance or ordinary
+demo admission. Operational stalls remain distinct from statistical plateaus;
+manual checkpoint-safe pause is implemented, with no automatic plateau stop.
 
 After an improving sustained trajectory exists, daily-test selection can inspect
 candidate prefixes and evaluation subsets against later outcomes. Reserve
@@ -605,12 +598,12 @@ architecture improvements merely because its early score increases. The present
 root checks detect terminal reward/sign errors and lack of optimizer improvement;
 they have **no established predictive relationship** to sustained strength.
 
-Recovery/accounting now passes bounded interruption and resume checks, including
-complete-state equality and conservative restart charges. Physical lid closure
-was not tested. Exact laptop calibration, frozen seed horizons, sustained improvement
-and independently validated daily-test limits remain unresolved. Seven-day
-authorization exists; no calibrated sustained plan or daily threshold is selected
-yet. This PR does not complete ETU-118.
+As reconciled on 2026-10-11, the available final-result snapshot is still the
+2026-10-09 running record, not a fresh execution-status observation. Final analysis
+and full cost settlement, three ordinary demo-loaded executions with both deck
+assignments, verified S3 archival, remaining W&B projections, and independent
+daily-test validation remain unestablished. No daily threshold or promoted baseline
+is accepted. Software delivery does not complete ETU-118.
 
 
 ## Retained debugging results
@@ -697,8 +690,9 @@ checkpoints or failed evaluation, not a claim inferred from RL loss. A daily tes
 is selected and independently validated only after this trajectory is established.
 
 
-The historical interface examples below do not admit the selected mini cohort;
-its calibration allocation, recipe and analysis still require the changes above:
+The historical interface examples below describe the superseded laptop proposal.
+The selected mini cohort was admitted using the implemented protocol and frozen
+bundle recorded above; these examples are not its recovery commands:
 
 ```bash
 uv run python -m experiments.runners.sustained_baseline calibrate .runs/etu118-calibration-3 --preparation-seconds 2789.1133701669414

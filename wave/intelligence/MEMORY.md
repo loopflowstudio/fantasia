@@ -1,6 +1,6 @@
 # Intelligence memory
 
-## Weekly-first mini duration baseline (ETU-118, 2026-10-10)
+## Weekly-first mini duration baseline (ETU-118, reconciled 2026-10-11)
 
 Jack Heart selected ETU-105's actor-and-critic-filtered masked-mean scalar
 width64/depth2/heads4, no-history current-self recipe: three 10,000-update seeds,
@@ -19,7 +19,13 @@ unknown gaps are conservatively charged. Physical lid closure remains untested.
 S3 was credential-blocked at launch; only 128 W&B rows were verified then. Final
 analysis, ordinary demo admission, archival and independent daily validation remain
 required. Jack Heart requested PR251 conflict/CI repair and landing on 2026-10-10,
-not scientific Task completion. ETU-125 is the next Mini workload, not an automatic
+not scientific Task completion. Jack Heart requested a second integration repair
+on 2026-10-11. Current-source admission now checks only the selected fixed horizon;
+scalar step cadence remains exclusive, while tuple milestones retain hourly exports.
+The ETU-125 merge requires native seed restoration to retain per-stream matchups
+and sparse format-3 recovery checks to supply canonical VerifyStore diagnostics.
+Focused recovery proofs do not replace the requested full Integration check.
+ETU-125 is the next Mini workload, not an automatic
 ETU-118 extension; ETU-122 retains card-pool curriculum work.
 
 ## Mirror curriculum and frozen-opponent diagnostic (ETU-125, 2026-10-08)
@@ -901,41 +907,22 @@ from this command. Its costs must be included in campaign accounting.
 
 ## ETU-95 software finish line (2026-10-04)
 
-Jack Heart separated software delivery from new training: ETU-95 now owns
+Jack Heart separated software delivery from new training: ETU-95 owns
 compound-policy sampling search and reloadable distillation targets; ETU-99 owns
-the scientific comparisons previously left open under ETU-95. Historical evidence
-and its limits above remain intact. No new training study or ETU-91 mutation is
-authorized by this continuation.
+scientific comparisons. ETU-91 remained untouched. Detailed integration and fixture
+receipts remain in `cd277710:wave/intelligence/MEMORY.md` and the
+[local-search contract](../../docs/local-policy-search.md).
 
-The final software connects both direct hand samplers to frozen ordinary and
-supported compound policies. Production history never enumerates support; the
-explicit tiny exact reference remains separate. Empty hidden pools have one
-physical deal, the empty hand. Learned sampler admission retains exact policy,
-dataset, schema and world identity. `True` is the only production sampling query.
+Direct hand samplers support frozen ordinary/compound policies without production
+enumeration; empty hidden pools mean one empty hand. Admission binds policy,
+dataset, schema and world. `True` is the only production query. Search preserves
+viewer roots/prefixes and native lowering; the branch runtime owns replay.
+Raw cloning selected branches is forbidden; checkpoint fields stay unchanged.
 
-Jack Heart confirmed ETU-94 PR #216 merged; its blocker/payment API was synced
-before final compound verification. Compound search retains original viewer
-roots and decoder prefixes, proves each canonical route through native lowering,
-and drains sampled suffixes in rollouts and base collection. Attackers,
-single-target casts, independent blocker roles and ordinary fallback offers work.
-The selected branch runtime owns snapshots and prefix replay; raw cloning a
-selected branch is forbidden. No model parameters or checkpoint fields changed.
-
-Ordered waterbend subsets remain explicitly unsupported in this search: excluding
-an earlier tap can give a currently legal micro-action zero conditional mass,
-which the teacher's positive-support local-update contract cannot accept. The
-explicit failure follows Jack Heart's role-boundary allowance. Sequential policies
-still handle payments; ETU-94 compound serving retains its own subset support.
-Compound exact likelihood, belief-input memory and live advice registration remain
-unavailable. Canonical conditional targets are not joint declaration targets.
-
-The fixture-only gate passed 60 affected Python checks, six native debug compound
-tests and focused lint/format checks, including saved-artifact physical/learned
-search, full-game target reader admission and compound arena replay. No optimizer,
-scientific study or paid compute ran. ETU-91 was untouched; these proofs establish
-software behavior, not strength, calibration or human-play success. The durable
-[local-search contract](../../docs/local-policy-search.md) records supported paths,
-receipt/replay requirements and remaining scientific ownership.
+The original ordered-waterbend rejection is superseded by ETU-100's exact-zero
+support contract below. Compound exact likelihood, belief-input memory and live
+advice registration remain unavailable; canonical conditional targets are not joint
+declaration targets. Fixture proofs establish no scientific acceptance.
 
 ## Offline sampler software boundary (ETU-96, 2026-10-04)
 
