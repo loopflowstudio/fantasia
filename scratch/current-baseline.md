@@ -133,14 +133,20 @@ Do not rebuild or edit it, start another cohort, delete leases or reset charges.
 The local retained copy is `.runs/etu118-mini-20261007-1/retained` in this Task.
 The [protocol](../experiments/current-baseline.md) owns full receipts and limits.
 
-Supervisor 86655 and coordinator 86658 run independently of SSH. After disconnect,
-seed11851 committed 128 updates / 32768 transitions / 7634 optimizer exposures;
-`load_update` verified snapshot iteration128 against VerifyStore. Both initial
-100-game greedy/random cohorts completed with exact replay. Seed11852/11853 remain
-scheduled. `science/comparison.ipynb` is editable; supervision refreshes read-only
-`science/comparison.html` every five minutes within a retained reporting cap.
-`science.supervisor.json` records refresh costs/failures. Flat curves prompt review,
-not automatic failure. Safe pause/recovery preserves the existing complete state.
+The 2026-10-09 retained read reports all three seeds completed 10,000 updates,
+90 monitoring cohorts / 9,000 exact-replayed games, and 171,708.6 additive process
+seconds before final scoring. Development scores improved with marked deck
+asymmetry; final criteria were not yet judged. The protocol's dated result owns
+those observations, not the earlier 128-update launch snapshot. Final scoring had
+started automatically; no new cohort, extension or recovery is implied. HTML
+refresh consumed its bounded reserve; finalization refreshes at completion.
+
+Jack Heart requested resolving PR251's main conflicts and two Integration failures
+on 2026-10-10, then landing if reasonable. Main's integer checkpoint cadence and
+the frozen cohort's explicit tuple milestones now coexist without changing frozen
+execution bytes. Endpoint raw exports own terminal coordinates, not duplicate
+monitor exports. Main supplies exited-process-group cleanup on Darwin. The live
+routing fixture needs startup/replay headroom, not a 20-second performance bar.
 
 W&B accepted 128 diagnostic rows at
 https://wandb.ai/loopflow-studio/etude/runs/training-ed8e425c3663727830077360 .
@@ -151,23 +157,20 @@ bytes remain on mini and must be retained through archival.
 
 Remaining work:
 
-1. Keep the admitted single trajectory and live evaluator supervised; inspect
-   failures before explicit recovery. Preserve the pinned source, all attempts,
+1. Inspect retained final-cohort status before any recovery; preserve the single trajectory. Preserve the pinned source, all attempts,
    phase costs, monitoring and untouched final cohorts. Refresh/backfill W&B from
    retained evidence; notebook refresh already runs independently.
-2. Finish all three 10000-update seeds and the 24 final comparison cells. Report
+2. Training is complete; finish or analyze the 24 final comparison cells. Report
    every seed, paired changes and separate seed/deal uncertainty; no favorable
    checkpoint selection, baseline promotion or strength claim before the criteria.
 3. Admit each completed checkpoint through the ordinary demo and complete games
    with both deck assignments. Archive exact models/evidence through the S3 contract
    once credentials are available; software delivery cannot complete ETU-118.
 4. Derive and independently validate a daily test only after sustained evidence.
-   This remains unimplemented; no positive long-run result is presumed.
+   This remains unimplemented; monitoring gains alone do not establish acceptance.
+   Jack Heart selected ETU-125 next on Mini; no automatic duration extension.
 
 Delete — do not maintain: obsolete depth1 construction and automatic horizon
 selection were removed. All historical laptop evidence remains unchanged.
 
-Check: focused allocation, Experiment/queue/report, live dual-opponent export and
-real recovery checks passed; mini historical/current prefix passed, all 96 calibration
-updates/24 games completed, and detached science committed 128 updates/200 initial
-games with exact replay. Lint/diff checks passed; full CI remains its own matrix.
+Check: the two reported integration tests plus exited-group regression passed (3 tests, 105.92 s); lint/diff passed; sync proof passed 11 focused cases. CI owns the full matrix.
