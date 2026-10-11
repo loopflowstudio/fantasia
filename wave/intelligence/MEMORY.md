@@ -685,46 +685,31 @@ competence, or the chapter's human-challenger outcome.
 
 ## Direct self-play treatment contracts (2026-10-04)
 
-Self-play transitions use end-of-transition terminal flags. Stock PPO's
-start-of-episode GAE convention cannot consume them unchanged. Collection must
-pause fast streams at their exact next learner observation, preserve every
-observation tensor and recompute actions under the next collection policy;
-banking surplus transitions across updates breaks that contract. Collection
-KL uses the saved full legal behavior distribution, not reconstructed updated
-weights. Independent policy/value estimators, filtering, reference choices and
-schedules are runnable treatments, not exact Ataraxos reproduction.
+Self-play uses end-of-transition terminals, not stock PPO's episode-start GAE.
+Pause fast streams at their exact next learner observation; preserve tensors,
+recompute actions after updates and retain full legal behavior distributions
+for collection KL. Banking surplus transitions breaks this contract.
 
-EMA is an evaluation artifact with a collect/update-iteration clock, including
-empty-filter skips. Its helper averages parameters and copies buffers without
-changing learner/behavior weights. Local ETU-90 proofs exercise an empty-filter
-continuation: learner weights stay fixed while the evaluation average advances.
-Collector match metadata passes through the Trainer env shim for ordinary
-checkpoint admission.
-
-ETU-90's 2026-10-04 integrated semantic proof completed normal/empty-filter
-continuations, eight ordinary raw/EMA admissions, 65 Python checks (one dependency
-skip) and six native debug vector checks. Empty-filter learner weights remained
-fixed while EMA advanced. Full counts and original `.runs/etu90-semantic-final`
-evidence remain at `f6bcc83e`. These prove treatment/workflow correctness only;
-ETU-91 owns final replayed study/notebook evidence, not chapter acceptance.
+EMA evaluates complete state on the collect/update clock, including empty-filter
+skips; parameters average, buffers copy, learner/behavior weights stay separate.
+ETU-90's integrated semantic proof covered normal/empty-filter continuations,
+eight raw/EMA admissions, 65 Python checks (one dependency skip) and six native
+debug checks. Empty-filter weights stayed fixed while EMA advanced. Originals
+remain in `.runs/etu90-semantic-final`; `f6bcc83e` and the memory at `c9c28153`
+retain full detail. These prove workflow, not strength; ETU-91 owns study/notebook
+evidence, not chapter acceptance. Selectable estimators, filters and schedules
+remain treatments rather than exact Ataraxos reproduction.
 
 ## Compound decision implementation (2026-10-04)
 
-Jack Heart authorized ETU-94's bounded implementation separately from frozen
-ETU-91. `train_compound` connects the recurrent legal-offer decoder, complete-game
-collection, joint/sequential credit and ordinary world-bound exports. Native
-lowering owns legality; cached suffixes never resample. Terminal rewards are per
-seat; updates never split declarations. Gamma=1 avoids changing discount clocks.
-Sampled-prefix reverse KL is not exact joint KL, and the GRU is not the paper's
-setup-network reproduction. Object features remain limited to public labels and
-pooled viewer state.
-
-Two retained executions produced eight admitted exports and 56 replayed games
-each, proving software, not strength or chapter acceptance. Preserve
-`.runs/etu94-compound-smoke-{1,final}`. Full proof remains at `388947de` and this
-memory at `43c6e479`; the later Compound software completion entry and
-[contract](../../docs/training-regimes.md#compound-decisions) own supported grouping.
-No scientific allocation transfers from ETU-91.
+Jack Heart authorized ETU-94 separately from ETU-91. Two bounded executions
+each produced eight admitted exports and 56 replayed games: software proof,
+not strength or chapter acceptance. Preserve
+`.runs/etu94-compound-smoke-{1,final}`; `388947de` and memory at `c9c28153`
+retain the implementation, estimator limitations and original evidence.
+The later software-completion entry and
+[contract](../../docs/training-regimes.md#compound-decisions) own supported
+grouping. No ETU-91 scientific allocation transfers.
 
 ## Ataraxos source correction and move recipe (2026-10-04)
 
@@ -1212,3 +1197,15 @@ The [protocol](../../experiments/head-to-head.md#mirror-only-follow-up-mtg-131-2
 owns seeds and commands. The 24-game exact-replayed smoke binds `001e6920`;
 later report parity does not rebind its source or prove strength. The training
 manager owns the unstarted full Mini run. Active experiments/checkpoints stayed fixed.
+
+## Roster-driven head-to-head (MTG-134, 2026-10-10)
+
+Jack Heart approved the Mini comparison. Roster JSON drives play; saved designs
+drive reports. Extensions preserve
+entrant identities, oriented pairs, deals and runtime admission; completed units
+are reused, failures never silently retried. Greedy remains the rating zero.
+
+Jack Heart relayed operator regeneration at `54acf51f` on Mini copies:
+mirrors match originals; cross matches main `a11d89bd`, not pre-mirror
+`83faa3c5` originals (main-added fields only). See [protocol](../../experiments/head-to-head.md#roster-files-mtg-134-2026-10-10). Publication is unblocked, not merge-authorized.
+Grid evaluation is running from `18c6ef6f`; no restart or strength claim follows.
