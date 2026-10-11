@@ -1,0 +1,1 @@
+2026-10-11: Resolved main merge preserving both recovery cadences; native debug seed-restoration test and four focused Python recovery/curriculum checks passed after updating the sparse-recovery test to supply VerifyStore; rebuilt cp312 extension.
