@@ -24,3 +24,18 @@ initial arena receipt and output paths. No strength conclusion before endpoints.
 
 Check: focused recovery/numerical/matchup tests passed; final Experiment/authoring
 suite passed 30 tests. No native edits; existing PR264 CI is historical.
+
+Launch verified at source `9649f42f`: actual updates/recovery artifact and replayed
+initialization games are in `.runs/etu125-10k/launch-evidence.json`. The launch-time
+400-game initialization matrix was partial; the later stopped state is below.
+PR264 is published/open. TrainingRun recovery binds exact HEAD, including docs.
+On 2026-10-10 Jack Heart requested conflict/CI repair and landing. No cohort
+process remains active; four trajectories have completed after two disk-reserve
+failures. Experiment still reports incomplete; 43 monitor records completed and
+one incomplete. Preserve frozen evidence; do not claim complete cohort acceptance.
+Original HEAD is archived under `.runs/etu125-10k/frozen-source/`; pre-delivery
+uncommitted notes are retained beside it. Delivery does not authorize a restart.
+The notebook selects `science/` so engineering calibration stays out of the primary
+dashboard. Service report refresh preserves this edit.
+
+Check: 15 focused Python and 61 native debug library tests passed after sync; broader affected checks are running.
