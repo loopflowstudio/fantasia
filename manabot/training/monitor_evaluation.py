@@ -464,7 +464,7 @@ def evaluate_checkpoint(
                 checkpoint_paths={result.candidate.player_id: result.artifact["path"]},
                 game_seconds=result.protocol.game_seconds,
                 max_commands=result.protocol.max_commands,
-                include_mirrors=result.protocol.include_mirrors,
+                matchup_mode="all" if result.protocol.include_mirrors else "cross",
             )
             atomic_json(directory / "rows.json", rows)
             atomic_json(directory / "trace.json", trace)
