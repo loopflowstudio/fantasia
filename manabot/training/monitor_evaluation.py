@@ -26,7 +26,12 @@ from pydantic import (
 )
 
 from manabot.arena import players
-from manabot.arena.match import SELECTED_SUITE, play_cell, selected_match
+from manabot.arena.match import (
+    SELECTED_SUITE,
+    play_cell,
+    selected_decks,
+    selected_match,
+)
 from manabot.arena.models import (
     ArenaKey,
     PlayerRegistration,
@@ -249,15 +254,7 @@ def _summarize(result: MonitorResult) -> None:
             raise ValueError("unexpected or duplicate monitoring deal/leg")
         seen.add(coordinate)
         if result.protocol.include_mirrors:
-            expected_decks = (
-                ["ur_lessons", "gw_allies"]
-                if row.leg < 2
-                else ["gw_allies", "ur_lessons"]
-                if row.leg < 4
-                else ["ur_lessons", "ur_lessons"]
-                if row.leg < 6
-                else ["gw_allies", "gw_allies"]
-            )
+            expected_decks = list(selected_decks(row.leg))
             extra = row.model_extra or {}
             if (
                 extra.get("seat_decks") != expected_decks

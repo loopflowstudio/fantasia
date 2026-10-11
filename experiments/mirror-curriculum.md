@@ -282,3 +282,25 @@ authoring/execution follow-up passed 30 checks, including notebook regeneration.
 The earlier sparse-test guard and missing authoring-owner failures were repaired
 before scientific launch. Existing Rust and full CI results on PR264 predate these
 Python-only follow-ups; no new native behavior is claimed.
+
+## Delivery reconciliation (2026-10-10)
+
+Jack Heart requested PR264 conflict repair, green CI and landing. Before changing
+the source-bound checkout, inspection found no remaining cohort process. The
+Experiment export retains four completed trajectories (attempts 0, 1, 2, 5),
+two disk-reserve failures (3, 4), and overall `incomplete` status. Monitoring
+contains 43 completed records and one incomplete record. These counts do not
+certify a complete scientific cohort; reconciliation of scheduled evaluations,
+costs, replay and final analysis remains separate from software delivery.
+
+Frozen `9649f42f` source is archived at `.runs/etu125-10k/frozen-source/`, alongside
+`pre-delivery-notes.patch`. Original attempts, recovery logs, notebooks and
+contrasts remain unchanged. The current integration is not an admitted source
+for resuming those runs. The retained notebook/HTML and endpoint contrasts are
+provisional until the incomplete evidence is reconciled.
+
+Main's mirror-only arena and this comparison now share `matchup_mode`: `cross`
+retains historical legs 0–3, `mirrors` selects 4–7, and `all` selects 0–7. The
+frozen monitoring protocol's `include_mirrors` selects `all`; it does not alter
+historical protocol identities. Both paths use the same deck/seat layout and
+explicit checkpoint roster admission.

@@ -191,7 +191,6 @@ class SeatRoutedCollector:
 
         self.observation_space = observation_space
         self.match = match
-        self.stream_matches = [match] * num_envs
         self.reward = reward
         self.num_envs = num_envs
         self.opponent_mode = opponent_mode

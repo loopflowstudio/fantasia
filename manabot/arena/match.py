@@ -381,8 +381,11 @@ def play_cell(
             for p in (player_a, player_b)
         }
         legs = (
-            range(8) if matchup_mode == "all" else
-            range(4, 8) if matchup_mode == "mirrors" else range(4 if selected else 2)
+            range(8)
+            if matchup_mode == "all"
+            else range(4, 8)
+            if matchup_mode == "mirrors"
+            else range(4 if selected else 2)
         )
         for leg in legs:
             seat_players = (
