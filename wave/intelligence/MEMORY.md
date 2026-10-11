@@ -19,8 +19,12 @@ verified then. Physical lid closure remains untested; unknown gaps are charged.
 
 Jack Heart requested PR251 repairs on October 10–11, not scientific completion. Repairs
 `64e1f111` and `3514dd5e` supersede the earlier unresolved-six-failures feedback:
-five reproduced; live diagnostics already passed after merging. Focused checks
-passed; complete Integration remains gate-owned and unverified.
+five reproduced; live diagnostics already passed after merging. Publication checks
+on October 11 passed the complete local Integration commands: 754 pytest cases
+(five skipped), 35 frozen-policy fixtures, enum and training smoke. Native debug
+tests passed (393), as did 38 baseline/recovery checks and the isolated remote
+suite (175 passed, two skipped). CI still owns the platform matrix; these software
+checks do not establish scientific acceptance.
 
 Initialization survives failed updates: assert
 exact artifact roles, unchanged finite initialization and no failed replacement.
