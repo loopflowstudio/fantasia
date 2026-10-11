@@ -89,8 +89,8 @@ microsteps across vector streams, not learner transitions, and applies to the
 collector's lifetime across linked stages. This is a bounded correctness path,
 not a scalable native snapshot format.
 
-Snapshots are published at stage entry, after each update, and after completed
-export/admission. VerifyStore commits the snapshot reference and stage records
+Snapshots are published at stage entry, at the configured update cadence (every
+update by default), and after completed export/admission. VerifyStore commits the snapshot reference and stage records
 together. Completed prefixes retain their original artifact paths, digests,
 counts and cost receipts; they are not re-exported into the child directory.
 Format 3 snapshots keep each stage's diagnostic count and SHA-256 instead of
@@ -200,3 +200,27 @@ The 2026-10-06 focused checks compare uninterrupted and paused/resumed real nati
 learning state, optimizer/EMA/RNGs, observations, diagnostics and counts; native
 debug tests compare restored reset sequences with independent scalar environments.
 Clock fault injection tests accounting, not physical lid closure or a host reboot.
+## Longer local runs
+
+`recovery_every_updates` defaults to one, preserving existing recipe identities.
+An explicit cadence saves update 1, each multiple of that cadence, stage entry
+and completed stage exports. Progress between snapshots remains in VerifyStore,
+but recovery replays learning from the latest committed snapshot. Unsnapshotted
+updates may repeat; failed-attempt time is retained, never refunded. Cadence
+changes persistence cost and recoverable progress, not sampling or learning rules.
+
+`recovery_max_microsteps` admits explicit bounds up to 20 million active native
+steps. The entire replay journal still grows with collector lifetime: choose a
+cadence and disk reserve from measured snapshot growth before long runs. Raising
+the ceiling is not a constant-memory snapshot implementation or portable recovery.
+
+CPU process-tree RSS is sampled at most once per second. On macOS, child discovery
+scans the host process table, so repeating it for every collector step can dominate
+training. Continuous deadlines remain checked at every step; sampled peak RSS is
+not an instantaneous peak or an OS-enforced memory reservation.
+
+Local launchd commands may explicitly select `process_type="Standard"` while
+retaining Nice=10 and one thread per worker; the historical default remains
+`Background`. Calibrate under the selected scheduling class rather than treating
+foreground timings as background-service rates. `report_every_seconds` controls
+only report refresh cadence; no refresh launches learning or extends allocation.

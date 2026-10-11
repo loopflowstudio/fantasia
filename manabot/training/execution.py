@@ -630,7 +630,10 @@ def _execute_regime(
             if not restoring_completed:
                 record.actual_threads = torch.get_num_threads()
 
+            last_memory_sample = float("-inf")
+
             def check() -> None:
+                nonlocal last_memory_sample
                 charged = run.prior_watchdog_seconds + budget_now() - watchdog_start
                 if (
                     time.perf_counter() >= deadline
@@ -649,6 +652,13 @@ def _execute_regime(
                     )
                 ):
                     raise TimeoutError("training resource wall deadline exceeded")
+                # Deadline checks run at every native step. On macOS, recursive
+                # child discovery scans the whole host process table; sampling
+                # RSS once per second avoids making supervision the workload.
+                now = time.perf_counter()
+                if now - last_memory_sample < 1.0:
+                    return
+                last_memory_sample = now
                 process = psutil.Process()
                 memory = process.memory_info().rss + sum(
                     p.memory_info().rss
@@ -1176,6 +1186,7 @@ def _execute_regime(
                         if regime.recovery
                         else None,
                         root=stage.root,
+                        matchup_curriculum=stage.matchup_curriculum,
                         device=stage.execution.device,
                     )
                     experiment = Experiment(
@@ -1319,6 +1330,12 @@ def _execute_regime(
                                 "numerical": {"optimizer_steps": 0},
                             }
                         )
+                        if stage.matchup_curriculum != "fixed":
+                            diagnostic["matchup_curriculum"] = stage.matchup_curriculum
+                            diagnostic["cumulative_games_by_stream"] = {
+                                str(k): v
+                                for k, v in trainer.collector.stats.games_by_stream.items()
+                            }
                         diagnostic["behavior"] = stage.behavior
                         diagnostic["behavior_iteration"] = iteration
                         if stage.learning.gradient != "ataraxos_move":
@@ -1356,14 +1373,22 @@ def _execute_regime(
                         monitor_checkpoint(trainer.agent)
                     pausing = pause_path is not None and pause_path.exists()
                     cadence = (
-                        regime.recovery.checkpoint_updates if regime.recovery else 1
+                        regime.recovery.checkpoint_updates
+                        if regime.recovery
+                        else regime.recovery_every_updates
                     )
-                    if (
+                    checkpoint_due = (
                         iteration % cadence == 0
                         or pausing
-                        or update_index + 1 == stage.updates
-                    ):
+                        or (
+                            update_index + 1 == stage.updates
+                            if regime.recovery
+                            else iteration == 1
+                        )
+                    )
+                    if checkpoint_due:
                         checkpoint(f"update-{iteration:08d}")
+                    if not regime.recovery or checkpoint_due:
                         persist(progress=True)
                     if pausing:
                         raise TrainingPaused(
