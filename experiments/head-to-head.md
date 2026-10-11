@@ -347,12 +347,23 @@ it changes action seeds. Completed units retain their files and only missing
 directories are scheduled; failed/unfinished directories remain failures, not
 silent retries. A new invocation has its own explicit wall cap.
 
-The operator still owns appending `w32-floor003`, `w128-d4-floor003` and
-`w128-d4-floor010` with their actual seed-10352 receipts and running the Mini
-evaluation. This software Task launches no full cohort.
+The operator owns appending `w32-floor003`, `w128-d4-floor003` and
+`w128-d4-floor010` with their actual seed-10352 receipts. On 2026-10-10,
+Jack Heart relayed that the size-floor grid evaluation was already running on
+the Mini from `18c6ef6f`. Publication does not restart or modify that run.
 
 Validation boundary (2026-10-10): synthetic cross/mirror report goldens match
-`c9c28153`. The two completed 2026-10-09 run bundles are absent from this
-checkout; byte-identical regeneration of their JSON and rendered reports remains
-an acceptance check for gate/operator with those originals. Synthetic parity
-is not a substitute for that check. No real games ran for MTG-134.
+`c9c28153`. Jack Heart relayed the operator's regeneration on the Mac Mini,
+using branch `54acf51f` on copies of both retained 2026-10-09 run directories:
+
+- Mirrors: regenerated `report.json` and report text are byte-identical to the
+  originals.
+- Cross: regenerated JSON and text are byte-identical to main `a11d89bd`
+  (the merged mirror-match change). They differ from the original files,
+  produced by pre-mirror runner `83faa3c5`, only by fields already added on
+  main: `decks`, `matchup_mode` and `failed_units` columns.
+
+This establishes no historical report change relative to main, not byte parity
+with the pre-mirror cross originals. The operator-reported evidence resolves
+the publication blocker; it was not independently rerun in this checkout.
+Report regeneration does not rerun games or establish grid strength.

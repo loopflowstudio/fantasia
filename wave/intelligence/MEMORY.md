@@ -1200,14 +1200,12 @@ manager owns the unstarted full Mini run. Active experiments/checkpoints stayed 
 
 ## Roster-driven head-to-head (MTG-134, 2026-10-10)
 
-Jack Heart approved the size × floor grid's Mini comparison. The runner accepts
-strict roster JSON for cross/mirror smoke and run, retaining its built-in freeze.
-Design-bound reporting requires no roster flag. Additive continuation preserves
-old entrant identities, oriented pairs, deals and runtime admission; completed
-units are reused, failed directories never silently retried. Greedy remains the
-rating zero, distinct from the declared reference.
+Jack Heart approved the Mini comparison. Roster JSON drives play; saved designs
+drive reports. Extensions preserve
+entrant identities, oriented pairs, deals and runtime admission; completed units
+are reused, failures never silently retried. Greedy remains the rating zero.
 
-The [protocol](../../experiments/head-to-head.md#roster-files-mtg-134-2026-10-10)
-owns schema, grid receipts and remaining Mini work. Synthetic parity is not
-completed-run regeneration; the latter awaits retained bundles at gate/operator.
-No strength claim follows.
+Jack Heart relayed operator regeneration at `54acf51f` on Mini copies:
+mirrors match originals; cross matches main `a11d89bd`, not pre-mirror
+`83faa3c5` originals (main-added fields only). See [protocol](../../experiments/head-to-head.md#roster-files-mtg-134-2026-10-10). Publication is unblocked, not merge-authorized.
+Grid evaluation is running from `18c6ef6f`; no restart or strength claim follows.
