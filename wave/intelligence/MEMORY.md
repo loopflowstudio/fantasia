@@ -1,27 +1,26 @@
 # Intelligence memory
 
-## Weekly-first mini duration baseline (ETU-118, 2026-10-07)
+## Weekly-first mini duration baseline (ETU-118, 2026-10-10)
 
-Jack Heart selected three 10,000-update mini runs: ETU-105 actor-and-critic-filtered
-masked-mean scalar width64/depth2/heads4, no history, current self, 256 rows/update.
-This supersedes depth1/horizon selection, not promotion; ETU-116/82 belong here.
-ETU-105 released CPU. Preserve the single cohort and ETU-103 isolation.
+Jack Heart selected ETU-105's actor-and-critic-filtered masked-mean scalar
+width64/depth2/heads4, no-history current-self recipe: three 10,000-update seeds,
+256 rows/update. ETU-116/82 outcomes belong here. Source `ba0ae3e9` and plan `46aabdb0` remain frozen; preserve Ataraxos iterations,
+620+620 stages and failed preparation (`05da79a9`).
 
-Mini source/native/environment `ba0ae3e9` remains frozen under
-`/Users/jack/src/etude/.runs/etu118-mini-20261007-1/source`. Plan `46aabdb0` binds seeds, milestones and untouched final cells. Preserve absolute Ataraxos iterations and
-620+620 stages, despite the historical serialized elapsed-clock field.
+The [protocol/evidence](../../experiments/current-baseline.md) records three completed
+training seeds and 9,000 exact-replayed monitoring games on 2026-10-09. Development
+scores improved with strong deck asymmetry; final criteria
+were unjudged at that read. No baseline promotion follows. Training/monitoring
+charged 171,708.6 additive seconds plus 4355.137744 preparation against the original
+week; final/report charges remain separate. No seed retry or fresh week.
 
-The [protocol/evidence](../../experiments/current-baseline.md) owns receipts,
-controls and accounting; launch history remains at `05da79a9`. Calibration and
-four-update linked-prefix agreement establish bounded execution, not strength or
-full 1240-update equivalence. Preparation charged 4355.137744 seconds, leaving
-600444.862256 of the original week. Preserve all failures; no seed retry/fresh week.
-Format-3 recovery retains VerifyStore prefixes and complete learning/game state;
-unknown gaps remain conservatively charged. Physical lid closure is untested;
-flat curves prompt review, not automatic failure.
-
-At launch S3 was credential-blocked; W&B backfilled 128 rows only. Sustained
-improvement, demo admission, archival and independent daily validation remain required.
+Format-3 recovery preserves complete learning/game state and VerifyStore prefixes;
+unknown gaps are conservatively charged. Physical lid closure remains untested.
+S3 was credential-blocked at launch; only 128 W&B rows were verified then. Final
+analysis, ordinary demo admission, archival and independent daily validation remain
+required. Jack Heart requested PR251 conflict/CI repair and landing on 2026-10-10,
+not scientific Task completion. ETU-125 is the next Mini workload, not an automatic
+ETU-118 extension; ETU-122 retains card-pool curriculum work.
 
 ## Numerical policy contract (ETU-127, 2026-10-07)
 

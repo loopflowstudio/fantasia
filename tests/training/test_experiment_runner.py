@@ -245,22 +245,24 @@ def test_live_diagnostics_and_requested_exports_remain_separate(tmp_path: Path) 
     value = recipe()
     value.recovery_max_microsteps = None
     value.stages[0].updates = 2
+    # Five real four-game cohorts include subprocess startup and exact replay.
+    # This is a routing check, not a 20-second evaluator performance threshold.
     schedule = ExperimentSchedule(
         seeds=(11840,),
         hardware="fixture",
-        wall_seconds=180,
-        process_seconds=180,
+        wall_seconds=420,
+        process_seconds=420,
         checkpoint_updates=(1,),
         monitoring=MonitoringBudget(
-            seconds=120,
-            attempt_seconds=20,
+            seconds=300,
+            attempt_seconds=60,
             include_initial=True,
-            protocol=MonitorProtocol(deal_seeds=(1911182000,), game_seconds=5),
+            protocol=MonitorProtocol(deal_seeds=(1911182000,), game_seconds=20),
         ),
         diagnostic_protocol=MonitorProtocol(
             deal_seeds=(1911182001,),
             opponent="random",
-            game_seconds=5,
+            game_seconds=20,
         ),
         diagnostic_updates=(0, 2),
         scientific_deal_seeds=(1911182002,),
@@ -272,7 +274,15 @@ def test_live_diagnostics_and_requested_exports_remain_separate(tmp_path: Path) 
         hardware(),
         tmp_path / "live",
     )
-    assert record.status == "completed", record.error
+    assert record.status == "completed", (
+        record.model_dump_json(),
+        [
+            p.read_text()
+            for p in sorted(
+                (tmp_path / "live/monitoring").glob("attempt-*/attempt.json")
+            )
+        ],
+    )
     results = [
         MonitorResult.model_validate_json(p.read_text())
         for p in (tmp_path / "live/monitoring").rglob("monitor.json")
