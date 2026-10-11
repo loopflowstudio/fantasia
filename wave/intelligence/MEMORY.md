@@ -4,29 +4,31 @@
 
 Jack Heart selected ETU-105's actor-and-critic-filtered masked-mean scalar
 width64/depth2/heads4, no-history current-self recipe: three 10,000-update seeds,
-256 rows/update. ETU-116/82 outcomes belong here. Source `ba0ae3e9` and plan `46aabdb0` remain frozen; preserve Ataraxos iterations,
-620+620 stages and failed preparation (`05da79a9`).
+256 rows/update. ETU-116/82 outcomes belong here. Source `ba0ae3e9`, plan
+`46aabdb0`, Ataraxos iterations, 620+620 stages and failed preparation
+(`05da79a9`) remain frozen. No retry, fresh week or paid compute.
 
 The [protocol/evidence](../../experiments/current-baseline.md) records three completed
-training seeds and 9,000 exact-replayed monitoring games on 2026-10-09. Development
-scores improved with strong deck asymmetry; final criteria
-were unjudged at that read. No baseline promotion follows. Training/monitoring
-charged 171,708.6 additive seconds plus 4355.137744 preparation against the original
-week; final/report charges remain separate. No seed retry or fresh week.
+training seeds and 9,000 exact-replayed monitoring games on 2026-10-09.
+Development gains have strong deck asymmetry; final criteria remain unjudged.
+Training/monitoring charged 171,708.6 additive seconds plus 4355.137744 preparation
+against the original week; final/report charges remain unsettled. No promotion.
+Final analysis, ordinary demo admission, archival and independent daily validation
+remain required. S3 was credential-blocked at launch; only 128 W&B rows were
+verified then. Physical lid closure remains untested; unknown gaps are charged.
 
-Format-3 recovery preserves complete learning/game state and VerifyStore prefixes;
-unknown gaps are conservatively charged. Physical lid closure remains untested.
-S3 was credential-blocked at launch; only 128 W&B rows were verified then. Final
-analysis, ordinary demo admission, archival and independent daily validation remain
-required. Jack Heart requested PR251 conflict/CI repair and landing on 2026-10-10,
-not scientific Task completion. Jack Heart requested a second integration repair
-on 2026-10-11. Current-source admission now checks only the selected fixed horizon;
-scalar step cadence remains exclusive, while tuple milestones retain hourly exports.
-The ETU-125 merge requires native seed restoration to retain per-stream matchups
-and sparse format-3 recovery checks to supply canonical VerifyStore diagnostics.
-Focused recovery proofs do not replace the requested full Integration check.
-ETU-125 is the next Mini workload, not an automatic
-ETU-118 extension; ETU-122 retains card-pool curriculum work.
+Jack Heart requested PR251 repairs on October 10–11, not scientific completion. Repairs
+`64e1f111` and `3514dd5e` supersede the earlier unresolved-six-failures feedback:
+five reproduced; live diagnostics already passed after merging. Focused checks
+passed; complete Integration remains gate-owned and unverified.
+
+Initialization survives failed updates: assert
+exact artifact roles, unchanged finite initialization and no failed replacement.
+Telemetry failure must preserve the original training error.
+Format-3 recovery checks need VerifyStore diagnostics; native seed restoration
+retains per-stream matchups. Canonical recovery owns missing-boundary rejection.
+Scalar step cadence is exclusive; tuple milestones retain hourly exports.
+ETU-125 owns the next Mini workload; ETU-122 retains card-pool curriculum work.
 
 ## Mirror curriculum and frozen-opponent diagnostic (ETU-125, 2026-10-08)
 
