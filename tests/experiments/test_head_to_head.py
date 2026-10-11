@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, replace
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -125,7 +126,7 @@ def test_schedule_covers_every_contrast() -> None:
 
 def test_mirror_plan_is_shared_disjoint_and_keeps_anchor() -> None:
     plan = head_to_head.full_plan("mirrors")
-    assert plan.roster == head_to_head.ROSTER
+    assert plan.entrants == head_to_head.ENTRANTS
     assert plan.pairings == head_to_head.pairings()
     assert not set(plan.deal_seeds) & set(head_to_head.DEAL_SEEDS)
     assert not set(plan.deal_seeds) & set(head_to_head.smoke_plan("mirrors").deal_seeds)
@@ -245,9 +246,9 @@ def test_mirror_mode_cannot_overwrite_cross_run(tmp_path: Path) -> None:
     assert (tmp_path / "status.json").read_bytes() == before
 
 
-def _grid_roster() -> head_to_head.RosterSpec:
-    return head_to_head.RosterSpec.model_validate_json(
-        Path("experiments/rosters/size-floor-grid.json").read_text()
+def _grid_tournament() -> head_to_head.Tournament:
+    return head_to_head.Tournament.model_validate_json(
+        Path("experiments/tournaments/size-floor-grid.json").read_text()
     )
 
 
@@ -268,8 +269,8 @@ def _grid_roster() -> head_to_head.RosterSpec:
         "unscheduled-contrast",
     ],
 )
-def test_roster_rejects_invalid_design(corruption: str) -> None:
-    data = _grid_roster().model_dump(mode="json")
+def test_tournament_rejects_invalid_design(corruption: str) -> None:
+    data = _grid_tournament().model_dump(mode="json")
     if corruption == "unknown":
         data["core"].append("unknown")
     elif corruption == "duplicate":
@@ -295,7 +296,7 @@ def test_roster_rejects_invalid_design(corruption: str) -> None:
     else:
         data["core"] = []
     with pytest.raises(ValueError):
-        head_to_head.RosterSpec.model_validate_json(json.dumps(data))
+        head_to_head.Tournament.model_validate_json(json.dumps(data))
 
 
 @pytest.mark.parametrize("mode", ["cross", "mirrors"])
@@ -303,14 +304,15 @@ def test_custom_smoke_and_saved_report(
     tmp_path: Path,
     mode: head_to_head.MatchupMode,
 ) -> None:
-    spec = _grid_roster()
+    spec = _grid_tournament()
     plan = head_to_head.smoke_plan(mode, spec)
     assert len(plan.pairings) == 6
     assert len(plan.units()) == 12
-    assert plan.roster == spec.entrants
+    assert plan.entrants == spec.entrants
     atomic_json(
         tmp_path / "design.json",
         {
+            "roster": [asdict(e) for e in spec.entrants],
             "roster_spec": spec.model_dump(mode="json"),
             "pairings": plan.pairings,
             "deal_seeds": plan.deal_seeds,
@@ -326,7 +328,20 @@ def test_custom_smoke_and_saved_report(
             mirrors=mode == "mirrors",
         )
     found = head_to_head.report(tmp_path)
-    assert isinstance(found, head_to_head.RosterReport)
+    # Pre-rename runner dd1ff797 on these exact synthetic grid rows.
+    expected = {
+        "cross": (
+            "c43aff2014fb3464f92c8774d7aa2d4037d8b48e370d7eda95456e467edbda32",
+            "9570ab6fca16a959cefe8ca115a51a7c63e0b811accfaf537e02d2e6ce9cdb71",
+        ),
+        "mirrors": (
+            "b3c974dcfb5abdb7d5419d6374f468f9c5a809e1deae1079e6b87de4bbfd823d",
+            "11b343f876c2a0e4e265077a1ba536f2e0223317f49d06072bf3f510aebba252",
+        ),
+    }
+    assert canonical_sha256(asdict(found)) == expected[mode][0]
+    assert canonical_sha256(head_to_head.render(found)) == expected[mode][1]
+    assert isinstance(found, head_to_head.TournamentReport)
     assert found.reference == spec.reference
     assert len(found.contrasts) == 2
     assert spec.training_caveat in head_to_head.render(found)
@@ -345,7 +360,7 @@ def test_extension_reuses_finished_units(
     # and reporting run through the ordinary entry point, without real games.
     def admit(
         models: Path,
-        roster: Sequence[head_to_head.Entrant],
+        entrants: Sequence[head_to_head.Entrant],
         *,
         matchup_mode: head_to_head.MatchupMode,
     ) -> head_to_head.Admitted:
@@ -375,8 +390,8 @@ def test_extension_reuses_finished_units(
     monkeypatch.setattr(head_to_head, "admit", admit)
     monkeypatch.setattr(head_to_head, "ProcessPoolExecutor", pool)
     monkeypatch.setattr(head_to_head, "_play_unit", play)
-    full = _grid_roster()
-    initial = head_to_head.RosterSpec(
+    full = _grid_tournament()
+    initial = head_to_head.Tournament(
         entrants=full.entrants[:3],
         core=full.core[:3],
         extra=(),
@@ -405,7 +420,7 @@ def test_extension_reuses_finished_units(
         replace(second, deal_seeds=(999,)),
         replace(
             second,
-            roster=(
+            entrants=(
                 full.entrants[0],
                 replace(full.entrants[1], sha256="0" * 64),
                 *full.entrants[2:],
@@ -453,9 +468,10 @@ def test_default_design_and_historical_report_stability(
     # Goldens produced by c9c28153's runner on these same synthetic rows.
     # No completed scientific cohort is reconstructed or relabeled here.
     plan_data = asdict(head_to_head.full_plan(mode))
-    assert plan_data.pop("roster_spec") is None
+    assert plan_data.pop("tournament") is None
+    plan_data["roster"] = plan_data.pop("entrants")
     assert canonical_sha256(plan_data) == plan_hash
-    assert canonical_sha256([asdict(e) for e in head_to_head.ROSTER]) == (
+    assert canonical_sha256([asdict(e) for e in head_to_head.ENTRANTS]) == (
         "9b404f7d21bf326607eb38f2a2940847548ede82d49fe86275d69e000cf07328"
     )
     plan = head_to_head.smoke_plan(mode)
@@ -477,3 +493,45 @@ def test_default_design_and_historical_report_stability(
     found = head_to_head.report(tmp_path)
     assert canonical_sha256(asdict(found)) == report_hash
     assert canonical_sha256(head_to_head.render(found)) == render_hash
+
+
+@pytest.mark.parametrize("command", ["smoke", "run"])
+def test_tournament_cli(
+    command: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def run(
+        out: Path,
+        models: Path,
+        *,
+        plan: head_to_head.Plan,
+        workers: int,
+        wall_seconds: float,
+        min_free_gib: float,
+    ) -> None:
+        assert plan.tournament == _grid_tournament()
+        raise RuntimeError("execution boundary")
+
+    monkeypatch.setattr(head_to_head, "run", run)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "head_to_head",
+            command,
+            str(tmp_path),
+            "--models",
+            str(tmp_path),
+            "--tournament",
+            "experiments/tournaments/size-floor-grid.json",
+        ],
+    )
+    with pytest.raises(RuntimeError, match="execution boundary"):
+        head_to_head.main()
+
+
+def test_tournament_subcommand(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["head_to_head", "tournament"])
+    head_to_head.main()
+    assert head_to_head.ENTRANTS[0].id in capsys.readouterr().out

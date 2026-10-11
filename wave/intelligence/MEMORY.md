@@ -1198,14 +1198,15 @@ owns seeds and commands. The 24-game exact-replayed smoke binds `001e6920`;
 later report parity does not rebind its source or prove strength. The training
 manager owns the unstarted full Mini run. Active experiments/checkpoints stayed fixed.
 
-## Roster-driven head-to-head (MTG-134, 2026-10-10)
+## Tournament head-to-head (MTG-134, 2026-10-10)
 
-Jack Heart approved the Mini comparison. Roster JSON drives play; saved designs
-drive reports. Extensions preserve
-entrant identities, oriented pairs, deals and runtime admission; completed units
-are reused, failures never silently retried. Greedy remains the rating zero.
+Jack Heart named the concept Tournament throughout the public API.
+Saved `roster`/`roster_spec` keys stay unchanged; one reader serves reports and
+continuation. Extensions preserve entrant identities, oriented pairs, deals and
+runtime admission. Finished units are reused; failures never silently retry.
 
-Jack Heart relayed operator regeneration at `54acf51f` on Mini copies:
-mirrors match originals; cross matches main `a11d89bd`, not pre-mirror
-`83faa3c5` originals (main-added fields only). See [protocol](../../experiments/head-to-head.md#roster-files-mtg-134-2026-10-10). Publication is unblocked, not merge-authorized.
-Grid evaluation is running from `18c6ef6f`; no restart or strength claim follows.
+Jack Heart relayed Mini regeneration at `54acf51f`: mirrors match originals;
+cross matches main `a11d89bd`, not pre-mirror `83faa3c5` originals.
+The [protocol](../../experiments/head-to-head.md#tournament-files-mtg-134-2026-10-10)
+owns evidence limits. Grid evaluation runs from `18c6ef6f`; this rename starts
+no games and claims no strength. Publish for review; no merge authorization.
