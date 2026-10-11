@@ -10,14 +10,17 @@ from dataclasses import dataclass
 from itertools import product
 import json
 import re
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, JsonValue, TypeAdapter
 
 from manabot.arena.models import canonical_json, canonical_sha256
 from manabot.infra.hypers import AgentSpec, MatchHypers, ObservationSpaceHypers
+from manabot.remote.job_client import prepare_experiment_job
+from manabot.remote.jobs import Job
+from manabot.remote.plan import DeploymentPlan, Source, compile_plan
 from manabot.training.execution import validate_regime
-from manabot.training.experiment_execution import ExperimentSchedule
+from manabot.training.experiment_execution import ExperimentSchedule, PlannedRun
 from manabot.training.models import (
     AtaraxosMoveLearning,
     Execution,
@@ -26,6 +29,9 @@ from manabot.training.models import (
     TrainingRegime,
     TrainSelfPlay,
 )
+
+if TYPE_CHECKING:
+    from manabot.remote.cohort import Cohort
 
 ComponentName = Literal[
     "model", "environment", "learning", "resources", "pipeline", "run", "identity"
@@ -144,7 +150,9 @@ class Pipeline:
 
 @dataclass(frozen=True)
 class RunControl:
-    schedule_clock: Literal["run_elapsed_budget", "iteration_fraction"]
+    schedule_clock: Literal["run_elapsed_budget", "iteration_fraction"] = (
+        "iteration_fraction"
+    )
     recovery_max_microsteps: int | None = None
     selection: Literal["last-complete-raw"] = "last-complete-raw"
 
@@ -374,6 +382,86 @@ class Experiment:
     cases: tuple[Case, ...] = ()
     matrix: tuple[Axis, ...] = ()
     schedule: ExperimentSchedule | None = None
+    jobs: tuple[PlannedRun, ...] = ()
+
+    def compile_jobs(self, source: "Source") -> tuple["DeploymentPlan", ...]:
+        """Pure compilation; preserves cases, seed order and learning targets."""
+        if self.schedule is not None and self.jobs:
+            raise ValueError("choose local schedule or explicit launch allocations")
+        cases = {case.name: case for case in self.resolve().cases}
+        if len({(run.case, run.seed) for run in self.jobs}) != len(self.jobs):
+            raise ValueError("launch case/seed bindings must be unique")
+        if any(run.case not in cases for run in self.jobs):
+            raise ValueError("launch references an unresolved case")
+        plans = tuple(
+            compile_plan(cases[run.case].configuration, run.spec, source, run.seed)
+            for run in self.jobs
+        )
+        for binding, plan in zip(self.jobs, plans, strict=True):
+            binding.admit_regime(plan.regime)
+        intervals = {binding.checkpoint_updates for binding in self.jobs}
+        if any(interval is not None for interval in intervals) and len(intervals) != 1:
+            raise ValueError(
+                "comparison jobs require one shared checkpoint_updates interval"
+            )
+        return plans
+
+    def cohort(
+        self,
+        source: "Source",
+        cohort_id: str,
+        *,
+        deadline: float,
+        spending_limit: float,
+        prior_dollars: float,
+        controller_dollars: float,
+    ) -> "Cohort":
+        """Freeze the existing job order for deployment by an independent service."""
+        from manabot.remote.cohort import Cohort, CohortEntry
+
+        plans = self.compile_jobs(source)
+        cases = {case.name: case for case in self.resolve().cases}
+        return Cohort(
+            cohort_id=cohort_id,
+            deadline=deadline,
+            spending_limit=spending_limit,
+            prior_dollars=prior_dollars,
+            controller_dollars=controller_dollars,
+            entries=tuple(
+                CohortEntry(
+                    job_id=f"{cohort_id}-{index}",
+                    plan=plan,
+                    monitoring=binding.monitoring,
+                    checkpoint_seconds=binding.checkpoint_seconds,
+                    checkpoint_updates=binding.checkpoint_updates,
+                    validate_numerics=binding.validate_numerics,
+                    experiment_json=json.dumps(
+                        cases[binding.case].receipt(), sort_keys=True
+                    ),
+                )
+                for index, (binding, plan) in enumerate(
+                    zip(self.jobs, plans, strict=True)
+                )
+            ),
+        )
+
+    def prepare_job(self, index: int, source: "Source", job_id: str) -> "Job":
+        """Persist one selected run through the existing disconnected job owner."""
+        self.compile_jobs(source)
+        binding = self.jobs[index]
+        case = next(case for case in self.resolve().cases if case.name == binding.case)
+        return prepare_experiment_job(
+            case,
+            binding.spec,
+            source,
+            binding.seed,
+            job_id,
+            monitoring=binding.monitoring,
+            checkpoint_seconds=binding.checkpoint_seconds,
+            checkpoint_updates=binding.checkpoint_updates,
+            destination=binding.spec.access.destination,
+            validate_numerics=binding.validate_numerics,
+        )
 
     def resolve(self) -> ResolvedExperiment:
         if self.name:

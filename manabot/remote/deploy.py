@@ -9,9 +9,11 @@ from contextlib import contextmanager
 import fcntl
 import json
 import math
+import shutil
 from pathlib import Path
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 import time
 from typing import TYPE_CHECKING, Callable, Iterator, Literal
 
@@ -109,7 +111,7 @@ def current_source(root: Path) -> Source:
 
 def verify_public_source(source: Source) -> None:
     request = Request(
-        f"https://api.github.com/repos/loopflowstudio/etude/git/commits/{source.commit}",
+        f"https://api.github.com/repos/loopflowstudio/fantasia/git/commits/{source.commit}",
         headers={"User-Agent": "manabot/0.1"},
     )
     try:
@@ -117,10 +119,72 @@ def verify_public_source(source: Source) -> None:
             value = json.load(response)
         if value["sha"] != source.commit or value["tree"]["sha"] != source.tree:
             raise ValueError("public source identity differs")
-    except (HTTPError, URLError, TimeoutError, KeyError):
+    except HTTPError as error:
+        if error.code != 403:
+            raise ValueError("committed source is not publicly fetchable") from None
+        gh = shutil.which("gh")
+        if gh is not None:
+            # Reuse the host login without extracting or forwarding its token.
+            result = subprocess.run(
+                [
+                    gh,
+                    "api",
+                    f"repos/loopflowstudio/fantasia/git/commits/{source.commit}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            if result.returncode == 0:
+                value = json.loads(result.stdout)
+                if value["sha"] != source.commit or value["tree"]["sha"] != source.tree:
+                    raise ValueError("authenticated public source identity differs")
+                return
+        _verify_public_source_git(source)
+    except (URLError, TimeoutError, KeyError):
         raise ValueError(
             "committed source is not publicly fetchable; publish before rental"
         ) from None
+
+
+def _verify_public_source_git(source: Source) -> None:
+    """Verify public commit/tree/lock bytes when the unauthenticated API is limited."""
+    with TemporaryDirectory(prefix="manabot-public-source-") as directory:
+
+        def git(*args: str) -> str:
+            result = subprocess.run(
+                ["git", "-C", directory, *args],
+                capture_output=True,
+                text=True,
+                timeout=90,
+                check=False,
+            )
+            if result.returncode:
+                raise ValueError("public Git source verification failed")
+            return result.stdout.strip()
+
+        git("init", "--bare", "--quiet")
+        git(
+            "fetch",
+            "--quiet",
+            "--depth=1",
+            "https://github.com/loopflowstudio/fantasia.git",
+            source.commit,
+        )
+        if (
+            git("rev-parse", "FETCH_HEAD") != source.commit
+            or git("rev-parse", "FETCH_HEAD^{tree}") != source.tree
+        ):
+            raise ValueError("public Git source identity differs")
+        lock = subprocess.run(
+            ["git", "-C", directory, "show", "FETCH_HEAD:uv.lock"],
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        if lock.returncode or digest(lock.stdout) != source.lock_sha256:
+            raise ValueError("public Git lock identity differs")
 
 
 def _save_cleanup(path: Path, receipt: Receipt) -> None:
@@ -218,7 +282,7 @@ def _estimate_cost(receipt: Receipt, plan: DeploymentPlan) -> float | None:
             return None
         total += (
             (attempt.deleted_time - attempt.intent_time)
-            * (attempt.hourly_rate + plan.mix.storage_hourly_allowance)
+            * (attempt.hourly_rate + plan.spec.machine.storage_hourly_allowance)
             / 3600
         )
     return total
@@ -236,8 +300,8 @@ def _create(
     prices = provider.prices()
     candidates = [
         gpu
-        for gpu in plan.mix.gpu_types
-        if 0 < prices.get(gpu, float("inf")) <= plan.mix.hourly_ceiling
+        for gpu in plan.spec.machine.gpu_types
+        if 0 < prices.get(gpu, float("inf")) <= plan.spec.machine.hourly_ceiling
     ]
     if not candidates:
         raise ValueError("no declared GPU has an admitted price")
@@ -256,16 +320,16 @@ def _create(
     pod = provider.create(
         {
             "name": attempt.name,
-            "imageName": plan.mix.image,
+            "imageName": plan.spec.machine.image,
             "cloudType": "SECURE",
             "computeType": "GPU",
             "gpuCount": 1,
             "gpuTypeIds": candidates,
             "gpuTypePriority": "custom",
-            "minVCPUPerGPU": plan.mix.vcpus,
-            "minRAMPerGPU": plan.mix.memory_gb,
-            "containerDiskInGb": plan.mix.container_gb,
-            "volumeInGb": plan.mix.volume_gb,
+            "minVCPUPerGPU": plan.spec.machine.vcpus,
+            "minRAMPerGPU": plan.spec.machine.memory_gb,
+            "containerDiskInGb": plan.spec.machine.container_gb,
+            "volumeInGb": plan.spec.machine.volume_gb,
             "volumeMountPath": "/workspace",
             "ports": ["22/tcp"],
             "supportPublicIp": True,
@@ -282,10 +346,10 @@ def _create(
     if pod.name != attempt.name:
         raise ValueError("provider returned unexpected pod ownership")
     if (
-        pod.gpu_count != plan.mix.gpu_count
-        or pod.rate > plan.mix.hourly_ceiling
-        or pod.vcpus < plan.mix.vcpus
-        or pod.memory_gb < plan.mix.memory_gb
+        pod.gpu_count != plan.spec.machine.gpu_count
+        or pod.rate > plan.spec.machine.hourly_ceiling
+        or pod.vcpus < plan.spec.machine.vcpus
+        or pod.memory_gb < plan.spec.machine.memory_gb
     ):
         raise ValueError(
             "assigned rental exceeds price or undersupplies declared resources"
@@ -320,7 +384,8 @@ def deploy(
     root: Path,
     *,
     job_id: str | None = None,
-    checkpoint_seconds: float = 60,
+    checkpoint_seconds: float | None = None,
+    checkpoint_updates: int | None = None,
     monitoring: "MonitoringBudget | None" = None,
     destination: str = "s3://etudefantasia/manabot/jobs",
     observe: Callable[[Transport], None] | None = None,
@@ -353,6 +418,7 @@ def deploy(
         destination=destination,
         monitoring=monitoring,
         checkpoint_seconds=checkpoint_seconds,
+        checkpoint_updates=checkpoint_updates,
     )
     (out / "job.json").write_text(spec.model_dump_json(indent=2))
     (out / "plan.json").write_text(plan.model_dump_json(indent=2))
@@ -362,7 +428,7 @@ def deploy(
     )
     status = submit_job(spec)
     while status.cleanup is None:
-        if time.time() > spec.deadline + plan.mix.cleanup_seconds:
+        if time.time() > spec.deadline + plan.spec.cleanup_seconds:
             raise RuntimeError(f"CLEANUP UNCONFIRMED; reconcile job {spec.job_id}")
         time.sleep(5)
         status = job_status(spec)

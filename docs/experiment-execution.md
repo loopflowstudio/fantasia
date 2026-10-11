@@ -37,7 +37,7 @@ experiment = Experiment(
         wall_seconds=900,
         process_seconds=900,
         monitoring=MonitoringBudget(seconds=360, attempt_seconds=180),
-        checkpoint_seconds=3600,
+        checkpoint_updates=1000,
     ),
 )
 # Reading configured resources does not provision hardware or authorize science.
@@ -189,3 +189,10 @@ writes the [HTML demo](../experiments/study/experiment-demo/comparison.html).
 Jack Heart's original edited notebook and checkpoint copy remain unchanged.
 The [evidence note](../experiments/study/experiment-demo/README.md) records the
 original fixture costs, failures and limits. This revision reruns reporting only.
+
+The default dashboard now starts with measured progress, latest deck-specific
+scores and one-seed learning curves; random and greedy opponents stay separate.
+The checkpoint table is linked from the top. Diagnostics and costs remain
+expandable, with sibling offline metric guidance and raw monitoring/scalar exports.
+Use a fresh generator filename to adopt the layout while preserving an edited
+notebook. For live data, use the [read-only snapshot command](experiment-metrics.md#portable-snapshots).

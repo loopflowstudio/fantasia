@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -297,6 +298,57 @@ def test_publisher_uses_remote_prefix_and_rejects_rewritten_history(
         monitoring.publish_dashboard(dashboard, tmp_path)
 
 
+def test_publisher_waits_for_evaluation_completion_without_losing_local_progress(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    remote = Mock(step=0, summary={}, url="https://wandb.invalid/evaluation")
+    published: list[dict[str, object]] = []
+
+    def log(row: dict[str, object], step: int) -> None:
+        assert step == remote.step
+        published.append(row)
+        remote.step += 1
+
+    remote.log.side_effect = log
+    monkeypatch.setattr(monitoring.wandb, "init", Mock(return_value=remote))
+    dashboard = Dashboard(
+        run_id="monitor-fixture",
+        config={},
+        summary={"attempted_games": 4},
+        rows=[
+            {
+                "progress/observation": 0,
+                "monitor/status": "running",
+                "monitor/attempted_games": 4,
+            }
+        ],
+    )
+    monitoring.publish_dashboard(dashboard, tmp_path)
+    dashboard.rows[0]["monitor/attempted_games"] = 8
+    dashboard.summary["attempted_games"] = 8
+    monitoring.publish_dashboard(dashboard, tmp_path)
+    assert not published
+    assert remote.summary["attempted_games"] == 8
+    assert dashboard.rows[0]["monitor/attempted_games"] == 8
+    dashboard.rows[0]["monitor/status"] = "completed"
+    monitoring.publish_dashboard(dashboard, tmp_path)
+    dashboard.rows.append(
+        {
+            "progress/observation": 1,
+            "monitor/status": "running",
+            "monitor/attempted_games": 0,
+        }
+    )
+    monitoring.publish_dashboard(dashboard, tmp_path)
+    assert len(published) == 1
+    dashboard.rows[1]["monitor/status"] = "incomplete"
+    monitoring.publish_dashboard(dashboard, tmp_path)
+    assert [row["monitor/status"] for row in published] == ["completed", "incomplete"]
+    dashboard.rows[0]["monitor/attempted_games"] = 7
+    with pytest.raises(ValueError, match="published prefix"):
+        monitoring.publish_dashboard(dashboard, tmp_path)
+
+
 def test_fixed_reference_target_does_not_change_training_objective() -> None:
     torch.set_num_threads(1)
     dataset = _dataset()
@@ -319,3 +371,73 @@ def test_fixed_reference_target_does_not_change_training_objective() -> None:
         policy_target_kind=CHOSEN_ACTION_TARGET,
     )
     assert history[0].fixed_validation == expected
+
+
+def test_numerical_projection_distinguishes_unsampled_and_rejected_updates(
+    tmp_path: Path,
+) -> None:
+    from manabot.training.experiment_report import ReportEvidence, write_dashboard
+    from manabot.training.models import NumericalFailure
+
+    run = TrainingRun(
+        id="numerical-fixture",
+        regime=_recipe(),
+        regime_digest="fixture",
+        seed=1,
+        seed_streams={},
+        identities={},
+        status="failed",
+        stages=[
+            StageRecord(
+                id="policy-0",
+                diagnostics=[
+                    {
+                        "numerical": {
+                            "legal_logit_gap_max": 104.0,
+                            "legal_underflow_count": 2,
+                            "parameter_delta_l2": 0.01,
+                            "sampled_steps": 1,
+                        },
+                        "coordinates": {"updates": 1},
+                    },
+                    {
+                        "numerical": {
+                            "legal_logit_gap_max": 105.0,
+                            "legal_underflow_count": 3,
+                            "sampled_steps": 0,
+                        },
+                        "coordinates": {"updates": 2},
+                    },
+                ],
+                numerical_failure=NumericalFailure(
+                    invariant="nonfinite_gradients",
+                    iteration=3,
+                    health={"rejected_steps": 1, "rejected_updates": 1},
+                ),
+            )
+        ],
+    )
+    dashboard = training_dashboard(run)
+    assert len(dashboard.rows) == 3
+    assert dashboard.rows[0]["numerical/parameter_delta_l2"] == 0.01
+    assert "numerical/parameter_delta_l2" not in dashboard.rows[1]
+    assert dashboard.rows[-1]["progress/updates"] == 2
+    assert dashboard.rows[-1]["numerical/rejected_steps"] == 1
+    assert dashboard.rows[-1]["failure/invariant"] == "nonfinite_gradients"
+    panels = default_panels(dashboard)
+    assert "dashboard/Probability underflow" in panels
+    assert "dashboard/Optimizer steps" in panels
+    evidence = ReportEvidence(tmp_path, (run,), (), (), (), ())
+    path = write_dashboard(
+        evidence,
+        tmp_path / "health.html",
+        question="Numerical controls",
+        docs="metrics.md",
+        sections=[],
+    )
+    html = path.read_text()
+    assert "Numerical health" in html and "numerical-health.md" in html
+    assert "Measured parameter movement" in html
+    assert (
+        "nonfinite_gradients" in path.with_name("health-diagnostics.json").read_text()
+    )

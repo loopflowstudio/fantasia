@@ -2,7 +2,14 @@
 
 from typing import Annotated, Literal, TypedDict
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from manabot.infra.hypers import AgentSpec, MatchHypers, ObservationSpaceHypers
 from manabot.sim.local_update import LocalSearchConfig
@@ -18,6 +25,78 @@ class ArtifactReference(TypedDict):
 
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class CheckpointCadence(Strict):
+    """Prospective exports use absolute completed iterations, anchored at zero.
+
+    Explicit seconds preserve frozen launch records. Omitting both fields chooses
+    1,000 updates; this is an authoring default, never a throughput estimate.
+    """
+
+    checkpoint_updates: int | None = Field(
+        default=1000, gt=0, strict=True, exclude_if=lambda value: value is None
+    )
+    checkpoint_seconds: float | None = Field(
+        default=None, gt=0, exclude_if=lambda value: value is None
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def select_clock(cls, value: object) -> object:
+        if isinstance(value, dict):
+            if value.get("checkpoint_seconds") is not None:
+                if "checkpoint_updates" not in value:
+                    return {**value, "checkpoint_updates": None}
+            elif value.get("checkpoint_updates") is None:
+                return {**value, "checkpoint_updates": 1000}
+        return value
+
+    @model_validator(mode="after")
+    def one_clock(self) -> "CheckpointCadence":
+        if self.checkpoint_updates is not None and self.checkpoint_seconds is not None:
+            raise ValueError(
+                "choose checkpoint_updates or checkpoint_seconds, not both"
+            )
+        return self
+
+    @model_serializer(mode="wrap")
+    def retain_legacy_field_order(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
+        # Job/cohort identities hash serialized bytes, including field order.
+        # All existing cadence owners placed seconds directly after monitoring.
+        values: dict[str, object] = handler(self)
+        if self.checkpoint_updates is None and "monitoring" in values:
+            seconds = values.pop("checkpoint_seconds", None)
+            if seconds is not None:
+                ordered: dict[str, object] = {}
+                for key, value in values.items():
+                    ordered[key] = value
+                    if key == "monitoring":
+                        ordered["checkpoint_seconds"] = seconds
+                return ordered
+        return values
+
+    def admit_regime(self, regime: "TrainingRegime") -> None:
+        if self.checkpoint_updates is not None and (
+            len(regime.stages) != 1
+            or (
+                regime.schedule_clock != "iteration_fraction"
+                and any(
+                    not isinstance(stage, TrainSelfPlay)
+                    or stage.learning.gradient != "ataraxos_move"
+                    for stage in regime.stages
+                )
+            )
+            or any(
+                not isinstance(stage, TrainSelfPlay) or stage.active_seconds is not None
+                for stage in regime.stages
+            )
+        ):
+            raise ValueError(
+                "step cadence requires one step-target self-play stage with iteration schedules"
+            )
 
 
 class Schedule(Strict):
@@ -180,6 +259,58 @@ class FrozenOpponent(Strict):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+class PretrainedPolicy(Strict):
+    """Published weights a self-play stage starts from instead of random ones.
+
+    The producer fixes what the weights mean, so its world, Agent architecture
+    and observation encoding must equal this regime's. How learning proceeds is
+    this run's own choice: the learning rule and its schedules, streams,
+    transitions, behavior, opponent and seed may all differ from the producer.
+
+    Only the policy is inherited. Adam moments, the EMA average, game streams
+    and the iteration that drives schedules all start fresh, so iteration 1 of
+    this run uses the first value of its own schedule. Use LearningStateImport
+    to extend one unchanged recipe instead.
+    """
+
+    source_run: ArtifactReference
+    source_stage: str
+    checkpoint: ArtifactReference
+    weights: Literal["raw", "ema"] = "raw"
+
+
+class LearningStateImport(Strict):
+    """Portable learner state; source bytes retain historical paths and identity.
+
+    Paths here locate staged copies. Their hashes/sizes must match the parent
+    TrainingRun. Game streams and all RNGs explicitly start afresh.
+    """
+
+    source_run: ArtifactReference
+    source_stage: str
+    raw: ArtifactReference
+    ema: ArtifactReference
+    optimizer: ArtifactReference
+
+
+class LearningStateOrigin(Strict):
+    """Absolute parent coordinates, separate from this segment's work/cost."""
+
+    run_id: str
+    stage_id: str
+    iteration: int = Field(ge=1)
+    games: int = Field(ge=0)
+    environment_decisions: int = Field(ge=0)
+    learner_transitions: int = Field(ge=0)
+    optimizer_exposures: int = Field(ge=0)
+    active_training_seconds: float = Field(ge=0)
+    cumulative_seconds: float = Field(ge=0)
+    streams: Literal["fresh"] = "fresh"
+    optimizer_updates: int | None = Field(
+        default=None, ge=0, exclude_if=lambda value: value is None
+    )
+
+
 class TrainSelfPlay(Stage):
     operation: Literal["train_self_play"]
     trainer: Literal["net_opponent"] = "net_opponent"
@@ -192,13 +323,47 @@ class TrainSelfPlay(Stage):
     )
     opponent: FrozenOpponent | None = None
     initial: str | None = None
+    learning_state: LearningStateImport | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    pretrained: PretrainedPolicy | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     updates: int = Field(default=2, ge=1)
+    # Frozen v1 compatibility only; JobSpec rejects active-time endpoints.
+    # An active-time endpoint completes after a whole collect/update iteration.
+    # updates remains a safety ceiling; reaching it early is a failed attempt.
+    active_seconds: float | None = Field(
+        default=None, gt=0, exclude_if=lambda value: value is None
+    )
     streams: int = Field(default=4, ge=2)
     transitions: int = Field(default=256, ge=1)
     learning: Learning | AtaraxosMoveLearning = Learning()
 
     @model_validator(mode="after")
     def valid_behavior(self) -> "TrainSelfPlay":
+        if self.pretrained is not None and (
+            self.initial is not None or self.learning_state is not None
+        ):
+            raise ValueError(
+                "pretrained weights cannot be combined with another starting state"
+            )
+        if self.learning_state is not None and (
+            self.initial is not None
+            or self.active_seconds is not None
+            or not isinstance(self.learning, AtaraxosMoveLearning)
+            or self.learning.ema is None
+        ):
+            raise ValueError(
+                "learning-state continuation requires absolute-step Ataraxos with EMA"
+            )
+        if self.active_seconds is not None:
+            if self.active_seconds >= self.execution.wall_seconds:
+                raise ValueError("active endpoint requires additional watchdog reserve")
+            if not isinstance(self.learning, AtaraxosMoveLearning):
+                raise ValueError(
+                    "active endpoint currently requires iteration-based Ataraxos learning"
+                )
         if self.behavior == "ema-self" and self.learning.ema is None:
             raise ValueError("ema-self behavior requires an EMA rate")
         if (self.behavior == "frozen") != (self.opponent is not None):
@@ -348,6 +513,17 @@ class TrainingRegime(Strict):
 
     @model_validator(mode="after")
     def references(self) -> "TrainingRegime":
+        if any(
+            isinstance(stage, TrainSelfPlay) and stage.learning_state is not None
+            for stage in self.stages
+        ) and (
+            len(self.stages) != 1
+            or self.recovery_max_microsteps is not None
+            or self.schedule_clock != "iteration_fraction"
+        ):
+            raise ValueError(
+                "learning-state continuation requires one step-target stage without process recovery"
+            )
         if self.agent.recent_events and self.agent.semantic_pack is None:
             raise ValueError(
                 "recent events require a semantic pack for public identities"
@@ -401,6 +577,11 @@ class TrainingRegime(Strict):
             )
         if self.recoverable and any(stage.root is not None for stage in self.stages):
             raise ValueError("diagnostic roots do not support recovery")
+        if self.recoverable and any(
+            isinstance(stage, TrainSelfPlay) and stage.active_seconds is not None
+            for stage in self.stages
+        ):
+            raise ValueError("active-time process recovery is unsupported")
         if any(stage.execution.device == "cuda" for stage in self.stages):
             if self.recoverable:
                 raise ValueError("CUDA process recovery is unsupported")
@@ -551,14 +732,30 @@ class TrainingRegime(Strict):
         return self
 
 
+class NumericalFailure(Strict):
+    """A rejected update is not a completed training diagnostic coordinate."""
+
+    invariant: str
+    iteration: int
+    health: dict[str, int | float] = {}
+
+
 class StageRecord(Strict):
+    learning_state_origin: LearningStateOrigin | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    numerical_failure: NumericalFailure | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     # Cumulative across attempts for this stage; run costs remain attempt-local.
     watchdog_seconds: float = 0
     id: str
     producer_cost: ProducerCost | None = None
     actual_device: str | None = None
     actual_threads: int | None = None
-    status: Literal["running", "completed", "failed", "interrupted"] = "running"
+    status: Literal["running", "completed", "failed", "interrupted", "paused"] = (
+        "running"
+    )
     seconds: float = 0
     cumulative_seconds: float | None = Field(default=None, ge=0)
     collection_seconds: float = 0
@@ -569,6 +766,10 @@ class StageRecord(Strict):
     environment_decisions: int = 0
     learner_transitions: int = 0
     optimizer_exposures: int = 0
+    # Completed optimizer.step calls; unknown in older or unsupported learners.
+    optimizer_updates: int | None = Field(
+        default=None, ge=0, exclude_if=lambda value: value is None
+    )
     sampled_peak_rss_bytes: int = 0
     cpu_seconds: float = 0
     inputs: dict[str, dict] = {}
@@ -577,11 +778,34 @@ class StageRecord(Strict):
     diagnostics: list[dict] = []
     error: str | None = None
 
+    def observed_optimizer_updates(self) -> int | None:
+        """Read saved counters once at import/recovery, never infer from exposures."""
+        if self.optimizer_updates is not None:
+            return self.optimizer_updates
+        total = 0
+        for diagnostic in self.diagnostics:
+            health = diagnostic.get("numerical")
+            count = health.get("optimizer_steps") if isinstance(health, dict) else None
+            if type(count) is not int or count < 0:
+                return None
+            total += count
+        return total if self.diagnostics else None
+
 
 class TrainingCoordinates(Strict):
+    # Segment-local completed iterations; updates includes inherited absolute offsets.
+    segment_updates: int | None = Field(
+        default=None, ge=0, exclude_if=lambda value: value is None
+    )
+    optimizer_updates: int | None = Field(
+        default=None, ge=0, exclude_if=lambda value: value is None
+    )
     stage_id: str
     updates: int = Field(ge=0)
     training_seconds: float = Field(ge=0)
+    active_training_seconds: float | None = Field(
+        default=None, ge=0, exclude_if=lambda value: value is None
+    )
     environment_decisions: int = Field(default=0, ge=0)
     learner_transitions: int = Field(default=0, ge=0)
     optimizer_exposures: int = Field(default=0, ge=0)
@@ -609,9 +833,9 @@ class TrainingRun(Strict):
     seed: int
     seed_streams: dict[str, int]
     identities: dict
-    status: Literal["pending", "running", "completed", "failed", "interrupted"] = (
-        "pending"
-    )
+    status: Literal[
+        "pending", "running", "completed", "failed", "interrupted", "paused"
+    ] = "pending"
     stages: list[StageRecord] = []
     seconds: float = 0
     setup_seconds: float = 0
@@ -637,7 +861,16 @@ class TrainingRun(Strict):
     error: str | None = None
     monitoring_checkpoints: list[MonitoringCheckpoint] = []
     monitoring_export_seconds: float = 0
+    monitoring_checkpoint_milestones: tuple[int, ...] = Field(
+        default=(), exclude_if=lambda v: not v
+    )
     monitoring_checkpoint_seconds: float | None = None
+    monitoring_checkpoint_updates: int | None = Field(
+        default=None, gt=0, strict=True, exclude_if=lambda value: value is None
+    )
+    allocation_deadline: float | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     fixed_validation: FixedValidationCohort | None = None
 
     def updates_through(self, stage_id: str | None = None) -> int:
@@ -651,6 +884,24 @@ class TrainingRun(Strict):
         for stage in self.stages:
             if stage.id in learning:
                 total += len(stage.diagnostics)
+                if stage.learning_state_origin is not None:
+                    total += stage.learning_state_origin.iteration
+            if stage.id == stage_id:
+                break
+        return total
+
+    def optimizer_updates_through(self, stage_id: str | None = None) -> int | None:
+        """Cumulative measured calls; any missing stage/ancestor remains unavailable."""
+        total = 0
+        for stage in self.stages:
+            if stage.optimizer_updates is None:
+                return None
+            total += stage.optimizer_updates
+            origin = stage.learning_state_origin
+            if origin is not None:
+                if origin.optimizer_updates is None:
+                    return None
+                total += origin.optimizer_updates
             if stage.id == stage_id:
                 break
         return total

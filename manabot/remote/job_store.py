@@ -6,6 +6,7 @@ Only the worker's runtime prefix is writable with the delegated STS session.
 """
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import json
 import math
 import os
@@ -14,7 +15,7 @@ from typing import Any, Protocol
 
 from manabot.infra.artifacts import split_s3_uri
 
-from .jobs import Cancellation, RemoteJobSpec
+from .jobs import Cancellation, Job
 
 
 @dataclass(frozen=True)
@@ -106,29 +107,61 @@ class S3JobStore:
 WORKER_ROLE = "manabot-remote-jobs"
 
 
-def worker_policy(prefix_uri: str) -> dict[str, object]:
+def worker_policy(
+    prefix_uri: str, deadline: float | None = None, *, inputs: tuple[str, ...] = ()
+) -> dict[str, object]:
     """Only control reads and runtime evidence writes; no delete or account access."""
     bucket, prefix = split_s3_uri(prefix_uri)
     arn = f"arn:aws:s3:::{bucket}/{prefix.rstrip('/')}"
-    return {
-        "Version": "2012-10-17",
-        "Statement": [
+    statements: list[dict[str, object]] = [
+        {
+            "Effect": "Allow",
+            "Action": ["s3:GetObject"],
+            "Resource": [
+                f"{arn}/spec.json",
+                f"{arn}/cancel.json",
+                f"{arn}/training.json",
+            ],
+        },
+        {
+            "Effect": "Allow",
+            "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"],
+            "Resource": [f"{arn}/runtime/*"],
+        },
+    ]
+    if inputs:
+        resources = []
+        for uri in inputs:
+            input_bucket, key = split_s3_uri(uri)
+            if input_bucket != bucket or not key or any(c in key for c in "*?[]"):
+                raise ValueError("learning inputs require literal same-bucket objects")
+            resources.append(f"arn:aws:s3:::{input_bucket}/{key}")
+        statements.append(
             {
                 "Effect": "Allow",
-                "Action": ["s3:GetObject"],
-                "Resource": [
-                    f"{arn}/spec.json",
-                    f"{arn}/cancel.json",
-                    f"{arn}/training.json",
-                ],
-            },
+                "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+                "Resource": resources,
+            }
+        )
+
+    if deadline is not None:
+        # Explicit deny also bounds resource-policy grants to this session. STS
+        # has a 900-second minimum and may issue tokens beyond a short allocation.
+        statements.append(
             {
-                "Effect": "Allow",
-                "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"],
-                "Resource": [f"{arn}/runtime/*"],
-            },
-        ],
-    }
+                "Effect": "Deny",
+                "Action": "*",
+                "Resource": "*",
+                "Condition": {
+                    "DateGreaterThanEquals": {
+                        "aws:CurrentTime": datetime.fromtimestamp(
+                            deadline, timezone.utc
+                        ).isoformat()
+                    }
+                },
+            }
+        )
+    return {"Version": "2012-10-17", "Statement": statements}
 
 
 def configure_worker_role(destination: str) -> None:
@@ -193,7 +226,7 @@ def configure_worker_role(destination: str) -> None:
             )
 
 
-def worker_credentials(spec: RemoteJobSpec) -> dict[str, str]:
+def worker_credentials(spec: Job) -> dict[str, str]:
     """Use a job-scoped STS session; account keys never reach a rental.
 
     SSO/role chaining supports at most one hour. Longer jobs require IAM-user
@@ -201,27 +234,63 @@ def worker_credentials(spec: RemoteJobSpec) -> dict[str, str]:
     """
     import boto3
 
-    session = boto3.Session()
-    credentials = session.get_credentials()
-    if credentials is None:
-        raise RuntimeError("AWS credentials unavailable")
-    frozen = credentials.get_frozen_credentials()
-    duration = max(900, math.ceil(spec.deadline - time.time()) + 60)
-    policy = json.dumps(worker_policy(spec.prefix), separators=(",", ":"))
+    # Issuance can use a dedicated IAM principal without replacing the client's
+    # ordinary SSO identity for control-plane reads/writes. Its credentials stay
+    # local; only the policy-restricted STS result enters the rental environment.
+    issuer_profile = os.environ.get("MANABOT_REMOTE_ISSUER_PROFILE")
+    role_arn = os.environ.get("MANABOT_REMOTE_ROLE_ARN")
+    if issuer_profile and not role_arn:
+        raise ValueError("a dedicated issuer requires an explicit worker role ARN")
+    try:
+        session = (
+            boto3.Session(profile_name=issuer_profile)
+            if issuer_profile
+            else boto3.Session()
+        )
+        credentials = session.get_credentials()
+        if credentials is None:
+            raise RuntimeError("missing credentials")
+        frozen = credentials.get_frozen_credentials()
+    except Exception:
+        # credential_process failures may include captured secret-bearing output.
+        raise RuntimeError(
+            "AWS issuer credentials unavailable; no rental created"
+        ) from None
+    remaining = spec.deadline - time.time()
+    if remaining <= 0:
+        raise ValueError("allocation has expired; worker issuance/renewal forbidden")
+    duration = max(900, math.ceil(remaining) + 60)
+    policy = json.dumps(
+        worker_policy(
+            spec.prefix,
+            spec.deadline,
+            inputs=tuple(artifact.uri for artifact in spec.learning_inputs.values()),
+        ),
+        separators=(",", ":"),
+    )
     try:
         sts = session.client("sts")
-        if frozen.token is None and not os.environ.get("MANABOT_REMOTE_ROLE_ARN"):
+        if frozen.token is None and duration > 3600:
+            principal = sts.get_caller_identity()["Arn"]
+            if ":user/" not in principal:
+                raise ValueError(
+                    "long worker sessions require a dedicated IAM-user issuer"
+                )
+        if frozen.token is None and role_arn is None:
             result = sts.get_federation_token(
                 Name=f"manabot-{spec.identity[:24]}",
                 DurationSeconds=duration,
                 Policy=policy,
             )
         else:
-            if duration > 3600:
+            # AWS applies the one-hour chaining cap to temporary-role sources.
+            # Direct IAM-user AssumeRole supports the role's configured duration;
+            # the service validates that limit and we independently admit expiry.
+            if frozen.token is not None and duration > 3600:
                 raise ValueError(
                     "SSO/role sessions require job wall time below 3540 seconds"
                 )
-            arn = os.environ.get("MANABOT_REMOTE_ROLE_ARN")
+            arn = role_arn
             if arn is None:
                 account = sts.get_caller_identity()["Account"]
                 arn = f"arn:aws:iam::{account}:role/{WORKER_ROLE}"

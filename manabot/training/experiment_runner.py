@@ -27,7 +27,7 @@ import torch
 
 from manabot.arena.models import canonical_sha256
 from manabot.sim.teacher1_evidence import source_bundle_sha256
-from manabot.training.checkpoint_queue import CheckpointQueue
+from manabot.training.checkpoint_queue import CheckpointQueue, stop_process_group
 from manabot.training.clock import arm_worker_deadline, boot_identity
 from manabot.training.execution import atomic_json, execute_regime
 from manabot.training.experiment_execution import (
@@ -56,11 +56,7 @@ def _runtime() -> dict[str, str]:
 
 
 def _stop(process: subprocess.Popen[bytes]) -> None:
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-    process.wait()
+    stop_process_group(process)
 
 
 def run_experiment(
@@ -78,6 +74,8 @@ def run_experiment(
     is granted by resume. No tracker is required and report refresh preserves edits.
     """
     entered, cpu_entered = time.monotonic(), time.process_time()
+    if experiment.jobs:
+        raise ValueError("JobSpec runs use Experiment.prepare_job and deploy submit")
     schedule = experiment.schedule
     if schedule is None:
         raise ValueError("Experiment execution requires an explicit schedule")
@@ -89,6 +87,8 @@ def run_experiment(
         or not schedule.monitoring.active_runtime
     ):
         raise ValueError("active experiment requires active recovery and monitoring")
+    for regime in regimes.values():
+        schedule.admit_regime(regime)
     if any(
         getattr(stage, "execution", None) is not None
         and (
@@ -476,7 +476,9 @@ def main() -> None:
             if payload.get("pause_path")
             else None,
             checkpoint_seconds=payload["checkpoint_seconds"],
-            checkpoint_updates=tuple(payload.get("checkpoint_updates", ())),
+            checkpoint_updates=tuple(payload["checkpoint_updates"])
+            if isinstance(payload.get("checkpoint_updates"), list)
+            else payload.get("checkpoint_updates"),
         )
     if run.status != "completed":
         raise SystemExit(1)

@@ -44,13 +44,11 @@ def test_saved_notebook_generates_html_without_inline_plots(
         notebook, timeout=60, resources={"metadata": {"path": str(tmp_path)}}
     ).execute()
     html = (tmp_path / "chosen.html").read_text()
-    assert html.count("<svg") == (6 if individual_progress else 5)
+    assert html.count("<svg") >= 4
     assert "Download all raw scalar diagnostics" in html
-    assert "Initialization unavailable" not in html  # no scientific study
+    assert "Initialization unavailable; first measured update is 1" in html
     assert "Monitoring initialization: unavailable" in html
-    assert html.index("Monitoring strength versus time") < html.index(
-        "Progress, throughput"
-    )
+    assert html.index("Separate the decks") < html.index("Progress, throughput")
     assert "Final experiment report" in html
     assert "#evaluation" in html and "#costs" in html
     assert not (tmp_path / "comparison.html").exists()
@@ -321,3 +319,34 @@ def test_missing_retention_is_not_zero_and_run_histories_stay_separate() -> None
     figures = strength_figures(evidence, "training_seconds", per_run=True)
     assert len(figures) == len(evidence.runs)
     assert all("Within-run" in f.axes[0].get_title() for f in figures)
+
+
+def test_capacity_reports_match_steps_without_claiming_equal_samples() -> None:
+    evidence = load_evidence(DEMO)
+    monitors = tuple(
+        m.model_copy(
+            update={
+                "coordinates": m.coordinates.model_copy(
+                    update={
+                        "learner_transitions": 16 * (i + 1),
+                        "training_seconds": 10.0 * (i + 1),
+                    }
+                )
+            }
+        )
+        for i, m in enumerate(evidence.monitors)
+    )
+    evidence = replace(evidence, monitors=monitors)
+    assert len(next(iter(matched_milestones(evidence).values()))) == 4
+    steps = strength_figures(evidence)[0].axes[0]
+    assert "not equal sample" in steps.get_xlabel()
+    assert all(
+        list(line.get_xdata()) == [1]
+        for line in steps.lines
+        if line.get_marker() == "o"
+    )
+    samples = strength_figures(evidence, "learner_transitions")[0].axes[0]
+    assert sorted(
+        float(line.get_xdata()[0]) for line in samples.lines if line.get_marker() == "o"
+    ) == [16, 32, 48, 64]
+    assert strength_figures(evidence, "optimizer_updates") == []

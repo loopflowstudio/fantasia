@@ -19,7 +19,7 @@ import sys
 import time
 from typing import Callable, Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 import torch
 
 from manabot.arena.models import canonical_sha256
@@ -51,6 +51,39 @@ class MonitoringBudget(Strict):
     include_initial: bool = Field(default=False, exclude_if=lambda value: not value)
     include_monitoring: bool = Field(default=True, exclude_if=lambda value: value)
     updates: tuple[int, ...] = Field(default=(), exclude_if=lambda value: not value)
+    require_initial_admission: bool = Field(
+        default=False, exclude_if=lambda value: not value
+    )
+    terminal_protocols: tuple[MonitorProtocol, ...] = Field(
+        default=(), exclude_if=lambda value: not value
+    )
+
+    @model_validator(mode="after")
+    def separate_terminal_deals(self) -> "MonitoringBudget":
+        if self.require_initial_admission and not self.include_initial:
+            raise ValueError("initial admission requires initialization evaluation")
+        used = set(self.protocol.deal_seeds)
+        for protocol in self.terminal_protocols:
+            if used.intersection(protocol.deal_seeds):
+                raise ValueError(
+                    "terminal and monitoring deal cohorts must be disjoint"
+                )
+            used.update(protocol.deal_seeds)
+        return self
+
+    def protocols_for(
+        self, run: TrainingRun, checkpoint: Checkpoint
+    ) -> list[MonitorProtocol]:
+        """Select final cohorts only for the last completed stage's raw artifact."""
+        if (
+            self.terminal_protocols
+            and run.stages
+            and run.stages[-1].status == "completed"
+        ):
+            final = stage_checkpoint(run, run.regime.stages[-1].id)
+            if final is not None and final.artifact == checkpoint.artifact:
+                return list(self.terminal_protocols)
+        return [self.protocol]
 
 
 def checkpoints(
@@ -68,25 +101,75 @@ def checkpoints(
         if include_monitoring and c.artifact is not None and c.error is None
     ]
     for stage in run.stages:
-        if include_initial and "initial_raw" in stage.artifacts:
+        if (
+            include_initial
+            and "initial_raw" in stage.artifacts
+            and not (
+                run.monitoring_checkpoint_updates is not None
+                and stage.learning_state_origin is not None
+            )
+        ):
+            origin = stage.learning_state_origin
             found.append(
                 Checkpoint(
                     artifact=stage.artifacts["initial_raw"],
                     coordinates=TrainingCoordinates(
                         stage_id=stage.id,
-                        updates=0,
-                        training_seconds=0,
-                        environment_decisions=0,
-                        learner_transitions=0,
-                        optimizer_exposures=0,
-                        games=0,
+                        updates=origin.iteration if origin is not None else 0,
+                        segment_updates=0
+                        if stage.optimizer_updates is not None
+                        else None,
+                        optimizer_updates=(
+                            origin.optimizer_updates if origin is not None else 0
+                        )
+                        if stage.optimizer_updates is not None
+                        else None,
+                        training_seconds=origin.cumulative_seconds
+                        if origin is not None
+                        else 0,
+                        **{
+                            name: getattr(origin, name)
+                            for name in (
+                                "active_training_seconds",
+                                "environment_decisions",
+                                "learner_transitions",
+                                "optimizer_exposures",
+                                "games",
+                            )
+                        }
+                        if origin is not None
+                        else {},
                     ),
                 )
             )
         checkpoint = stage_checkpoint(run, stage.id)
-        if checkpoint is not None:
+        if checkpoint is not None and not (
+            run.monitoring_checkpoint_updates is not None
+            and any(
+                c.coordinates.stage_id == stage.id
+                and c.coordinates.updates == checkpoint.coordinates.updates
+                for c in found
+            )
+        ):
             found.append(checkpoint)
     return sorted(found, key=lambda c: c.coordinates.training_seconds or 0)
+
+
+def stop_process_group(process: subprocess.Popen[bytes]) -> int:
+    """Kill a session-leader child's whole group, reap it and return its code.
+
+    A group that has already exited is not an error. Darwin reports EPERM rather
+    than ESRCH while the group still holds unreaped zombies, so that case is
+    tolerated once the leader itself is known to have exited.
+    """
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    except PermissionError:
+        if process.poll() is None:
+            raise
+    return process.wait()
 
 
 class EvaluationJob(Strict):
@@ -178,11 +261,7 @@ class CheckpointQueue:
 
     def _finish(self, error: str | None = None) -> None:
         assert self.process is not None and self.active is not None
-        try:
-            os.killpg(self.process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        code = self.process.wait()
+        code = stop_process_group(self.process)
         self.active.finished_unix = time.time()
         self.active.charged_seconds = self.clock() - self.started
         if error is None and code == 0:
@@ -221,6 +300,8 @@ class CheckpointQueue:
                 "regime": run.regime.model_dump(mode="json"),
                 "identities": run.identities,
             }
+            if run.monitoring_checkpoint_updates is not None:
+                binding["checkpoint_updates"] = run.monitoring_checkpoint_updates
             binding_path = run_dir / "binding.json"
             if binding_path.exists():
                 if json.loads(binding_path.read_text()) != binding:
@@ -256,15 +337,19 @@ class CheckpointQueue:
                 protocols = (
                     self.protocols_for(run, checkpoint)
                     if self.protocols_for is not None
-                    else [self.config.protocol]
+                    else self.config.protocols_for(run, checkpoint)
                 )
                 for protocol in protocols:
                     identity = canonical_sha256(
                         {
-                            "run": (
-                                f"{run.regime_digest}/{run.seed}"
-                                if run.regime.recovery
-                                else run.id
+                            **(
+                                {
+                                    "run": f"{run.regime_digest}/{run.seed}"
+                                    if run.regime.recovery
+                                    else run.id
+                                }
+                                if run.monitoring_checkpoint_updates is None
+                                else {}
                             ),
                             "checkpoint": checkpoint.model_dump(mode="json"),
                             "protocol": protocol.model_dump(mode="json"),

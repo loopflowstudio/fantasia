@@ -13,17 +13,55 @@ from io import StringIO
 import json
 import math
 from pathlib import Path
+import re
 from statistics import mean
 from typing import Literal
 
 from matplotlib.figure import Figure
+from pydantic import ConfigDict, JsonValue
 
 from manabot.arena.models import canonical_sha256, file_sha256
 from manabot.training.experiment_execution import ExperimentRun
-from manabot.training.models import TrainingRun
+from manabot.training.learning_dashboard import DASHBOARD_CSS, learning_story
+from manabot.training.models import TrainingRegime, TrainingRun
 from manabot.training.monitor_evaluation import MonitorResult
 from manabot.training.monitoring import Scalar, training_dashboard
 from manabot.training.report_study import ScientificStudy
+
+
+class RetainedRegime(TrainingRegime):
+    """Read-only report admission preserves additional frozen recipe metadata.
+
+    This projection is never passed to execution. Known fields still validate;
+    later recovery/configuration extensions survive raw exports unchanged.
+    """
+
+    model_config = ConfigDict(extra="allow")
+    __pydantic_extra__: dict[str, JsonValue]
+
+
+class RetainedRun(TrainingRun):
+    """Reporting projection, not admission for training or checkpoint serving."""
+
+    model_config = ConfigDict(extra="allow")
+    __pydantic_extra__: dict[str, JsonValue]
+    regime: RetainedRegime
+
+
+class RetainedExecution(ExperimentRun):
+    """Preserve newer lifecycle metadata without giving the report execution authority."""
+
+    model_config = ConfigDict(extra="allow")
+    __pydantic_extra__: dict[str, JsonValue]
+
+
+class RetainedMonitor(MonitorResult):
+    """Keep producer timestamps and extension metadata on immutable monitor exports."""
+
+    model_config = ConfigDict(extra="allow")
+    __pydantic_extra__: dict[str, JsonValue]
+    started_unix: float | None = None
+    finished_unix: float | None = None
 
 
 @dataclass(frozen=True)
@@ -58,8 +96,13 @@ class ReportEvidence:
     def metrics(self, run: TrainingRun) -> list[dict[str, Scalar]]:
         """Expose all saved diagnostics for notebook-selected deeper analysis."""
         rows = training_dashboard(run).rows
-        diagnostics = [d for s in run.stages for d in s.diagnostics]
-        for row, diagnostic in zip(rows, diagnostics, strict=True):
+        diagnostics = {
+            (s.id, i): d for s in run.stages for i, d in enumerate(s.diagnostics)
+        }
+        for row in rows:
+            diagnostic = diagnostics.get(
+                (row.get("stage/id"), row.get("stage/ordinal")), {}
+            )
             for key, value in diagnostic.items():
                 if isinstance(value, (int, float)) and not isinstance(value, bool):
                     row.setdefault(f"diagnostic/{key}", value)
@@ -80,15 +123,15 @@ def load_evidence(root: Path) -> ReportEvidence:
     )
     return ReportEvidence(
         root,
-        tuple(TrainingRun.model_validate_json(p.read_text()) for p in runs),
+        tuple(RetainedRun.model_validate_json(p.read_text()) for p in runs),
         tuple(
-            MonitorResult.model_validate_json(p.read_text())
+            RetainedMonitor.model_validate_json(p.read_text())
             for p in monitors
             if not any(parent in failed for parent in p.parents)
         ),
-        tuple(ExperimentRun.model_validate_json(p.read_text()) for p in executions),
+        tuple(RetainedExecution.model_validate_json(p.read_text()) for p in executions),
         failed,
-        (*runs, *monitors, *executions, *attempts),
+        (*runs, *monitors, *executions, *attempts, *tuple(root.glob("snapshot.json"))),
     )
 
 
@@ -139,7 +182,15 @@ def matched_milestones(evidence: ReportEvidence) -> dict[str, list[MonitorResult
 
 def strength_figures(
     evidence: ReportEvidence,
-    axis: Literal["training_seconds", "environment_decisions"],
+    axis: Literal[
+        "updates",
+        "learner_transitions",
+        "optimizer_updates",
+        "optimizer_exposures",
+        "active_training_seconds",
+        "training_seconds",
+        "environment_decisions",
+    ] = "updates",
     *,
     matched_only: bool = True,
     per_run: bool = False,
@@ -149,6 +200,12 @@ def strength_figures(
     panels = (
         matched_milestones(evidence) if matched_only else compatible_panels(evidence)
     )
+    if axis == "updates" and any(
+        stage.operation != "train_self_play"
+        for run in evidence.runs
+        for stage in run.regime.stages
+    ):
+        return []
     if per_run:
         # A resumed seed remains one history, including its parent checkpoints.
         logical_ids = {evidence.logical_run_id(run.id) for run in evidence.runs}
@@ -173,6 +230,9 @@ def strength_figures(
             ).items()
         }
     for panel, results in panels.items():
+        # Missing historical counters cannot become zero-valued comparison points.
+        if any(getattr(row.coordinates, axis) is None for row in results):
+            continue
         fig = Figure(figsize=(9, 3.5), layout="constrained")
         ax = fig.subplots()
         by_run: dict[str, list[MonitorResult]] = {}
@@ -194,9 +254,15 @@ def strength_figures(
                 label=evidence.label(run_id),
             )
         ax.set(
-            xlabel="Recorded training seconds"
-            if axis == "training_seconds"
-            else "Native environment decisions (work proxy)",
+            xlabel={
+                "updates": "Completed training steps (not equal sample exposure)",
+                "learner_transitions": "Learner transitions",
+                "optimizer_updates": "Completed optimizer updates",
+                "optimizer_exposures": "Optimizer sample exposures",
+                "active_training_seconds": "Recorded active training seconds",
+                "training_seconds": "Recorded training wall seconds",
+                "environment_decisions": "Native environment decisions (work proxy)",
+            }[axis],
             ylabel="Win fraction",
             ylim=(-0.03, 1.03),
             title=(
@@ -239,6 +305,48 @@ def metric_figure(evidence: ReportEvidence, metric: str) -> Figure:
             transform=ax.transAxes,
         )
     return fig
+
+
+def numerical_figures(evidence: ReportEvidence) -> list[Figure]:
+    """Compact health views. Missing cadence samples remain gaps, never zeros."""
+    groups = (
+        ("Collection concentration", ("legal_logit_gap_max",)),
+        ("Rounded legal zeros", ("legal_underflow_count",)),
+        ("Gradient norm", ("gradient_norm_before", "gradient_norm_after")),
+        ("Measured parameter movement", ("parameter_delta_l2",)),
+        ("Gradient tensors", ("gradient_missing_tensors", "gradient_zero_tensors")),
+        (
+            "Optimizer steps",
+            ("optimizer_steps", "skipped_steps", "rejected_steps", "rejected_updates"),
+        ),
+    )
+    figures: list[Figure] = []
+    for run in evidence.runs:
+        rows = evidence.metrics(run)
+        if not any(any(key.startswith("numerical/") for key in row) for row in rows):
+            continue
+        fig = Figure(figsize=(9, 8), layout="constrained")
+        for ax, (title, names) in zip(fig.subplots(3, 2).flat, groups, strict=True):
+            for name in names:
+                points = [
+                    (r.get("progress/updates", i), r.get(f"numerical/{name}"))
+                    for i, r in enumerate(rows)
+                ]
+                ax.plot(
+                    [x for x, _ in points],
+                    [
+                        float(y) if isinstance(y, (float, int)) else float("nan")
+                        for _, y in points
+                    ],
+                    marker=".",
+                    label=name.replace("_", " "),
+                )
+            ax.set_title(title)
+            ax.set_xlabel("Completed updates")
+            ax.legend(fontsize=7)
+        fig.suptitle(f"{run.regime.id} / seed {run.seed}: numerical health")
+        figures.append(fig)
+    return figures
 
 
 def diagnostic_figures(evidence: ReportEvidence, *, window: int = 25) -> list[Figure]:
@@ -389,9 +497,40 @@ def write_dashboard(
     sections: list[tuple[str, str, list[Figure]]],
     notes: str = "",
     study: ScientificStudy | None = None,
+    notebook: Path | None = None,
 ) -> Path:
     """Render notebook-selected figures and a concise status summary; never mutate inputs."""
     now = datetime.now(timezone.utc)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    guide = output.parent / docs
+    if not guide.is_file():
+        guide = Path(__file__).resolve().parents[2] / "docs/experiment-metrics.md"
+    if guide.exists():
+        from nbconvert.filters import markdown2html
+
+        guide_path = output.with_name(output.stem + "-metrics.html")
+        guide_html = str(markdown2html(guide.read_text()))
+        guide_html = re.sub(
+            r'(id|href)="(#?)([^" ]+)"',
+            lambda m: (
+                f'{m[1]}="{m[2]}{m[3].lower()}"' if m[1] == "id" or m[2] else m[0]
+            ),
+            guide_html,
+        )
+        guide_html = guide_html.replace(
+            'href="evidence/',
+            'href="https://github.com/loopflowstudio/etude/blob/main/docs/evidence/',
+        )
+        guide_path.write_text(
+            '<!doctype html><html lang="en"><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            "<title>Experiment metric guide</title><style>"
+            + DASHBOARD_CSS
+            + "</style><main>"
+            + guide_html
+            + "</main></html>"
+        )
+        docs = guide_path.name
 
     def link(text: str, anchor: str) -> str:
         return f'<a href="{escape(docs, quote=True)}#{anchor}">{escape(text)}</a>'
@@ -470,9 +609,11 @@ def write_dashboard(
                 f"<p>Active allocation charged: {_number(execution.elapsed_seconds)} s; calendar: {_number(execution.calendar_seconds)} s; known downtime: {_number(execution.downtime_seconds)} s; uncertain restart charge: {_number(execution.uncertain_seconds)} s. "
                 f"{'Paused at a committed boundary.' if execution.paused else 'No automatic statistical plateau stop.'}</p>"
             )
-    for title, anchor, figures in sections:
-        if anchor == "comparisons":
-            parts.append(section(title, anchor, figures))
+    scientific_sections = "".join(
+        section(title, anchor, figures)
+        for title, anchor, figures in sections
+        if anchor == "comparisons"
+    )
     initialization = [r for r in evidence.monitors if r.coordinates.updates == 0]
     parts.append(
         "<p>Monitoring initialization: "
@@ -722,6 +863,16 @@ def write_dashboard(
         "not an additional loss to add. Legal-action counts for that last minibatch are unavailable. "
         "Near ln(2) is consistent with nearly uniform binary choices, but does not identify their cause.</p>"
     )
+    health_figures = numerical_figures(evidence)
+    if health_figures:
+        parts.append(
+            "<details><summary>Numerical health: concentration, gradients and optimizer effect</summary>"
+            + section("Numerical health", "numerical-health", health_figures)
+            + "</details>"
+        )
+        parts.append(
+            '<p>Batch counts cover collected rows; gradient and parameter effect sample the first step at iteration 1 and every 25th iteration. Missing samples are unavailable. Forced choices and filtering can explain zeros; missing gradients or zero parameter movement need investigation. <a href="https://github.com/loopflowstudio/etude/blob/main/docs/numerical-health.md">Metric definitions and failure investigation</a>.</p>'
+        )
     for title, anchor, figures in sections:
         if anchor != "comparisons":
             parts.append(
@@ -748,10 +899,31 @@ def write_dashboard(
         + escape(json.dumps(hashes, indent=2))
         + "</pre></details>"
     )
+    if notebook is not None:
+        import os
+
+        parts.insert(
+            0,
+            f'<p><a href="{escape(os.path.relpath(notebook.resolve(), output.parent.resolve()))}">Editable notebook generator</a></p>',
+        )
+    monitoring_path = output.with_name(output.stem + "-monitoring.json")
+    monitoring_path.write_text(
+        json.dumps([r.model_dump(mode="json") for r in evidence.monitors], indent=2)
+    )
+    parts.append(
+        f'<p><a href="{monitoring_path.name}">Raw monitoring rows and saved intervals</a></p>'
+    )
     html = (
-        '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Experiment report</title><style>body{font:16px/1.5 system-ui;color:#202d35;background:#fafbf9;max-width:1080px;margin:40px auto;padding:0 24px}h1{font-size:30px}h2{font-size:20px;margin:24px 0 10px}a{color:#146a76;text-underline-offset:3px}.muted{color:#55646b;font-size:14px}table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid #ccd6d7}svg{width:100%;height:auto}.figure{overflow-x:auto}.figure svg{min-width:740px}section{margin-top:40px}pre{white-space:pre-wrap;overflow-wrap:anywhere}.table{overflow-x:auto}@media(max-width:600px){body{margin:20px auto;padding:0 14px}table{font-size:12px}td,th{padding:6px}h1{font-size:25px}}@media print{body{max-width:none}section{break-inside:avoid}}</style><main>'
+        '<!doctype html><html lang="en"><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<title>Learning progress · manabot</title><style>"
+        + DASHBOARD_CSS
+        + "</style><main>"
+        + learning_story(evidence, docs)
+        + scientific_sections
+        + '<details id="details"><summary>03 / Diagnostics, costs, failures &amp; source evidence</summary>'
         + "".join(parts)
-        + "</main></html>"
+        + "</details></main></html>"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html)

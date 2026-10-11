@@ -43,6 +43,12 @@ Submit bounded cloud work and reconnect after the laptop disconnects with
 [`manabot deploy submit/status/fetch`](../docs/remote-jobs.md). Training, checkpoint
 evaluation, verified S3 snapshots and shutdown belong to the remote job; reconnecting
 does not restart the learner or promise CUDA process recovery.
+Use `Experiment.cohort` and `manabot deploy cohort start` on an always-on host to
+sequence a frozen cohort independently of the submitting terminal or chat.
+Cohort status/cancellation reconnect through the same private control storage.
+New self-play jobs use exact absolute update checkpoints (`checkpoint_updates`,
+default 1,000); freeze targets and shared intervals before launch. Operational
+lease and spending limits remain in hours/dollars. See [cadence and continuation](../docs/training-monitoring.md#new-training-and-live-dashboards).
 
 ## World identity
 
@@ -181,3 +187,12 @@ operation, fixed distillation validation and separate checkpoint monitoring.
 Optional [public recent-event input](../docs/recent-events.md) uses the existing
 semantic catalog and a bounded native history suffix. Recipe history-on/off is
 independent of capacity and learning rules; comparison plans remain unexecuted.
+
+Self-play [numerical health](../docs/numerical-health.md) records policy support,
+selection, gradients and actual optimizer effects, with bounded private failure
+artifacts. CPU correctness does not imply CUDA validation or improved play.
+
+For exploratory same-deck checkpoint play, the [head-to-head runner](../experiments/head-to-head.md#mirror-only-follow-up-mtg-131-2026-10-09)
+accepts `--matchups mirrors`. This explicitly permits repeating exact checkpoint
+roster decks/sideboards and carries their compiled content pack through replay;
+it is not ordinary training-match admission or evidence of mirror competence.

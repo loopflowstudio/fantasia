@@ -2,61 +2,167 @@
 
 ## Weekly-first mini duration baseline (ETU-118, 2026-10-07)
 
-Jack Heart selected three 10,000-update mini runs of ETU-105's actor-and-critic
-filtered masked-mean scalar width64/depth2/heads4, no-history current-self recipe,
-256 rows/update. This supersedes depth1 and automatic horizon selection; early gains inform the
-choice, not promotion. ETU-116/82 outcomes belong here. ETU-105 released CPU.
+Jack Heart selected three 10,000-update mini runs: ETU-105 actor-and-critic-filtered
+masked-mean scalar width64/depth2/heads4, no history, current self, 256 rows/update.
+This supersedes depth1/horizon selection, not promotion; ETU-116/82 belong here.
+ETU-105 released CPU. Preserve the single cohort and ETU-103 isolation.
 
-Source `ba0ae3e9` is frozen with its native library and pinned environment under
-mini `/Users/jack/src/etude/.runs/etu118-mini-20261007-1/source`. All three 32-update
-calibration seeds completed, with 24 terminal/replayed evaluation games and a
-521.313901-second additive charge. Four historical/current updates matched batches, learner, Adam, RNGs and diagnostics
-across a linked boundary, not a full 1240-update reproduction. World/setup agreed. Ataraxos rates use absolute iterations, including skips,
-despite the historical serialized elapsed-clock field. Preserve 620+620 stages.
+Mini source/native/environment `ba0ae3e9` remains frozen under
+`/Users/jack/src/etude/.runs/etu118-mini-20261007-1/source`. Plan `46aabdb0` binds
+seeds 11851–11853, 400/800 exports, milestones through 10000, separate 100-game
+anchors and 24 untouched final cells. Preserve absolute Ataraxos iterations and
+620+620 stages, despite the historical serialized elapsed-clock field.
 
-Plan `46aabdb0`
-fixes seeds 11851–11853, extra 400/800 exports, later milestones through 10000,
-separate 100-game greedy/random monitoring and 24 untouched final cells. Time/storage admission passed. Preparation totals 4355.137744 seconds, leaving 600444.862256 of the
-original week. Preserve all laptop failures, the partial symlink bundle and the
-128.339317-second pre-learner PATH failure. Preparation exceeded its 600-second
-subreserve; actual total remained inside the 7200-second amendment. No seed retried.
+The [protocol/evidence](../../experiments/current-baseline.md) owns receipts,
+controls and accounting; launch history remains at `05da79a9`. Calibration and
+four-update linked-prefix agreement establish bounded execution, not strength or
+full 1240-update equivalence. Preparation charged 4355.137744 seconds, leaving
+600444.862256 of the original week. Preserve all failures; no seed retry/fresh week.
+Format-3 recovery retains VerifyStore prefixes and complete learning/game state;
+unknown gaps remain conservatively charged. Physical lid closure is untested;
+flat curves prompt review, not automatic failure.
 
-Detached supervisor 86655 reached 128 committed updates/32768 transitions and 200
-replayed initialization games; notebook refresh works. No duplicate or ETU-103 change.
-Format-3 recovery preserves VerifyStore prefixes and complete learning/game state.
-Known sleep/pause stays separate; unknown gaps are conservatively charged. Physical
-lid closure remains untested; flat curves prompt review, not automatic failure.
+At launch S3 credentials were unavailable and W&B backfilled only 128 rows;
+no automatic later publication or auth repair is inferred. Sustained improvement,
+ordinary demo admission, published checkpoints and independent daily-test validation
+remain required; root controls and short-run gains cannot establish them.
 
-The [protocol/evidence](../../experiments/current-baseline.md) owns accounting,
-identities and controls. S3 publication is blocked by unavailable default credentials
-and the configured softmax SSO token; do not repair auth as a launch prerequisite.
-W&B backfilled 128 diagnostic rows; later publication is not automatic.
-Sustained improvement, three ordinary
-demo-loaded executions, published checkpoints and independent daily-test validation
-remain open. Root controls and short-run gains do not prove those outcomes.
+## Numerical policy contract (ETU-127, 2026-10-07)
+
+Jack Heart authorized autonomous numerical repairs and ineffective-update
+instrumentation, not another paid cohort. Final ETU-103 analysis still lacks the
+failed batch: underflow is demonstrated, not proven as its historical trigger.
+
+Ordinary self-play retains normalized legal logs beside sampling weights; reverse
+KL no longer reconstructs logs from rounded zeros. PPO's clamped KL approximation
+also changes. No floor or corrupt-batch skip is introduced. Rounded-zero actions
+remain unsampleable; numerical repair does not restore exploration. New runs need
+a new source freeze, not reinterpretation of frozen evidence.
+
+Local health separates forced/filtered zeros, absent/zero gradients and actual
+parameter movement. Detailed effect measurements sample one step every 25
+iterations; rejected updates remain separate from completed counts. Private,
+bounded failure state uses existing rejected-artifact publication. Failed active
+operations are timed directly; accumulated overhead cannot become learning time.
+ETU-126 owns lifecycle/upload. The [contract](../../docs/numerical-health.md)
+owns semantics, overhead and CUDA admission. CPU proofs
+and positive toy learning establish no MTG strength or historical causal attribution.
+ETU-126 supplies the later named CUDA admission below; ETU-103/Mini artifacts remain untouched.
+
+## Durable cohort owner (ETU-126, 2026-10-08)
+
+Jack Heart authorized autonomous MLOps within $100 inclusive, four active hours
+per small seed and eight per large seed, three paired seeds. ETU-126 alone launches.
+Cohort `etu103-recovery-v3-science` pins merged `45940fe3`, 26,000 small / 15,600
+large iterations and $48.867918369190 inclusive reservation. Compare common
+time/samples separately from unequal endpoints. Preserve old failures and Mini order.
+
+The `2555c0e2` pilot passed CUDA admission/cleanup ($4.717918369190 estimated).
+PR263 repairs its endpoint race; CPU recovery retains the original omission.
+Timing proves neither strength nor sustained throughput. The [remote contract](../../docs/remote-jobs.md),
+[capacity record](../../experiments/model-capacity.md) and `2a4fd419` own receipts.
+
+Jack Heart approved the separate restricted controller and secure Mini installation.
+The 96-hour restricted S3 grant and worker admission passed; `69594494` retains
+original provisioning/restart proofs. Mini launchd owns scheduling and reports;
+no personal SSO moved. Job0 completed 26,000 updates,
+seven evaluations, final publication and cleanup (estimated $2.9223462573).
+Job1 subsequently completed 15,600 updates with final publication and cleanup
+(estimated $5.0351287061433); jobs2–5 remain queued.
+Verified Adam contains 61 states at step 208,000; EMA binds iteration 26,000.
+Raw/EMA/optimizer match run `c2b8c6e731ee4126a2c2d18514dea4d1`. Collector/RNG
+state is absent; continuation resets streams. The 526MB run JSON adds transfer cost.
+
+Jack Heart corrected the denominator mistake: keep absolute-iteration rates from
+26,001. PR266 (`69594494`) retains raw/Adam/EMA/counters with fresh streams.
+Mini durably queues 63k then 100k after job1 and before unchanged jobs2–5.
+Two 11.95h/$6.20 segments raise conservative reservations to $61.267918369190;
+settled cost plus remaining reservations is $59.24026462648922. Cohort expiry
+extends within the existing 96-hour grant; job deadlines stay fixed. SIGKILL
+restarted the upgraded owner in 7.70s with two attempts and the same job1 pod;
+competing ownership was rejected. An asynchronous launchd handoff failed first,
+then recovered without touching training; the follow-up fixes lock-release waits.
+CUDA continuation admission passed; 100k completion and final results remain pending;
+original science stays at `45940fe3`.
+
+Mini requires login; W&B-free reports refresh every 15 minutes within a $4 cap. Large
+11.95h/$6.20 JobSpecs retain fixed caps. Final evaluation/artifacts/cleanup
+gate successors.
+After settlement revoke the controller identity and remove copied secrets/services;
+IAM expiry does not revoke shared provider keys. Preserve original shared keys and
+Mini workloads. Cohort completion, final analysis and cost settlement remain open.
+
+Jack Heart requested prospective step cadence after PR268. The live science and
+queued continuation retain their frozen hourly cadence. Prospective single-stage self-play uses exact absolute update milestones;
+legacy/multi-stage clocks remain explicit. PR270 merged; cadence/recovery passed.
+The follow-up retains segment counts, optimizer calls and sample exposures;
+missing historical counts stay unavailable. Reports lead with matched steps;
+equal steps are not equal samples. Saved pilot receipts freeze targets/intervals
+before launch; operational clocks remain time-based. CPU/software checks prove
+behavior only. Edited notebooks, original science and queued continuation stay fixed.
+PR269 merged at `01fd9029`: startup phases now stream within the unchanged 90s
+clean-play limit. Exact main-job rerun passed 50.726s; original cause is unknown.
+
+### Queued price admission recovery (2026-10-08)
+
+Jack Heart requested immediate GPU continuation within the existing $100 ceiling.
+Public training source moved to `loopflowstudio/fantasia`; private `etude` is the
+new service. GitHub API 403 admission now falls back to existing host gh/public Git.
+L4 price rose to $0.59/hour. The pending continuation had no create claims/rental.
+An offline, owner-locked/CAS migration archives before/after cohort,
+state and pending Job in private S3 and Mini `price-admission-20261008-v1`.
+Sources/recipes/targets/cadence/inputs/deadlines remain unchanged;
+operational cohort identity changes, not scientific learning contracts.
+Future caps are $7.30/11.95h and $5.80/9.5h; settled plus reserved is $64.1753933326,
+conservative original caps plus future reservations $67.3679183692. Costs are estimates.
+
+Queue delay exposed setup clocks incorrectly tied to queue creation. Guardian and
+bootstrap now start at provider admission, retaining claim cutoffs on reconnect and
+never extending allocation deadlines. CUDA admission and initial evaluation passed. Saved updates advanced
+26,203→26,207 across a 9.79-second owner restart, retaining one rental and queue. The [capacity record](../../experiments/model-capacity.md#queued-price-admission-recovery-2026-10-08)
+owns migration identities and evidence; remaining science/100k/settlement stay open.
+
+## Step targets and machine allocations (ETU-124, 2026-10-07)
+
+Jack Heart approved step-target TrainingRegimes and reusable JobSpecs.
+Machine owns hardware/provider shape;
+JobSpec owns lifetime, spending and scoped artifact authority; Job is admitted
+execution. Experiment PlannedRuns bind case/seed, JobSpec and evaluation. Current plans
+carry one spec; private schema-1 readers retain historical JSON, job digests and
+deadlines. Calibration-era
+capacity authoring is retired; frozen plans and their pinned runners remain evidence.
+
+Machine lifetime alone sets permissions and shutdown deadlines. Collection stops
+before checkpoint, upload and cleanup reserves. Paused exports remain incomplete
+targets outside completed-target final cohorts. CPU recovery permits explicit
+same-host continuation; CUDA policy/Adam exports do not restore collector/RNG.
+
+Jack Heart clarified that immediate revocation and future recovery must not block
+bounded submissions. Long allocations construct/compile but fail admission without
+renewable access and portable CUDA recovery. Cancellation stops compute but does
+not revoke copied STS credentials; an explicit policy deny bounds artifact access
+at the allocation deadline. In-place extensions fail; issuer secrets stay off
+workers and plans. Offline CLI/fake-provider and native CPU fixtures establish
+software behavior, not live IAM or long-duration operation.
+
+The [remote contract](../../docs/remote-jobs.md#step-targets-and-machine-allocations)
+owns API and limits. ETU-103's live source `68e0fbe9`, checkout and evidence remain
+untouched. No rental, scientific allocation or strength claim follows.
 
 ## Disconnected deployment proof (ETU-123, 2026-10-06)
 
-Jack Heart required `uv run manabot deploy` alone, without aliases. CLI and
-Experiment share S3 intent, creation fences and provider-started supervision.
-TrainingRun, VerifyStore, CheckpointQueue, Bundle and reporting retain ownership.
-Client and supervisor share `Resource.validate_for` admission and `job_store`
-cancellation reads; neither contract belongs to the client. PR253 `e052ac30` was
-integrated without changing its checkout. Jack Heart approved PR254 on 2026-10-06 and authorized `lf land -c`; PR254 merged at `ab721cab`; its full CI matrix passed.
+Jack Heart required `manabot deploy` alone and accepted PR254, merged `ab721cab`.
+The client exited at zero updates; pinned `def37708` completed 160 CUDA updates,
+three evaluations, 12 games, verified publication and deletion. Clients retrieved
+48 files and admitted four raw/EMA policies after deletion. This proves detached
+execution, not strength or CUDA recovery. TrainingRun/VerifyStore remain authority;
+reconnect never restarts learning and unknown creates never retry speculatively.
 
-The client exited at zero updates; pinned `def37708` finished 160 CUDA updates,
-an initial and two later evaluations, 12 games and final upload/deletion. Clients
-retrieved 48 verified files, admitted four raw/EMA policies and regenerated
-notebook/HTML after deletion. The status poll lagged at 139; the database held 160.
-Status now reads VerifyStore; frozen evidence is unchanged. No strength, allocation or CUDA recovery follows.
-
-The first attempt failed before training on scoped S3 missing-key 403. An empty
-cancellation mailbox before rental fixed this without ListBucket. Both attempts total $0.1158450 estimated within the $3 reservation from
-ETU-103's $15; shared retained spend is $0.6518216. Final inventory is empty.
-The [contract](../../docs/remote-jobs.md) owns compact proof, costs and commands;
-full originals remain in `.runs/etu123-disconnect`. Preserve failed attempts.
-SSO chaining limits the path to under one hour including reserves. Unknown
-creation is never retried speculatively; reconnect never restarts learning.
+The initial scoped-S3 403 failure and successful mailbox repair remain retained.
+Both attempts cost $0.1158450 estimated; shared prior spending was $0.6518216.
+The [remote contract](../../docs/remote-jobs.md) owns commands, scope and receipts;
+`.runs/etu123-disconnect` and `f6bcc83e` retain originals/details. No scientific
+allocation transfers. Personal SSO chaining bounds that old path below one hour.
 
 ## CUDA capacity boundary (ETU-103, 2026-10-06)
 
@@ -74,14 +180,29 @@ and collection profiling remain unmeasured. No scientific plan/cohort launched.
 The [protocol and portable report](../../experiments/model-capacity.md) retain
 exact clocks, identities, all attempts and limits; preserve ignored private bundles.
 
-Jack Heart reserved $3 within the existing $15 for ETU-123's disconnect proof and
-requires its delivered lifecycle before science. ETU-103 is capped at the remaining
-$12; the scientific CLI rejects launch until integration. PR253's export callbacks,
-CPU queue and bulk returns remain client-owned. A reported 25-minute calibration
-reallocation preserved combined 14 hours; it does not reset the elapsed clock or
-authorize retries. ETU-118 retains baseline promotion/shared evaluator ownership;
-ETU-105/106/108 retain learning, representation and distributed work. No default
-or promotion model is selected from timing alone.
+Jack Heart replaced the twelve-hour total comparison with four active training
+hours per capacity per seed (24 hours plus overhead), retaining three paired
+seeds and initialization/hourly 100-game greedy monitoring with untouched final
+deals. Collection/update time counts; export/setup/evaluation does not. Ataraxos
+iteration schedules stay fixed. The existing $30 conditional cap applies; the
+$3 ETU-123 proof reservation and all historical charges stay inside it. A prepared
+six × seven-hour L4 plan projects $26.556 all-in at the observed $0.49/hour quote,
+including reserves. It is not launch admission or scientific evidence.
+
+PR254 supplies disconnect-safe jobs. Jack Heart authorized the restricted IAM
+issuer and renewed SSO on 2026-10-07. Setup now retains one Doppler key, only
+AssumeRole permission and the original SSO trust. A seven-hour job-scoped STS
+session passed expiry/identity admission; no issuer key reaches pods. The first
+trust update hit IAM propagation delay; retry reused the same user. No rental
+occurred during setup. Prior expired-login failure remains at `cf8c581f`.
+
+Each scheduled 100-game initialization cohort now gates learning on the same
+rental: completion and durable publication precede collector/optimizer work.
+Wait counts toward the unchanged watchdog/cost, not active training. Failure
+retains the attempt without a replacement. PR255 delivery and source freeze
+precede launch; this admission mechanism is not scientific evidence.
+ETU-118 owns baseline promotion; ETU-105/106/108 retain learning, representation
+and distributed work. No model is selected from timing alone.
 
 ## Reading learning trends (ETU-117, 2026-10-06)
 
@@ -113,18 +234,13 @@ No substantive campaign allocation follows.
 
 ## Remote proof (ETU-114, 2026-10-06)
 
-Jack Heart authorized $50 and exact-source pushes, not PR review or landing.
-Two CUDA runs returned raw/EMA records and replayed arena games;
-rented CUDA checks passed.
-Local-disk setup cut the observed environment/build interval from 486 to 71 s;
-a two-seed worked example reused setup, returned both runs
-and deleted. No public reuse mode; ETU-120 folded, images remain ETU-121.
-Inventory empty; all attempts plus shakedown cost $1.6591 estimated/reported,
-not invoiced. [Remote contract](../../docs/remote-training.md) owns receipts.
-
-ETU-119's save fix is merged; frozen runs remain unchanged. Budget changes also
-change elapsed schedules. No strength/chapter claim. Preserve ignored evidence;
-ETU-108/larger models stay separate.
+Jack Heart authorized $50 and exact-source pushes, not review/landing. Two CUDA
+runs returned raw/EMA artifacts and replayed games; a two-seed setup-reuse example
+returned both and deleted. Inventory empty; all attempts cost $1.6591 estimated,
+not invoiced. No strength, allocation or recovery claims follow. ETU-119's save fix
+merged without changing frozen evidence. Preserve originals; ETU-108/larger models
+stay separate. The [remote contract](../../docs/remote-training.md) and `f6bcc83e`
+own receipts and historical setup timings; ETU-120 folded, images remain ETU-121.
 
 ## Experiments/notebooks (ETU-113, 2026-10-06)
 
@@ -236,15 +352,11 @@ not full history, beliefs or recurrence. The [history contract](../../docs/recen
 owns data flow and exclusions. Frozen ETU-91/106 checkouts remain untouched; actual
 history comparisons follow the value-token priority under separate allocation.
 
-The software gate passed 264 affected Python checks (one unsupported configuration
-skip), native debug history/branch contracts, Clippy and focused lint/format checks.
-Ordinary semantic collector and checkpoint-player fixtures receive nonempty history
-across decisions with hidden-world invariance and reset. Base Agent comparison
-preserves four history-off weight/receipt/output sets. Empty history preserves off
-outputs with shared weights. Source payloads lacking an originating incarnation
-retain public definition/owner only; diagnostic injection clears history. These
-are bounded correctness fixtures, not scientific training, strength or chapter
-acceptance. Publication/merge remains a separate delivery condition.
+The bounded gate covered Python/native debug, ordinary nonempty-history collection,
+reload, hidden-world invariance and preserved history-off outputs. Details remain
+at `2a4fd419`; these establish correctness only. Diagnostic injection clears history;
+missing incarnations retain definition/owner only. Publication/merge remained a
+separate delivery condition.
 
 
 ## Completed mini filter-scope screen (ETU-105, 2026-10-07)
@@ -301,29 +413,6 @@ arbitrary lag. Preserve same-viewer terminal/bootstrap boundaries, full behavior
 distributions, opponent versions, unique samples and one optimizer owner. Zero-lag
 compatibility remains a proposal. No scientific allocation follows.
 
-## Focused value-model software (ETU-106, 2026-10-05)
-
-Jack Heart authorized historical/masked means and one-/two-layer width64 value
-tokens crossed with scalar/WDL heads; history follows and learned recurrence
-remains deferred. The compound decoder owns a separate critic. Attention masks
-padded outputs, but biased projection before fixed-slot averaging creates a
-padding dependency. Tokens share attention and change policy representations,
-so this is not a critic-only intervention. Historical initialization/equations
-remain intact; equal-shaped pooling variants require saved architecture metadata.
-Later empirical dispositions above supersede this software-only stage.
-
-The eight-recipe smoke completed training and 32 raw/EMA export admissions, then
-failed on underscore-containing arena IDs after 36.12 seconds. Jack Heart approved
-evaluation-only recovery and landing. Aliases changed without retraining or
-rewriting artifacts; all 16 raw checkpoints played 120 exact-replayed games in
-382.86 cumulative seconds, within 900. Offline metrics/reports regenerated
-identically. EMA exports were not scored. PR #222 merged at `a371af46` and was
-integrated into ETU-104. The 108-test integrated suite, 15 focused fix checks and
-base-byte comparison establish software behavior, not strength, demo/chapter
-acceptance or human review. The [value-model protocol](../../experiments/value-models.md)
-owns recovery details; full historical account remains in this file at `7316da5d`.
-ETU-91's frozen checkout/evidence were untouched.
-
 ## Operating principle
 
 > Lead with building, not burden of proof.
@@ -336,28 +425,22 @@ gate before integration.
 
 ## Durable evidence
 
-- The order-invariant semantic encoder is mathematically unable to distinguish
-  equal-token programs and remains at 50% on the structural suite.
-- The first relational semantic encoder proved that explicit structure matters:
-  it reached 82.1% overall and 100% on order and hierarchy. Its throughput and
-  trainability were unacceptable.
-- The follow-up discriminator ruled out “just train longer” for that encoder
-  family and ended in `KILL_REDESIGN structural_capacity`. These results kill
-  bag pooling and the first relational-pooling design; they do not require more
-  static katas before a plausible semantic policy can be built.
-- The structured command prototype handled 35 target choices and 64 attacker
-  declarations with zero illegal outputs or trace mismatches at roughly a 4%
-  game-throughput cost. Structured decoding is ready to be used in a learned
-  prototype.
-- Viewer-safe semantic program projection is not currently the bottleneck:
-  real selected-match observations project and batch at tens of thousands per
-  second with explicit ragged structure and no silent truncation.
-- Teacher-0 established a runnable data → policy/value student → arena path.
-  Its 512-game immutable snapshot trained both arms in 8.63 minutes; joint
-  value supervision materially improved value calibration without reducing
-  batch throughput. It is flat Monte Carlo evidence, not MCTS strength.
-- Historical throughput evidence remains at `4ad09540`: inference dominated
-  environment stepping, making model layout a systems priority.
+Historical measurements and limits remain at `43c6e479`:
+
+- Order-invariant semantic pooling cannot distinguish equal-token programs
+  (50% structural-suite accuracy). The first relational encoder reached 82.1%
+  overall and 100% on order/hierarchy but failed throughput/trainability; its
+  follow-up ended `KILL_REDESIGN structural_capacity`. More static katas are
+  not a prerequisite to a plausible runnable policy.
+- The structured decoder handled 35 targets and 64 attackers with no illegal
+  output or trace mismatch at roughly 4% throughput cost. Viewer-safe semantic
+  projection/batching reached tens of thousands of observations per second
+  without truncation; dynamic binding and model design remain the bottlenecks.
+- Teacher-0's immutable 512-game snapshot trained both arms in 8.63 minutes;
+  joint value supervision improved calibration without throughput loss. This
+  proves a flat-MC teacher/student/arena path, not MCTS strength.
+- Rust vector stepping reached roughly 183k env-only SPS; inference took 97%
+  of step time. Model layout is a first-order systems question.
 
 ## Decisions
 
@@ -533,18 +616,14 @@ separate evidence limits, regardless of Task completion status.
 
 ### Historical planning reconciliation (2026-09-24)
 
-History: `59f16e0d` / `60e2f897`; GOAL.md owns Task dispositions. Bounded demos
-prove no strength. ed2 survives; [live-advice limits](../../docs/plans/live-belief-advice.md)
-and Rules' history ownership remain.
+GOAL.md owns ETU-21/31/34 dispositions; `59f16e0d` / `60e2f897` retain history.
+Unavailable ed2 advice/checkpoints follow the [live-advice plan](../../docs/plans/live-belief-advice.md).
 
 ## Corrected-world training binding (2026-09-29)
 
-`scripts/train_challenger.py` owns training-to-demo admission with authored
-sideboards and exact world/setup/ABI bindings. Two bounded executions proved the
-pipeline, not improvement: held-out KL stayed near initialization. Full observations
-and unresolved label/optimizer limits remain in
-[the dated record](../../docs/evidence/corrected-world-training-2026-09-29.md) and
-this memory at `fd7437df`. Regime execution does not replace demo admission.
+The [dated record](../../docs/evidence/corrected-world-training-2026-09-29.md)
+and `01fd9029` retain pipeline-only proofs and unresolved optimizer/label limits;
+TrainingRegime is not demo admission.
 
 ## Training regime reconciliation (2026-10-04)
 
@@ -559,8 +638,7 @@ ablation screen. The root session owns the single launch; workers must not
 start competing training. Counts and allocations must be frozen from measured
 integrated CPU calibration before scoring; smoke does not freeze them.
 
-The current chapter remains Trained Challengers; older conditional-teacher
-priorities are research background, not authorization for a new costly cycle.
+Trained Challengers remains the chapter; older priorities authorize no costly cycle.
 Infrastructure workers run only bounded proof; no paid compute is authorized.
 
 `TrainingRegime` and `TrainingRun` now execute the existing search-supervised
@@ -611,87 +689,31 @@ competence, or the chapter's human-challenger outcome.
 
 ## Direct self-play treatment contracts (2026-10-04)
 
-Self-play transitions use end-of-transition terminal flags. Stock PPO's
-start-of-episode GAE convention cannot consume them unchanged. Collection must
-pause fast streams at their exact next learner observation, preserve every
-observation tensor and recompute actions under the next collection policy;
-banking surplus transitions across updates breaks that contract. Collection
-KL uses the saved full legal behavior distribution, not reconstructed updated
-weights. Independent policy/value estimators, filtering, reference choices and
-schedules are runnable treatments, not exact Ataraxos reproduction.
+Self-play uses end-of-transition terminals, not stock PPO's episode-start GAE.
+Pause fast streams at their exact next learner observation; preserve tensors,
+recompute actions after updates and retain full legal behavior distributions
+for collection KL. Banking surplus transitions breaks this contract.
 
-EMA is an evaluation artifact with a collect/update-iteration clock, including
-empty-filter skips. Its helper averages parameters and copies buffers without
-changing learner/behavior weights. Local ETU-90 proofs exercise an empty-filter
-continuation: learner weights stay fixed while the evaluation average advances.
-Collector match metadata passes through the Trainer env shim for ordinary
-checkpoint admission.
-
-ETU-90 independently validated the integrated semantic ABI on 2026-10-04 after
-syncing published parent `9a1b90df`. The retained normal and empty-filter runs
-in `.runs/etu90-semantic-final` each completed 14 games and 1,024 learner
-transitions across two stages. All eight raw/EMA artifacts passed the ordinary
-loader with semantic inputs and authored sideboards. Empty-filter continuation
-retained learner weights with zero optimizer exposures while EMA advanced;
-collection, learning and export costs remained recorded. The affected Python
-suite passed 65 tests (one notebook dependency skip), and six native debug
-vector tests passed after rebuilding the extension. These are current-ABI
-workflow and treatment-correctness proofs, not strength or human-play results.
-ETU-91 retains ownership of final replayed study/notebook evidence.
+EMA evaluates complete state on the collect/update clock, including empty-filter
+skips; parameters average, buffers copy, learner/behavior weights stay separate.
+ETU-90's integrated semantic proof covered normal/empty-filter continuations,
+eight raw/EMA admissions, 65 Python checks (one dependency skip) and six native
+debug checks. Empty-filter weights stayed fixed while EMA advanced. Originals
+remain in `.runs/etu90-semantic-final`; `f6bcc83e` and the memory at `c9c28153`
+retain full detail. These prove workflow, not strength; ETU-91 owns study/notebook
+evidence, not chapter acceptance. Selectable estimators, filters and schedules
+remain treatments rather than exact Ataraxos reproduction.
 
 ## Compound decision implementation (2026-10-04)
 
-Jack Heart authorized ETU-94's bounded implementation and landing separately
-from the frozen ETU-91 campaign. `train_compound` now connects a trainable
-recurrent legal-offer decoder, complete-game collection, explicit sequential or
-grouped credit, outcome or bootstrapped estimators, and ordinary world-bound
-checkpoint reload/serving. The four-arm study uses the existing arena/report
-path. The sequential arm is a conditional-factor credit control with the same
-decoder, not the historical flat policy. No scientific allocation is inherited
-from ETU-91; the campaign plan generator rejects that reuse.
-
-Canonical DecisionFrames remain action-aligned. Native `compound_offers` and
-`compound_commands_json` reuse the existing structured bridge to lower one
-complete declaration on an exact fork into revision-bound Commands. Python does
-not reconstruct combat legality. Atomic attackers and eligible single-target
-casts group. The software completion below adds native independent blocker
-assignments and fixed-economics waterbend payments; dependent choices and other
-new information boundaries remain separate.
-Ordinary Etude and arena consumers drain the sampled suffix without resampling;
-stale/interrupted suffixes fail closed.
-
-The useful estimator boundary is explicit: terminal reward per seat, no update
-within a game/declaration, grouped joint log probability versus sequential
-conditional factors, detached targets/behavior, and gamma=1 in comparison
-recipes. Trace/discount clocks otherwise change with grouping. Forced decoder
-factors and native optionless auto-resolution have separate counters. Summed
-conditional reverse-KL terms at retained prefixes are sampled-prefix
-regularizers, not exact joint reverse KL. Prefix values are scalar and the
-policy uses a GRU; neither is an exact Ataraxos setup-network reproduction.
-
-Focused evidence includes normalized joint distributions, score-function and
-finite-difference gradients, 65-attacker/35-target native parity, payment/blocker
-boundaries, terminal and interrupted-game credit, hidden-world swap invariance,
-and ordinary learned checkpoint reload. Native debug comparison must account
-for canonical execution consuming its observation-event queue; comparing an
-undrained raw atomic bridge to a drained Command stream compares different
-ownership points. No physics change or frozen evidence rewrite was needed.
-
-Two retained one-thread workflow executions completed in 268 and 224 seconds;
-the latter followed integration with ETU-92 and ETU-96. Each trained four arms
-for two games apiece, exported eight admitted checkpoints, and exact-replayed
-56 arena games with no failed cells. Offline reports/metrics regenerated
-unchanged. These one-seed receipts are retained under this Task checkout's
-ignored `.runs/etu94-compound-smoke-{1,final}`; they are not method uncertainty
-or authorization for further scoring.
-
-Scientific outcome-versus-bootstrap and sequential-versus-grouped improvement
-remain unmeasured. Multi-seed, held-out, equal-cost complete-game scoring needs
-its own frozen protocol and budget. Candidate runtime-object representation in
-set-valued choices is still limited to public labels plus pooled viewer state;
-this is runnable mechanism evidence, not strategic-strength or challenger proof.
-The [compound contract](../../docs/training-regimes.md#compound-decisions) and
-[follow-up protocol](../../experiments/training-regime-followups.md) own details.
+Jack Heart authorized ETU-94 separately from ETU-91. Two bounded executions
+each produced eight admitted exports and 56 replayed games: software proof,
+not strength or chapter acceptance. Preserve
+`.runs/etu94-compound-smoke-{1,final}`; `388947de` and memory at `c9c28153`
+retain the implementation, estimator limitations and original evidence.
+The later software-completion entry and
+[contract](../../docs/training-regimes.md#compound-decisions) own supported
+grouping. No ETU-91 scientific allocation transfers.
 
 ## Ataraxos source correction and move recipe (2026-10-04)
 
@@ -746,13 +768,10 @@ preserve the exact tracker as a tractable reference. Wider pools still require
 new world-bound complete-loop measurements. See the
 [sampler guide](../../docs/belief-sampler.md).
 
-The bounded compound follow-up admits `train_compound` raw exports into the
-same belief dependency chain and resets queued Commands at game boundaries.
-Ataraxos raw/EMA already has end-to-end coverage. Compound EMA and mixing flat
-policy training into compound recipes remain rejected. Both collector paths
-enforce the saved observation capacity, even though standalone compound play
-can expand action encoding. This is compatibility evidence, not wider-pool or
-scientific acceptance; ETU-96 remains open for those comparisons.
+Compound raw imports share the sampler dependency chain; compound EMA and mixed
+flat-policy recipes remain rejected. Saved observation capacity remains binding.
+Detailed bounded proof is retained at `01fd9029` and in the sampler guide; no
+scientific or wider-pool acceptance follows.
 
 ## Frozen-policy local update boundary (ETU-95, 2026-10-04)
 
@@ -1036,64 +1055,39 @@ compatibility and target admission. No scientific training, paid compute or
 ETU-91 changes occurred. The [local-search contract](../../docs/local-policy-search.md)
 owns the support semantics and remaining limits.
 
-## Architecture-recipe implementation boundary (ETU-104, 2026-10-05)
+## Architecture recipes (ETU-104, 2026-10-05)
 
-Jack Heart approved the incremental recipe design, implementation and landing.
-AgentSpec remains the single model configuration authority; Python recipe helpers
-construct ordinary TrainingRegime values without a registry, checkpoint migration
-or weight port. Component variations snapshot/validate complete configurations,
-reject duplicate labels and preserve the eight resolved value-study digests and
-protocol. ETU-106 was integrated before verification. The retained `486739d5`
-workflow completed eight regimes, 32 admitted exports and 120 exact-replayed games
-in 348.04 seconds; notebook dependency recovery required no retraining and offline
-regeneration was identical. These are composition/reload proofs, not strength or
-chapter acceptance. ETU-91 remained untouched. PR #223's merged status is recorded
-in the later ETU-109 entry. Full implementation/delivery history remains at
-`33bce999`; the [design](../../docs/plans/modular-architecture-recipes.md) owns
-scope and deferred architecture sketches.
+Jack Heart approved delivery. AgentSpec owns configuration; helpers construct
+TrainingRegime without weight ports. PR223 proofs and preserved ETU-91 study
+digests remain at `33bce999`, `64bdbca6` and the [design](../../docs/plans/modular-architecture-recipes.md).
+No strength/chapter acceptance follows.
 
-## Training dashboard software (ETU-101, 2026-10-05)
+## Learning dashboard and monitoring (ETU-129, 2026-10-08)
 
-Jack Heart authorized dashboard delivery using saved evidence/tiny fixtures,
-without changing ETU-91. TrainingRun/VerifyStore own counters, costs and resources;
-missing historical coordinates remain incomplete. W&B is a resumable projection
-with prefix checks and backfill. PPO loss is not teacher cross-entropy.
+Jack Heart authorized autonomous implementation, real Mini demonstration and
+landing. The shared notebook leads with progress, freshness and deck/opponent strength. Existing
+notebooks remain create-once. Per-seed panels do not pool pending seeds;
+whole-deal intervals retain both seats. Deck identity follows
+`seat_decks[player_a_seat]`. Greedy deck competence remains a hypothesis,
+not a strategic explanation established by scores.
 
-Distillation freezes first-reference validation games/source/targets, excludes them
-from training, and also reports growing validation. Later training targets may
-change; global game IDs survive shard composition. Learner-boundary exports preserve
-RNG/Adam/collector state. Export duration is charged to resources, excluded from the
-learning schedule. Monitoring is separate from recovery.
+The 05:08 UTC Mini snapshot retains one running seed and two pending seeds.
+SQLite/source hashes bind the local demo; copied status is not live state. [Metric guidance](../../docs/experiment-metrics.md)
+owns semantics and snapshots; [demo evidence](../../docs/evidence/learning-dashboard-2026-10-08.md)
+owns measured values and limits.
 
-The independent arena follower evaluates 25 reserved monitoring deals across all
-four seat/deck legs versus source-pinned scripted greedy. Incomplete cohorts have
-no aggregate rates; failed attempts, Commands/replay, costs and contention
-observations remain saved. Deal-cluster intervals condition on a checkpoint,
-not training seeds. These inspected deals are not scientific held-out evidence.
-The [dashboard contract](../../docs/training-monitoring.md) owns launch/backfill
-commands and limits. Software fixtures do not establish strength, live W&B
-service acceptance or chapter completion; no scientific campaign ran here.
+TrainingRun/VerifyStore remain authoritative; W&B is optional projection.
+ETU-101 contracts remain in [monitoring](../../docs/training-monitoring.md),
+with original software proof at `2555c0e2`. No strength or chapter acceptance.
 
-Detailed 78/22-check fixture receipts remain at `08d2b2e9`; live W&B was not
-exercised and no scientific claim follows.
 
 ## Capacity software receipt boundary (ETU-102, 2026-10-05)
 
-Jack Heart authorized independent software delivery. AgentSpec and with_capacity
-remain configuration owners; derived architecture receipts bind resolved model
-meaning and actual component parameter totals. Absent historical receipts retain
-world/weight checks; present contradictory metadata fails admission. World,
-source/runtime and checkpoint bytes remain separate. No weight port or changed
-forward equation was introduced. Trainable counts are export flags, not exposures.
-
-The retained `90c55627` CPU ladder completed in 212.56 seconds: six admitted raw
-checkpoints and 40 exact-replayed games. Semantic 64/1, 64/2, 128/2 models had
-138,434 / 188,418 / 712,706 parameters. High host load and differing inference
-batches prevent capacity-only timing claims. A retained timeout was fixed within the original cap.
-Full timing definitions and integration evidence remain at `fd7437df` and in the
-[calibration guide](../../docs/training-calibration.md). These are software proofs;
-no scientific allocation, strength, demo or chapter acceptance follows. ETU-91
-remained untouched.
+Jack Heart authorized software delivery. AgentSpec/with_capacity and derived
+receipts own configuration/counts without weight ports. Six admitted CPU policies
+and 40 replayed games prove workflow, not timing/strength under contention and
+unequal batches. ETU-91 stayed untouched; the [calibration guide](../../docs/training-calibration.md)
+and `64bdbca6` retain full evidence.
 
 ## Larger ordinary models (ETU-115, 2026-10-06)
 
@@ -1135,32 +1129,6 @@ packaged preset checks passed. The affected checks passed after rebuilding this
 checkout's stale native extension; one notebook-dependent check remains skipped.
 No scientific campaign or paid compute ran. Software acceptance does not establish
 training, calibration, demo admission or chapter outcomes.
-
-## Capacity comparison software preparation (ETU-103, 2026-10-05)
-
-Jack Heart authorized independent software delivery and landing while leaving
-ETU-103 open for empirical work. Declarative capacity plans reuse ETU-102's
-64/1, 64/2 and 128/2 ladder and ETU-109's pinned token/WDL Ataraxos baseline.
-Only width/depth vary. Existing TrainingRun, EvaluationProtocol, arena and offline
-reporting retain execution, metrics, paired seed/deal uncertainty and provenance.
-No training, arena cohort, throughput benchmark or paid compute ran; frozen
-ETU-91/106 checkouts remain untouched.
-
-The [proposed protocol](../../experiments/model-capacity.md) distinguishes a
-20-minute scheduled-progress window from a calibrated fixed-update terminal
-checkpoint under a common roughly one-hour per-arm ceiling. Its three-seed,
-24-hour study proposal is unallocated and unexecuted; calibration, resource
-coordination and scientific judgment remain prerequisites. Export requires
-reviewed counts, evidence digest, runtime identities and resource projections.
-Concurrent historical-mean smoke timings cannot calibrate the token baseline.
-
-Offline analysis reuses the existing cost integrator on shared observed wall-time,
-native-decision and optimizer-exposure support. Scheduled threshold misses are
-right-censored, absent observations unavailable, and terminal evidence stays on
-held-out endpoint deals. Incomplete cohorts retain diagnostics without comparative
-curves. Synthetic report regeneration establishes software behavior only. Fast
-experimental and promotion model choices remain unresolved; throughput is not
-terminal strength and the current default remains unchanged.
 
 ## Saved sampler uncertainty software (ETU-110, 2026-10-05)
 
@@ -1218,3 +1186,31 @@ This separate screen does not authorize changing ETU-106 or restarting the mini.
 Preserve its source/native and ignored evidence. Original authorization detail
 remains at `0145f77f`; the [protocol](../../experiments/model-capacity.md) owns
 results and limits. GPU work neither replaces nor extends this allocation.
+
+## Mirror head-to-head evaluation (MTG-131, 2026-10-09)
+
+Jack Heart requested same-deck comparisons without touching active experiments.
+Mirror-only play retains 25 pairings as a scope assumption, plus the roster and
+greedy zero. Exact deck/sideboard repetition requires native compiled-pack
+binding; lists alone can select the wrong world.
+Per-deck scores, play/draw splits, contrasts and ratings resample whole deals;
+invalid/unfinished units suppress estimates rather than scoring survivors.
+All trained entrants except `etu125-mirrors-10k` learned only cross-deck play.
+
+The [protocol](../../experiments/head-to-head.md#mirror-only-follow-up-mtg-131-2026-10-09)
+owns seeds and commands. The 24-game exact-replayed smoke binds `001e6920`;
+later report parity does not rebind its source or prove strength. The training
+manager owns the unstarted full Mini run. Active experiments/checkpoints stayed fixed.
+
+## Tournament head-to-head (MTG-134, 2026-10-10)
+
+Jack Heart named the concept Tournament throughout the public API.
+Saved `roster`/`roster_spec` keys stay unchanged; one reader serves reports and
+continuation. Extensions preserve entrant identities, oriented pairs, deals and
+runtime admission. Finished units are reused; failures never silently retry.
+
+Jack Heart relayed Mini regeneration at `54acf51f`: mirrors match originals;
+cross matches main `a11d89bd`, not pre-mirror `83faa3c5` originals.
+The [protocol](../../experiments/head-to-head.md#tournament-files-mtg-134-2026-10-10)
+owns evidence limits. Grid evaluation runs from `18c6ef6f`; this rename starts
+no games and claims no strength. Publish for review; no merge authorization.

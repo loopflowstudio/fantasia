@@ -9,12 +9,12 @@ import time
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
-    from .jobs import RemoteJobSpec
+    from .jobs import Job
 
 from .plan import DeploymentPlan
 from .provider import Pod
 
-REPOSITORY = "https://github.com/loopflowstudio/etude.git"
+REPOSITORY = "https://github.com/loopflowstudio/fantasia.git"
 REPO_DIR = "/opt/manabot/repo"
 UV_CACHE_DIR = "/opt/manabot/uv-cache"
 
@@ -184,12 +184,17 @@ printf '{{"bootstrap_seconds":%s,"uv_sync_seconds":%s,"native_build_seconds":%s,
 """
 
 
-def job_startup(spec: "RemoteJobSpec") -> str:
+def job_startup(spec: "Job") -> str:
     """Provider-owned bootstrap; neither SSH nor the submitter owns its lifetime."""
     guardian = Path(__file__).with_name("guardian.sh").read_text()
     setup = bootstrap(spec.plan).replace(
         "--python 3.12 --extra play", "--python 3.12 --extra play --extra artifacts"
     )
+    if spec.validate_numerics:
+        setup = setup.replace("--extra artifacts", "--extra artifacts --extra dev")
+    # Queue delay consumes the allocation, not the bootstrap allowance. The
+    # absolute worker cutoff still bounds setup and cannot move on reconnect.
+    setup_deadline = min(time.time() + spec.plan.spec.setup_seconds, spec.work_deadline)
     return f"""set -eu
 umask 077
 export MANABOT_DEADLINE={int(spec.deadline)}
@@ -202,7 +207,8 @@ cat > /tmp/manabot-setup.sh <<'MANABOT_SETUP'
 {setup}
 MANABOT_SETUP
 # Keep PID 1 alive even on setup failure so the independent guardian can delete.
-if timeout {max(1, int(spec.created_at + spec.plan.mix.setup_seconds - time.time()))} bash /tmp/manabot-setup.sh >/workspace/evidence/bootstrap.log 2>&1; then
+setup_remaining=$(({int(setup_deadline)} - $(date +%s)))
+if [ "$setup_remaining" -gt 0 ] && timeout "$setup_remaining" bash /tmp/manabot-setup.sh >/workspace/evidence/bootstrap.log 2>&1; then
   export PATH=/root/.local/bin:/root/.cargo/bin:$PATH
   cd {REPO_DIR}
   uv run --no-sync python -m manabot.remote.supervisor >>/workspace/evidence/supervisor.log 2>&1 || true

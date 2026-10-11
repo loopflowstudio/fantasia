@@ -102,27 +102,53 @@ class Checkpoint(Strict):
 
 
 def stage_checkpoint(run: TrainingRun, stage_id: str) -> Checkpoint | None:
-    """Return a completed raw stage export with original cumulative coordinates."""
+    """Return an admitted completed or paused export with original coordinates."""
     for index, stage in enumerate(run.stages):
         if stage.id != stage_id:
             continue
         if (
-            stage.status != "completed"
+            stage.status not in {"completed", "paused"}
             or "raw" not in stage.artifacts
             or stage.cumulative_seconds is None
         ):
             return None
         prefix = run.stages[: index + 1]
+        origins = [
+            s.learning_state_origin
+            for s in prefix
+            if s.learning_state_origin is not None
+        ]
         return Checkpoint(
             artifact=stage.artifacts["raw"],
             coordinates=TrainingCoordinates(
                 stage_id=stage.id,
                 updates=run.updates_through(stage.id),
-                training_seconds=stage.cumulative_seconds,
-                environment_decisions=sum(s.environment_decisions for s in prefix),
-                learner_transitions=sum(s.learner_transitions for s in prefix),
-                optimizer_exposures=sum(s.optimizer_exposures for s in prefix),
-                games=sum(s.games for s in prefix),
+                segment_updates=len(stage.diagnostics)
+                if run.regime.stages[index].operation == "train_self_play"
+                and stage.optimizer_updates is not None
+                else None,
+                optimizer_updates=run.optimizer_updates_through(stage.id),
+                training_seconds=stage.cumulative_seconds
+                + sum(origin.cumulative_seconds for origin in origins),
+                active_training_seconds=(
+                    float(
+                        stage.diagnostics[-1]["coordinates"]["active_training_seconds"]
+                    )
+                    if stage.diagnostics
+                    and "active_training_seconds"
+                    in stage.diagnostics[-1].get("coordinates", {})
+                    else None
+                ),
+                **{
+                    name: sum(getattr(s, name) for s in prefix)
+                    + sum(getattr(origin, name) for origin in origins)
+                    for name in (
+                        "environment_decisions",
+                        "learner_transitions",
+                        "optimizer_exposures",
+                        "games",
+                    )
+                },
             ),
         )
     return None
@@ -134,7 +160,7 @@ class ArenaRow(BaseModel):
     model_config = ConfigDict(extra="allow", allow_inf_nan=False)
     arena_key: ArenaKey
     deal_seed: int
-    leg: int = Field(ge=0, le=3)
+    leg: int = Field(ge=0, le=7)
     player_a: str
     player_b: str
     player_a_registration_sha256: str

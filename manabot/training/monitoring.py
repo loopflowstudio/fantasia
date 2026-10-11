@@ -74,6 +74,30 @@ def default_panels(dashboard: Dashboard) -> dict[str, object]:
         "RL value loss": ["rl/value_loss"],
         "RL regularization KL": ["rl/collection_kl", "rl/reference_kl"],
         "RL entropy": ["rl/entropy"],
+        "Legal logit gap": ["numerical/legal_logit_gap_max"],
+        "Probability underflow": ["numerical/legal_underflow_count"],
+        "Nonfinite failures": ["numerical/nonfinite_failure"],
+        "Gradient and parameter effect": [
+            "numerical/gradient_norm_before",
+            "numerical/gradient_norm_after",
+            "numerical/parameter_delta_l2",
+        ],
+        "Missing and zero gradients": [
+            "numerical/gradient_missing_tensors",
+            "numerical/gradient_zero_tensors",
+        ],
+        "Selected samples": [
+            "numerical/actor_rows",
+            "numerical/critic_rows",
+            "numerical/forced_rows",
+            "numerical/zero_advantage_rows",
+        ],
+        "Optimizer steps": [
+            "numerical/optimizer_steps",
+            "numerical/skipped_steps",
+            "numerical/rejected_steps",
+            "numerical/rejected_updates",
+        ],
         "Advantage retention": ["rl/retained_fraction"],
         "Lambda value residual": ["rl/value_residual_abs_mean"],
         "Learning rate": ["rl/learning_rate"],
@@ -152,6 +176,7 @@ def training_dashboard(run: TrainingRun) -> Dashboard:
                         "environment_decisions",
                         "learner_transitions",
                         "optimizer_exposures",
+                        "optimizer_updates",
                         "games",
                     ):
                         count = coordinate.get(counter)
@@ -216,7 +241,27 @@ def training_dashboard(run: TrainingRun) -> Dashboard:
                     row["rl/retained_fraction"] = (
                         diagnostic["retained"] / diagnostic["rows"]
                     )
+            numerical = diagnostic.get("numerical")
+            if isinstance(numerical, dict):
+                for name, value in numerical.items():
+                    if isinstance(value, (int, float)) and math.isfinite(value):
+                        row[f"numerical/{name}"] = value
             rows.append(row)
+        if stage.numerical_failure is not None:
+            failure = stage.numerical_failure
+            rows.append(
+                {
+                    "progress/observation": len(rows),
+                    "stage/id": stage.id,
+                    "stage/operation": specification.operation,
+                    "progress/updates": failure.iteration - 1,
+                    "failure/invariant": failure.invariant,
+                    **{
+                        f"numerical/{key}": value
+                        for key, value in failure.health.items()
+                    },
+                }
+            )
     return Dashboard(
         run_id="training-" + canonical_sha256({"run": run.id})[:24],
         config={
@@ -238,6 +283,7 @@ def training_dashboard(run: TrainingRun) -> Dashboard:
             if run.fixed_validation
             else None,
             "checkpoint_interval_seconds": run.monitoring_checkpoint_seconds,
+            "checkpoint_interval_updates": run.monitoring_checkpoint_updates,
             "stages": [
                 s.model_dump(mode="json", exclude={"diagnostics"}) for s in run.stages
             ],
@@ -265,6 +311,13 @@ def publish_dashboard(
     Network failure leaves local JSON intact. There is no offline W&B resume
     assumption: offline JSON is backfilled online using the remote step cursor.
     """
+    # Evaluation rows grow in place until their attempt settles. Retain that
+    # progress in the local Dashboard and remote summary, but publish only the
+    # settled prefix into append-only history. Failed attempts remain evidence.
+    for index, row in enumerate(dashboard.rows):
+        if row.get("monitor/status") == "running":
+            dashboard = dashboard.model_copy(update={"rows": dashboard.rows[:index]})
+            break
     tracked = wandb.init(
         project=project,
         entity=entity,
@@ -292,6 +345,7 @@ def publish_dashboard(
         tracked.define_metric("progress/training_seconds")
         for family in ("distillation/*", "rl/*", "progress/*", "throughput/*"):
             tracked.define_metric(family, step_metric="progress/observation")
+        tracked.define_metric("numerical/*", step_metric="progress/observation")
         tracked.define_metric("monitor/*", step_metric="progress/updates")
         tracked.define_metric("elapsed/*", step_metric="progress/training_seconds")
         tracked.define_metric("availability/*", hidden=True)

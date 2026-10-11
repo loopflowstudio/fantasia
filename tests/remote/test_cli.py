@@ -8,8 +8,7 @@ from typer.testing import CliRunner
 
 from manabot.cli import app
 from manabot.remote import cli
-from manabot.remote.jobs import DEFAULT_JOBS
-from manabot.remote.plan import DeploymentPlan, HardwareMix, compile_plan
+from manabot.remote.plan import DeploymentPlan, JobSpec, compile_plan
 from tests.remote.test_compile import ROOT, SOURCE
 
 runner = CliRunner()
@@ -44,14 +43,13 @@ def test_deploy_help(command: str) -> None:
 
 
 @pytest.mark.parametrize("explicit", [False, True])
+@pytest.mark.parametrize("validation", [False, True])
 def test_submit_uses_same_plan_and_job(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, explicit: bool
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, explicit: bool, validation: bool
 ) -> None:
     plan = compile_plan(
-        (ROOT / "experiments/regimes/direct-self-play.json").read_text(),
-        HardwareMix.model_validate_json(
-            (ROOT / "ops/mixes/runpod-small.json").read_text()
-        ),
+        (ROOT / "ops/examples/step-target.json").read_text(),
+        JobSpec.model_validate_json((ROOT / "ops/jobs/runpod-small.json").read_text()),
         SOURCE,
         197,
     )
@@ -63,14 +61,14 @@ def test_submit_uses_same_plan_and_job(
         value: DeploymentPlan,
         job_id: str,
         monitoring: Path | None,
-        checkpoint_seconds: float,
-        destination: str,
+        checkpoint_seconds: float | None,
+        checkpoint_updates: int | None,
+        destination: str | None,
+        validate_numerics: bool,
     ) -> None:
-        assert (
-            monitoring is None
-            and checkpoint_seconds == 60
-            and destination == DEFAULT_JOBS
-        )
+        assert monitoring is None and checkpoint_seconds is None and destination is None
+        assert checkpoint_updates is None  # Job admission chooses the step default.
+        assert validate_numerics == validation
         called.append((value, job_id))
 
     monkeypatch.setattr(cli, "_submit", submit)
@@ -83,6 +81,7 @@ def test_submit_uses_same_plan_and_job(
             str(path),
             "--job-id",
             "same-job",
+            *(["--validate-numerics"] if validation else []),
         ],
     )
     assert result.exit_code == 0, result.output
