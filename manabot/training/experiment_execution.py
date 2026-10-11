@@ -20,11 +20,10 @@ from manabot.training.models import (
     ArtifactReference,
     CheckpointCadence,
     Strict,
-    TrainingRun,
     TrainingRegime,
+    TrainingRun,
     TrainSelfPlay,
 )
-
 from manabot.training.monitor_evaluation import MonitorProtocol
 
 
@@ -159,11 +158,8 @@ class ExperimentSchedule(CheckpointCadence):
     def one_clock(self) -> "ExperimentSchedule":
         # The frozen duration cohort uses an explicit milestone list alongside
         # hourly exports; an integer denotes main's mutually exclusive cadence.
-        if isinstance(self.checkpoint_updates, tuple):
-            return self
-        super().one_clock()
-        if self.checkpoint_updates is not None and self.checkpoint_updates <= 0:
-            raise ValueError("checkpoint_updates must be positive")
+        if not isinstance(self.checkpoint_updates, tuple):
+            super().one_clock()
         return self
 
     def admit_regime(self, regime: TrainingRegime) -> None:
@@ -178,13 +174,8 @@ class ExperimentSchedule(CheckpointCadence):
             raise ValueError("training seeds must be in [0, 100000)")
         if set(self.scientific_deal_seeds) & set(self.monitoring.protocol.deal_seeds):
             raise ValueError("monitoring and scientific deals must be disjoint")
-        if (
-            isinstance(self.checkpoint_updates, tuple)
-            and any(n <= 0 for n in self.checkpoint_updates)
-        ) or any(n < 0 for n in self.diagnostic_updates):
-            raise ValueError(
-                "checkpoint/diagnostic updates must be nonnegative (exports positive)"
-            )
+        if any(n < 0 for n in self.diagnostic_updates):
+            raise ValueError("diagnostic updates must be nonnegative")
         if (self.diagnostic_protocol is None) != (not self.diagnostic_updates):
             raise ValueError(
                 "diagnostic protocol and updates must be declared together"

@@ -1,8 +1,11 @@
 """Allocation admission over synthetic receipts; no training or strength evidence."""
 
+import gzip
+import json
 from pathlib import Path
 import shutil
 from types import SimpleNamespace
+from typing import Literal
 
 import pytest
 
@@ -16,6 +19,7 @@ from manabot.training.experiment_execution import (
     RegimeAttempt,
 )
 from manabot.training.models import StageRecord, TrainingRun
+from manabot.training.monitor_evaluation import MonitorProtocol
 from manabot.verify.store import VerifyStore
 
 
@@ -147,16 +151,22 @@ def test_horizon_uses_retained_time_and_rejects_changed_authority(
         baseline.freeze(root, tmp_path / "changed.json", 3000)
 
 
-def test_insufficient_disk_does_not_shorten_into_a_toy_horizon(
+@pytest.mark.parametrize("resource", ["disk", "time"])
+def test_insufficient_resources_do_not_shorten_into_a_toy_horizon(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    resource: Literal["disk", "time"],
 ) -> None:
     root = tmp_path / "calibration"
     calibration_fixture(root)
-    disk = shutil.disk_usage(tmp_path)._replace(free=baseline.DISK_RESERVE)
+    disk = shutil.disk_usage(tmp_path)._replace(
+        free=baseline.DISK_RESERVE if resource == "disk" else 10**12
+    )
     monkeypatch.setattr(baseline.shutil, "disk_usage", lambda path: disk)
     with pytest.raises(ValueError, match="no serious horizon"):
-        baseline.freeze(root, tmp_path / "plan.json", 3000)
+        baseline.freeze(
+            root, tmp_path / "plan.json", 3000 if resource == "disk" else 500000
+        )
     assert not (tmp_path / "plan.json").exists()
 
 
@@ -185,9 +195,6 @@ def test_calibration_charges_prior_exploration_before_launch(
 
 
 def test_recipe_matches_retained_actor_critic_settings() -> None:
-    import gzip
-    import json
-
     retained = json.loads(
         gzip.decompress(
             Path("experiments/data/etu105/filter-scope-mini.json.gz").read_bytes()
@@ -211,8 +218,6 @@ def test_recipe_matches_retained_actor_critic_settings() -> None:
 
 
 def test_diagnostic_deals_cannot_overlap_final_or_greedy() -> None:
-    from manabot.training.monitor_evaluation import MonitorProtocol
-
     with pytest.raises(ValueError, match="disjoint"):
         ExperimentSchedule(
             seeds=(1,),

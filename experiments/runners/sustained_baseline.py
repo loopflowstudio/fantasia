@@ -175,18 +175,16 @@ def calibration(out: Path, preparation_seconds: float) -> ExperimentRun:
     """One three-seed mini calibration inside the remaining original week."""
     if not math.isfinite(preparation_seconds) or preparation_seconds < 0:
         raise ValueError("preparation cost must be finite and nonnegative")
-    allowance = CALIBRATION_ALLOWANCE
     if (
-        preparation_seconds + allowance
+        preparation_seconds + CALIBRATION_ALLOWANCE
         >= MAX_ACTIVE_SECONDS - FINAL_RESERVE - MONITOR_RESERVE
     ):
         raise ValueError("remaining week cannot admit calibration")
-    learner_allowance = CALIBRATION_LEARNER_SECONDS
     schedule = ExperimentSchedule(
         seeds=CALIBRATION_SEEDS,
         hardware="etu118-mini",
-        wall_seconds=allowance,
-        process_seconds=allowance,
+        wall_seconds=CALIBRATION_ALLOWANCE,
+        process_seconds=CALIBRATION_ALLOWANCE,
         active_runtime=True,
         monitoring=MonitoringBudget(
             seconds=1200,
@@ -198,7 +196,9 @@ def calibration(out: Path, preparation_seconds: float) -> ExperimentRun:
         checkpoint_seconds=3600,
     )
     return run_experiment(
-        declaration(recipe((CALIBRATION_UPDATES,), learner_allowance), schedule),
+        declaration(
+            recipe((CALIBRATION_UPDATES,), CALIBRATION_LEARNER_SECONDS), schedule
+        ),
         hardware(),
         out,
     )
@@ -238,10 +238,9 @@ def freeze(
     ):
         raise ValueError("complete current-source calibration required")
     calibration_schedule = ExperimentSchedule.model_validate(record.intent["schedule"])
-    learner_allowance = CALIBRATION_LEARNER_SECONDS
     expected = (
         declaration(
-            recipe((CALIBRATION_UPDATES,), learner_allowance),
+            recipe((CALIBRATION_UPDATES,), CALIBRATION_LEARNER_SECONDS),
             calibration_schedule,
         )
         .resolve()
@@ -301,25 +300,19 @@ def freeze(
     )
     per_seed = learning / len(SEEDS)
     free = shutil.disk_usage(output.parent).free - DISK_RESERVE
-    candidates = [10000]
-    admitted: list[tuple[int, int]] = []
-    for updates in candidates:
-        # Snapshots retain bounded current-game state and diagnostic references.
-        # Run/store/evaluator copies still grow; never assume evidence pruning.
-        ratio = updates / CALIBRATION_UPDATES
-        checkpoints = math.ceil(updates / 128) + 30
-        projected = int(
-            3 * (checkpoints * max(snapshot_sizes) + 4 * max(json_sizes) * ratio)
-            + 2 * 1024**3
-        )
-        if conservative * updates <= per_seed and projected <= free:
-            admitted.append((updates, projected))
-    if not admitted:
+    # The protocol fixes the horizon; calibration admits it or fails, never
+    # selects a shorter run. Retain snapshots and growing run/store/evaluator copies.
+    updates = STAGE_MILESTONES[-1]
+    ratio = updates / CALIBRATION_UPDATES
+    checkpoints = math.ceil(updates / 128) + 30
+    projected = int(
+        len(SEEDS) * (checkpoints * max(snapshot_sizes) + 4 * max(json_sizes) * ratio)
+        + 2 * 1024**3
+    )
+    if not (conservative * updates <= per_seed and projected <= free):
         raise ValueError(
             "no serious horizon fits calibrated time/storage; retain calibration and revise allocation/storage explicitly"
         )
-    updates, projected = admitted[-1]
-    milestones = STAGE_MILESTONES
     schedule = ExperimentSchedule(
         seeds=SEEDS,
         hardware="etu118-mini",
@@ -343,9 +336,8 @@ def freeze(
         scientific_deal_seeds=ENDPOINT_DEALS,
         checkpoint_seconds=3600,
     )
-    resolved = (
-        declaration(recipe(milestones, per_seed), schedule).resolve().cases[0].regime
-    )
+    regime = recipe(STAGE_MILESTONES, per_seed)
+    resolved = declaration(regime, schedule).resolve().cases[0].regime
     plan = SustainedPlan(
         regime_digest=canonical_sha256(resolved.model_dump(mode="json")),
         analysis_sha256=file_sha256(
@@ -354,7 +346,7 @@ def freeze(
         protocol_sha256=file_sha256(
             Path(__file__).resolve().parents[1] / "current-baseline.md"
         ),
-        regime=recipe(milestones, per_seed),
+        regime=regime,
         schedule=schedule,
         hardware=hardware(),
         runtime=_runtime(),
@@ -363,7 +355,7 @@ def freeze(
         preparation_seconds=preparation_seconds,
         calibrated_seconds_per_update=conservative,
         projected_bytes=projected,
-        milestones=milestones,
+        milestones=STAGE_MILESTONES,
     )
     atomic_json(output, plan.model_dump(mode="json"))
     return plan
