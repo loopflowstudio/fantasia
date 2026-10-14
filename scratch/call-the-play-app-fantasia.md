@@ -4,7 +4,7 @@ Decisions are in `naming-decisions.md`. Assumptions about which "etude"
 occurrences stay are in `questions.md`. Both are accepted by Jack Heart
 (2026-10-13) or recorded as reversible assumptions.
 
-## Done (commits 496b46c7, d529c422)
+## Done (commits 496b46c7, d529c422, ffd57319, 12ade837)
 
 - `etude/` → `academy/`, `tests/etude` → `tests/academy`; packaging, isort,
   Dockerfile, ASGI entry, scripts, CI and e2e paths follow.
@@ -20,6 +20,12 @@ occurrences stay are in `questions.md`. Both are accepted by Jack Heart
   managym/Etude model.
 - `git grep -nE "^(from|import) etude"` is empty outside
   `experiments/etude-center-adapter`. `origin/main` has not moved past the base.
+- The frozen W2-220 receipt records `-m etude.study_index`. `--verify` in
+  `academy/study_index.py` accepts that recorded legacy command and does not
+  rewrite the receipt; new receipts carry `academy.study_index`. No other
+  frozen receipt names an `etude.*` module.
+
+Check: `uv run pytest tests/academy/test_study_index.py -q` — 13 passed.
 
 ## Remaining
 
@@ -37,6 +43,3 @@ occurrences stay are in `questions.md`. Both are accepted by Jack Heart
   that folder. The ten are `test_authored_match_authority`,
   `test_authored_match_parity`, `test_belief_recommendation_flip`, five
   `test_checkpoint_advisor` cases and two `test_public_commitment_parity` cases.
-- The frozen W2-220 receipt records `-m etude.study_index`. `academy/study_index.py`
-  accepts that legacy command when verifying and does not rewrite the receipt.
-  `tests/academy/test_study_index.py`: 13 passed.
