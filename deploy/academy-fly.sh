@@ -41,7 +41,7 @@ website_domains=(etude.gg www.etude.gg etudefantasia.com www.etudefantasia.com e
 play_domains=(play.etude.gg)
 
 case "$app" in
-  etude-play | academy-play)
+  etude-play)
     config="$repo/deploy/play/fly.toml"
     context="$repo"
     deploy_flags=(--ha=false) # game state is in-process; exactly one machine

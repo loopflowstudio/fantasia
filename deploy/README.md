@@ -19,10 +19,10 @@ deploy/academy-fly.sh health                        # check every domain
 ```
 
 The Fly apps (`etude-website`, `etude-play`), the Doppler project (`etude`),
-and the `etude.gg` hostnames keep the names they were created with. The
-wrapper already accepts `academy-play` as the hosted-play app; renaming the
-live services is a separate cutover that changes the app names in the two
-`fly.toml` files and the alias table in `deploy/academy-dns.py` together.
+and the `etude.gg` hostnames keep the names they were created with.
+Renaming the live services is a separate cutover that changes the app names
+in the two `fly.toml` files, the `case` in `deploy/academy-fly.sh`, and the
+alias table in `deploy/academy-dns.py` together.
 
 ## DNS and certificates
 
