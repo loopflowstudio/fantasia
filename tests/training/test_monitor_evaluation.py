@@ -324,10 +324,9 @@ def test_real_arena_checkpoint_outcomes(
             protocol=monitor.MonitorProtocol(
                 deal_seeds=(1910101000,),
                 max_commands=max_commands,
-                # The budget includes spawning the worker and loading torch;
-                # macOS runners have taken 30s for one random-opponent game.
-                # It guards hangs here, not evaluator speed.
-                game_seconds=120,
+                # The default per-game budget includes spawning the worker and
+                # loading torch; macOS runners have taken 30s for one
+                # random-opponent game. It guards hangs, not evaluator speed.
                 opponent=opponent,
                 comparison_sha256="a" * 64 if opponent == "random" else None,
             ),

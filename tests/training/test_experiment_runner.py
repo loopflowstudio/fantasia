@@ -273,9 +273,9 @@ def test_live_diagnostics_and_requested_exports_remain_separate(tmp_path: Path) 
     value.recovery_max_microsteps = None
     value.stages[0].updates = 2
     # Five real four-game cohorts include subprocess startup and exact replay.
-    # This is a routing check, not an evaluator performance threshold, so it
-    # uses the production per-game and per-cohort budgets as hang guards.
-    attempt_seconds = 600
+    # This is a routing check, not an evaluator performance threshold, so the
+    # default per-game and per-cohort budgets serve only as hang guards.
+    cohort_seconds = MonitoringBudget.model_fields["attempt_seconds"].default
     schedule = ExperimentSchedule(
         seeds=(11840,),
         hardware="fixture",
@@ -283,15 +283,13 @@ def test_live_diagnostics_and_requested_exports_remain_separate(tmp_path: Path) 
         process_seconds=3600,
         checkpoint_updates=(1,),
         monitoring=MonitoringBudget(
-            seconds=5 * attempt_seconds,
-            attempt_seconds=attempt_seconds,
+            seconds=5 * cohort_seconds,
             include_initial=True,
-            protocol=MonitorProtocol(deal_seeds=(1911182000,), game_seconds=120),
+            protocol=MonitorProtocol(deal_seeds=(1911182000,)),
         ),
         diagnostic_protocol=MonitorProtocol(
             deal_seeds=(1911182001,),
             opponent="random",
-            game_seconds=120,
         ),
         diagnostic_updates=(0, 2),
         scientific_deal_seeds=(1911182002,),
