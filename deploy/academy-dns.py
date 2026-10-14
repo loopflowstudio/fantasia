@@ -1,4 +1,4 @@
-"""Point Cloudflare DNS for the Academy domains at the Fly-hosted website.
+"""Point Cloudflare DNS for the Fantasia domains at the Fly-hosted apps.
 
 Mirrors the loopflow.studio zone pattern: a proxied CNAME per hostname to the
 app's unique Fly alias, a DNS-only _acme-challenge CNAME so Fly can issue
