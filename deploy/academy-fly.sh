@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Manage the Fly-hosted Fantasia apps (mirrors kata/deploy/kata-fly.sh):
+# Manage the Fly-hosted Manabot apps (mirrors kata/deploy/kata-fly.sh):
 # the landing site (fantasia-website) and hosted play (academy-play).
 # DNS lives in Cloudflare; the API token comes from Doppler (fantasia/prd).
 
@@ -37,8 +37,8 @@ app="${ACADEMY_FLY_APP:-fantasia-website}"
 org="${ACADEMY_FLY_ORG:-loopflow-studio}"
 region="${ACADEMY_FLY_REGION:-sjc}"
 repo="$(git rev-parse --show-toplevel)"
-website_domains=(etude.gg www.etude.gg etudefantasia.com www.etudefantasia.com etudefantasia.gg www.etudefantasia.gg)
-play_domains=(play.etude.gg)
+website_domains=(manabot.gg www.manabot.gg etude.gg www.etude.gg etudefantasia.com www.etudefantasia.com etudefantasia.gg www.etudefantasia.gg)
+play_domains=(play.manabot.gg play.etude.gg)
 
 case "$app" in
   academy-play)
