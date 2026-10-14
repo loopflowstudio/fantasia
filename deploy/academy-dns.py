@@ -5,7 +5,7 @@ app's unique Fly alias, a DNS-only _acme-challenge CNAME so Fly can issue
 certificates behind the Cloudflare proxy, and a _fly-ownership TXT record
 (required when traffic routes through a proxy).
 
-Run through the wrapper so the token comes from Doppler (fantasia/prd):
+Run through the wrapper so the token comes from Doppler (manabot/prd):
 
     deploy/academy-fly.sh dns
 """

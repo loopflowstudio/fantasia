@@ -21,8 +21,8 @@ deploy/academy-fly.sh health                        # check every domain
 Both Fly apps belong to the `loopflow-studio` organization. Jack Heart approved
 the live service rename on 2026-10-14: `academy-play` serves the web app and
 `fantasia-website` serves the project's landing site. Jack Heart subsequently
-selected Manabot and `manabot.gg` on the same day. Existing Fly app and Doppler
-identifiers remain operational names. Legacy website hosts redirect to
+selected Manabot and `manabot.gg` on the same day. Existing Fly app identifiers remain operational names; the Doppler project
+was renamed to `manabot` at Jack Heart's request on 2026-10-14. Legacy website hosts redirect to
 `manabot.gg`; `play.etude.gg` redirects HTTP to `play.manabot.gg` with status 308
 to preserve request methods. Both preserve encoded paths and query strings.
 Existing legacy WebSocket clients remain supported.
@@ -41,13 +41,13 @@ alias `flyctl certs setup` prints into the table, run
 
 ## Secrets
 
-The Cloudflare API token and zone IDs live in Doppler under `fantasia/prd`
-(`doppler secrets --project fantasia --config prd --only-names`). Nothing
+The Cloudflare API token and zone IDs live in Doppler under `manabot/prd`
+(`doppler secrets --project manabot --config prd --only-names`). Nothing
 secret is stored in this repository, and the Fly apps currently need no
 runtime secrets.
 
-`fantasia/prd` contains only the five Cloudflare entries needed for these
-domains. The separate `etude` project still owns experiment-system credentials;
+`manabot/prd` contains the five Cloudflare entries needed for these domains
+and `NAMECHEAP_API_USER` / `NAMECHEAP_API_KEY` for registrar DNS management. The separate `etude` project still owns experiment-system credentials;
 do not rename it or copy those credentials into the deployment project. Frozen
 S3 receipts and wandb history retain their existing names.
 
@@ -63,7 +63,7 @@ Namecheap remains the registrar; Cloudflare hosts DNS. Add each purchased domain
 to the same Cloudflare account, preserve any existing DNS records (including
 mail and verification records), then set Namecheap Custom DNS to the exact
 nameservers Cloudflare assigns that zone. Do not use Namecheap URL forwarding.
-For `manabot.gg`, store `CLOUDFLARE_ZONE_ID_MANABOT_GG` in `fantasia/prd`.
+For `manabot.gg`, store `CLOUDFLARE_ZONE_ID_MANABOT_GG` in `manabot/prd`.
 
 Add Fly certificates and publish the new DNS records before deploying the
 redirects. Verify Cloudflare reports an active zone, HTTPS works on the new

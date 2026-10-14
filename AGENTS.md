@@ -27,7 +27,7 @@ correctly keeps manabot names. Frozen evidence — experiment IDs, contracts,
 receipts, wandb history — is never renamed, and neither are the compatibility
 surfaces that predate the Academy name: the `x-etude-*` wire headers,
 `etude.*` browser storage keys and schema identifiers. Hosted services are `academy-play` and `fantasia-website`, with
-deployment secrets in Doppler `fantasia/prd` (Jack Heart, 2026-10-14).
+deployment secrets in Doppler `manabot/prd` (Jack Heart, 2026-10-14).
 `etude.gg` and its legacy aliases redirect to `manabot.gg`, preserving paths
 and queries; hosted play moves to `play.manabot.gg`. Namecheap is the registrar
 and Cloudflare manages DNS. Existing service identifiers stay unchanged.
