@@ -36,10 +36,13 @@ Check: `uv run pytest tests/academy/test_study_index.py -q` — 13 passed.
 
 ## Remaining
 
-- Gate: CI on 7a51c5ef (Rust debug, Python unit, conformance, visual
-  reference, clean-machine play) was pending at reconciliation. Not run
-  locally: full Python suite outside `tests/academy`, Playwright e2e,
-  `./scripts/play` startup.
+- Gate (d2d5e1c4): all six CI jobs pass (Rust debug, Python unit,
+  conformance, visual reference, clean-machine play). Local
+  `uv run pytest tests/academy -q`: 271 passed, the same 10 pre-existing
+  failures. Ruff check/format findings in changed paths are identical to base
+  (81 / 4 files) and CI does not enforce ruff. Rust edits are comment-only.
+  Not run locally: full Python suite outside `tests/academy`, Playwright e2e
+  beyond CI's clean-machine and visual jobs.
 - Rebase onto MTG-79 if it lands first; `origin/main` has not moved past the
   base.
 - Live cutover (Fly apps, Doppler, DNS) stays out of this PR and needs Jack
