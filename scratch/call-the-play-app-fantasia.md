@@ -32,3 +32,11 @@ occurrences stay are in `questions.md`. Both are accepted by Jack Heart
   Doppler project), which need Jack Heart's confirmation. Jack Heart said the
   PR may land without his approval or a demo.
 - Rebase onto MTG-79 if it lands first.
+- PR body: `tests/academy` has ten failures that predate the rename. They fail
+  identically on base 1770a2cf. CI runs only `test_clean_machine_verifier` from
+  that folder. The ten are `test_authored_match_authority`,
+  `test_authored_match_parity`, `test_belief_recommendation_flip`, five
+  `test_checkpoint_advisor` cases and two `test_public_commitment_parity` cases.
+- The frozen W2-220 receipt records `-m etude.study_index`. `academy/study_index.py`
+  accepts that legacy command when verifying and does not rewrite the receipt.
+  `tests/academy/test_study_index.py`: 13 passed.
