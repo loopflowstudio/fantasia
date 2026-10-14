@@ -812,7 +812,7 @@ scoring. Source roots plus belief history remain required for rollout replay;
 private receipts are not a replacement for GameSession/Trace authority.
 
 The arena lifecycle retains private targets and actual command replay, including
-commands preceding failed belief updates. Etude has a typed viewer-safe projection,
+commands preceding failed belief updates. Academy has a typed viewer-safe projection,
 not a new live advisor registration. Genuine same-root PUCT-visit controls,
 archived-root relabeling, learned-sampler integration, independent-seed strength
 and human-play acceptance remain open. See [local-search contracts](../../docs/local-policy-search.md)
