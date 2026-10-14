@@ -50,8 +50,8 @@ RECEIPT_COMMAND = (
 # Receipts frozen before the app package became `academy` record the module
 # under its former `etude` name. Verification accepts that recorded command so
 # frozen evidence never needs rewriting; new receipts carry RECEIPT_COMMAND.
-_LEGACY_RECEIPT_COMMANDS = frozenset(
-    {RECEIPT_COMMAND.replace("-m academy.study_index", "-m etude.study_index")}
+_LEGACY_RECEIPT_COMMAND = RECEIPT_COMMAND.replace(
+    "-m academy.study_index", "-m etude.study_index"
 )
 
 _KIND_BY_ACTION_SPACE = {
@@ -641,9 +641,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if args.semantic_receipt is None:
             raise ValueError("--verify requires --semantic-receipt")
-        recorded_command = _load_json(args.semantic_receipt).get("command")
-        if recorded_command in _LEGACY_RECEIPT_COMMANDS:
-            receipt["command"] = recorded_command
+        if _load_json(args.semantic_receipt).get("command") == _LEGACY_RECEIPT_COMMAND:
+            receipt["command"] = _LEGACY_RECEIPT_COMMAND
         _compare_checked(
             args.semantic_receipt,
             pretty_json_bytes(receipt),
