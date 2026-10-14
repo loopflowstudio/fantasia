@@ -28,3 +28,7 @@
   `loopflowstudio/fantasia` in the README, the website and three live docs.
   Links inside training report generators and frozen visual-reference notes
   were left alone.
+- `deploy/academy-fly.sh` and `deploy/academy-dns.py` keep their `academy-`
+  filenames even though their prose now names the hosted apps and domains for
+  Fantasia (7a51c5ef). Renaming them to `fantasia-*` is a reversible follow-up
+  if wanted.

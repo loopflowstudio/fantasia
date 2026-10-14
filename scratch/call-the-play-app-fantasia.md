@@ -4,7 +4,7 @@ Decisions are in `naming-decisions.md`. Assumptions about which "etude"
 occurrences stay are in `questions.md`. Both are accepted by Jack Heart
 (2026-10-13) or recorded as reversible assumptions.
 
-## Done (commits 496b46c7, d529c422, ffd57319, 12ade837)
+## Done (commits 496b46c7, d529c422, ffd57319, 12ade837, 7a51c5ef)
 
 - `etude/` → `academy/`, `tests/etude` → `tests/academy`; packaging, isort,
   Dockerfile, ASGI entry, scripts, CI and e2e paths follow.
@@ -24,22 +24,24 @@ occurrences stay are in `questions.md`. Both are accepted by Jack Heart
   `academy/study_index.py` accepts that recorded legacy command and does not
   rewrite the receipt; new receipts carry `academy.study_index`. No other
   frozen receipt names an `etude.*` module.
+- The deploy scripts manage both the landing site and play, so their prose
+  names the hosted apps and domains for Fantasia (Jack Heart, 7a51c5ef); the
+  filenames keep the `academy-` prefix.
+- PR #283 body lists every remaining "etude" category, the cutover steps that
+  need Jack Heart's confirmation, and the ten pre-existing `tests/academy`
+  failures (identical on base 1770a2cf; CI runs only
+  `test_clean_machine_verifier` from that folder).
 
 Check: `uv run pytest tests/academy/test_study_index.py -q` — 13 passed.
 
 ## Remaining
 
-- Gate: Python suite, frontend checks, e2e, `./scripts/play` startup. No Rust
-  behavior changed beyond names in three `managym/src` files, so `cargo test`
-  in debug still applies.
-- PR body: the list of remaining "etude" categories from `questions.md`, and
-  cutover steps for the live rename (Fly apps in both `fly.toml` files, the
-  `case` in `deploy/academy-fly.sh`, the alias table in `deploy/academy-dns.py`,
-  Doppler project), which need Jack Heart's confirmation. Jack Heart said the
-  PR may land without his approval or a demo.
-- Rebase onto MTG-79 if it lands first.
-- PR body: `tests/academy` has ten failures that predate the rename. They fail
-  identically on base 1770a2cf. CI runs only `test_clean_machine_verifier` from
-  that folder. The ten are `test_authored_match_authority`,
-  `test_authored_match_parity`, `test_belief_recommendation_flip`, five
-  `test_checkpoint_advisor` cases and two `test_public_commitment_parity` cases.
+- Gate: CI on 7a51c5ef (Rust debug, Python unit, conformance, visual
+  reference, clean-machine play) was pending at reconciliation. Not run
+  locally: full Python suite outside `tests/academy`, Playwright e2e,
+  `./scripts/play` startup.
+- Rebase onto MTG-79 if it lands first; `origin/main` has not moved past the
+  base.
+- Live cutover (Fly apps, Doppler, DNS) stays out of this PR and needs Jack
+  Heart's confirmation. Jack Heart said the PR may land without his approval
+  or a demo.
