@@ -72,7 +72,7 @@ semantic transfer; no previous checkpoint is relabeled compatible.
 An observation/action-shape or rules-meaning change is a world version.
 The current world is **w5** (`managym.WORLD_VERSION`); its rules, tensor shape,
 and compatibility limits are in [WORLDS.md](../WORLDS.md). Earlier checkpoints,
-including w4 artifacts without declaration polarity, are not comparable to w5. The local
+including w4 artifacts with aliased attack choices, are not compatible with w5. The local
 challenger workflow records the native world identity and current rules,
 content, Lesson-pool and tensor identities with each run. Historical Learn
 certification limits remain in the [Learn record](../docs/rules/learn-lesson.md).

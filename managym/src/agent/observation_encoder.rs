@@ -9,8 +9,9 @@ pub const PLAYER_DIM: usize = 28;
 pub const CARD_DIM: usize = 39;
 pub const PERMANENT_DIM: usize = 25;
 pub const ACTION_TYPE_DIM: usize = 16;
-// Action type, signed declaration (+1 declare / -1 decline / 0 inapplicable),
-// then validity. Keeping declaration separate preserves the action-type ABI.
+/// Declaration choice is separate from its family: attack and decline must
+/// have distinct policy inputs even when they focus the same permanent.
+pub const ACTION_DECLARED_INDEX: usize = ACTION_TYPE_DIM;
 pub const ACTION_DIM: usize = ACTION_TYPE_DIM + 2;
 pub const EVENT_DIM: usize = 7;
 pub const ZONE_DIM: usize = 7;
@@ -651,11 +652,7 @@ fn encode_actions(
         if action_type_index < ACTION_TYPE_DIM {
             row[action_type_index] = 1.0;
         }
-        row[ACTION_TYPE_DIM] = match action.declared {
-            Some(true) => 1.0,
-            Some(false) => -1.0,
-            None => 0.0,
-        };
+        row[ACTION_DECLARED_INDEX] = bool_to_f32(action.declared.unwrap_or(false));
         row[ACTION_DIM - 1] = 1.0;
         out_valid[action_index] = 1.0;
 
@@ -856,6 +853,32 @@ mod tests {
         }
     }
 
+    #[test]
+    fn attack_and_decline_have_distinct_policy_features() {
+        let mut observation = sample_observation();
+        observation.action_space.action_space_type = ActionSpaceKind::DeclareAttacker;
+        observation.action_space.actions = [true, false]
+            .into_iter()
+            .map(|declared| ActionOption {
+                action_type: ActionType::DeclareAttacker,
+                focus: vec![333],
+                declared: Some(declared),
+            })
+            .collect();
+        let config = ObservationEncoderConfig::default();
+        let encoded = encode(&observation, &config).expect("attack decision encodes");
+        assert_ne!(
+            &encoded.actions[..ACTION_DIM - 1],
+            &encoded.actions[ACTION_DIM..2 * ACTION_DIM - 1],
+            "the policy must be able to prefer attacking or declining"
+        );
+        assert_eq!(
+            &encoded.action_focus[..config.max_focus_objects],
+            &encoded.action_focus[config.max_focus_objects..2 * config.max_focus_objects]
+        );
+        assert_eq!(&encoded.actions_valid[..2], &[1.0, 1.0]);
+    }
+
     fn make_card(
         id: i32,
         zone: ZoneType,
@@ -916,45 +939,6 @@ mod tests {
             exile_if_dies_this_turn: false,
             keywords: KeywordData::default(),
         }
-    }
-
-    #[test]
-    fn declarations_are_signed_and_do_not_alias_or_leak_into_padding() {
-        let mut obs = sample_observation();
-        obs.action_space.actions = vec![
-            ActionOption {
-                action_type: ActionType::DeclareAttacker,
-                focus: vec![333],
-                declared: Some(true),
-            },
-            ActionOption {
-                action_type: ActionType::DeclareAttacker,
-                focus: vec![333],
-                declared: Some(false),
-            },
-            ActionOption {
-                action_type: ActionType::PriorityPassPriority,
-                focus: vec![],
-                declared: None,
-            },
-        ];
-        let config = ObservationEncoderConfig::default();
-        let encoded = encode(&obs, &config).unwrap();
-        for (index, polarity) in [1.0, -1.0, 0.0].into_iter().enumerate() {
-            assert_eq!(
-                encoded.actions[index * ACTION_DIM + ACTION_DIM - 2],
-                polarity
-            );
-            assert_eq!(encoded.actions[index * ACTION_DIM + ACTION_DIM - 1], 1.0);
-        }
-        assert_eq!(
-            &encoded.actions[..ACTION_DIM - 2],
-            &encoded.actions[ACTION_DIM..2 * ACTION_DIM - 2]
-        );
-        assert_eq!(&encoded.action_focus[..2], &encoded.action_focus[2..4]);
-        assert!(encoded.actions[3 * ACTION_DIM..]
-            .iter()
-            .all(|value| *value == 0.0));
     }
 
     #[test]
