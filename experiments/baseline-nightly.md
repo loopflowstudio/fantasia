@@ -1,0 +1,89 @@
+# Ordinary baseline learning regression — 2026-10-15
+
+Status: protocol and implementation, not yet qualified. Jack Heart requested a
+nightly focused on what ordinary training learns, retaining the existing
+handcrafted capacity checks as sanity tests. Bare `manabot train` remains the
+small smoke run. `manabot train --recipe baseline --steps N` selects the higher
+level recipe shared by the nightly and interactive CLI.
+
+## Frozen question and prediction
+
+Can a bounded current-world Allies/Lessons self-play run show paired outcome
+improvement, while preserving action information and checkpoint invariants?
+The baseline uses the existing Ataraxos move update, scalar masked-mean value,
+width 64/depth 2/four heads, four streams of 64 transitions, current-self play,
+and terminal game outcomes. There are no probe labels, modified rewards,
+per-choice curricula, or optimization steps in evaluation.
+
+The new recipe maps the declared horizon onto reference iterations 1–10,000
+of the existing learning-rate/tau schedule. Endpoints and normalized-progress
+rates match across run lengths. A one-step run uses the initial rates. This is
+a deliberately horizon-dependent schedule, not a prefix guarantee or a claim
+of reproducing the historical absolute schedule. Existing regimes omit this
+mapping and keep their behavior and serialized identities.
+
+Before execution: predict all software invariants pass; at 256 updates predict
+positive outcome gain in at least two of seeds 197/281/419, but evidence may be
+inconclusive. A 16-update preliminary run calibrates throughput and the complete
+reporting path only; it is not selected as a learning qualification. Preserve
+all attempts. Do not change thresholds after inspecting their scores.
+
+## Measurements and acceptance
+
+- Three independently initialized seeds, identical recipe/horizon, and 24
+  reserved regression deals (1915100000–1915100023). Each checkpoint plays all
+  four deck/seat legs against uniform legal random through the ordinary arena.
+  Initial and final evaluation are paired by deal/leg and action-sampling scheme.
+  Both deck assignments are retained in the raw rows and paired leg differences.
+- The primary statistic is mean final-minus-initial game score, draws worth
+  one half. A fixed-seed hierarchical bootstrap resamples training seeds and
+  complete deal blocks; the shared deal indexes are resampled jointly across
+  seeds. Never treat individual decisions or four legs as independent games.
+  Require mean gain >= .05 and a positive 95% lower bound for `learning`.
+  Symmetric negative evidence is `regression`; otherwise `inconclusive`.
+  Missing seeds, incomplete games, non-replaying traces or runtime violations
+  are `error`. Only `learning` is a passing learning gate. Per-seed reports are
+  conditional on that trained instance, not claims about the method.
+- Save initialization, midpoint and endpoint checkpoints. Reuse their frozen
+  weights against the same model-independent, seed/trace-retained corpus of
+  native public choices. Report per-family pair log-odds and value changes.
+  No direction or minimum drift is required: random weights can distinguish,
+  sensible choices can tie, and useful learning need not change every family.
+- Audit native/scalar encoders, legal masks and focus joins during collection.
+  On ordinary loaded checkpoints check batching, offer/object permutation,
+  value invariance, zero padding probability and a second ordinary reload.
+  Existing exact setup/world admission stays mandatory. Probe labels never
+  reach the learner; the frozen corpus is outside training's seed namespaces.
+- Summarize the existing learner selection diagnostics by chosen action type:
+  collected and retained rows. These counts are not decision-family exposure
+  and do not prove a nonzero actor gradient for every retained sample.
+- Keep the full short learnability workflow as a separate sanity job and its
+  existing relevant-PR triggers. Its artificial preferences remain labeled as
+  capacity tests. The 30-minute generated capacity search remains available
+  manually, without consuming most of the ordinary-learning nightly budget.
+
+## Reliability and cost
+
+Common evaluation deals and fixed initial/final pairing reduce avoidable noise.
+Independent seeds and complete-case requirements prevent one lucky run or a
+partial cohort from producing green. No-update, positive, negative and
+seed-disagreement analysis controls are tested without training. Initial and
+endpoint are chosen before scoring; there is no best-checkpoint selection or
+requirement that every intermediate checkpoint improve.
+
+Strongest confounds: random is weak, and the two decks differ in strength;
+outcome improvement against it is early learning evidence, not tactical mastery.
+The fixed choice corpus is generated independently, not necessarily visited by
+the trained policy. Logit/value movement is descriptive and cannot establish
+strategic correctness. With only three seeds and 24 deals, small improvements
+can remain inconclusive; a longer run does not justify weakening the criterion.
+Repeated nightly deals are regression/development evidence, not a perpetually
+unseen scientific test set.
+
+Use three concurrent standard GitHub-hosted runners in this public repository:
+$0 purchased compute, no launcher credentials, no laptop/mini training. Each
+baseline has a 1,680-second coordinator limit plus a 1,800-second external
+watchdog for its reporting; setup is additional and jobs have a 35-minute cap.
+The cohort uses up to about 90 runner-minutes plus setup/evidence/sanity. The
+nightly cron only becomes active after merge. Remote calibration uses a
+branch/commit-marker trigger that will be removed before final publication.
