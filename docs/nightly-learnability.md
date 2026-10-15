@@ -177,7 +177,7 @@ the current extension. The receipt records native/probe/case-builder hashes.
 
 `.github/workflows/learnability.yml` runs the full suite on relevant PR updates
 and manual dispatch. Its path filter covers manabot, managym, content, relevant
-model/verification tests, dependencies, and the workflow itself. There is no
+model/verification tests, diagnostic runners, dependencies, and the workflow itself. There is no
 nightly schedule. The measured cost supports full PR coverage; `--pr` remains
 available for quick local diagnosis. It uses ephemeral
 GitHub-hosted CPU runners, overlap protection, a 15-minute job timeout, a step
