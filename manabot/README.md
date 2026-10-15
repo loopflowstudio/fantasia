@@ -74,3 +74,131 @@ The current world is **w6** (`managym.WORLD_VERSION`); its rules, tensor shape,
 and compatibility limits are in [WORLDS.md](../WORLDS.md). Earlier checkpoints,
 including w5 artifacts with aliased object and mode choices, are not compatible
 with w6. The local
+challenger workflow records the native world identity and current rules,
+content, Lesson-pool and tensor identities with each run. Historical Learn
+certification limits remain in the [Learn record](../docs/rules/learn-lesson.md).
+
+`train_bc` and `train_search_supervised` take the `observation_hypers` the
+shards were encoded with and reject a dataset of any other shape.
+
+## Architecture
+
+manabot owns memory, beliefs, planning, policy/value learning, teacher data,
+self-play, evaluation, and promotion evidence over the authoritative managym
+world. The cross-package contracts and convergence status are in
+[docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+
+1. **`manabot.env`**: Gymnasium-compatible wrapper around managym
+   (`VectorEnv`, `ObservationSpace`, `Match`, `Reward`)
+2. **`manabot.model`**: trainable policy and value models (`Agent`, PPO
+   `Trainer`)
+3. **`manabot.sim`**: search, teacher data generation, and game simulation
+   (`Player`, `Sim`, determinized PUCT, Teacher-1 evidence)
+4. **`manabot.semantic`**: semantic-program encoders and structural
+   representation experiments
+5. **`manabot.verify`**: competency scenarios, behavioral probes, and the
+   run-provenance store
+6. **`manabot.infra`**: experiment tracking (W&B/TensorBoard), `Hypers`
+   config models, profiling
+7. **`manabot.belief`**: canonical world distributions, viewer history,
+   supervised exact-world learning, and the `ManabotPlayer` lifecycle
+8. **`manabot.study`**: behavioral study of recorded games (`record_games`,
+   `measures`, `report`), with one subpackage per matchup
+
+Belief input is opt-in: schema-bound checkpoints load through the ordinary
+`checkpoint` player and update belief before each policy/value decision.
+`belief-demo` uses a freshly initialized policy to prove intervention wiring;
+`belief-learn-demo` trains a belief scorer on one scripted population and holds
+out whole episodes. Neither demonstrates strategic strength or opponent
+transfer. The generic PPO and teacher-shard trainers do not yet produce the
+semantic belief inputs required to train a belief-enabled policy. Historical
+positional-condition checkpoints are rejected rather than reinterpreted.
+
+Training regimes can [import a published raw/EMA policy](../docs/training-regimes.md#reuse-a-published-policy-without-training)
+without retraining, preserving producer provenance and separate sunk costs.
+They can freeze a policy, collect private whole-game supervision,
+and fit a constrained autoregressive hand sampler without exact enumeration.
+See [frozen-policy belief sampling](../docs/belief-sampler.md). This separately
+admitted belief artifact does not change the policy's input contract or establish
+foreign-opponent calibration or search strength.
+
+Frozen-policy local search and same-root distillation run through
+[`collect_local_update` regimes](../docs/local-policy-search.md). The bounded
+compatible-prior recipe completes games; exact-history search rejects unsupported
+Rules likelihood events. Target receipts and arena replay retain this distinction.
+
+The existing `agent_puct` player accepts current flat and compound checkpoints;
+see [PUCT policy/value compatibility](../docs/local-policy-search.md#puct-policyvalue-compatibility)
+for critic units, retained prefixes and arena registration. This is a search
+compatibility path, not a calibrated strength preset.
+
+Declare training comparisons with [typed Python experiments](../docs/training-experiments.md).
+Versioned presets, named component overrides and variant matrices resolve to complete
+existing regimes with provenance; resolution never launches training.
+
+Experiment-specific driver scripts live in
+[experiments/runners/](../experiments/runners/), not here — `manabot/` keeps
+only reusable instruments. The experiment discipline and ledger are in
+[experiments/README.md](../experiments/README.md).
+
+For versioned S1–S5 tactical diagnostics through ordinary checkpoint players,
+see [checkpoint scenario scoring](../docs/checkpoint-scenarios.md). Each retained
+custom-deck root requires its exact checkpoint setup binding.
+
+For capacity configuration, component counts, versioned architecture receipts and
+bounded CPU calibration, see [capacity accounting](model/agent.md#capacity-identity-and-accounting)
+and [the calibration command](../docs/training-calibration.md#capacity-ladder-software-calibration).
+
+## Research program
+
+[RESEARCH.md](RESEARCH.md) is the durable map from runnable manabots to a
+bounded superhuman claim. It records the builder's loop, the world-pinned skill
+rating we are establishing, accepted evidence, and the value-learning,
+teacher/student, belief-modeling, and semantic-transfer frontiers. Live work
+and ownership remain in Linear; frozen predictions and results remain in
+`experiments/`.
+
+## Style
+
+```python
+"""
+filename.py
+One-line purpose of file
+
+Instructions for collaborators on how to approach understanding and editing.
+"""
+
+# Standard library
+import os
+
+# Third-party imports
+from torch import Tensor
+
+# First-party imports
+from manabot.env import ObservationSpace
+
+# Local imports
+from .sibling import Thing
+```
+
+Compound checkpoints use an autoregressive legal-offer decoder and execute via
+ordinary checkpoint players. Their complete-game training stages, credit
+boundaries and separate comparison recipes are documented under
+[compound decisions](../docs/training-regimes.md#compound-decisions).
+
+TrainingRun diagnostics can be followed live or backfilled into W&B without
+retraining. The [dashboard guide](../docs/training-monitoring.md) covers offline
+operation, fixed distillation validation and separate checkpoint monitoring.
+
+Optional [public recent-event input](../docs/recent-events.md) uses the existing
+semantic catalog and a bounded native history suffix. Recipe history-on/off is
+independent of capacity and learning rules; comparison plans remain unexecuted.
+
+Self-play [numerical health](../docs/numerical-health.md) records policy support,
+selection, gradients and actual optimizer effects, with bounded private failure
+artifacts. CPU correctness does not imply CUDA validation or improved play.
+
+For exploratory same-deck checkpoint play, the [head-to-head runner](../experiments/head-to-head.md#mirror-only-follow-up-mtg-131-2026-10-09)
+accepts `--matchups mirrors`. This explicitly permits repeating exact checkpoint
+roster decks/sideboards and carries their compiled content pack through replay;
+it is not ordinary training-match admission or evidence of mirror competence.

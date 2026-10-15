@@ -3,6 +3,8 @@
 Full prospective protocols, failures, repairs, receipts, hashes and costs are
 preserved at `a5ba5dbc3895b51683e616d86165ccef61094ce3:scratch/search-policy-pilot.md`.
 All local artifact directories remain intact. No historical result is relabeled.
+Main subsequently advanced to w6 at `3b3e35fd`; the w5 development pair below is
+historical and no longer runtime-admissible. No replacement pilot is selected.
 
 - October 14 w4 attempt (`.runs/search-policy-pilot-20261014`): flat exceeded
   the 4 GiB watchdog; compound failed lowering an attacker declaration into a
@@ -15,7 +17,7 @@ All local artifact directories remain intact. No historical result is relabeled.
   completed; eight-game arena flat 5–3 and 1,288 Commands replayed cleanly.
   Superseded when Jack Heart selected stacking on PR288's 1/0 encoding; its
   checkpoints are rejected by the selected runtime, never silently adapted.
-- Current development pair (`.runs/search-policy-pilot-pr288-20261015`):
+- PR288 development pair (`.runs/search-policy-pilot-pr288-20261015`):
   source `238801b7789571d53d49b763653c0d768892a683`, parent PR288 head
   `d9bbfe29beac2d23b2f74581f52f203b015a2c59`, w5/input-v1. Flat run
   `942f1505b7f7467f996674c2491fd964`, compound `8304bed90a1d4f0ea89c8275fa43c55a`.
@@ -27,7 +29,7 @@ All local artifact directories remain intact. No historical result is relabeled.
   20.663 seconds. Real attack root yields distinct logits with native/Python
   parity. This demonstrates plumbing and learnability, not strategic strength.
 
-The current pair's `training.sqlite`, `arena/`, `flat-declaration-probe.json`
+That pair's `training.sqlite`, `arena/`, `flat-declaration-probe.json`
 and `pilot-evidence.json` retain full provenance; manifest SHA-256:
 `9e8b6a85f5f60cb07e2e1c8c5064a91366acd0e155af6dbd5379b254b799e764`.
 Combined validation: 395 debug Rust tests and 193 Python checks passed/one

@@ -13,6 +13,10 @@
   comparison tooling follow. No training campaign is selected.
 - Completed pilot evidence remains intact in `search-policy-pilot.md`; its 4–4
   development score is integration evidence only.
+- PR288 has merged. Integration also takes main's `3b3e35fd` input-identity fix
+  and w6 boundary. Saved w5 pilots remain immutable historical evidence and are
+  rejected by the current runtime. PUCT checks use fresh untrained w6 fixtures;
+  no new pilot or baseline fitting is selected.
 - Jack Heart explicitly accepted fixing the flat attack/decline alias and
   retraining. The signed w5/input-v2 prototype completed. Jack Heart then selected
   stacking on PR288: adopt its w5/input-v1 1/0 declaration contract and rebuild

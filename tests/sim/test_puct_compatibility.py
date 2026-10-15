@@ -30,6 +30,7 @@ from manabot.sim.mcts import (
     puct_source_sha256,
 )
 from manabot.sim.search_branch import SELECTED_BRANCH_DRIVER_ID
+import managym
 from tests.sim.test_local_update import small_match
 from tests.sim.test_mcts import _fresh_engine_and_observation
 from tests.training.test_compound import _agent, _block_root, _root, _waterbend_root
@@ -264,7 +265,7 @@ def test_registered_puct_completes_games_and_replays(
         role="challenger",
         compute_class_id="bounded-fixture",
         information_boundary="acting-viewer-only-v1",
-        world="w5",
+        world=managym.WORLD_VERSION,
         content_suite="tiny-fixture",
         observation_abi_sha256=identity,
         action_abi_sha256=identity,
