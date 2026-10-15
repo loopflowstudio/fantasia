@@ -13,7 +13,7 @@ from managym.decision import SEMANTIC_DECISION_VERSION
 from managym.possible_worlds import POSSIBLE_WORLD_SPACE_VERSION
 
 WORLD = managym.WORLD_VERSION
-POLICY_INPUT_VERSION = 1
+POLICY_INPUT_VERSION = 2
 ROOT = Path(__file__).resolve().parents[2]
 
 

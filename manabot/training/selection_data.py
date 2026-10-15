@@ -139,7 +139,7 @@ def collect_selection_game(
                 actor=actor,
                 observation_identity=observation.viewer_state_hash,
                 action=action,
-                action_type=int(tensors["actions"][0, action, :-1].argmax()),
+                action_type=int(tensors["actions"][0, action, :-2].argmax()),
                 value=float(value.item()),
                 action_probability=float(probabilities[0, action]),
                 entropy=float(-(probabilities * logs).sum()),

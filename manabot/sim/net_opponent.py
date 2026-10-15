@@ -383,7 +383,7 @@ class SeatRoutedCollector:
     def _count_action_types(
         self, counter: dict[str, int], rows: np.ndarray, actions: np.ndarray
     ) -> None:
-        chosen = self._buffers["actions"][rows, actions, :-1]
+        chosen = self._buffers["actions"][rows, actions, :-2]
         type_indices = chosen.argmax(axis=1)
         typed = chosen.max(axis=1) > 0
         for idx, has_type in zip(type_indices, typed):

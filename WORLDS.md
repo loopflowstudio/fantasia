@@ -14,9 +14,10 @@ was dead on arrival in exp-10.)
 | **w2** | rules stage 3–4 + conformance (`cb80331`..`a9f1f91`, max_actions 32 @ `55a0b4b`) | 28 / 38 / 24 / 14 | exp-10 V + BC student; exp-11 arms (incl. ported student_r0, validated 86.5%) | exp-06 PPO 60–77%; exp-10/11 (pending merge) |
 | **w3** | corrected Learn evidence, 2026-09-24–29 (certification unfinished) | 28 / 39 / 24 / 16 | frozen Learn/checkpoint evidence; see [Learn record](docs/rules/learn-lesson.md) | no completed new baseline certification |
 | **w4** | ETU-88, 2026-09-29 | 28 / 39 / 25 / 16; 13 decision kinds | Gran-Gran, Proft's Eidetic Memory, Combustion Technique and required base rules | no strength baseline yet |
+| **w5** | action declaration encoding, 2026-10-15 | 28 / 39 / 25 / 16; action rows grow 17 → 18 | fresh policy-input-v2 checkpoints only | baseline certification pending |
 
-**Current world: w4.** `managym.WORLD_VERSION` identifies live runs. Earlier
-checkpoints (including w3) are **not comparable** to w4; do not reuse their
+**Current world: w5.** `managym.WORLD_VERSION` identifies live runs. Earlier
+checkpoints (including w4) are **not comparable** to w5; do not reuse their
 win rates or load them as current-world policies. Shape alone is insufficient
 identity. Exp-11 historically ported opponent components with
 `port_legacy_state_dict` and behavioral validation; that utility is now retired.
@@ -33,6 +34,22 @@ already-public native projection to complete typed programs. Ordinary policy
 input version 1 binds these arrays and the learning schema explicitly; earlier
 unbound w4 files are rejected, not treated as equivalent policies. Historical
 w3 and w4 results retain their original input contracts and evidence limits.
+
+## w5: declaration-aware policy input
+
+The flat action encoding previously collapsed attack and decline into identical
+type/focus rows. World w5 adds a signed declaration feature at action index 16:
+`+1` declares an attack/block, `-1` declines, and `0` means inapplicable. The
+validity bit moves from index 16 to 17. Python inference and native scalar/vector
+training encoders share this layout; action-type counts and canonical Commands
+are unchanged. Ordinary policy input version 2 binds the new 18-column schema.
+
+Old checkpoints and shards are rejected, not padded, ported, or relabeled.
+Both policy families must be trained fresh for comparisons. Game rules, authored
+setups, semantic decision versions and the frozen w4 rules-conformance corpus
+are unchanged; that corpus still checks those rules, not w5 learning-tensor
+compatibility. New encoder parity and declaration-learning tests cover the latter.
+No w4 strength result is a w5 baseline.
 
 ## w4: complete UR additions
 

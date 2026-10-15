@@ -120,13 +120,13 @@ def update_iteration(
         "value_residual_abs_mean": float((returns - values.flatten()).abs().mean()),
     }
     chosen_types = obs["actions"][
-        torch.arange(len(actions), device=dev), actions, :-1
+        torch.arange(len(actions), device=dev), actions, :-2
     ].argmax(-1)
     diagnostics["action_types"] = torch.bincount(
-        chosen_types, minlength=obs["actions"].shape[-1] - 1
+        chosen_types, minlength=obs["actions"].shape[-1] - 2
     ).tolist()
     diagnostics["selected_action_types"] = torch.bincount(
-        chosen_types[selected], minlength=obs["actions"].shape[-1] - 1
+        chosen_types[selected], minlength=obs["actions"].shape[-1] - 2
     ).tolist()
     diagnostics["selection_groups"] = selection_diagnostics(
         advantages.reshape_as(ends),

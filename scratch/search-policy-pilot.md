@@ -61,129 +61,44 @@ replaced by a flat reference/head. This pilot does not assert they are available
 ETU-118 remains the intended frozen practical benchmark, pending artifact access
 and current-world admission. No ETU-118 win-rate result can come from this pilot.
 
-## Result — stopped at the preregistered failure gate
+## October 14 result — stopped at failure gate
 
-Preregistration commit: `e256afae6ec5f6b143014e15f6d05ca41556b841`.
-Both runs failed; neither selected a final checkpoint. The eight-game arena did
-not run. No strength, win-rate, or compute-matched treatment claim follows.
-Neither the main training cohort nor the search cohort launched.
+Full original protocol and diagnosis are preserved at
+`3235a5ca48640bb98cf45e410b8a4fb4dcca2445:scratch/search-policy-pilot.md`.
+Preregistration was `e256afae`; artifacts remain unchanged in
+`.runs/search-policy-pilot-20261014`, owned by its `training.sqlite`.
 
-| Recipe | Run ID | Run seconds | Completed games | Learner rows / exposures | Sampled peak RSS | Outcome |
-|---|---|---:|---:|---:|---:|---|
-| Flat | `b1aa85344ba149d39f991d925f89fbd3` | 7.097 | 9 | 1,024 / 1,024 | 5,796,560,896 bytes | Memory watchdog after first update |
-| Compound | `6768f0be670a4c3ab0b3dd1bf8519402` | 9.484 | 3 | 482 / 366 | 3,091,234,816 bytes | Command lowering failed in fourth game |
+| Family | Run ID | Wall s | Completed games | Outcome |
+|---|---|---:|---:|---|
+| Flat | `b1aa85344ba149d39f991d925f89fbd3` | 7.097 | 9 | 4 GiB watchdog; sampled RSS 5,796,560,896 bytes |
+| Compound | `6768f0be670a4c3ab0b3dd1bf8519402` | 9.484 | 3 | WrongDecision during game four |
 
-Source: authoritative VerifyStore rows in
-`.runs/search-policy-pilot-20261014/training.sqlite`, retrieved by these IDs.
-Total recorded training-run wall time: 16.581 seconds; stage CPU time:
-6.872 + 9.421 seconds. Native build reported 12.83 seconds separately. Setup,
-probes and tests are not training time. RSS is sampled once per second, so the
-4 GiB rejection threshold is not a hard instantaneous limit. No paid resources.
-
-### Flat batch semantics
-
-The prospective phrase “256 transitions over four streams” was underspecified:
-the implementation collects **256 per stream**, hence 1,024 learner rows per
-iteration. The receipt records one optimizer update, 2,189 environment decisions,
-3.691 seconds collection and 1.383 seconds learning before rejection. Reducing the
-batch and/or increasing minibatches is a candidate repair, not yet tested. Do not
-silently increase the memory cap or reinterpret these rows as 256.
-
-### Compound continuation boundary
-
-The three completed games replayed exactly. Replaying the 79 Commands retained
-in `compound/fit-game-3.jsonl` reconstructs revision 80, actor 0, with one optional
-attacker, Compassionate Healer. Post-failure diagnostics separated an unsupported
-prompt from a continuation-boundary defect:
-
-- Selecting the attacker lowers to one canonical Command successfully.
-- Selecting no attackers raises `PyAgentError: current decision has no structured
-  offer support`. Both lowering attempts leave the root digest unchanged.
-- Executing the native decline action directly succeeds and advances to **actor
-  1's** attacker declaration (First-Time Flyer). Automatic trivial steps skipped
-  the intervening windows.
-
-This matches `managym/src/agent/structured_offer.rs`,
-`apply_legacy_command_inner`, `AtomicCommand::DeclareAttackers`: the loop continues
-while the prompt kind is DeclareAttacker, then rejects a changed actor. The
-declaration boundary must account for native advancement, not merely prompt kind.
-A repair must also distinguish later declarations by the same actor; changing
-only the actor check is not a complete demonstrated solution.
-
-These are exploratory diagnostics, not preregistered strength evidence. Outputs:
-`compound/failed-root.json` and `compound/lowering-probe.json`. The failed sampled
-submission was not itself logged; testing both legal subsets isolates the failing
-option without claiming a recorded model token trace.
-
-The three successful games contain 372 compound decisions, 482 factors and 412
-canonical Commands. One optimizer batch consumed 366 factors from the first two
-games; the third game was collected for the next batch before failure. These units
-are not interchangeable with flat transitions/exposures.
-
-### Existing checks and timing limitation
-
-The existing compound test module plus the two analytic local-update tests yielded
-**24 passed, 1 failed in 2.05 seconds**. The failure is
-`tests/training/test_compound.py::test_failed_regime_registers_incomplete_attempt_without_checkpoint`:
-it expects positive failed-collection time but observes zero. The compound branch
-of `manabot/training/execution.py` adds collection elapsed time only after success;
-the exception path bypasses it. Consequently compound collection time (1.872 s)
-excludes the failed fourth game. Total run time retains this cost. Do not price
-failed attempts from collection time alone. Raw output: `tests.log`.
-
-### Evidence and next execution boundary
-
-Both recipes were validated. Dependencies were installed with
-`uv sync --frozen --python 3.12 --extra dev --extra play`; native bindings were
-built from this checkout. Engine source SHA-256:
-`586453419d1db9b85d11e3f89cf739d52dc1b7e8831684baf72f72d1b4758138`.
-The local `pilot-evidence.json` binds identities, run exports, logs, traces and
-diagnostics by SHA-256; its digest is
+Neither selected a final checkpoint; no arena ran. Flat collected 256 rows per
+stream, not per batch: four streams gave 1,024 rows. Compound's 79-Command partial
+trace reconstructs an optional sole attacker. Declining advances natively to the
+opponent's next-turn attacker declaration; lowering incorrectly continued by
+prompt kind alone. Selecting the attacker succeeded; both probes preserved root
+state. Failed collection timing was also omitted: 24 tests passed, one timing
+regression failed. These were integration failures, not strength evidence.
+Exact traces, checksums, cost breakdowns and diagnostic outputs remain bound by
+`pilot-evidence.json`, SHA-256
 `d88cf719678e243552eb29d09886b49a578e42a6f66dde9b22c5d09ac6c15e69`.
-Artifacts remain local and private; a path alone does not transfer them.
+No paid resources were used. The next protocol repaired this boundary/timing and
+reduced flat batch demand; no failed attempt was overwritten.
 
-The pilot answered the integration question negatively and hit its stop condition.
-Keep both attempts unchanged. Before a newly preregistered pilot: repair and
-regression-test declaration lowering at this exact boundary, account for failed
-collection time, and reduce flat batch memory demand. Only then admit a fresh
-pair and the eight-game comparison. ETU-118 retrieval, recursive action-reference
-implementation, and compound-aware PUCT admission remain distinct prerequisites
-for later search cells. No production source was changed during this pilot.
+## October 15 second-pilot protocol
 
-## Resumption and second pilot — preregistered 2026-10-15
-
-Jack Heart reported the computer available again. Continue the stated repair and
-rerun sequence here; preserve the October 14 attempts. The narrow repairs bind
-attacker lowering to the original declaration batch and charge collection time
-even when collection/replay fails. A native regression covers both another actor's
-next declaration and the same actor's next-turn declaration. Before repair it
-reproduced WrongDecision; both boundaries must pass after repair. Replay the
-retained failed root as well as existing regressions. No new game rules or policy
-interface are selected.
-
-New recipes: `experiments/regimes/search-policy-pilot-20261015-{flat,compound}.json`.
-New output root: `.runs/search-policy-pilot-20261015`. Each retains seed 141001,
-four training iterations, single CPU worker/thread, 4 GiB memory rejection
-threshold, 300-second stage / 360-second run watchdog, and last-complete-raw
-selection. Flat now uses 64 transitions **per stream** × four streams = 256
-rows/iteration. Both use four minibatches per epoch. Compound still collects two
-complete games/iteration; its complete-game targets are unchanged. These changes
-are development recipe adjustments, not an isolated representation contrast.
-
-Predict both final raw exports will be produced under the unchanged memory/time
-limits, all eight compound training games will replay, and the two exports will
-complete and replay eight development arena games. Use the same two reserved deal
-seeds and four deck/seat legs as originally specified. The thin
-`experiments/runners/search_policy_pilot.py` driver reads VerifyStore, verifies
-bytes/runtime, records registrations, and calls the existing `play_cell`; it
-introduces no new policy or game execution implementation. Per-game cap remains
-60 seconds / 4,000 Commands; outer evaluation cap 600 seconds. Retain all failures
-and do not run arena unless both training runs complete. No strength prediction.
-
-Total training/evaluation watchdog allowance remains 1,320 seconds for this new
-pair; repairs/builds/tests are preparation, not charged as training. Run debug
-Rust and relevant Python checks before training. No paid resources, learned
-beliefs, ETU-118 substitution, main cohort, or search scale-up is selected here.
+Jack Heart resumed the announced repair/rerun sequence. Preregistration/repair
+commit `2e9faa29` binds the `search-policy-pilot-20261015-{flat,compound}.json`
+recipes and existing-arena driver. Same seed 141001, four iterations each, one
+CPU worker/thread, 4 GiB rejection threshold, stage/run watchdogs 300/360 seconds.
+Flat: four streams × 64 transitions; compound: two complete games/iteration.
+Both: four minibatches, fixed LR/tau, final raw selection. Output root:
+`.runs/search-policy-pilot-20261015`. Eight development games on the original two
+deal seeds × four deck/seat legs, 60 seconds/4,000 Commands each, 600-second outer
+cap; no strength prediction. Total training/evaluation allowance 1,320 seconds.
+Both training exports and all replays must succeed; failures stop scale-up.
+Complete prospective text remains in the archived note cited above.
 
 ## Second pilot result — completed 2026-10-15
 
@@ -271,3 +186,42 @@ it for that comparison. More training on the existing encoding cannot fix this.
 Historical ETU-118 checkpoints need an explicit encoding audit; do not assume a
 new encoder can be applied to their bytes unchanged. No code or artifact bytes
 were changed by this diagnostic.
+
+## w5 declaration repair and preregistered rerun — 2026-10-15
+
+Jack Heart accepted fixing the flat encoder and retraining before comparison.
+The repair adds signed declaration polarity to both Python and native action
+encoders, bumps WORLD_VERSION to w5 and POLICY_INPUT_VERSION to 2, and excludes
+polarity from action-type histograms/references. Old inputs are rejected; no
+historical recipe, artifact or result is migrated. Both families initialize fresh.
+
+Question: does the repaired flat input learn either declaration, and do both
+fresh w5 policies export, reload and complete exactly replayable games? Predict
+both complete under the unchanged second-pilot budgets; no directional win-rate
+prediction. Four-iteration training remains integration calibration, not strength.
+
+Executable recipes: `search-policy-pilot-w5-20261015-{flat,compound}.json` in
+`experiments/regimes`. Same seed 141001, CPU thread/worker 1, 4 GiB threshold,
+300-second stage and 360-second run caps. Flat four streams × 64 transitions,
+compound two complete games per iteration, four iterations/four minibatches each.
+Both use final raw checkpoints. No learned beliefs. Output root is
+`.runs/search-policy-pilot-w5-20261015`, with its own VerifyStore and arena.
+After both succeed, run the existing arena driver on the same two development
+deals × four legs (eight games), 60 seconds/4,000 Commands per game, outer cap
+600 seconds. Training/evaluation total allowance 1,320 seconds. Stop at failure;
+no scale-up or strength inference. Commit this protocol and code before training.
+
+Validation so far: 395 debug Rust tests pass. The first broad Python invocation
+failed collection for missing optional extras/module-name collision; the corrected
+invocation reached 302 passes, 29 failures, one skip and one missing-fixture error
+before its 30-failure cap. Most failures use frozen w4 recipes rejected by the
+new runtime; the frozen capacity architecture also necessarily changes. These
+historical-study test migrations are not a passing full-suite claim. Focused w5
+fixtures cover the changed training/arena path. Existing w4 recipes remain intact.
+
+Focused validation: 160 unique tests now pass (156 initially, four repaired
+fixture failures plus their 15 neighboring tests rerun successfully). Covers both
+encoders, vector buffers, flat/compound learning, checkpoint admission and arena
+replay. Exact old flat pilot bytes reject with incompatible w5 binding. Rust
+formatting, Ruff and diff whitespace checks pass. Full-suite migration remains
+a separate recorded limitation; no historical evidence was rewritten.

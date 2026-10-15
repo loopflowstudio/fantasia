@@ -271,7 +271,7 @@ def update_move_iteration(
                 *actions.shape, 1, observations["actions"].shape[-1]
             ),
         )
-        .squeeze(2)[..., :-1]
+        .squeeze(2)[..., :-2]
         .argmax(-1)
     )
     diagnostics["selection_groups"] = selection_diagnostics(

@@ -55,7 +55,7 @@ class Agent(nn.Module):
         perm_dim = (
             enc.permanent_dim
         )  # fixed: use permanent_dim as defined in ObservationEncoder
-        action_dim = enc.action_dim  # e.g., 6 (5 action types + validity flag)
+        action_dim = enc.action_dim  # type one-hot, declaration polarity, validity
         self.max_focus_objects = enc.max_focus_objects
         embed_dim = hypers.hidden_dim
         self.compound_decoder = (
@@ -72,7 +72,7 @@ class Agent(nn.Module):
         self.player_embedding = ProjectionLayer(player_dim, embed_dim)
         self.card_embedding = ProjectionLayer(card_dim, embed_dim)
         self.perm_embedding = ProjectionLayer(perm_dim, embed_dim)
-        # Use only the first (action_dim - 1) features for actions.
+        # Embed action type and declaration polarity; validity only masks legal rows.
         self.action_embedding = ProjectionLayer(action_dim - 1, embed_dim)
 
         self.logger.info(f"Player embedding: ({player_dim} -> {embed_dim})")
