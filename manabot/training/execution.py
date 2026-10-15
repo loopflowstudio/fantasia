@@ -1146,6 +1146,7 @@ def _execute_regime(
                                 "run_id": run.id,
                                 "stage_id": stage.id,
                                 "weights": "initial_raw",
+                                "value_semantic": "signed_outcome",
                                 "regime_digest": run.regime_digest,
                             },
                         )

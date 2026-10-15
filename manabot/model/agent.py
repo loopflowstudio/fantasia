@@ -6,7 +6,7 @@ Agent.forward preserves the serving policy/value interface. Training uses
 forward_distribution when it needs loss/draw/win logits rather than their mean.
 """
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Literal, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -36,6 +36,13 @@ class Agent(nn.Module):
         super().__init__()
         self.observation_space = observation_space
         self.hypers = hypers
+        # Scalar heads need the checkpoint's training-target declaration. WDL
+        # means and compound prefix critics have architectural signed units.
+        self.value_semantic: Literal["signed_outcome", "win_logit"] | None = (
+            "signed_outcome"
+            if hypers.value_kind == "categorical_wdl" or hypers.compound_decisions
+            else None
+        )
         self.logger = getLogger(__name__)
 
         # Extract dimensions from the observation encoder.
@@ -189,7 +196,10 @@ class Agent(nn.Module):
     def forward(
         self, obs: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Return policy logits [B,A] and acting-viewer signed values [B]."""
+        """Return policy logits [B,A] and acting-viewer critic [B].
+
+        WDL expectations are signed; scalar units follow value_semantic.
+        """
         logits, raw_value = self.forward_distribution(obs)
         if self.hypers.value_kind == "categorical_wdl":
             probabilities = raw_value.softmax(dim=-1)

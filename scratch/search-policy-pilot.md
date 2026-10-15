@@ -1,212 +1,43 @@
-# Search policy calibration — 2026-10-14
+# Policy pilot evidence — archived, Mini baseline pending
 
-Jack Heart accepted compound-policy training and comparison with non-compound
-policies, then requested “lets pursue the experiments.” This supersedes the
-initial research-only execution boundary for this bounded pilot. No paid resources,
-learned beliefs, publication, or changes to existing experiments are selected.
+Full prospective protocols, failures, repairs, receipts, hashes and costs are
+preserved at `a5ba5dbc3895b51683e616d86165ccef61094ce3:scratch/search-policy-pilot.md`.
+All local artifact directories remain intact. No historical result is relabeled.
 
-## Original pilot protocol — archived
+- October 14 w4 attempt (`.runs/search-policy-pilot-20261014`): flat exceeded
+  the 4 GiB watchdog; compound failed lowering an attacker declaration into a
+  later turn. Both failures were retained. No selected checkpoints or arena.
+- October 15 repaired w4 pilot (`.runs/search-policy-pilot-20261015`): both
+  completed; eight-game arena 4–4 and 1,140 Commands replayed cleanly. The flat
+  encoder nevertheless aliased attack/decline, forcing 50/50. This score cannot
+  support a representation comparison. Exact old flat bytes reproduce the tie.
+- Signed w5/input-v2 prototype (`.runs/search-policy-pilot-w5-20261015`): both
+  completed; eight-game arena flat 5–3 and 1,288 Commands replayed cleanly.
+  Superseded when Jack Heart selected stacking on PR288's 1/0 encoding; its
+  checkpoints are rejected by the selected runtime, never silently adapted.
+- Current development pair (`.runs/search-policy-pilot-pr288-20261015`):
+  source `238801b7789571d53d49b763653c0d768892a683`, parent PR288 head
+  `d9bbfe29beac2d23b2f74581f52f203b015a2c59`, w5/input-v1. Flat run
+  `942f1505b7f7467f996674c2491fd964`, compound `8304bed90a1d4f0ea89c8275fa43c55a`.
+  Four iterations each, seed 141001, CPU thread/worker 1, no learned beliefs.
+  Flat: 5.634 wall/5.591 CPU seconds, 746,422,272-byte peak, 1,024 rows/12 games.
+  Compound: 24.690 wall/24.563 CPU seconds, 1,041,448,960-byte peak,
+  1,207 factors/eight games. Final raw exports load successfully.
+  Arena: **4–4**, eight games, 1,328 Commands replayed without mismatch,
+  20.663 seconds. Real attack root yields distinct logits with native/Python
+  parity. This demonstrates plumbing and learnability, not strategic strength.
 
-The complete prospective October 14 protocol is preserved at
-`3235a5ca48640bb98cf45e410b8a4fb4dcca2445:scratch/search-policy-pilot.md`.
-It asked whether fresh flat/compound w4 policies could train, reload and replay
-complete games locally. One seed 141001, four iterations each, CPU thread/worker 1,
-4 GiB cap, 300-second stage/360-second run caps; eight paired development arena
-games on seeds 1910141001/1910141002, 60 seconds/4,000 Commands per game and
-600-second outer evaluation cap. No directional win-rate prediction. The original
-flat recipe requested 256 transitions per stream, causing the memory failure below.
-No historical allocation or result is overwritten by the later corrected protocols.
+The current pair's `training.sqlite`, `arena/`, `flat-declaration-probe.json`
+and `pilot-evidence.json` retain full provenance; manifest SHA-256:
+`9e8b6a85f5f60cb07e2e1c8c5064a91366acd0e155af6dbd5379b254b799e764`.
+Combined validation: 395 debug Rust tests and 193 Python checks passed/one
+skipped. No full-suite green claim. Earlier collection failures and frozen-w4
+fixture failures remain in the archived notes/logs.
 
-## Interpretation and next experiments
-
-The strongest confound is learning semantics: truncated transition PPO and
-complete-game factor PPO differ in sample units, targets, regularization, and
-parameter count. This pilot calibrates two recipes; it cannot isolate compound
-representation. Use measured collection/learning/replay time to size the later
-three-seed-pair comparison before launching it. Do not select seeds from results.
-
-The search sequence remains shared-root KL-only / offer-uniform MMD /
-recursive-uniform MMD, then raw-policy and PUCT game comparisons at measured
-compute. All search uses the physical-compatible deal prior. Recursive reference
-and compound-aware PUCT require their own verified adapters; neither is silently
-replaced by a flat reference/head. This pilot does not assert they are available.
-ETU-118 remains the intended frozen practical benchmark, pending artifact access
-and current-world admission. No ETU-118 win-rate result can come from this pilot.
-
-## October 14 result — stopped at failure gate
-
-Full original protocol and diagnosis are preserved at
-`3235a5ca48640bb98cf45e410b8a4fb4dcca2445:scratch/search-policy-pilot.md`.
-Preregistration was `e256afae`; artifacts remain unchanged in
-`.runs/search-policy-pilot-20261014`, owned by its `training.sqlite`.
-
-| Family | Run ID | Wall s | Completed games | Outcome |
-|---|---|---:|---:|---|
-| Flat | `b1aa85344ba149d39f991d925f89fbd3` | 7.097 | 9 | 4 GiB watchdog; sampled RSS 5,796,560,896 bytes |
-| Compound | `6768f0be670a4c3ab0b3dd1bf8519402` | 9.484 | 3 | WrongDecision during game four |
-
-Neither selected a final checkpoint; no arena ran. Flat collected 256 rows per
-stream, not per batch: four streams gave 1,024 rows. Compound's 79-Command partial
-trace reconstructs an optional sole attacker. Declining advances natively to the
-opponent's next-turn attacker declaration; lowering incorrectly continued by
-prompt kind alone. Selecting the attacker succeeded; both probes preserved root
-state. Failed collection timing was also omitted: 24 tests passed, one timing
-regression failed. These were integration failures, not strength evidence.
-Exact traces, checksums, cost breakdowns and diagnostic outputs remain bound by
-`pilot-evidence.json`, SHA-256
-`d88cf719678e243552eb29d09886b49a578e42a6f66dde9b22c5d09ac6c15e69`.
-No paid resources were used. The next protocol repaired this boundary/timing and
-reduced flat batch demand; no failed attempt was overwritten.
-
-## October 15 second-pilot protocol
-
-Jack Heart resumed the announced repair/rerun sequence. Preregistration/repair
-commit `2e9faa29` binds the `search-policy-pilot-20261015-{flat,compound}.json`
-recipes and existing-arena driver. Same seed 141001, four iterations each, one
-CPU worker/thread, 4 GiB rejection threshold, stage/run watchdogs 300/360 seconds.
-Flat: four streams × 64 transitions; compound: two complete games/iteration.
-Both: four minibatches, fixed LR/tau, final raw selection. Output root:
-`.runs/search-policy-pilot-20261015`. Eight development games on the original two
-deal seeds × four deck/seat legs, 60 seconds/4,000 Commands each, 600-second outer
-cap; no strength prediction. Total training/evaluation allowance 1,320 seconds.
-Both training exports and all replays must succeed; failures stop scale-up.
-Complete prospective text remains in the archived note cited above.
-
-## Second pilot result — completed 2026-10-15
-
-Full receipts, costs, checkpoint digests and validation details are preserved at
-`c407bd6fb6135430bf06039ac9a8d1c2f770070a:scratch/search-policy-pilot.md` and in
-`.runs/search-policy-pilot-20261015`. Source/preregistration: `2e9faa29`.
-Flat run `390e13ae273c45a89ef0f3bbe5b7c788`: 5.470 seconds, 751,255,552-byte peak,
-1,024 rows, nine games. Compound `6035e82ec9f74284aa88120d30f995d7`: 46.593 seconds,
-1,993,441,280-byte peak, 2,050 factors, eight games/1,805 Commands. Both exported
-final raw checkpoints. Arena completed eight games and replayed all 1,140 Commands
-without mismatches in 18.483 seconds; score compound 4, flat 4. This was integration
-and cost evidence only; the attack alias below invalidates fair strength comparison.
-All 394 debug Rust and 57 focused Python tests passed. Evidence manifest SHA-256:
-`56b1cdb8f68070c6610f159a0ceabe4efdaa92f9b5de5fdae8f1f89dc460198d`.
-No historical bytes were overwritten; larger training/search cohorts remain pending.
-
-## Flat attack-action aliasing — confirmed 2026-10-15
-
-Jack Heart raised a reported flat-policy attack/decline bug after the pilot. Code
-inspection confirms that `Observation::for_player` preserves `declared=true/false`,
-but both `manabot/env/observation.py::_encode_actions` and native
-`observation_encoder.rs::encode_actions` omit it. Both choices have the same
-DeclareAttacker type and the same permanent focus. `Agent._gather_informed_actions`
-and the shared per-row policy head therefore assign identical logits, regardless
-of trained weights. The ordinary stochastic flat policy cannot learn an attack
-preference at this binary prompt: it produces 50/50. This is distinct from the
-compound Command-lowering bug repaired above.
-
-A read-only, one-thread, 30-second-capped probe loaded the exact final flat
-checkpoint and replayed the first arena game's prefix. At decision index 20,
-match `search-policy-calibration-20261015:pilot-compound__pilot-flat:1910141001:0`,
-the flat player's raw options have `declared=[true,false]` and focus `[93]` for
-both. Encoded action and focus rows are exactly equal. Both logits are
-`0.0017222746973857284`, yielding probabilities `[0.5,0.5]`.
-
-The compound decoder has separate include/exclude logits and does not share this
-particular alias. The eight-game 4–4 score remains an accurate record of what ran,
-and the integration/replay result stands, but the current flat arm cannot support
-a fair representation/strength comparison. Correct and version the flat input
-contract, add a distinguishing-action regression, and retrain before selecting
-it for that comparison. More training on the existing encoding cannot fix this.
-Historical ETU-118 checkpoints need an explicit encoding audit; do not assume a
-new encoder can be applied to their bytes unchanged. No code or artifact bytes
-were changed by this diagnostic.
-
-## w5 declaration repair and preregistered rerun — 2026-10-15
-
-Jack Heart accepted fixing the flat encoder and retraining before comparison.
-The repair adds signed declaration polarity to both Python and native action
-encoders, bumps WORLD_VERSION to w5 and POLICY_INPUT_VERSION to 2, and excludes
-polarity from action-type histograms/references. Old inputs are rejected; no
-historical recipe, artifact or result is migrated. Both families initialize fresh.
-
-Question: does the repaired flat input learn either declaration, and do both
-fresh w5 policies export, reload and complete exactly replayable games? Predict
-both complete under the unchanged second-pilot budgets; no directional win-rate
-prediction. Four-iteration training remains integration calibration, not strength.
-
-Executable recipes: `search-policy-pilot-w5-20261015-{flat,compound}.json` in
-`experiments/regimes`. Same seed 141001, CPU thread/worker 1, 4 GiB threshold,
-300-second stage and 360-second run caps. Flat four streams × 64 transitions,
-compound two complete games per iteration, four iterations/four minibatches each.
-Both use final raw checkpoints. No learned beliefs. Output root is
-`.runs/search-policy-pilot-w5-20261015`, with its own VerifyStore and arena.
-After both succeed, run the existing arena driver on the same two development
-deals × four legs (eight games), 60 seconds/4,000 Commands per game, outer cap
-600 seconds. Training/evaluation total allowance 1,320 seconds. Stop at failure;
-no scale-up or strength inference. Commit this protocol and code before training.
-
-Validation so far: 395 debug Rust tests pass. The first broad Python invocation
-failed collection for missing optional extras/module-name collision; the corrected
-invocation reached 302 passes, 29 failures, one skip and one missing-fixture error
-before its 30-failure cap. Most failures use frozen w4 recipes rejected by the
-new runtime; the frozen capacity architecture also necessarily changes. These
-historical-study test migrations are not a passing full-suite claim. Focused w5
-fixtures cover the changed training/arena path. Existing w4 recipes remain intact.
-
-Focused validation: 160 unique tests now pass (156 initially, four repaired
-fixture failures plus their 15 neighboring tests rerun successfully). Covers both
-encoders, vector buffers, flat/compound learning, checkpoint admission and arena
-replay. Exact old flat pilot bytes reject with incompatible w5 binding. Rust
-formatting, Ruff and diff whitespace checks pass. Full-suite migration remains
-a separate recorded limitation; no historical evidence was rewritten.
-
-## Signed-input prototype result and PR288 convergence
-
-Source/preregistration `c407bd6fb6135430bf06039ac9a8d1c2f770070a` completed both
-runs: flat `065ad9235b704d23b95d3b2827cc8429` (5.694 s, 751,370,240-byte peak,
-1,024 rows, 12 completed games); compound `ed359da035dc43c791a2bf3030432542`
-(24.711 s, 1,033,453,568-byte peak, 1,207 factors, eight games/998 Commands).
-Arena: flat 5, compound 3; eight games, 1,288 Commands replayed without mismatch,
-19.858 s. No strength inference. The flat retained-root probe has distinct logits
-.0051834933/.0044218530, probabilities .5001904/.4998096, and equal native/Python
-inputs. This confirms the alias is gone, not a strategically learned attack rule.
-All evidence remains under `.runs/search-policy-pilot-w5-20261015`; manifest
-SHA-256: 0b27f63200746093f326ecc40ad1ecf35eb77ccd0d66528321852025566d5838.
-
-Jack Heart then requested checking and stacking on PR288 to avoid merge conflicts.
-PR288 head `d9bbfe29beac2d23b2f74581f52f203b015a2c59` fixes the same defect with a
-1/0 declaration bit and w5/policy-input-v1. Adopt its implementation as the single
-current contract, including offline historical recipe resolution and runtime
-fixture migrations. The signed prototype above used w5/policy-input-v2 and is
-superseded, not relabeled or admitted to the PR288 runtime. Preserve its exact
-source/input identities and all costs. Do not combine its score with later runs.
-
-Prospective convergence rerun: fresh `search-policy-pilot-pr288-{flat,compound}`
-recipes, output `.runs/search-policy-pilot-pr288-20261015`. Same seed, four updates,
-CPU limits, final raw selection, eight development games and replay gates as the
-w5 protocol above: 1,320-second total training/evaluation cap, no learned beliefs
-or strength prediction. Commit the merged implementation and these new recipes
-before training. No duplicate encoder or compatibility adapter remains.
-
-## PR288-based result — current development pair
-
-Task lf-e0e4bd2 now records PR288 as its parent; local ancestry includes exact
-head `d9bbfe29beac2d23b2f74581f52f203b015a2c59`. Merge conflicts use PR288's sole
-1/0 encoder and regression. Its offline historical-recipe resolution is retained;
-our compound declaration-boundary and failed-collection timing repairs remain.
-Source/preregistration: `238801b7789571d53d49b763653c0d768892a683`.
-
-| Family | Run ID | Wall / CPU seconds | Peak RSS bytes | Rows / completed games |
-|---|---|---:|---:|---:|
-| Flat | `942f1505b7f7467f996674c2491fd964` | 5.634 / 5.591 | 746,422,272 | 1,024 / 12 |
-| Compound | `8304bed90a1d4f0ea89c8275fa43c55a` | 24.690 / 24.563 | 1,041,448,960 | 1,207 factors / 8 |
-
-Both final raw checkpoints reload under w5/input-v1. Arena: **4–4**, eight games,
-1,328 Commands replayed, zero mismatches, 20.663 seconds. Total training/arena
-wall time 50.988 seconds. The real flat decision-20 attack root has declaration
-features [1,0], identical focus [99], distinct logits .0047387844/.0042690989 and
-matching Python/native inputs. This is learnability/integration evidence, not
-strength. No learned beliefs; main search/cohort prerequisites remain unchanged.
-
-Evidence root: `.runs/search-policy-pilot-pr288-20261015`; `training.sqlite` owns
-runs, `arena/` retains games/replays, `flat-declaration-probe.json` retains the
-probe, and `pilot-evidence.json` binds all artifact hashes and runtime identities.
-Manifest SHA-256: `9e8b6a85f5f60cb07e2e1c8c5064a91366acd0e155af6dbd5379b254b799e764`.
-Combined validation: 395 debug Rust tests, 193 Python tests passed/one skipped;
-format/lint checks pass. Both prior w4 and signed-input prototype checkpoints
-reject. No full-suite green claim or publication/merge to main was made.
+All pilots were preregistered, CPU-only, one fresh pair at a time, stage/run
+caps 300/360 seconds, 4 GiB threshold, eight paired development games with
+60 seconds/4,000 Commands per game and a 600-second outer cap. No held-out
+strength study, learned belief training or paid resources were selected.
+The three-seed training comparison and MMD/KL/PUCT strength experiments are
+now held for the Mini baseline. Integration fixtures may use these saved
+checkpoints; they do not become the baseline by convenience.

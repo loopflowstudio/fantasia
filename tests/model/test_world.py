@@ -30,6 +30,7 @@ def checkpoint():
     )
     return {
         "model_state_dict": agent.state_dict(),
+        "bc": {"value_semantic": "signed_outcome"},
         "hypers": {
             "agent_hypers": agent.hypers.model_dump(),
             "observation_hypers": space.encoder.hypers.model_dump(),

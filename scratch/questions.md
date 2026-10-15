@@ -7,9 +7,10 @@
 - Retain recursive-aware action uniformity, PUCT/MCTS comparison, compound versus
   flat policies, and **no learned beliefs** as intended later comparisons. Search
   uses the physical-compatible deal prior. Main-cohort compute is unallocated.
-  Candidate independent work: PUCT policy/value compatibility, recursive-reference
+  Jack Heart selected independent work: PUCT policy/value compatibility, recursive-reference
   correctness, and a focused comparison workflow using existing arena/receipts.
-  These are proposals, not a newly selected implementation or training campaign.
+  The active goal is shipping PUCT compatibility first; recursive reference and
+  comparison tooling follow. No training campaign is selected.
 - Completed pilot evidence remains intact in `search-policy-pilot.md`; its 4–4
   development score is integration evidence only.
 - Jack Heart explicitly accepted fixing the flat attack/decline alias and
@@ -20,13 +21,14 @@
   recorded local path. They are w4 and cannot be substituted for fresh w5 controls.
   Artifact access, historical input audit and cross-world interpretation remain
   gaps. No paid resource allocation or learned-belief fitting is selected.
-- Recursive reference implementation and compound-aware PUCT critic/prefix
-  adapters are still prerequisites for those search cells. Same-root selector
+- Recursive reference implementation remains a prerequisite for those search
+  cells. PUCT critic/prefix compatibility is implemented and fixture-verified;
+  publication is selected by the active shipping goal. Same-root selector
   contrasts share one evidence batch; full-game algorithms do not share later
   trajectories. Keep raw, KL-only, offer-uniform MMD and recursive MMD distinct.
 - Shared planning sync is disconnected; cached Task descriptions are historical.
   The manifest's Wave directory is absent. Neither requires auth repair or broader
-  coordination. No additional Task/agent, publication, merge or deployment selected.
+  coordination. No additional Task/agent, merge or deployment selected.
 
 Earlier assumptions, arithmetic-probe limits and all original notes are preserved
 at `3235a5ca48640bb98cf45e410b8a4fb4dcca2445`. No deletion targets beyond replacing

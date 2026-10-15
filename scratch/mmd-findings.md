@@ -33,9 +33,10 @@ prior are different concepts. No learned-belief fitting or comparison is selecte
 PUCT uses adaptive per-world trees, a total traversal budget, and max-visits play
 (tie by Q). Flat MC uses per-action rollouts and Q argmax. They generate different
 evidence from fixed-policy local rollout. Unvisited PUCT Q=.5 is not evidence.
-The current AgentLeafEvaluator sigmoid is incompatible with signed critics;
-compound PUCT also lacks a verified retained-prefix adapter. Both are admission
-gaps. Use measured compute, not equal nominal simulation counts.
+The original AgentLeafEvaluator sigmoid was incompatible with signed critics,
+and compound PUCT lacked a retained-prefix adapter. The compatibility change
+below closes those admission gaps. Use measured compute, not equal nominal
+simulation counts.
 
 ## Selected experiment structure
 
@@ -96,3 +97,46 @@ w5/input-v1 encoder. A fresh flat/compound development pair completed; details
 and superseded prototype identities are in the pilot note. The eight-game 4–4
 result certifies integration only; main strength/search comparisons remain pending. Broader MTG-107 interface redesign, Academy deployment, paid
 compute and unrelated belief/distillation programs remain outside scope.
+
+## Accepted PUCT compatibility implementation — 2026-10-15
+
+Ship current-policy compatibility first. Preserve PUCT's win-score units
+(loss 0/draw .5/win 1): signed critics convert affinely, declared win logits use
+sigmoid, unknown scalar semantics fail admission. Preserve unconstrained scalar
+estimates (no clipping); reject nonfinite values and incomplete legal support.
+Compound roots and child nodes carry the existing original-root cursor and
+conditional projection. Advance it independently in each branch, never through
+the flat head; zero-prefix-support actions cannot be selected. The live player
+retains only the actually chosen prefix and resets at game boundaries.
+
+Delete/replace: unconditional sigmoid interpretation in AgentLeafEvaluator,
+compound fallback through Agent.forward, and unrestricted selection of zero-prior
+choices. Reuse local_compound's projection/lowering and the existing PUCT tree,
+native physical determinization, player factory and arena. No new world/schema,
+new planner, learned belief or strength experiment. Preserve random Teacher-1,
+terminal scoring, actor perspective, seed/budget accounting and exact branch
+mutation. Unit/engine fixtures and a tiny replay smoke (one thread, <120 seconds
+per check, no training) establish compatibility; publication is selected by the
+active goal “ship puct compatibility.” Broader comparison tooling follows this
+unit; Mini baseline remains a prerequisite for scientific comparisons.
+
+Implemented: declared critic units in the ordinary checkpoint loader; affine
+signed-to-win-score conversion; exact retained compound support through branches
+and actual play; explicit current `agent_puct` arena registration, source/byte
+identity checks and game reset. Initial self-play exports now declare their signed
+target. `docs/local-policy-search.md` documents the executable contract and limits.
+No frozen recipe/artifact migration or strength claim.
+
+Validation: affected suites **70 passed / one historical INT-7 failure** in
+36 seconds (`.runs/puct-affected-tests.log`): unchanged `load_shards` requires
+`semantic_cards`, absent from the frozen retained shard. Final focused run
+**25 passed in 7.45 seconds** (`.runs/puct-final-focused.log`), including 15 new
+PUCT cases, existing prefix/parity checks and initial-export metadata regression.
+Four untrained arena fixture games (both families, both seats) completed and
+Command-replayed. Ruff and diff whitespace checks pass. One broader rerun was
+interrupted to select only non-learned compound fixtures; its partial count is
+not an acceptance result. The export regression uses tiny ordinary training
+fixtures; no training variation, learned-belief fit or scientific cohort launched.
+The first new payment assertion exposed a fixture train/eval-mode mismatch
+(1.35e-8 probability drift); setting eval before both projections fixes the test
+without relaxing exact hidden-world invariance. All logs remain in `.runs/`.
