@@ -149,3 +149,38 @@ collection time, and reduce flat batch memory demand. Only then admit a fresh
 pair and the eight-game comparison. ETU-118 retrieval, recursive action-reference
 implementation, and compound-aware PUCT admission remain distinct prerequisites
 for later search cells. No production source was changed during this pilot.
+
+## Resumption and second pilot — preregistered 2026-10-15
+
+Jack Heart reported the computer available again. Continue the stated repair and
+rerun sequence here; preserve the October 14 attempts. The narrow repairs bind
+attacker lowering to the original declaration batch and charge collection time
+even when collection/replay fails. A native regression covers both another actor's
+next declaration and the same actor's next-turn declaration. Before repair it
+reproduced WrongDecision; both boundaries must pass after repair. Replay the
+retained failed root as well as existing regressions. No new game rules or policy
+interface are selected.
+
+New recipes: `experiments/regimes/search-policy-pilot-20261015-{flat,compound}.json`.
+New output root: `.runs/search-policy-pilot-20261015`. Each retains seed 141001,
+four training iterations, single CPU worker/thread, 4 GiB memory rejection
+threshold, 300-second stage / 360-second run watchdog, and last-complete-raw
+selection. Flat now uses 64 transitions **per stream** × four streams = 256
+rows/iteration. Both use four minibatches per epoch. Compound still collects two
+complete games/iteration; its complete-game targets are unchanged. These changes
+are development recipe adjustments, not an isolated representation contrast.
+
+Predict both final raw exports will be produced under the unchanged memory/time
+limits, all eight compound training games will replay, and the two exports will
+complete and replay eight development arena games. Use the same two reserved deal
+seeds and four deck/seat legs as originally specified. The thin
+`experiments/runners/search_policy_pilot.py` driver reads VerifyStore, verifies
+bytes/runtime, records registrations, and calls the existing `play_cell`; it
+introduces no new policy or game execution implementation. Per-game cap remains
+60 seconds / 4,000 Commands; outer evaluation cap 600 seconds. Retain all failures
+and do not run arena unless both training runs complete. No strength prediction.
+
+Total training/evaluation watchdog allowance remains 1,320 seconds for this new
+pair; repairs/builds/tests are preparation, not charged as training. Run debug
+Rust and relevant Python checks before training. No paid resources, learned
+beliefs, ETU-118 substitution, main cohort, or search scale-up is selected here.

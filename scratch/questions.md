@@ -31,6 +31,10 @@
   `scratch/search-policy-pilot.md` for receipts and the exact compound declaration
   boundary reproduction. Its failure gate stopped arena and scale-up. No final
   pilot checkpoints, strength results, or win-rate estimates exist.
+- October 15 resumption assumption: “computer is back” continues the announced
+  repair-and-rerun sequence. Make the bounded correctness/timing repairs and run
+  a newly preregistered pilot with smaller batches; leave the failed attempts
+  unchanged. Main-cohort compute remains unallocated.
 
 ## Pre-execution limit for a mathematical probe
 
