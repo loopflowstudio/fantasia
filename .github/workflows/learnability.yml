@@ -45,8 +45,8 @@ jobs:
           echo "Setup/build: $((SECONDS-started)) seconds" > .runs/learnability/setup.txt
       - name: Native ability resolution (debug)
         run: cargo test --locked --manifest-path managym/Cargo.toml --test rules_tests cr_602_policy_preserves_ability_index_and_resolution
-      - name: Failure reporting and publication contracts
-        run: uv run --no-sync pytest tests/verify/test_learnability.py -q
+      - name: Choice separability and reporting contracts
+        run: uv run --no-sync pytest tests/model/test_choice_separability.py tests/verify/test_learnability.py -q
       - name: Shared model diagnostic
         run: uv run --no-sync python -m manabot.verify.learnability --out .runs/learnability/run
       - name: Preserve failure visibility and summary

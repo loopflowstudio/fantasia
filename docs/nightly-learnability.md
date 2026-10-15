@@ -81,6 +81,47 @@ They are diagnostic artifacts, not playable checkpoints with an invented match
 binding. The separate PPO layer below tests ordinary production checkpoint
 admission and reload.
 
+## Broader choice separability
+
+`tests/model/test_choice_separability.py` probes nearby ways information could
+disappear between native legal offers, both encoders and the ordinary policy.
+The question is whether either preference can be learned; none of these labels
+asserts a strategically correct move. The land/pass case reaches first-turn
+second main with an unused land drop, but passing is also deliberately fitted.
+
+| Choice pair | Information deliberately removed to reproduce a tie |
+|---|---|
+| Land / pass; cast / pass | Action type and object focus |
+| Block / decline | Declaration bit and attacker focus |
+| Block one of two different attackers | Permanent definition identity |
+| Scry keep / bottom; pay kicker / decline | Action type |
+| Target self / opponent | Distinct player focus |
+| Select different revealed cards; discard different cards for Learn | Card definition identity |
+| Tap different creatures for waterbend | Permanent definition identity |
+
+Two shared generic models fit all ten pairs, one for each opposite preference,
+using seed 17, width 32, two attention heads, feed-forward width 64, 180 Adam
+updates and learning rate .003. Both fits use the same fixed native states.
+Each chosen alternative must receive at least .95 probability after weight
+reload. Identical copies of a card share probability and must retain equal
+scores: arbitrary physical IDs are not learning targets. These fixed-state
+reversal fits prove separability, not held-out generalization or PPO learning.
+
+The tests also check native/scalar encoding equality, preservation of every
+offered focus reference, distinct native successor state digests, deterministic
+action selection, zero probability for padding, reversed native offers and
+object-slot permutation. Distinct digests establish different transitions,
+not better outcomes. The targeted ablations are information-loss hypotheses,
+not historical-version qualifications. All twelve tests passed locally in
+3.6 seconds; initial fixture failures and the correction for interchangeable
+card copies are retained in local work notes. No production aliasing defect
+was found in these ten pairs.
+
+These tests run in the existing Linux/macOS integration jobs and in the nightly
+workflow's preflight step. The two small shared fits are additional to the
+three capacity policies and one production PPO control; they do not add a model
+for each assertion or change the frozen qualification receipts.
+
 ## Reward-driven control
 
 `manabot.verify.learning_control` is the single implementation formerly embedded
@@ -144,9 +185,14 @@ credentials or Discord webhook are supplied to GitHub. The workflow also checks
 watchdog failure reporting and mocked publisher receipts before the diagnostic.
 Scheduled execution is
 best effort, not an exact-clock guarantee. Nightly scheduling begins on the default branch; PR checks begin at publication.
-**GitHub CPU runtime has not yet been measured**; the first PR check supplies the
-comparison against the retained local measurement before merge. No remote training is justified by the
-current local cost.
+The first [published-head GitHub run](https://github.com/loopflowstudio/manabot/actions/runs/38773826552)
+at `e94b0e10643d430f88aa2bff3b61beaeef505d49` passed in 122.7 seconds for the
+diagnostic, with 39 seconds of dependency/native setup and 3m17s for the whole
+job. Capacity fits took 7.62/7.66/7.69 seconds; the PPO control took 92.12
+seconds including evaluation. This measurement predates the broader
+separability preflight above. Relevant PR updates and nightly execution are
+both practical at this measured cost; the workflow does not run on every local
+commit or every branch push. No remote training is justified by this cost.
 
 Discord activation still requires a manabot server/channel webhook and the
 choice of a genuinely public evidence location. Nothing has been posted and no
@@ -174,7 +220,7 @@ A confirmed message ID is the publication receipt.
 ## Verification
 
 ```bash
-uv run --no-sync pytest tests/verify/test_learnability.py tests/model/test_attack_choice.py tests/model/test_action_identity.py -q
+uv run --no-sync pytest tests/verify/test_learnability.py tests/model/test_attack_choice.py tests/model/test_action_identity.py tests/model/test_choice_separability.py -q
 cargo test --locked --manifest-path managym/Cargo.toml --test rules_tests cr_602_policy_preserves_ability_index_and_resolution
 ```
 
