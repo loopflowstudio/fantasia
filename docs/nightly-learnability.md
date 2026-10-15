@@ -268,3 +268,11 @@ job. The generated supervised-capacity exploration remains manual. The nightly
 spends its main budget on ordinary learning and independent evaluation. Its
 [protocol and qualification](../experiments/baseline-nightly.md) retains attempts,
 limits and results. No Discord publication or paid compute is configured.
+
+
+The first full qualification completed in 22–23 minutes per seed, with all
+software checks passing. Its combined paired outcome gain was 0 percentage
+points (95% interval −9.4 to +8.3 points): **inconclusive**, so the learning gate
+remains red. This is a measured pipeline, not yet a reliably passing learning
+regression. The qualification record preserves that result and all prior failed
+attempts; no threshold was weakened.

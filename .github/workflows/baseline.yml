@@ -8,9 +8,6 @@ on:
       steps:
         description: Baseline iterations (empty uses the shared recipe default)
         default: ''
-  push:
-    branches:
-      - lf/6700bb9882754317a1ec4bfe0a7f5c53/run-nightly-learnability-regressions-with
 
 permissions:
   contents: read
@@ -21,10 +18,8 @@ concurrency:
 
 jobs:
   sanity:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[baseline-')
     uses: ./.github/workflows/learnability.yml
   train:
-    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[baseline-')
     strategy:
       fail-fast: false
       matrix:
@@ -48,7 +43,7 @@ jobs:
         run: uv run --no-sync pytest tests/training/test_baseline_recipe.py tests/verify/test_learning_regression.py -q
       - name: Ordinary baseline training and frozen evaluation
         env:
-          BASELINE_STEPS: ${{ contains(github.event.head_commit.message, '[baseline-calibration]') && '16' || inputs.steps || '' }}
+          BASELINE_STEPS: ${{ inputs.steps || '' }}
           BASELINE_SEED: ${{ matrix.seed }}
         run: |
           horizon=()

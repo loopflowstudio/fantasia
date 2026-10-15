@@ -1,6 +1,6 @@
 # Ordinary baseline learning regression — 2026-10-15
 
-Status: protocol and implementation, not yet qualified. Jack Heart requested a
+Status: software execution qualified; outcome learning remains inconclusive. Jack Heart requested a
 nightly focused on what ordinary training learns, retaining the existing
 handcrafted capacity checks as sanity tests. Bare `manabot train` remains the
 small smoke run. `manabot train --recipe baseline --steps N` selects the higher
@@ -86,7 +86,7 @@ baseline has a 1,680-second coordinator limit plus a 1,800-second external
 watchdog for its reporting; setup is additional and jobs have a 35-minute cap.
 The cohort uses up to about 90 runner-minutes plus setup/evidence/sanity. The
 nightly cron only becomes active after merge. Remote calibration uses a
-branch/commit-marker trigger that will be removed before final publication.
+temporary branch/commit-marker trigger, removed from the final workflow.
 
 ## Qualification attempts
 
@@ -134,3 +134,68 @@ cheap sanity tests; this adds no training labels or fitting.
   are still running. The 128-update horizon decision was committed at 9ae00d62
   before these scores were read. Queue the first full 128-update cohort with
   unchanged criteria; all attempts remain retained.
+
+
+### Complete 16-update calibration
+
+All three software checks passed in run 38792948721 at 58532d7e. Each exported
+initial, 8-update and 16-update checkpoints and passed the same 96 native states
+across ten choice families. The aggregate learning gate correctly returned
+`inconclusive` (exit 2), so the workflow is red despite successful execution.
+
+| Seed | Initial score / 96 | Final score / 96 | Paired gain | Coordinator seconds |
+|---|---:|---:|---:|---:|
+| 197 | 47 | 50 | +.03125 | 751.11 |
+| 281 | 50 | 49 | −.01042 | 1270.27 |
+| 419 | 49 | 47 | −.02083 | 1208.46 |
+
+Combined gain is 0, with hierarchical 95% interval [−.04167, +.04167].
+This is no evidence of improvement at 16 updates. Frozen-policy movement and
+training exposure did not override that result. Evaluation dominates runtime;
+those measurements include overlapping learning and evaluation and must not be
+summed as sequential wall time.
+
+Full qualification run 38795378947 uses source 49316156 and the previously
+selected 128-update horizon. No acceptance threshold changed after calibration.
+
+
+### Full 128-update result
+
+[Run 38795378947](https://github.com/loopflowstudio/manabot/actions/runs/38795378947)
+at `49316156e9ac47a4dc2b8e2e6baa67526a3c69ef` completed all three training
+and inspection jobs, plus the retained sanity suite. Every learner collected
+32,768 transitions and exported initial/64/128-update checkpoints. Each frozen
+checkpoint passed the same 96 native states across ten families; the largest
+invariance error across the cohort was 2.98e-7 (limit 1e-4). No clean input
+collision was found. These are software and information-preservation checks.
+
+| Seed | Initial score / 96 | Final score / 96 | Paired gain | Coordinator seconds | Learner process seconds |
+|---|---:|---:|---:|---:|---:|
+| 197 | 47 | 45 | −.02083 | 1329.64 | 746.92 |
+| 281 | 50 | 49 | −.01042 | 1397.90 | 760.49 |
+| 419 | 49 | 52 | +.03125 | 1319.58 | 707.90 |
+
+The complete cohort's paired gain is **0**, with hierarchical 95% interval
+**[−.09375, +.08333]**. The evidence job returned `inconclusive` / exit 2;
+GitHub therefore marks the workflow failed. This is not an analysis error or
+an established regression. Only one seed improved at the cost-adjusted horizon;
+the original prediction for 256 updates was not directly tested. No threshold,
+seed selection or checkpoint selection changed to obtain a passing result.
+
+This qualification establishes the run/evaluation path within the elapsed-time
+budget, not reliable learning at that budget. The nightly can measure this
+uncertainty and detect software failures, but cannot yet be described as a
+reliably green learning regression. Repeating it unchanged does not make an
+inconclusive result proof of learning. Further recipe or evaluation-power work
+needs a prospectively declared comparison; it must retain this cohort and must
+not turn arbitrary policy movement into an outcome claim.
+
+The [compact receipt](../docs/evidence/learnability/baseline-qualification.json)
+retains all four remote attempts, source revisions, artifact digests, paired
+outcomes, checkpoint hashes, family changes, exposure and costs. Original
+models/traces/reports are in the linked Actions artifacts (14-day retention;
+aggregate 30 days) and local `.runs/baseline-qualified-{16,128}` directories.
+All compute used standard public GitHub runners; purchased compute was $0.
+The final workflow has only nightly/manual triggers; branch calibration triggers
+were removed. Scheduled execution starts after merge. No automatic merge is
+armed, and Discord activation remains unconfigured.
