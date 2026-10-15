@@ -74,61 +74,18 @@ Complete prospective text remains in the archived note cited above.
 
 ## Second pilot result — completed 2026-10-15
 
-Preregistration and repair commit: `2e9faa29` (full source identity in each run).
-Both runs completed and exported final raw checkpoints. All eight compound
-training games replayed during collection. The paired arena completed all eight
-games and replayed all **1,140 Commands**, with zero recorded integrity or replay
-mismatches. Its development score was **compound 4, flat 4**. Two deals, one
-training seed, four iterations and unequal training costs do not estimate a
-method's strength or establish equivalence.
-
-| Recipe | Run ID | Run wall seconds | Stage CPU seconds | Sampled peak RSS | Final parameters |
-|---|---|---:|---:|---:|---:|
-| Flat | `390e13ae273c45a89ef0f3bbe5b7c788` | 5.470 | 5.430 | 751,255,552 bytes | 138,434 |
-| Compound | `6035e82ec9f74284aa88120d30f995d7` | 46.593 | 46.411 | 1,993,441,280 bytes | 180,422 |
-
-The flat run collected nine completed games, 1,024 learner rows and 1,024 optimizer
-exposures across four iterations (16 minibatch optimizer steps). Collection took
-3.551 seconds and learning 1.389 seconds. The compound run collected eight games,
-1,805 Commands, 2,050 factor rows and 2,050 optimizer exposures. Collection plus
-replay took 9.281 seconds and learning 36.811 seconds. The different work units,
-parameter counts and estimators remain confounds; an update is not a compute unit.
-The full arena driver took 18.483 seconds, including 1.197 seconds for replay.
-Total training-run plus arena wall time was 70.545 seconds, within the allocation.
-
-Final raw checkpoint identities:
-
-- Flat: `flat/fit-raw.pt`, SHA-256
-  `02af43435df44a24de4b301c6a4bed099fc151f452a2c5b47643e71b2b71a40d`.
-- Compound: `compound/fit-raw.pt`, SHA-256
-  `022af12801debb3aedde99f5c89f46b5469e2ebcdc77e04e412b301bce565dc9`.
-
-Paths above are relative to `.runs/search-policy-pilot-20261015`. Its
-`training.sqlite` owns run records; `arena/protocol.json` binds the admitted
-checkpoint players, `arena/rows.json` holds game outcomes, and
-`arena/traces/pilot-compound__pilot-flat.commands.jsonl.gz` retains Commands.
-`pilot-evidence.json` binds the local artifacts and run identities; manifest SHA-256:
+Full receipts, costs, checkpoint digests and validation details are preserved at
+`c407bd6fb6135430bf06039ac9a8d1c2f770070a:scratch/search-policy-pilot.md` and in
+`.runs/search-policy-pilot-20261015`. Source/preregistration: `2e9faa29`.
+Flat run `390e13ae273c45a89ef0f3bbe5b7c788`: 5.470 seconds, 751,255,552-byte peak,
+1,024 rows, nine games. Compound `6035e82ec9f74284aa88120d30f995d7`: 46.593 seconds,
+1,993,441,280-byte peak, 2,050 factors, eight games/1,805 Commands. Both exported
+final raw checkpoints. Arena completed eight games and replayed all 1,140 Commands
+without mismatches in 18.483 seconds; score compound 4, flat 4. This was integration
+and cost evidence only; the attack alias below invalidates fair strength comparison.
+All 394 debug Rust and 57 focused Python tests passed. Evidence manifest SHA-256:
 `56b1cdb8f68070c6610f159a0ceabe4efdaa92f9b5de5fdae8f1f89dc460198d`.
-New engine source SHA-256:
-`5ad56a72608b5679e5da5f178358009d3a84d1cb621ca72b297afd576120df95`.
-No original artifact was rewritten or relabeled under this identity.
-
-Repair validation: the new native regression failed before the repair and passed
-after it, covering both opponent and same-actor later declarations. The three
-original complete game traces replayed (106, 217 and 89 Commands), as did the
-79-Command failed prefix. Both legal root submissions now lower to one Command
-without mutating the root; see `original-reproduction.json`. All **394 debug Rust
-tests** and **57 relevant Python tests** passed. The learned-search test was
-explicitly deselected; no learned belief fitting was run. Ruff and Rust formatting
-checks passed. Failed-collection timing is now included and its existing regression
-passes.
-
-This closes the repaired integration/cost pilot, not the main search experiment.
-The larger paired training comparison still needs a frozen compute allocation and
-recipe. Recursive action-reference and compound-aware PUCT admission, plus exact
-ETU-118 artifact access, remain the recorded prerequisites for their search cells.
-The two new checkpoints are development artifacts and must not be described as
-strength-trained replacements for ETU-118.
+No historical bytes were overwritten; larger training/search cohorts remain pending.
 
 ## Flat attack-action aliasing — confirmed 2026-10-15
 

@@ -78,7 +78,7 @@ def test_ordinary_loader_rejects_incompatible_binding_before_weights(
         elif change == "schema":
             binding["input_schema"]["actions"]["shape"][0] = 32
         elif change == "input_version":
-            binding["policy_input_version"] = 1
+            binding["policy_input_version"] = 2
         elif change == "action_width":
             binding["input_schema"]["actions"]["shape"][1] = 17
         elif change == "pack":
