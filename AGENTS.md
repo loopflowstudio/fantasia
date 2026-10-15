@@ -3,7 +3,8 @@ Never add "Co-Authored by:" tags in commits
 ## Naming
 
 - **Manabot** — the whole project and public brand at `manabot.gg`.
-  The repository is currently `loopflowstudio/fantasia`.
+  The repository is `loopflowstudio/manabot` (renamed at Jack Heart's request
+  on 2026-10-15).
 - **Academy** — the web app players use: the `academy` package, the frontend,
   and their service namespaces. The project website uses Manabot.
 - **manabot** — the bot, and the Python training library/CLI. Indefinite

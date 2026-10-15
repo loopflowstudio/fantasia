@@ -77,8 +77,8 @@ replay, Retry, compare, and Study.
 You need [uv](https://docs.astral.sh/uv/), Node, and a Rust toolchain. Then:
 
 ```bash
-git clone git@github.com:loopflowstudio/fantasia.git
-cd fantasia
+git clone git@github.com:loopflowstudio/manabot.git
+cd manabot
 ./scripts/play
 ```
 
