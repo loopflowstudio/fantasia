@@ -35,6 +35,10 @@
   repair-and-rerun sequence. Make the bounded correctness/timing repairs and run
   a newly preregistered pilot with smaller batches; leave the failed attempts
   unchanged. Main-cohort compute remains unallocated.
+- The October 15 repaired pilot completed: both final raw checkpoints exported,
+  eight paired arena games finished and replayed, with a 4–4 development score.
+  This supersedes the missing-pilot-checkpoint gap for the new attempts only;
+  ETU-118 access and main search/training prerequisites remain unresolved.
 
 ## Pre-execution limit for a mathematical probe
 

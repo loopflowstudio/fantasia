@@ -426,9 +426,11 @@ support validation permits it; it is not an independent magnetic preference.
 
 Execution update: Jack Heart subsequently requested pursuing the experiments.
 The preregistered local training pair and retained failures are documented in
-`scratch/search-policy-pilot.md`. Both runs failed before final checkpoint export;
-no arena/search strength results exist. Research-only statements below record the
-earlier disposition, not a claim that no subsequent training occurred.
+`scratch/search-policy-pilot.md`. The October 14 runs failed before final checkpoint
+export. After declaration-boundary/timing repairs, the October 15 pair completed
+and its eight-game development arena replayed with a 4–4 score. No search-strength
+result exists. Research-only statements below record the earlier disposition,
+not a claim that no subsequent training occurred.
 
 ### Added subgoal: train and compare compound policies
 
