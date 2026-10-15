@@ -10,9 +10,11 @@ Never add "Co-Authored by:" tags in commits
 - **manabot** — the bot, and the Python training library/CLI. Indefinite
   noun: you train *a* manabot.
 - **managym** — the rules environment the agent lives in.
-- **Etude** — the launching and experiment system, built in the private
-  `loopflowstudio/etude` repository. The import name `etude` and the
-  `ETUDE_URL` / `ETUDE_TOKEN_FILE` variables belong to it, never to the app.
+- **Etude** — the separate launching and experiment system. Its public client
+  is `loopflowstudio/etude`; the private research service is
+  `loopflowstudio/etude-studio` (repository split verified 2026-10-15).
+  The import name `etude` and the service integration variables
+  `ETUDE_URL` / `ETUDE_TOKEN_FILE` belong to that system, never to the app.
   Always ASCII (never "Étude").
 
 Jack Heart selected Manabot and `manabot.gg` on 2026-10-14, replacing the

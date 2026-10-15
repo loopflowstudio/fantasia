@@ -205,8 +205,10 @@ contributor conventions are in [AGENTS.md](AGENTS.md).
 - **manabot** — the bot and the Python training library/CLI. Indefinite noun:
   you train *a* manabot.
 - **managym** — the rules environment the agent lives in.
-- **Etude** — the launching and experiment system, built in a separate private
-  repository. Always ASCII (never “Étude”).
+- **Etude** — the separate launching and experiment system. Its public client
+  is [`loopflowstudio/etude`](https://github.com/loopflowstudio/etude); the
+  private research service is `loopflowstudio/etude-studio`. Always ASCII
+  (never “Étude”).
 
 If it faces the player, it is Academy; if it trains or evaluates the agent, it
 is manabot; if it is the world, it is managym. manabot is not a former name to
