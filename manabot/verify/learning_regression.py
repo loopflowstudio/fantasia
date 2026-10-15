@@ -16,6 +16,7 @@ import numpy as np
 from pydantic import Field
 import torch
 
+from manabot.arena.match import selected_decks
 from manabot.arena.models import canonical_sha256, file_sha256
 from manabot.env.observation import ActionEnum
 from manabot.model.world import validate_agent_setup
@@ -26,7 +27,7 @@ from manabot.training.experiment_execution import ExperimentRun
 from manabot.training.models import Strict, TrainingRun, TrainSelfPlay
 from manabot.training.monitor_evaluation import MonitorResult
 from manabot.verify.action_cases import reorder_objects, reorder_offers
-from manabot.verify.choice_corpus import PACK, Case, collect_choices
+from manabot.verify.choice_corpus import PACK, Case, collect_choices, input_collisions
 import managym
 
 Verdict = Literal["learning", "regression", "inconclusive", "error"]
@@ -34,10 +35,10 @@ Verdict = Literal["learning", "regression", "inconclusive", "error"]
 
 class PairedDeal(Strict):
     deal: int
-    initial: float
-    final: float
+    initial: float = Field(ge=0, le=1)
+    final: float = Field(ge=0, le=1)
     # Four seat/deck legs are one block, never four independent samples.
-    legs: list[float]
+    legs: list[float] = Field(min_length=4, max_length=4)
 
 
 class LearningEvidence(Strict):
@@ -367,6 +368,13 @@ def report_baseline(directory: Path) -> BaselineReport:
                 raise ValueError(
                     f"native corpus audit incomplete or failed: {findings}"
                 )
+            collisions = {
+                case.name: input_collisions(case)
+                for case in rows
+                if input_collisions(case)
+            }
+            if collisions:
+                raise ValueError(f"public choices lost in encoded inputs: {collisions}")
             cases.extend(rows)
             corpus_hashes.append(file_sha256(target / "cases.json"))
         report.corpus_sha256 = canonical_sha256(corpus_hashes)
@@ -432,6 +440,19 @@ def report_baseline(directory: Path) -> BaselineReport:
         f"| {ActionEnum(r.action_type).name.lower()} | {r.collected} | {r.retained} |"
         for r in report.exposure
     ]
+    if report.paired:
+        leg_gains = np.asarray([row.legs for row in report.paired]).mean(axis=0)
+        lines += [
+            "",
+            "Paired gain by deck and seat (descriptive):",
+            "",
+            "| Deck | Seat | Gain |",
+            "|---|---:|---:|",
+        ]
+        lines += [
+            f"| {selected_decks(leg)[leg % 2]} | {leg % 2} | {100 * gain:+.1f} pp |"
+            for leg, gain in enumerate(leg_gains)
+        ]
     if report.error:
         lines += ["", report.error]
     (directory / "report.md").write_text("\n".join(lines) + "\n")
@@ -457,6 +478,10 @@ def aggregate_reports(
         errors.append("missing, duplicate or unexpected training seeds")
     if any(report.software != "passed" for report in reports):
         errors.append("a seed has failed or incomplete software/evaluation checks")
+    if any(
+        r.source == "unavailable" or r.corpus_sha256 == "unavailable" for r in reports
+    ):
+        errors.append("missing source or frozen-corpus identity")
     if (
         len(
             {

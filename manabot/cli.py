@@ -41,7 +41,7 @@ def train_command(
         None, min=1, help="Recipe wall-time limit; does not alter learning schedules"
     ),
     regime: Optional[str] = typer.Option(None, help="TrainingRegime JSON file"),
-    seed: Optional[int] = typer.Option(None, help="Regime execution seed"),
+    seed: Optional[int] = typer.Option(None, help="Regime or recipe training seed"),
     out: Optional[str] = typer.Option(None, help="New run directory"),
     resume_from: Optional[str] = typer.Option(
         None, help="Stopped TrainingRun ID in the same store"
@@ -90,7 +90,9 @@ def train_command(
             out=Path(out) if out else None,
             seconds=seconds,
         )
-        typer.echo(f"baseline: {result.status}; report: {result.notebook}")
+        typer.echo(
+            f"baseline: {result.status}; report: {Path(result.notebook).with_name('report.md')}"
+        )
         if result.status != "completed":
             raise typer.Exit(1)
         return

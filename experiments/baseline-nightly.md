@@ -107,3 +107,21 @@ branch/commit-marker trigger that will be removed before final publication.
   native-only local verification collected all 96 states across ten families in
   7.10 seconds, with zero audit findings and no training. Record this prospective
   corpus expansion before the next remote run; it does not change learning gates.
+
+### Prospective nightly horizon after throughput calibration
+
+The first 16-update training receipts measured 100.12, 66.30 and 91.75 seconds
+for seeds 197/281/419 (collection plus learning). Outcome evaluation remains in
+progress in run 38792948721 and no outcome scores have been inspected. At the
+slowest measured pace, 256 updates alone project to 26.7 minutes, leaving too
+little of a 30-minute run for final evaluation. Select **128 updates** for the
+first complete nightly qualification and the recipe's bounded default. Keep
+all learning parameters, horizon mapping, paired deals and acceptance thresholds
+unchanged. This is a cost-driven prospective horizon choice, not selection on
+outcomes. Nightly omits `--steps` unless manually overridden, so it inherits the
+single public recipe default. Longer runs use the same `--steps N` function.
+
+Also reuse the existing all-offer input collision audit in the frozen-policy
+suite. All 96 prospective corpus states had zero clean input collisions in a
+native-only check. The declaration/definition erasure controls remain in the
+cheap sanity tests; this adds no training labels or fitting.

@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       steps:
-        description: Baseline collection/update iterations
-        default: '256'
+        description: Baseline iterations (empty uses the shared recipe default)
+        default: ''
   push:
     branches:
       - lf/6700bb9882754317a1ec4bfe0a7f5c53/run-nightly-learnability-regressions-with
@@ -48,10 +48,12 @@ jobs:
         run: uv run --no-sync pytest tests/training/test_baseline_recipe.py tests/verify/test_learning_regression.py -q
       - name: Ordinary baseline training and frozen evaluation
         env:
-          BASELINE_STEPS: ${{ contains(github.event.head_commit.message, '[baseline-calibration]') && '16' || inputs.steps || '256' }}
+          BASELINE_STEPS: ${{ contains(github.event.head_commit.message, '[baseline-calibration]') && '16' || inputs.steps || '' }}
           BASELINE_SEED: ${{ matrix.seed }}
         run: |
-          timeout --signal=TERM 1800s uv run --no-sync manabot train --recipe baseline --steps "$BASELINE_STEPS" --seed "$BASELINE_SEED" --seconds 1680 --out .runs/baseline
+          horizon=()
+          if [ -n "$BASELINE_STEPS" ]; then horizon=(--steps "$BASELINE_STEPS"); fi
+          timeout --signal=TERM 1800s uv run --no-sync manabot train --recipe baseline "${horizon[@]}" --seed "$BASELINE_SEED" --seconds 1680 --out .runs/baseline
       - name: Summary
         if: always()
         run: |

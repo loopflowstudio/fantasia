@@ -10,19 +10,20 @@ learned encoder or detect public relations missing from the descriptor itself.
 
 import argparse
 from collections import Counter, defaultdict
-from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Literal, cast
+from typing import cast
 
 from pydantic import BaseModel
 import torch
 
-from manabot.env.observation import ACTION_DECLARED_INDEX, PERMANENT_DEFINITION_INDEX
 from manabot.verify.action_cases import encode
+from manabot.verify.choice_corpus import (
+    ActionInput,
+    Mutation as Mutation,
+    action_inputs as _fingerprints,
+)
 import managym
-
-Mutation = Literal["clean", "without_declaration", "without_definition"]
 
 
 class CaseReceipt(BaseModel):
@@ -33,55 +34,6 @@ class CaseReceipt(BaseModel):
     swapped: bool
     trace: list[int]
     digest: str
-
-
-@dataclass(frozen=True)
-class ObjectInput:
-    kind: str
-    role: str
-    features: tuple[float, ...]
-
-
-@dataclass(frozen=True)
-class ActionInput:
-    features: tuple[float, ...]
-    focus: tuple[ObjectInput | None, ...]
-
-
-def _fingerprints(
-    obs: dict[str, torch.Tensor], count: int, mutation: Mutation
-) -> list[ActionInput]:
-    rows: list[ObjectInput] = []
-    for key in (
-        "agent_player",
-        "opponent_player",
-        "agent_cards",
-        "opponent_cards",
-        "agent_permanents",
-        "opponent_permanents",
-    ):
-        role, kind = key.split("_")
-        for slot, tensor in enumerate(obs[key][0]):
-            row: list[float] = tensor.tolist()
-            if kind == "cards":
-                definition = float(
-                    obs["semantic_cards"][0, int(role == "opponent"), slot]
-                )
-                row.append(0.0 if mutation == "without_definition" else definition)
-            elif kind == "permanents" and mutation == "without_definition":
-                row[PERMANENT_DEFINITION_INDEX] = 0.0
-            rows.append(ObjectInput(kind, role, tuple(row)))
-    result: list[ActionInput] = []
-    for index in range(count):
-        action: list[float] = obs["actions"][0, index, :-1].tolist()
-        if mutation == "without_declaration":
-            action[ACTION_DECLARED_INDEX] = 0.0
-        focus = tuple(
-            rows[int(i)] if i >= 0 else None
-            for i in obs["action_focus"][0, index].tolist()
-        )
-        result.append(ActionInput(tuple(action), focus))
-    return result
 
 
 def _replay(case: CaseReceipt, expected: dict[str, torch.Tensor]) -> dict[str, object]:

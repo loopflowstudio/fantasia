@@ -237,7 +237,7 @@ without posting to Discord.
 The longer nightly runs the same public recipe as:
 
 ```sh
-uv run manabot train --recipe baseline --steps 256
+uv run manabot train --recipe baseline
 ```
 
 Bare `uv run manabot train` still selects the tiny local smoke run. A recipe is
@@ -247,7 +247,7 @@ regularization curves are mapped to the requested number of updates. First and
 last rates are stable across horizons; short runs are compressed schedules, not
 prefixes of long runs. Omitted mapping preserves old regimes exactly.
 
-The nightly runs three seeds on separate GitHub CPUs, using ordinary self-play
+The nightly uses the shared recipe default of 128 updates, with three seeds on separate GitHub CPUs and ordinary self-play
 and terminal outcomes. No capacity labels, action bonuses or diagnostic states
 enter training. Initialization and final checkpoints each play the same 24 deals
 in all four seat/deck assignments against random. The learning decision uses

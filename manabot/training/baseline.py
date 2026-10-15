@@ -35,7 +35,7 @@ from manabot.training.monitor_evaluation import MonitorProtocol
 from manabot.verify.learning_regression import report_baseline
 import managym
 
-BASELINE_STEPS = 256
+BASELINE_STEPS = 128
 BASELINE_VERSION = "baseline-v1"
 # Separate from the existing scientific and monitoring cohorts. Repeated nightly
 # use makes these regression/development deals, not a scientific holdout forever.
@@ -90,7 +90,7 @@ def baseline(
     the executor's terminal game outcome. Wall time is only a failure bound.
     """
     schedule = IterationSchedule(steps=steps)
-    allowance = seconds if seconds is not None else max(1800.0, steps * 12.0 + 600)
+    allowance = seconds if seconds is not None else max(1680.0, steps * 8.0 + 600)
     return TrainingRecipe(
         name="baseline",
         version=BASELINE_VERSION,

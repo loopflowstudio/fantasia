@@ -7,7 +7,7 @@ training, and verification. You train *a* manabot; this package is how.
 
 ```bash
 uv run manabot train              # --preset local: bounded laptop run
-uv run manabot train --recipe baseline --steps 256  # ordinary self-play + evaluation
+uv run manabot train --recipe baseline  # ordinary self-play + evaluation
 uv run manabot train --preset simple    # full PPO run (CUDA, W&B)
 uv run manabot sim --preset sim --set sim.hero=attention --set sim.villain=simple
 uv run manabot belief-demo        # engine-derived belief/intervention proof
@@ -28,7 +28,7 @@ Override any hyperparameter with `--set dotted.path=value`; presets live in
 `manabot/config/presets.py`.
 
 `--recipe baseline` selects a complete ordinary training run above the regime
-layer: current-world Allies/Lessons self-play, its horizon-dependent schedule,
+layer: current-world Allies/Lessons self-play (128 updates by default), its horizon-dependent schedule,
 checkpoint exports, and paired outcome evaluation. `--steps N` counts completed
 collection/update iterations (four streams × 64 transitions each), not optimizer
 calls. The same recipe drives the [nightly learning check](../docs/nightly-learnability.md).

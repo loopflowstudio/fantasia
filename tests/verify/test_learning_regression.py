@@ -159,3 +159,31 @@ def test_frozen_policy_checks_use_ordinary_checkpoint_without_training(
             assert family_changes(a, b)[0].mean_absolute_log_odds_change == 0
     finally:
         torch.set_num_threads(previous)
+
+
+def test_complete_cohort_keeps_no_update_inconclusive(tmp_path: Path) -> None:
+    paths = []
+    for seed in (1, 2, 3):
+        report = BaselineReport(
+            seed=seed,
+            regime_digest="a",
+            source="b",
+            corpus_sha256="c",
+            world="w6",
+            steps=256,
+            software="passed",
+            learning=learning_evidence([cohort(0)]),
+            paired=cohort(0),
+        )
+        path = tmp_path / f"{seed}.json"
+        path.write_text(report.model_dump_json())
+        paths.append(path)
+    assert (
+        aggregate_reports(paths, tmp_path / "out", expected_seeds=(1, 2, 3)).verdict
+        == "inconclusive"
+    )
+    paths[-1].unlink()
+    assert (
+        aggregate_reports(paths, tmp_path / "missing", expected_seeds=(1, 2, 3)).verdict
+        == "error"
+    )
