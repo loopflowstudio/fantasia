@@ -59,3 +59,21 @@ uv run experiments/runners/learnability_search.py --out .runs/learnability-searc
 
 The temporary branch-only push trigger requires `[learnability-search]` in the
 commit message. Normal PR updates do not launch another 30-minute experiment.
+
+## Instrument correction, while first run continues
+
+Run 38782530929 at source 6c445836 started the 30-minute search. The live log
+shows completed generic/semantic fits, but immediate configuration errors for
+the attention-disabled arm. Inspection reproduced the validator rejection:
+`attention_feedforward_dim=64` is forbidden when attention is disabled. This is
+a prototype configuration error, not a learned-policy defect. The initial run
+and its errors are retained and continue to supply the other two arms.
+
+Correct the attention-disabled setting to `None` and launch a separate
+300-second supplemental run for that arm alone. Its first rounds reuse the
+same generation/model seeds and fixed update budgets, permitting matched-case
+comparison. It runs concurrently on a second standard GitHub runner ($0),
+without extending the primary 30-minute run or changing its inputs. No rerun
+of successful arms or thresholds is selected. The branch push trigger for this
+revision selects only the supplemental arm; manual dispatch retains explicit
+budget/configuration inputs. Both run receipts will remain in the final report.

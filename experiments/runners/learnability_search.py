@@ -281,7 +281,7 @@ def _spec(arm: Arm) -> AgentSpec:
     return AgentSpec(
         hidden_dim=32,
         num_attention_heads=2,
-        attention_feedforward_dim=64,
+        attention_feedforward_dim=None if arm == "generic_no_attention" else 64,
         attention_on=arm != "generic_no_attention",
         semantic_pack=PACK if arm == "semantic" else None,
     )
@@ -392,7 +392,7 @@ def _fit(
     }
 
 
-def run(out: Path, seconds: float) -> None:
+def run(out: Path, seconds: float, arms: tuple[Arm, ...] = ARMS) -> None:
     out.mkdir(parents=True, exist_ok=False)
     torch.set_num_threads(1)
     started = time.perf_counter()
@@ -413,7 +413,7 @@ def run(out: Path, seconds: float) -> None:
         "updates_per_fit": 240,
         "threshold": 0.95,
         "invariance_tolerance": 1e-4,
-        "arms": ARMS,
+        "arms": arms,
         "rounds": rounds,
         "status": "running",
     }
@@ -433,8 +433,8 @@ def run(out: Path, seconds: float) -> None:
             rounds.append(record)
             _write_json(out / "result.json", result)
             # Rotate starting configuration to balance coverage at the deadline.
-            arms = ARMS[round_index % len(ARMS) :] + ARMS[: round_index % len(ARMS)]
-            for arm in arms:
+            ordered = arms[round_index % len(arms) :] + arms[: round_index % len(arms)]
+            for arm in ordered:
                 for preference in (0, 1):
                     if not cases or time.perf_counter() >= deadline:
                         break
@@ -466,6 +466,7 @@ def run(out: Path, seconds: float) -> None:
                                 "arm": arm,
                                 "preference": preference,
                                 "status": fit["status"],
+                                "error": fit.get("error"),
                                 "fit_misses": sum(
                                     not s["fit_passed"] for s in score_rows
                                 ),
@@ -498,10 +499,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seconds", type=float, default=1800)
+    parser.add_argument("--arms", nargs="+", choices=ARMS, default=list(ARMS))
     args = parser.parse_args()
     if not 0 < args.seconds <= 1800:
         parser.error("seconds must be in (0, 1800]")
-    run(args.out, args.seconds)
+    run(args.out, args.seconds, tuple(arm for arm in ARMS if arm in args.arms))
 
 
 if __name__ == "__main__":

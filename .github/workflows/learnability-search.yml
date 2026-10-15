@@ -2,6 +2,13 @@ name: Learnability exploration
 
 on:
   workflow_dispatch:
+    inputs:
+      seconds:
+        description: Search budget in seconds (up to 1800)
+        default: '1800'
+      arms:
+        description: Space-separated configurations
+        default: 'generic semantic generic_no_attention'
   push:
     branches:
       - 'lf/6700bb9882754317a1ec4bfe0a7f5c53/run-nightly-learnability-regressions-with'
@@ -13,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: learnability-exploration
+  group: learnability-exploration-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -34,8 +41,11 @@ jobs:
         run: |
           uv sync --frozen --extra dev --extra play --no-default-groups --group play-runtime
           uv run --no-sync maturin develop --release --manifest-path managym/Cargo.toml --features python
-      - name: Explore for thirty minutes
-        run: timeout --signal=TERM 1830s uv run --no-sync experiments/runners/learnability_search.py --out .runs/learnability-search --seconds 1800
+      - name: Bounded exploration
+        env:
+          SEARCH_SECONDS: ${{ github.event_name == 'push' && '300' || inputs.seconds }}
+          SEARCH_ARMS: ${{ github.event_name == 'push' && 'generic_no_attention' || inputs.arms }}
+        run: timeout --signal=TERM 1830s uv run --no-sync experiments/runners/learnability_search.py --out .runs/learnability-search --seconds "$SEARCH_SECONDS" --arms $SEARCH_ARMS
       - name: Summary
         if: always()
         run: |
