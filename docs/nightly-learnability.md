@@ -1,0 +1,185 @@
+# Nightly learnability diagnostic
+
+This suite catches action representation regressions with three shared tiny
+CPU policies. It is a capacity diagnostic plus one existing reward-driven
+learning control, not a measure of full-game strength or MTG-118 completion.
+
+```bash
+uv sync --frozen --extra dev --extra play --no-default-groups --group play-runtime
+uv run --no-sync maturin develop --release --manifest-path managym/Cargo.toml --features python
+uv run --no-sync python -m manabot.verify.learnability --out .runs/learnability/nightly-2026-10-15
+# Fast PR subset: same capacity protocol, one seed; explicitly skips PPO.
+uv run --no-sync python -m manabot.verify.learnability --pr --out .runs/learnability/pr-check
+```
+
+Use a new directory for every attempt. Existing output is never overwritten,
+models are never cached, and failed families are never retried automatically.
+The parent watchdog kills the worker process group after 480 seconds and leaves
+`result.json`, `report.md`, and `worker.log`, with a nonzero exit status. Reports
+are checkpointed after each seed; partial results never imply skipped checks
+passed. Native build/setup is measured separately by the workflow. Runtime
+receipts include platform, Torch version, native binary hash, source commit and
+source-content hash, case-input hash, configuration, seeds and artifact hashes.
+Dirty development measurements are identified by their content hash, not claimed
+to be identical to the base commit.
+
+Local qualification on macOS arm64 completed the full suite in **39.6 seconds
+wall / 39.4 seconds CPU**, including 25.9 seconds of production PPO training.
+All 144 per-case scores passed; PPO won 64/64 held-out games versus 41/64 for
+no update. The original qualification's measured diagnostic/test execution was
+about 113 seconds of the 900-second calibration allowance; subsequent compression
+checks added 4.83 seconds of tests and a 4.92-second one-seed run. Native release
+builds were 20.4s (w6), 17.2s (w4), and 15.0s (w5); the focused debug build was 9.9s.
+The [qualification JSON](evidence/learnability/qualification.json) retains failures,
+per-case probabilities, costs and hashes. Its checkpoint paths refer to local
+`.runs/learnability/final/` artifacts; public artifact hosting is still pending.
+
+## Frozen protocol
+
+`Config` in `manabot/verify/learnability/schema.py` owns the nightly limits.
+Every seed (17, 29, 43) trains **one generic model** on all six families at once:
+attack/decline, Healer/Rallier target, gain-life/draw mode, Island/Mountain,
+Learn Lesson identity, and ability selector projection. No semantic-program
+cohort is necessary to isolate these generic-input defects. Existing focused
+semantic target tests remain in `tests/model/test_action_identity.py`.
+
+The model has width 32, two attention heads and feed-forward width 64. Each of
+240 Adam updates (learning rate .003) uses the same 24 fit cases, for 5,760
+supervised sample exposures per seed. No early stopping or model selection.
+All 24 held-out cases are evaluated only after training and weight reload.
+
+Both preferences occur in each family: public life 5/7 selects candidate zero,
+35/33 selects candidate one. Held-out life 6/8 and 34/32, with different native
+shuffle seeds, tests interpolation over changed states. These labels are an
+artificial visible context, **not a claim that low life strategically favors
+attacking or any particular Lesson**. No identical observable state has opposite
+labels. Case creation asserts native/scalar encoding equality.
+Structural tests and nightly scoring share `DecisionCase` and its observation
+transforms in `manabot.verify.action_cases`.
+
+Every preference/variant must reach probability .90; family averages cannot hide
+failure. Each frozen policy also undergoes independently seeded offer shuffling
+and object-slot reversal with correct focus/identity remapping. Their probability
+difference must be at most .0001. Those transformations are invariance checks,
+not held-out states. The no-update control is the same frozen initialization,
+reported alongside trained probabilities. Removing the repaired identity channel
+must reproduce a candidate-logit tie to .0001; its full policy probability is
+reported too (Learn has additional legal choices).
+
+Native branches resolve both selected choices and retain their life, hand and
+permanent outcomes in `cases.json`. Attack reaches combat damage; target branches
+resolve the spell and assert the chosen permanent disappears; modal branches
+check +3 life versus drawing one card. Land and Learn branches retain distinct
+resolved definitions. **Ability rows are synthetic equal-focus projections**;
+the separate debug Rust test
+`cr_602_policy_preserves_ability_index_and_resolution` proves two abilities on
+one source are legal and resolve differently. Python does not expose that Rust
+scenario's definition mutation, so no native Python ability claim is made.
+
+Capacity weights span several setups and intentionally omit semantic programs.
+They are diagnostic artifacts, not playable checkpoints with an invented match
+binding. The separate PPO layer below tests ordinary production checkpoint
+admission and reload.
+
+## Reward-driven control
+
+`manabot.verify.learning_control` is the single implementation formerly embedded
+in `tests/training/test_exploiter_positive_control.py`; that test calls it too.
+It uses the existing `SeatRoutedCollector`, `NetOpponentTrainer` and
+`update_iteration`, with terminal game rewards and no alternative PPO loss.
+
+Seed 197 trains width 8 against a frozen passing opponent in the existing
+Mountain/Gray Ogre toy world: 64 updates × 8 environments × 128 transitions =
+65,536 learner samples. Each update uses four epochs/four minibatches, learning
+rate .01, clip .2, full sample retention, no KL penalty, and the existing default
+critic/gradient clipping settings. A 150-second collection deadline is nested
+inside the overall watchdog. Ordinary world-bound save/reload precedes scoring.
+
+There are 64 evaluation games before training (deal seed 100197), then 64 each
+for the trained/reloaded and no-update policies on the same held-out seed
+200197. Acceptance requires at least .80 wins and at least .20 improvement over
+both controls. This narrow exploitability check proves reward-driven updates
+through the production path; it does not establish general strength. This one
+additional model is justified by the distinct reinforcement-learning claim;
+there is no extra model per capacity assertion.
+
+## Historical qualification
+
+Pinned source archives were compiled into their own native Python extensions
+and imported with their matching Python models. No checkpoint was relabeled.
+The [retained receipts](evidence/learnability/qualification.json) establish:
+
+| World | Exact source | Attack | Other audited pairs |
+|---|---|---|---|
+| w4 | `9576dc40ef486966246e20d9fdf58e5d741f1c40` | forced tie | forced ties |
+| w5 / PR288 | `78bf9429a628d1f4a2a0487199ccce1aa5ac7684` | learns, P=1.0 | forced ties |
+| w6 / PR289 | `3b3e35fde9f7cc7819f391f657f47c7d0aec6576` plus diagnostic source hash | passes | passes |
+
+The historical probe uses one shared generic fit (120 updates, seed 17), with
+initial logit gaps and trained probabilities per family. Old Python bindings
+lack mode/ability selectors and permanent definition identity. The fixture's
+explicit `legacy_selectors` option is only for this pinned qualification; native
+consequence checks belong to w6. Historical ability coverage is projection-only.
+Daily information-removal controls reproduce the tested alias behavior; they are
+**ablations**, not historical training evidence or proof of tensor equivalence
+across every old world state.
+
+To reproduce, export each exact pin with `git archive` into a disposable directory,
+build its own extension there with the pinned Python 3.12 interpreter, and set
+`PYTHONPATH` to that archive when invoking the current
+`manabot/verify/learnability/historical.py` with `--cases` pointing to the current
+`action_cases.py`, `--commit` set to the pin and a fresh `--out` JSON path. Keep
+all Python and maturin commands under `uv run`; do not import an old model with
+the current extension. The receipt records native/probe/case-builder hashes.
+
+## Scheduling and publication
+
+`.github/workflows/learnability.yml` runs the full suite nightly at 09:23 UTC
+and on manual dispatch; relevant PRs run the same full suite. The measured
+local cost does not justify weakening the PR coverage; `--pr` remains available
+for quick local diagnosis. It uses ephemeral
+GitHub-hosted CPU runners, overlap protection, a 15-minute job timeout, a step
+summary, and 30-day evidence artifacts even on failure. No Etude/cloud launcher
+credentials or Discord webhook are supplied to GitHub. The workflow also checks
+watchdog failure reporting and mocked publisher receipts before the diagnostic.
+Scheduled execution is
+best effort, not an exact-clock guarantee. Nightly scheduling begins on the default branch; PR checks begin at publication.
+**GitHub CPU runtime has not yet been measured**; the first PR check supplies the
+comparison against the retained local measurement before merge. No remote training is justified by the
+current local cost.
+
+Discord activation still requires a manabot server/channel webhook and the
+choice of a genuinely public evidence location. Nothing has been posted and no
+public report URL is invented. Keep the webhook in the mini's macOS Keychain as
+service `manabot-nightly-discord`, provisioned through Keychain Access. The local
+publisher accepts a completed report and its actual accessible evidence URL:
+
+```bash
+uv run --no-sync python -m manabot.verify.learnability.publish \
+  .runs/learnability/nightly-2026-10-15/result.json \
+  --state "$HOME/Library/Application Support/manabot-nightly/receipts" \
+  --evidence-url "$MANABOT_REPORT_URL"
+```
+
+A mini-side scheduler can download the completed scheduled Actions artifact and
+invoke that interface, or run the same bounded CLI locally before publication.
+Scheduler installation and destination activation await provisioning; no existing
+mini experiment or launch job is changed. Retain failure reports as well as
+successes. The webhook is read directly from Keychain and never written to a
+receipt or log. A local lock and destination/day receipt suppress duplicate
+messages. A network ambiguity leaves a pending receipt: inspect Discord and
+reconcile it manually before retrying, since Discord has no idempotency key.
+A confirmed message ID is the publication receipt.
+
+## Verification
+
+```bash
+uv run --no-sync pytest tests/verify/test_learnability.py tests/model/test_attack_choice.py tests/model/test_action_identity.py -q
+cargo test --locked --manifest-path managym/Cargo.toml --test rules_tests cr_602_policy_preserves_ability_index_and_resolution
+```
+
+The full diagnostic exercises the extracted production PPO test as part of its
+normal run. Reporting tests exercise actual watchdog termination, immutable
+attempt directories, native consequences, permutation remapping, failed Discord
+payloads, confirmed-message deduplication and ambiguous-delivery suppression
+without posting to Discord.
