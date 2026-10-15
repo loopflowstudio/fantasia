@@ -1,8 +1,6 @@
-name: Nightly learnability
+name: Learnability
 
 on:
-  schedule:
-    - cron: '23 9 * * *'
   workflow_dispatch:
   pull_request:
     paths:
@@ -20,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: learnability-${{ github.event.pull_request.number || 'nightly' }}
+  group: learnability-${{ github.event.pull_request.number || 'manual' }}
   cancel-in-progress: false
 
 jobs:
@@ -46,7 +44,7 @@ jobs:
       - name: Native ability resolution (debug)
         run: cargo test --locked --manifest-path managym/Cargo.toml --test rules_tests cr_602_policy_preserves_ability_index_and_resolution
       - name: Choice separability and reporting contracts
-        run: uv run --no-sync pytest tests/model/test_choice_separability.py tests/verify/test_learnability.py -q
+        run: uv run --no-sync pytest tests/model/test_choice_separability.py tests/verify/test_learnability.py tests/verify/test_learnability_search.py -q
       - name: Shared model diagnostic
         run: uv run --no-sync python -m manabot.verify.learnability --out .runs/learnability/run
       - name: Preserve failure visibility and summary

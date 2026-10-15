@@ -198,7 +198,7 @@ accepts `--matchups mirrors`. This explicitly permits repeating exact checkpoint
 roster decks/sideboards and carries their compiled content pack through replay;
 it is not ordinary training-match admission or evidence of mirror competence.
 
-The [nightly learnability diagnostic](../docs/nightly-learnability.md) trains
+The [learnability diagnostic](../docs/nightly-learnability.md) trains
 three shared tiny generic policies, fans out identity/capacity assertions, and
 checks reward-driven production PPO plus checkpoint reload. Its credential-free
 CPU runner and failure reports are separate from full-game strength evidence.

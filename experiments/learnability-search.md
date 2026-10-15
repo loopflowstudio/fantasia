@@ -1,5 +1,10 @@
 # Broader learnability search — 2026-10-15
 
+**Completed:** the 30-minute primary run and two concurrent follow-ups found no new
+production defect. Closest-pair sampling increased definition-only coverage from
+4 to 93 pairs on the same 352 states. See [results](#results--completed-2026-10-15);
+the preregistered questions and instrument corrections below remain as history.
+
 ## Frozen first-run question
 
 Does a 30-minute CPU exploration expose action information loss or pipeline
@@ -98,3 +103,95 @@ explicitly exploratory condition; do not pool its scores with the primary run.
 Prediction: at least 50% of sampled pairs share a verb and at least 90% of
 completed fit scores exceed .95; any misses require replay/diagnosis.
 This concurrent run stays within the original wall-time window and $0 compute.
+
+## Results — completed 2026-10-15
+
+No new production representation or learning-pipeline defect was found in these
+runs. Every completed fit reached the declared threshold on every selected case,
+and all measured batching, offer/object-order, mask and reload invariants passed.
+This does not certify strategy, generalization, every action pair, or every state.
+Each shared model fits at most 32 fixed states, not the entire accumulated corpus.
+
+| Condition | Search wall time | Completed fits | Distinct states scored | Per-case preference scores |
+|---|---:|---:|---:|---:|
+| [Primary generic + semantic](https://github.com/loopflowstudio/manabot/actions/runs/38782530929) | 1,800.11s | 107 | 864 | 3,424 |
+| [Corrected attention-disabled control](https://github.com/loopflowstudio/manabot/actions/runs/38783322327) | 300.03s | 44 | 704 | 1,408 |
+| [Closest-pair generic + semantic](https://github.com/loopflowstudio/manabot/actions/runs/38784811065) | 600.03s | 43 | 352 | 1,376 |
+
+State sets overlap; do not add the distinct-state column. Each run retained one
+unfinished fit at its deadline, excluded from completed scores. The first run
+also retained 54 immediate configuration rejections for the attention-disabled
+arm. Its feedforward setting was invalid; the supplemental run repaired it,
+and a cheap preflight regression now constructs and scores all three
+configurations. These errors were in the prototype, not the production learner.
+GitHub job success means execution completed, not that every attempted arm passed.
+
+All 6,208 completed per-case scores passed; no initialization score reached .95.
+All runs audited ten native families: priority, attack, block, target, scry,
+look/select, optional payment, Learn, waterbend, and cleanup discard. The primary
+run completed 185 games and capped 31 game prefixes at 1,200 steps. It audited
+30,695 multi-class decisions before sampling the 864 retained states. Modal and
+legend-rule decisions were not observed; the existing modal fixture remains
+necessary. The control's retained boards reached 39 permanents, 73 visible card
+rows (including outside cards), and 18 legal actions; this is still below the
+full representational capacity and does not test every overflow boundary.
+
+### What improved the instrument
+
+On the exact same 352 native states, the original sampler selected only **4**
+definition-only pairs; the closest-pair sampler selected **93**. Their state
+digests and action traces match. The latter selected equal-verb pairs in 227/352
+states (64.5%), satisfying its declared coverage prediction. All its completed
+scores passed; the minimum conditional probability was 0.9999803. This is
+capacity on artificial preferences, not evidence that identity is strategically
+relevant in every pair or that the model will choose well during ordinary play.
+
+An independent post-hoc audit checks every offered action's encoded row and
+focused object inputs, including definition joins, against the raw public
+descriptors. In the primary corpus it found **0 clean input collisions**.
+Erasing attack declaration recreated collisions in **108 states**; erasing
+definition joins recreated collisions in **179 states** (205 collision classes).
+These are controlled ablations, not new bugs, historical runtime executions, or
+a proof that the learned encoder is injective. They demonstrate that the
+retained states expose the information-loss mechanisms behind the previous bugs.
+
+One saved state per observed family was replayed from its native seed and action
+trace. Native state digests and all encoded tensors reproduced exactly, including
+Linux-generated evidence checked on macOS. A separate lightweight ten-state
+replay took 0.303s with no model construction or training.
+
+### Cost, receipts, and disposition
+
+All training ran on standard GitHub-hosted Ubuntu runners in this public
+repository: **$0 purchased compute**, no launcher credentials, and no laptop or
+mini training. The two supplemental runs overlapped the primary, so the remote
+work occupied roughly 31 minutes of elapsed time including primary setup, with
+45 minutes of search CPU allocation plus setup across runners. Actual recorded
+search CPU totals were approximately 44.99 minutes. No existing experiment was
+stopped or changed.
+
+Compact receipts include exact source commits, original result hashes, Actions
+artifact IDs/digests, all configuration errors, per-family counts, representative
+scores, replay checks and collision controls:
+
+- [Primary receipt](../docs/evidence/learnability/search-primary.json)
+- [Corrected control receipt](../docs/evidence/learnability/search-control.json)
+- [Focused receipt](../docs/evidence/learnability/search-focused.json)
+
+Full reports, model weights, traces and tensors are retained in the three Actions
+artifacts for 14 days and locally under `.runs/learnability-search-evidence/`.
+Reproduce the all-offer input audit and one native replay per family with:
+
+```sh
+uv run experiments/runners/learnability_input_audit.py .runs/learnability-search-evidence/primary --replay
+```
+
+The experiment supports spending extra compute on state/choice diversity and
+configuration coverage, not extending already successful fits. Pair selection
+was more consequential than the longer budget: target near-identical choices,
+keep exact replay evidence, and retain the fast fixed regressions. A nightly
+schedule is not selected by this result. The ordinary suite now runs on relevant
+PR updates and manual dispatch; the broader workflow is manual only, with
+explicit configuration, pairing and budget inputs. Temporary branch push
+triggers were removed. Further exploration should target omitted families and
+single-field distinctions before expanding runtime alone.

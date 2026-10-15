@@ -1,4 +1,4 @@
-# Nightly learnability diagnostic
+# Learnability diagnostic
 
 This suite catches action representation regressions with three shared tiny
 CPU policies. It is a capacity diagnostic plus one existing reward-driven
@@ -7,7 +7,7 @@ learning control, not a measure of full-game strength or MTG-118 completion.
 ```bash
 uv sync --frozen --extra dev --extra play --no-default-groups --group play-runtime
 uv run --no-sync maturin develop --release --manifest-path managym/Cargo.toml --features python
-uv run --no-sync python -m manabot.verify.learnability --out .runs/learnability/nightly-2026-10-15
+uv run --no-sync python -m manabot.verify.learnability --out .runs/learnability/check-2026-10-15
 # Fast PR subset: same capacity protocol, one seed; explicitly skips PPO.
 uv run --no-sync python -m manabot.verify.learnability --pr --out .runs/learnability/pr-check
 ```
@@ -36,7 +36,7 @@ per-case probabilities, costs and hashes. Its checkpoint paths refer to local
 
 ## Frozen protocol
 
-`Config` in `manabot/verify/learnability/schema.py` owns the nightly limits.
+`Config` in `manabot/verify/learnability/schema.py` owns the diagnostic limits.
 Every seed (17, 29, 43) trains **one generic model** on all six families at once:
 attack/decline, Healer/Rallier target, gain-life/draw mode, Island/Mountain,
 Learn Lesson identity, and ability selector projection. No semantic-program
@@ -54,7 +54,7 @@ shuffle seeds, tests interpolation over changed states. These labels are an
 artificial visible context, **not a claim that low life strategically favors
 attacking or any particular Lesson**. No identical observable state has opposite
 labels. Case creation asserts native/scalar encoding equality.
-Structural tests and nightly scoring share `DecisionCase` and its observation
+Structural tests and diagnostic scoring share `DecisionCase` and its observation
 transforms in `manabot.verify.action_cases`.
 
 Every preference/variant must reach probability .90; family averages cannot hide
@@ -117,7 +117,7 @@ not historical-version qualifications. All twelve tests passed locally in
 card copies are retained in local work notes. No production aliasing defect
 was found in these ten pairs.
 
-These tests run in the existing Linux/macOS integration jobs and in the nightly
+These tests run in the existing Linux/macOS integration jobs and in the learnability
 workflow's preflight step. The two small shared fits are additional to the
 three capacity policies and one production PPO control; they do not add a model
 for each assertion or change the frozen qualification receipts.
@@ -175,24 +175,26 @@ the current extension. The receipt records native/probe/case-builder hashes.
 
 ## Scheduling and publication
 
-`.github/workflows/learnability.yml` runs the full suite nightly at 09:23 UTC
-and on manual dispatch; relevant PRs run the same full suite. The measured
-local cost does not justify weakening the PR coverage; `--pr` remains available
-for quick local diagnosis. It uses ephemeral
+`.github/workflows/learnability.yml` runs the full suite on relevant PR updates
+and manual dispatch. Its path filter covers manabot, managym, content, relevant
+model/verification tests, dependencies, and the workflow itself. There is no
+nightly schedule. The measured cost supports full PR coverage; `--pr` remains
+available for quick local diagnosis. It uses ephemeral
 GitHub-hosted CPU runners, overlap protection, a 15-minute job timeout, a step
 summary, and 30-day evidence artifacts even on failure. No Etude/cloud launcher
 credentials or Discord webhook are supplied to GitHub. The workflow also checks
 watchdog failure reporting and mocked publisher receipts before the diagnostic.
-Scheduled execution is
-best effort, not an exact-clock guarantee. Nightly scheduling begins on the default branch; PR checks begin at publication.
 The first [published-head GitHub run](https://github.com/loopflowstudio/manabot/actions/runs/38773826552)
 at `e94b0e10643d430f88aa2bff3b61beaeef505d49` passed in 122.7 seconds for the
 diagnostic, with 39 seconds of dependency/native setup and 3m17s for the whole
 job. Capacity fits took 7.62/7.66/7.69 seconds; the PPO control took 92.12
 seconds including evaluation. This measurement predates the broader
-separability preflight above. Relevant PR updates and nightly execution are
-both practical at this measured cost; the workflow does not run on every local
-commit or every branch push. No remote training is justified by this cost.
+separability preflight above. Relevant PR updates are practical at this measured cost; the workflow does not
+run on every local commit or every branch push. Repeating this same short suite
+nightly adds little evidence. The separate [broader search prototype](../experiments/learnability-search.md)
+explores native state diversity and several input configurations on isolated
+GitHub CPU runners; `.github/workflows/learnability-search.yml` is manual only,
+with a maximum 30-minute search budget. It is not a blocking PR gate.
 
 Discord activation still requires a manabot server/channel webhook and the
 choice of a genuinely public evidence location. Nothing has been posted and no
@@ -202,15 +204,15 @@ publisher accepts a completed report and its actual accessible evidence URL:
 
 ```bash
 uv run --no-sync python -m manabot.verify.learnability.publish \
-  .runs/learnability/nightly-2026-10-15/result.json \
+  .runs/learnability/check-2026-10-15/result.json \
   --state "$HOME/Library/Application Support/manabot-nightly/receipts" \
   --evidence-url "$MANABOT_REPORT_URL"
 ```
 
-A mini-side scheduler can download the completed scheduled Actions artifact and
-invoke that interface, or run the same bounded CLI locally before publication.
-Scheduler installation and destination activation await provisioning; no existing
-mini experiment or launch job is changed. Retain failure reports as well as
+A local publisher can download a completed Actions artifact and invoke that
+interface. Destination activation and evidence hosting await provisioning; an
+automatic publication cadence has not been selected. No existing mini
+experiment or launch job is changed. Retain failure reports as well as
 successes. The webhook is read directly from Keychain and never written to a
 receipt or log. A local lock and destination/day receipt suppress duplicate
 messages. A network ambiguity leaves a pending receipt: inspect Discord and
@@ -220,7 +222,7 @@ A confirmed message ID is the publication receipt.
 ## Verification
 
 ```bash
-uv run --no-sync pytest tests/verify/test_learnability.py tests/model/test_attack_choice.py tests/model/test_action_identity.py tests/model/test_choice_separability.py -q
+uv run --no-sync pytest tests/verify/test_learnability.py tests/verify/test_learnability_search.py tests/model/test_attack_choice.py tests/model/test_action_identity.py tests/model/test_choice_separability.py -q
 cargo test --locked --manifest-path managym/Cargo.toml --test rules_tests cr_602_policy_preserves_ability_index_and_resolution
 ```
 
