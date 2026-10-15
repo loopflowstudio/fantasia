@@ -125,3 +125,12 @@ Also reuse the existing all-offer input collision audit in the frozen-policy
 suite. All 96 prospective corpus states had zero clean input collisions in a
 native-only check. The declaration/definition erasure controls remain in the
 cheap sanity tests; this adds no training labels or fitting.
+- Run 38792948721, source 58532d7e: seed 197 completed the 16-update
+  end-to-end qualification. Initial/midpoint/endpoint all passed 96-state
+  invariants across ten families (maximum error 2.54e-7). Its initial/final
+  scores were 47/96 and 50/96; paired gain .03125, interval [0, .0625], correctly
+  `inconclusive`. Coordinator elapsed 751.11s, evaluator charge 745.98s;
+  initial and final evaluations took 372.52s and 368.85s. The other two seeds
+  are still running. The 128-update horizon decision was committed at 9ae00d62
+  before these scores were read. Queue the first full 128-update cohort with
+  unchanged criteria; all attempts remain retained.
