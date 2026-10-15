@@ -1,0 +1,51 @@
+name: Learnability exploration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'lf/6700bb9882754317a1ec4bfe0a7f5c53/run-nightly-learnability-regressions-with'
+    paths:
+      - 'experiments/runners/learnability_search.py'
+      - '.github/workflows/learnability-search.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: learnability-exploration
+  cancel-in-progress: false
+
+jobs:
+  explore:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[learnability-search]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: managym -> target
+      - name: Install CPU runtime
+        run: |
+          uv sync --frozen --extra dev --extra play --no-default-groups --group play-runtime
+          uv run --no-sync maturin develop --release --manifest-path managym/Cargo.toml --features python
+      - name: Explore for thirty minutes
+        run: timeout --signal=TERM 1830s uv run --no-sync experiments/runners/learnability_search.py --out .runs/learnability-search --seconds 1800
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f .runs/learnability-search/report.md ]; then
+            cat .runs/learnability-search/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: learnability-search-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .runs/learnability-search
+          retention-days: 14
+          if-no-files-found: error
