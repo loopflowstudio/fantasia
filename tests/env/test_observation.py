@@ -418,7 +418,7 @@ class TestObservationEncoder:
         encoder = ObservationEncoder(ObservationSpaceHypers(max_actions=2))
         obs = SimpleNamespace(
             action_space=SimpleNamespace(
-                actions=[SimpleNamespace(action_type=i, focus=[], declared=None) for i in range(3)]
+                actions=[SimpleNamespace(action_type=i, focus=[]) for i in range(3)]
             )
         )
         with pytest.raises(ValueError, match="capacity exceeded: actions 3 > 2"):
@@ -443,7 +443,15 @@ class TestObservationEncoder:
         encoder.object_to_index = {1: 0, 2: 1}
         obs = SimpleNamespace(
             action_space=SimpleNamespace(
-                actions=[SimpleNamespace(action_type=0, focus=[1, 2], declared=None)]
+                actions=[
+                    SimpleNamespace(
+                        action_type=0,
+                        focus=[1, 2],
+                        declared=None,
+                        mode_index=None,
+                        ability_index=None,
+                    )
+                ]
             )
         )
         with pytest.raises(ValueError, match="capacity exceeded: action focus"):
