@@ -12,7 +12,8 @@ import socket
 
 from pydantic import Field
 
-from manabot.infra.hypers import AgentSpec, MatchHypers, ObservationSpaceHypers
+from manabot.arena.match import selected_match
+from manabot.infra.hypers import AgentSpec, ObservationSpaceHypers
 from manabot.training.checkpoint_queue import MonitoringBudget
 from manabot.training.experiment_execution import (
     ExperimentRun,
@@ -100,7 +101,7 @@ def baseline(
         regime=TrainingRegime(
             id=BASELINE_VERSION,
             world=managym.WORLD_VERSION,
-            match=MatchHypers.authored(PACK, "ur_lessons", "gw_allies"),
+            match=selected_match(),
             observation=ObservationSpaceHypers(),
             agent=AgentSpec(
                 hidden_dim=64,
@@ -151,7 +152,12 @@ def run_baseline(
             ),
         )
     )
-    result = run_experiment(plan.experiment(seed), hardware, destination)
+    try:
+        result = run_experiment(plan.experiment(seed), hardware, destination)
+    except Exception:
+        if (destination / "experiment.json").exists():
+            report_baseline(destination)
+        raise
     report = report_baseline(destination)
     if report.software != "passed" and result.status == "completed":
         raise RuntimeError(

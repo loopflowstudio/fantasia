@@ -5,10 +5,14 @@ from pathlib import Path
 import pytest
 import torch
 
+from manabot.arena.models import canonical_sha256, file_sha256
 from manabot.env import Match, ObservationSpace
 from manabot.model import Agent
 from manabot.sim.distill import save_bc_checkpoint
+from manabot.sim.teacher1_evidence import runtime_fingerprints
 from manabot.training.baseline import baseline
+from manabot.training.models import TrainingCoordinates, TrainingRun
+from manabot.training.monitor_evaluation import _manifest
 from manabot.verify.action_cases import decision_case
 from manabot.verify.choice_corpus import Case
 from manabot.verify.learning_regression import (
@@ -109,6 +113,31 @@ def test_frozen_policy_checks_use_ordinary_checkpoint_without_training(
                 path,
                 player_configs=Match(plan.regime.match).to_rust(),
             )
+            run = TrainingRun(
+                id="test",
+                regime_digest=canonical_sha256(plan.regime.model_dump()),
+                regime=plan.regime,
+                seed=197,
+                seed_streams={},
+                identities=runtime_fingerprints(
+                    197,
+                    match_hypers=plan.regime.match,
+                    observation_space=ObservationSpace(),
+                ),
+            )
+            admitted = _manifest(
+                run,
+                {
+                    "path": str(path),
+                    "sha256": file_sha256(path),
+                    "bytes": path.stat().st_size,
+                },
+                TrainingCoordinates(
+                    stage_id="self-play", updates=0, training_seconds=0
+                ),
+                plan.evaluation,
+            )
+            assert admitted.expected_games == 96
             fixture = decision_case("attack")
             case = Case(
                 name="attack",

@@ -95,3 +95,15 @@ branch/commit-marker trigger that will be removed before final publication.
   by the existing experiment coordinator's notebook writer. Original artifacts
   are retained. Add the direct runtime dependency and a report-creation preflight;
   retry only after that repaired cause. No learning score exists for this attempt.
+- Run 38792239992, source e1d2bfb1: all three 16-update learners completed,
+  but arena admission rejected the setup identity. The new recipe used default
+  player labels rather than the selected arena's labels; decks/sideboards were
+  identical. Use `selected_match()` as the shared owner and preflight the real
+  monitor manifest with an ordinary checkpoint. Seed 281 recorded 66.30 seconds
+  of collection+learning, 4,096 transitions and 36 completed games. This is
+  throughput evidence only; no outcome comparison was admitted.
+- Frozen probes now use three independently seeded eight-game prefixes (up to
+  96 selected states), scored in batches of at most 32 to bound memory. Cheap
+  native-only local verification collected all 96 states across ten families in
+  7.10 seconds, with zero audit findings and no training. Record this prospective
+  corpus expansion before the next remote run; it does not change learning gates.

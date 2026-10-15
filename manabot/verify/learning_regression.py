@@ -16,10 +16,11 @@ import numpy as np
 from pydantic import Field
 import torch
 
-from manabot.arena.models import file_sha256
+from manabot.arena.models import canonical_sha256, file_sha256
+from manabot.env.observation import ActionEnum
 from manabot.model.world import validate_agent_setup
-from manabot.sim.flat_mc import load_checkpoint_agent
-from manabot.training.checkpoint_queue import checkpoints
+from manabot.sim.flat_mc import ACTION_SPACE_KIND_NAMES, load_checkpoint_agent
+from manabot.training.checkpoint_queue import Attempt, checkpoints
 from manabot.training.execution import atomic_json
 from manabot.training.experiment_execution import ExperimentRun
 from manabot.training.models import Strict, TrainingRun, TrainSelfPlay
@@ -122,6 +123,21 @@ class PolicySnapshot(Strict):
 @torch.no_grad()
 def inspect_policy(path: Path, cases: list[Case], updates: int) -> PolicySnapshot:
     """Use the ordinary world-bound loader and exact setup; never refit weights."""
+    if not cases:
+        raise ValueError("empty frozen choice corpus")
+    if len(cases) > 32:
+        chunks = [
+            inspect_policy(path, cases[i : i + 32], updates)
+            for i in range(0, len(cases), 32)
+        ]
+        return PolicySnapshot(
+            updates=updates,
+            checkpoint_sha256=chunks[0].checkpoint_sha256,
+            choices=[choice for chunk in chunks for choice in chunk.choices],
+            maximum_invariance_error=max(
+                chunk.maximum_invariance_error for chunk in chunks
+            ),
+        )
     agent, _ = load_checkpoint_agent(str(path))
     configs = [
         managym.authored_deck_setup(PACK, key) for key in ("ur_lessons", "gw_allies")
@@ -289,16 +305,21 @@ def report_baseline(directory: Path) -> BaselineReport:
         learning=learning_evidence([]),
     )
     try:
-        if experiment.status != "completed" or attempt.status != "completed":
-            raise ValueError(
-                f"experiment incomplete: {experiment.error or attempt.error}"
-            )
         run = TrainingRun.model_validate_json(
             (Path(attempt.path) / "run.json").read_text()
         )
         report.regime_digest = run.regime_digest
         report.steps = run.updates_through(run.stages[-1].id)
         report.source = experiment.runtime["source"]
+        if experiment.status != "completed" or attempt.status != "completed":
+            evaluations = [
+                Attempt.model_validate_json(path.read_text())
+                for path in (directory / "monitoring").glob("attempt-*/attempt.json")
+            ]
+            reasons = [item.error for item in evaluations if item.status != "completed"]
+            raise ValueError(
+                f"experiment incomplete: {experiment.error or attempt.error or reasons}"
+            )
         (declared,) = run.regime.stages
         if (
             run.status != "completed"
@@ -334,12 +355,21 @@ def report_baseline(directory: Path) -> BaselineReport:
             )
         report.paired = _paired(initial, final)
         report.learning = learning_evidence([report.paired])
-        cases, _, findings = collect_choices(
-            directory / "choices", 4000, time.perf_counter() + 60, closest=True
-        )
-        if findings or not cases:
-            raise ValueError(f"native corpus audit failed: {findings}")
-        report.corpus_sha256 = file_sha256(directory / "choices" / "cases.json")
+        cases: list[Case] = []
+        corpus_hashes: list[str] = []
+        deadline = time.perf_counter() + 60
+        for round_index in range(3):
+            target = directory / "choices" / str(round_index)
+            rows, _, findings = collect_choices(
+                target, 4000 + round_index, deadline, closest=True
+            )
+            if findings or not rows or time.perf_counter() >= deadline:
+                raise ValueError(
+                    f"native corpus audit incomplete or failed: {findings}"
+                )
+            cases.extend(rows)
+            corpus_hashes.append(file_sha256(target / "cases.json"))
+        report.corpus_sha256 = canonical_sha256(corpus_hashes)
         with torch.random.fork_rng():
             for checkpoint in exported:
                 if (
@@ -388,7 +418,7 @@ def report_baseline(directory: Path) -> BaselineReport:
         "|---|---:|---:|---:|",
     ]
     lines += [
-        f"| {r.family} | {r.cases} | {r.mean_absolute_log_odds_change:.5f} | {r.std_log_odds_change:.5f} |"
+        f"| {ACTION_SPACE_KIND_NAMES[r.family]} | {r.cases} | {r.mean_absolute_log_odds_change:.5f} | {r.std_log_odds_change:.5f} |"
         for r in report.families
     ]
     lines += [
@@ -399,7 +429,8 @@ def report_baseline(directory: Path) -> BaselineReport:
         "|---|---:|---:|",
     ]
     lines += [
-        f"| {r.action_type} | {r.collected} | {r.retained} |" for r in report.exposure
+        f"| {ActionEnum(r.action_type).name.lower()} | {r.collected} | {r.retained} |"
+        for r in report.exposure
     ]
     if report.error:
         lines += ["", report.error]
