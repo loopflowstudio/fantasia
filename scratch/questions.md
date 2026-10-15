@@ -1,13 +1,17 @@
 # Live experiment decisions and gaps
 
-- Jack Heart selected recursive-aware action uniformity, PUCT/MCTS comparison,
-  compound versus non-compound training, and **no learned beliefs**. Every search
-  arm uses the physical-compatible deal prior. This is separate from MMD's action
-  reference. Main-cohort compute remains unallocated.
-- The initially research-only instruction was superseded by “lets pursue the
-  experiments,” followed by “computer is back” for the repair/rerun sequence.
-  October 14 failures and October 15 successful integration pilot remain intact.
-  The 4–4 development score is not strength evidence. See `search-policy-pilot.md`.
+- Jack Heart now wants the new baseline work on the Mini completed before
+  further experimental variations. Hold new training variants, tuning sweeps and
+  strength comparisons. Exact baseline Task/artifact identities are not supplied;
+  do not infer them or replace that work with this pilot.
+- Retain recursive-aware action uniformity, PUCT/MCTS comparison, compound versus
+  flat policies, and **no learned beliefs** as intended later comparisons. Search
+  uses the physical-compatible deal prior. Main-cohort compute is unallocated.
+  Candidate independent work: PUCT policy/value compatibility, recursive-reference
+  correctness, and a focused comparison workflow using existing arena/receipts.
+  These are proposals, not a newly selected implementation or training campaign.
+- Completed pilot evidence remains intact in `search-policy-pilot.md`; its 4–4
+  development score is integration evidence only.
 - Jack Heart explicitly accepted fixing the flat attack/decline alias and
   retraining. The signed w5/input-v2 prototype completed. Jack Heart then selected
   stacking on PR288: adopt its w5/input-v1 1/0 declaration contract and rebuild

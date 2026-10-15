@@ -39,11 +39,12 @@ gaps. Use measured compute, not equal nominal simulation counts.
 
 ## Selected experiment structure
 
-1. Train/calibrate a fresh flat/compound pair, then freeze a main three-seed-pair
-   recipe and compute allowance. Same encoder/world/decks/reward and actual compute;
-   factor versus transition credit, regularization and parameter counts remain
-   confounds. Existing compound PPO versus ETU-118 Ataraxos cannot isolate action
-   representation. Preserve all attempts; final raw cutoff, not best seed/checkpoint.
+1. **Hold for the Mini baseline** (Jack Heart's latest direction). The fresh
+   flat/compound pair only calibrates integration. Freeze the new baseline's exact
+   checkpoint, recipe, world/input and evaluation evidence before variations.
+   The earlier three-seed-pair training comparison is deferred; compute remains
+   unallocated. Different credit units, estimators, regularization and parameter
+   counts still prevent attributing a recipe contrast solely to representation.
 2. On identical retained root evidence compare raw, KL-only, offer-uniform MMD,
    recursive-uniform MMD, and Q-argmax diagnostic. Current MMD identity is a wiring
    control. Proposed development: 64 roots, 8-world batches with 1/2/4/8 prefixes,
