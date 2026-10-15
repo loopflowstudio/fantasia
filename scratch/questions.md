@@ -27,6 +27,10 @@
   development arena, with no paid resources or learned beliefs. Existing ETU-118
   artifacts are not at `/Users/jack/src/etude/.runs/etu118-mini-20261007-1` on this
   host; do not substitute fresh checkpoints for that frozen benchmark.
+- The bounded pair has now executed and both attempts failed. See
+  `scratch/search-policy-pilot.md` for receipts and the exact compound declaration
+  boundary reproduction. Its failure gate stopped arena and scale-up. No final
+  pilot checkpoints, strength results, or win-rate estimates exist.
 
 ## Pre-execution limit for a mathematical probe
 

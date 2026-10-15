@@ -424,6 +424,12 @@ support validation permits it; it is not an independent magnetic preference.
 
 ## Review disposition
 
+Execution update: Jack Heart subsequently requested pursuing the experiments.
+The preregistered local training pair and retained failures are documented in
+`scratch/search-policy-pilot.md`. Both runs failed before final checkpoint export;
+no arena/search strength results exist. Research-only statements below record the
+earlier disposition, not a claim that no subsequent training occurred.
+
 ### Added subgoal: train and compare compound policies
 
 Jack Heart subsequently selected training compound policies as a subgoal and
