@@ -182,3 +182,31 @@ CPU limits, final raw selection, eight development games and replay gates as the
 w5 protocol above: 1,320-second total training/evaluation cap, no learned beliefs
 or strength prediction. Commit the merged implementation and these new recipes
 before training. No duplicate encoder or compatibility adapter remains.
+
+## PR288-based result — current development pair
+
+Task lf-e0e4bd2 now records PR288 as its parent; local ancestry includes exact
+head `d9bbfe29beac2d23b2f74581f52f203b015a2c59`. Merge conflicts use PR288's sole
+1/0 encoder and regression. Its offline historical-recipe resolution is retained;
+our compound declaration-boundary and failed-collection timing repairs remain.
+Source/preregistration: `238801b7789571d53d49b763653c0d768892a683`.
+
+| Family | Run ID | Wall / CPU seconds | Peak RSS bytes | Rows / completed games |
+|---|---|---:|---:|---:|
+| Flat | `942f1505b7f7467f996674c2491fd964` | 5.634 / 5.591 | 746,422,272 | 1,024 / 12 |
+| Compound | `8304bed90a1d4f0ea89c8275fa43c55a` | 24.690 / 24.563 | 1,041,448,960 | 1,207 factors / 8 |
+
+Both final raw checkpoints reload under w5/input-v1. Arena: **4–4**, eight games,
+1,328 Commands replayed, zero mismatches, 20.663 seconds. Total training/arena
+wall time 50.988 seconds. The real flat decision-20 attack root has declaration
+features [1,0], identical focus [99], distinct logits .0047387844/.0042690989 and
+matching Python/native inputs. This is learnability/integration evidence, not
+strength. No learned beliefs; main search/cohort prerequisites remain unchanged.
+
+Evidence root: `.runs/search-policy-pilot-pr288-20261015`; `training.sqlite` owns
+runs, `arena/` retains games/replays, `flat-declaration-probe.json` retains the
+probe, and `pilot-evidence.json` binds all artifact hashes and runtime identities.
+Manifest SHA-256: `9e8b6a85f5f60cb07e2e1c8c5064a91366acd0e155af6dbd5379b254b799e764`.
+Combined validation: 395 debug Rust tests, 193 Python tests passed/one skipped;
+format/lint checks pass. Both prior w4 and signed-input prototype checkpoints
+reject. No full-suite green claim or publication/merge to main was made.

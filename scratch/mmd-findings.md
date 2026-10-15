@@ -90,7 +90,8 @@ The proposed ETU-118 final raw seeds 11851–11853 (pilot 11851) were never load
 recorded local bytes are absent. Do not substitute development checkpoints or
 assume w4 files admit under a repaired input contract. The October 15 pilot
 confirmed a flat encoder bug forcing attack/decline to 50/50; Jack Heart selected
-its repair and retraining. The 4–4 development arena remains integration evidence,
-not a fair strength comparison. World/input migration and retraining now precede
-main comparisons. Broader MTG-107 interface redesign, Academy deployment, paid
+its repair and retraining. The Task is now stacked on PR288 and its shared
+w5/input-v1 encoder. A fresh flat/compound development pair completed; details
+and superseded prototype identities are in the pilot note. The eight-game 4–4
+result certifies integration only; main strength/search comparisons remain pending. Broader MTG-107 interface redesign, Academy deployment, paid
 compute and unrelated belief/distillation programs remain outside scope.
