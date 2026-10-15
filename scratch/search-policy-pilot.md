@@ -5,45 +5,17 @@ policies, then requested “lets pursue the experiments.” This supersedes the
 initial research-only execution boundary for this bounded pilot. No paid resources,
 learned beliefs, publication, or changes to existing experiments are selected.
 
-## Preregistered question and decision
+## Original pilot protocol — archived
 
-Can both existing training paths produce reloadable w4 policies, and can the
-ordinary arena compare them through complete, exactly replayable games at local
-CPU cost? This is a cost/integration pilot, not a representation or strength test.
-
-Predict: both runs complete four optimizer iterations within 300 seconds each;
-the compound run completes and replays all eight collected games; both exported
-policies complete and replay all eight development arena games without an illegal
-action or boundary failure. There is no directional win-rate prediction at this
-training scale. A failed run or game prevents scale-up; preserve its artifacts.
-
-## Frozen small allocation
-
-- One sequential pair, seed 141001 for both, separate fresh initializations.
-  `experiments/regimes/search-policy-pilot-flat.json` and
-  `experiments/regimes/search-policy-pilot-compound.json` are the
-  executable TrainingRegimes. One CPU worker/thread, 4 GiB process cap, 300-second
-  stage watchdog and 360-second run cap each. No GPU or external service.
-- Same w4 curated main decks/sideboards, observation limits, 64-dimensional
-  semantic encoder, PPO, constant LR .00025 and tau .01, gamma/lambdas 1,
-  one epoch, one minibatch, no filtering or EMA, final raw checkpoint only.
-- Flat: four updates of 256 transitions over four streams. Compound: four
-  updates of two complete games, sequential factor credit, terminal-outcome
-  estimator, 4,000 Commands/game maximum. Same update count is a calibration
-  convenience, **not matched compute** or matched target semantics.
-- If both runs complete, compare compound versus flat with the existing arena
-  `play_cell`, stochastic checkpoint players, deal seeds 1910141001 and
-  1910141002, four deck/seat legs each. Eight development games, 60 seconds/game,
-  4,000 Commands/game, replay every game. Outer evaluation cap 600 seconds.
-- Training plus evaluation caps total 1,320 seconds; allow at most another
-  300 seconds for relevant existing tests. Native build is preparation and
-  measured separately. Stop on caps; no automatic longer retries.
-
-Use existing `execute_regime`/VerifyStore and arena instruments. Save training
-runs in `.runs/search-policy-pilot-20261014/{flat,compound}`, store in its
-`training.sqlite`, and arena evidence in its `arena` subdirectory. Keep the
-recipes and this protocol in git before training. Preserve source, native,
-world, input, checkpoint, seed and parameter-count identities in run receipts.
+The complete prospective October 14 protocol is preserved at
+`3235a5ca48640bb98cf45e410b8a4fb4dcca2445:scratch/search-policy-pilot.md`.
+It asked whether fresh flat/compound w4 policies could train, reload and replay
+complete games locally. One seed 141001, four iterations each, CPU thread/worker 1,
+4 GiB cap, 300-second stage/360-second run caps; eight paired development arena
+games on seeds 1910141001/1910141002, 60 seconds/4,000 Commands per game and
+600-second outer evaluation cap. No directional win-rate prediction. The original
+flat recipe requested 256 transitions per stream, causing the memory failure below.
+No historical allocation or result is overwritten by the later corrected protocols.
 
 ## Interpretation and next experiments
 
@@ -225,3 +197,31 @@ encoders, vector buffers, flat/compound learning, checkpoint admission and arena
 replay. Exact old flat pilot bytes reject with incompatible w5 binding. Rust
 formatting, Ruff and diff whitespace checks pass. Full-suite migration remains
 a separate recorded limitation; no historical evidence was rewritten.
+
+## Signed-input prototype result and PR288 convergence
+
+Source/preregistration `c407bd6fb6135430bf06039ac9a8d1c2f770070a` completed both
+runs: flat `065ad9235b704d23b95d3b2827cc8429` (5.694 s, 751,370,240-byte peak,
+1,024 rows, 12 completed games); compound `ed359da035dc43c791a2bf3030432542`
+(24.711 s, 1,033,453,568-byte peak, 1,207 factors, eight games/998 Commands).
+Arena: flat 5, compound 3; eight games, 1,288 Commands replayed without mismatch,
+19.858 s. No strength inference. The flat retained-root probe has distinct logits
+.0051834933/.0044218530, probabilities .5001904/.4998096, and equal native/Python
+inputs. This confirms the alias is gone, not a strategically learned attack rule.
+All evidence remains under `.runs/search-policy-pilot-w5-20261015`; manifest
+SHA-256: 0b27f63200746093f326ecc40ad1ecf35eb77ccd0d66528321852025566d5838.
+
+Jack Heart then requested checking and stacking on PR288 to avoid merge conflicts.
+PR288 head `d9bbfe29beac2d23b2f74581f52f203b015a2c59` fixes the same defect with a
+1/0 declaration bit and w5/policy-input-v1. Adopt its implementation as the single
+current contract, including offline historical recipe resolution and runtime
+fixture migrations. The signed prototype above used w5/policy-input-v2 and is
+superseded, not relabeled or admitted to the PR288 runtime. Preserve its exact
+source/input identities and all costs. Do not combine its score with later runs.
+
+Prospective convergence rerun: fresh `search-policy-pilot-pr288-{flat,compound}`
+recipes, output `.runs/search-policy-pilot-pr288-20261015`. Same seed, four updates,
+CPU limits, final raw selection, eight development games and replay gates as the
+w5 protocol above: 1,320-second total training/evaluation cap, no learned beliefs
+or strength prediction. Commit the merged implementation and these new recipes
+before training. No duplicate encoder or compatibility adapter remains.

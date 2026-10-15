@@ -9,9 +9,9 @@
   October 14 failures and October 15 successful integration pilot remain intact.
   The 4–4 development score is not strength evidence. See `search-policy-pilot.md`.
 - Jack Heart explicitly accepted fixing the flat attack/decline alias and
-  retraining. New input contract: w5/policy-input v2, signed declaration feature
-  before validity, shared Python/native encoding. Both pilot families are rebuilt
-  from scratch. Old w4 checkpoints/shards are rejected, never silently migrated.
+  retraining. The signed w5/input-v2 prototype completed. Jack Heart then selected
+  stacking on PR288: adopt its w5/input-v1 1/0 declaration contract and rebuild
+  both families fresh; preserve the prototype as superseded evidence. Old w4 checkpoints/shards are rejected, never silently migrated.
 - Proposed ETU-118 raw final seeds 11851–11853 (pilot 11851) are unavailable at the
   recorded local path. They are w4 and cannot be substituted for fresh w5 controls.
   Artifact access, historical input audit and cross-world interpretation remain
