@@ -77,3 +77,24 @@ without extending the primary 30-minute run or changing its inputs. No rerun
 of successful arms or thresholds is selected. The branch push trigger for this
 revision selects only the supplemental arm; manual dispatch retains explicit
 budget/configuration inputs. Both run receipts will remain in the final report.
+
+## Focused pair selection — declared before the supplemental run
+
+The completed 300-second correction run retained 736 states (704 scored),
+with no native audit or completed-fit failures. Post-hoc input analysis found
+that erasing declaration creates exact input collisions in 92 retained states;
+erasing definition joins creates them in 152. Clean inputs had none under this
+fingerprint. These are ablations, not historical runtimes or newly found bugs.
+Only 11 of the originally selected pairs isolate definition identity alone;
+the extreme-class sampler often chooses an easier verb distinction instead.
+
+While the unchanged primary run finishes, launch one additional 600-second
+standard-hosted CPU search with generic and semantic attention configurations.
+Keep generation seeds, budgets, thresholds and retention unchanged; change only
+pair selection to prefer equal verbs and then the fewest differing public
+fields. Definition keys count as categorical differences, not numeric distance.
+Lexicographic order resolves ties and preference direction. This is a new,
+explicitly exploratory condition; do not pool its scores with the primary run.
+Prediction: at least 50% of sampled pairs share a verb and at least 90% of
+completed fit scores exceed .95; any misses require replay/diagnosis.
+This concurrent run stays within the original wall-time window and $0 compute.

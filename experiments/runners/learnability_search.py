@@ -10,6 +10,7 @@ import argparse
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 import hashlib
+from itertools import combinations, zip_longest
 import json
 from pathlib import Path
 import random
@@ -137,8 +138,29 @@ def _write_json(path: Path, value: object) -> None:
     temporary.replace(path)
 
 
+def _flatten(value: object) -> list[str]:
+    if isinstance(value, list):
+        return [part for item in value for part in _flatten(item)]
+    return [repr(value)]
+
+
+def _pair(groups: dict[str, list[int]], closest: bool) -> tuple[list[int], list[int]]:
+    keys = sorted(groups)
+    if not closest:
+        return groups[keys[0]], groups[keys[-1]]
+
+    def distance(pair: tuple[str, str]) -> tuple[bool, int]:
+        left, right = (_flatten(json.loads(key)) for key in pair)
+        # Prefer the same verb, then the fewest differing public fields.
+        # Registry keys are categorical identities, never a numeric distance.
+        return left[0] != right[0], sum(a != b for a, b in zip_longest(left, right))
+
+    left, right = min(combinations(keys, 2), key=distance)
+    return groups[left], groups[right]
+
+
 def _collect(
-    out: Path, round_index: int, deadline: float
+    out: Path, round_index: int, deadline: float, closest: bool = False
 ) -> tuple[list[Case], Counter[str], list[dict[str, object]]]:
     rng = random.Random(50_000 + round_index)
     buckets: dict[int, list[Case]] = defaultdict(list)
@@ -198,8 +220,7 @@ def _collect(
                                 reversed_obs[key], expected[key], rtol=0, atol=0
                             )
                         counts[f"audited_family_{family}"] += 1
-                        keys = sorted(groups)
-                        selected = (groups[keys[0]], groups[keys[-1]])
+                        selected = _pair(groups, closest)
                         # Reservoir sampling within each family avoids priority dominance.
                         seen = counts[f"audited_family_{family}"]
                         slot = rng.randrange(seen)
@@ -392,7 +413,9 @@ def _fit(
     }
 
 
-def run(out: Path, seconds: float, arms: tuple[Arm, ...] = ARMS) -> None:
+def run(
+    out: Path, seconds: float, arms: tuple[Arm, ...] = ARMS, *, closest: bool = False
+) -> None:
     out.mkdir(parents=True, exist_ok=False)
     torch.set_num_threads(1)
     started = time.perf_counter()
@@ -401,6 +424,7 @@ def run(out: Path, seconds: float, arms: tuple[Arm, ...] = ARMS) -> None:
     rounds: list[dict[str, object]] = []
     result: dict[str, object] = {
         "protocol": "learnability-search-1",
+        "pairing": "closest" if closest else "extremes",
         "source": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
         ).strip(),
@@ -421,7 +445,9 @@ def run(out: Path, seconds: float, arms: tuple[Arm, ...] = ARMS) -> None:
         round_index = 0
         while time.perf_counter() < deadline:
             round_out = out / f"round-{round_index:03d}"
-            cases, counts, findings = _collect(round_out, round_index, deadline)
+            cases, counts, findings = _collect(
+                round_out, round_index, deadline, closest
+            )
             fits: list[dict[str, object]] = []
             record: dict[str, object] = {
                 "round": round_index,
@@ -500,10 +526,16 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seconds", type=float, default=1800)
     parser.add_argument("--arms", nargs="+", choices=ARMS, default=list(ARMS))
+    parser.add_argument("--closest", action="store_true")
     args = parser.parse_args()
     if not 0 < args.seconds <= 1800:
         parser.error("seconds must be in (0, 1800]")
-    run(args.out, args.seconds, tuple(arm for arm in ARMS if arm in args.arms))
+    run(
+        args.out,
+        args.seconds,
+        tuple(arm for arm in ARMS if arm in args.arms),
+        closest=args.closest,
+    )
 
 
 if __name__ == "__main__":

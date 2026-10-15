@@ -43,9 +43,9 @@ jobs:
           uv run --no-sync maturin develop --release --manifest-path managym/Cargo.toml --features python
       - name: Bounded exploration
         env:
-          SEARCH_SECONDS: ${{ github.event_name == 'push' && '300' || inputs.seconds }}
-          SEARCH_ARMS: ${{ github.event_name == 'push' && 'generic_no_attention' || inputs.arms }}
-        run: timeout --signal=TERM 1830s uv run --no-sync experiments/runners/learnability_search.py --out .runs/learnability-search --seconds "$SEARCH_SECONDS" --arms $SEARCH_ARMS
+          SEARCH_SECONDS: ${{ github.event_name == 'push' && '600' || inputs.seconds }}
+          SEARCH_ARMS: ${{ github.event_name == 'push' && 'generic semantic' || inputs.arms }}
+        run: timeout --signal=TERM 1830s uv run --no-sync experiments/runners/learnability_search.py --out .runs/learnability-search --seconds "$SEARCH_SECONDS" --arms $SEARCH_ARMS --closest
       - name: Summary
         if: always()
         run: |
