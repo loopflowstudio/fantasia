@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regularization findings — manabot</title>
+<style>
+:root{color-scheme:light;--paper:#faf8f3;--ink:#252b28;--muted:#59635c;--line:#d8ddd3;--accent:#25654e}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:2rem}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.75 Georgia,serif}
+a{color:var(--accent);text-underline-offset:.18em}a:hover{text-decoration-thickness:2px}
+a:focus-visible{outline:3px solid #ad632e;outline-offset:4px}
+.skip{position:absolute;left:1rem;top:-5rem}.skip:focus{top:1rem;background:white;padding:1rem}
+.masthead{max-width:1190px;margin:auto;padding:3rem 2rem 2rem;border-bottom:1px solid var(--line)}
+.eyebrow{font:700 12px/1.5 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.intro{max-width:780px;font:20px/1.6 system-ui,sans-serif;margin:1rem 0 0}
+.layout{display:grid;grid-template-columns:230px minmax(0,850px);gap:3rem;max-width:1190px;margin:2.5rem auto;padding:0 2rem 5rem}
+nav{font:13px/1.6 system-ui,sans-serif;align-self:start;position:sticky;top:2rem;max-height:85vh;overflow:auto}
+nav h2{font:700 12px/1.5 system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+nav ul{list-style:none;padding-left:0}nav ul ul{padding-left:1rem}nav li{margin:.55rem 0}nav a{text-decoration:none}
+main{min-width:0}h1,h2,h3{line-height:1.2;letter-spacing:-.025em}h1{font-size:clamp(2rem,4vw,3rem);margin:0 0 1.25rem}h2{font-size:1.8rem;margin-top:3rem;border-top:1px solid var(--line);padding-top:1.5rem}h3{font-size:1.3rem;margin-top:2rem}
+p{margin:1rem 0}li{margin:.4rem 0}strong{font-weight:700}code{font: .83em/1.5 ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere;background:#eeeee7;padding:.1em .25em;border-radius:3px}
+pre{overflow:auto;padding:1.2rem;background:#eeeee7;white-space:pre-wrap}pre code{padding:0}
+table{border-collapse:collapse;width:100%;font:13px/1.6 system-ui,sans-serif;margin:1.5rem 0;overflow-wrap:anywhere}th,td{border-bottom:1px solid var(--line);padding:.75rem .65rem;vertical-align:top;text-align:left}th{background:#e9eee6;font-weight:650}tr:nth-child(even) td{background:#f3f3ed}
+blockquote{border-left:3px solid var(--accent);padding-left:1.2rem;margin-left:0;color:var(--muted)}
+math[display=block]{overflow-x:auto;max-width:100%;padding:1rem 0;font-size:1rem}.math.display{display:block;overflow-x:auto}
+.related{font:14px/1.5 system-ui,sans-serif;margin-top:1rem}.related a{margin-right:1.5rem}
+@media(max-width:900px){.layout{display:block;padding:0 1.25rem 3rem}.masthead{padding:2rem 1.25rem}nav{position:static;max-height:none;margin-bottom:2.5rem;border-bottom:1px solid var(--line);padding-bottom:1rem}body{font-size:16px}table{font-size:12px}th,td{padding:.5rem .35rem}}
+@media print{body{background:white;font-size:10pt}.masthead{padding:0 0 1rem}.layout{display:block;margin:1rem 0;padding:0}nav,.skip,.related{display:none}h1{font-size:24pt}h2{font-size:18pt;break-after:avoid}h3{break-after:avoid}table{font-size:8pt}tr{break-inside:avoid}a{color:inherit}pre,code{background:#f4f4f4}}
+</style>
+</head>
+<body>
+<a class="skip" href="#report">Skip to report</a>
+<header class="masthead">
+<div class="eyebrow">Fantasia · manabot research · 14 October 2026</div>
+<p class="intro"><strong>MTG-105 is the work item for screening Ataraxos-inspired training techniques in manabot.</strong> Its completed experiment tested whether filtering only the actor’s training samples helps more than filtering both actor and critic. The result was inconclusive and used 45% more training time.</p>
+<div class="related"><a href="regularization-findings.html">Regularization findings</a><a href="mtg-105-technique-screen.html">MTG-105 full report</a></div>
+</header>
+<div class="layout">
+<nav aria-label="Table of contents"><h2>In this report</h2><ul>
+<li><a href="#strategic-regularization-and-update-control-in-manabot"
+id="toc-strategic-regularization-and-update-control-in-manabot">Strategic
+regularization and update control in manabot</a>
+<ul>
+<li><a href="#evidence-registry-and-proof-limits"
+id="toc-evidence-registry-and-proof-limits">Evidence registry and proof
+limits</a></li>
+<li><a href="#what-the-optimizer-actually-compares"
+id="toc-what-the-optimizer-actually-compares">What the optimizer
+actually compares</a></li>
+<li><a href="#legal-support-encodings-and-entropy"
+id="toc-legal-support-encodings-and-entropy">Legal support, encodings
+and entropy</a></li>
+<li><a href="#fixed-state-diagnostics-obtained-in-this-pass"
+id="toc-fixed-state-diagnostics-obtained-in-this-pass">Fixed-state
+diagnostics obtained in this pass</a></li>
+<li><a href="#what-mtg-105-actually-measured"
+id="toc-what-mtg-105-actually-measured">What MTG-105 actually
+measured</a></li>
+<li><a
+href="#source-check-of-the-paper-claims-that-affect-this-decision"
+id="toc-source-check-of-the-paper-claims-that-affect-this-decision">Source-check
+of the paper claims that affect this decision</a></li>
+<li><a href="#prospective-bounded-protocol-not-executed-or-allocated"
+id="toc-prospective-bounded-protocol-not-executed-or-allocated">Prospective
+bounded protocol — not executed or allocated</a></li>
+<li><a href="#this-passs-execution-receipt-and-unresolved-conclusions"
+id="toc-this-passs-execution-receipt-and-unresolved-conclusions">This
+pass’s execution receipt and unresolved conclusions</a></li>
+</ul></li>
+</ul></nav>
+<main id="report"><h1
+id="strategic-regularization-and-update-control-in-manabot">Strategic
+regularization and update control in manabot</h1>
+<p>2026-10-14 · Task lf-85fb3bd · findings for review</p>
+<p>Requested by Jack Heart in the supplied <a
+href="research-brief.md">brief</a> and <a
+href="research-handoff.md">handoff</a>. This is one bounded research
+pass, not an implementation, allocation, recipe promotion, or
+continuation of inherited auto-code. Source inspected:
+<code>9576dc40ef486966246e20d9fdf58e5d741f1c40</code>. MTG task names
+below refer to the requested work; retained <code>ETU-*</code>
+identities and paths are preserved verbatim.</p>
+<p><strong>Decision:</strong> keep the existing recipe as a control. The
+implementation already separates sampled-ratio clipping,
+collection-policy KL and fixed-reference KL. The retained MTG-105 screen
+does not compare these mechanisms. Before attributing entropy changes to
+regularization, measure distributions at identical decisions, including
+action-encoding collisions. The smallest next measurement is a bounded
+replay of frozen roots; the smallest subsequent learning comparison is
+the existing collection-KL pair with prior and other controls held
+fixed.</p>
+<p>The most consequential qualification is that high entropy can be
+forced by the ordinary policy representation: attack and decline-attack
+have identical action features. Changing regularization cannot make this
+policy distinguish them. This is a source-derived boundary for the
+separate MTG-107 architecture review, not authorization to change that
+architecture here.</p>
+<h2 id="evidence-registry-and-proof-limits">Evidence registry and proof
+limits</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Evidence</th>
+<th>What it supports</th>
+<th>Exact remaining gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../manabot/sim/net_opponent.py">Collection</a>,
+<code>SeatRoutedCollector.collect</code>, <code>_build_batch</code>,
+<code>transition_gae</code>; <a
+href="../manabot/training/execution.py">executor</a>, self-play
+stage</td>
+<td>Saved behavior distributions, same-viewer transitions, bootstrap and
+optimizer sequencing</td>
+<td>No new real-game execution in this checkout</td>
+</tr>
+<tr>
+<td><a href="../manabot/training/ataraxos.py">Move loss</a>, <a
+href="../manabot/training/objectives.py">PPO regime loss</a>, <a
+href="../manabot/training/references.py">references</a>, <a
+href="../manabot/model/policy_distribution.py">numerical distribution
+rules</a>, <a href="../manabot/training/health.py">health</a></td>
+<td>Exact mathematical objectives, gradient ownership, support and
+diagnostic semantics</td>
+<td>No causal strength comparison of KL or priors</td>
+</tr>
+<tr>
+<td><a href="../managym/src/agent/action.rs">Native action types</a>, <a
+href="../managym/src/flow/action.rs">offer generation</a>, <a
+href="../managym/src/agent/observation.rs">observation projection</a>,
+<a href="../managym/src/agent/observation_encoder.rs">encoding</a>, <a
+href="../manabot/model/agent.py">Agent</a></td>
+<td>Legal-offer families and feature collisions in ordinary flat
+policy</td>
+<td>Incidence and outcome cost on retained checkpoints are
+unmeasured</td>
+</tr>
+<tr>
+<td><a href="../docs/ataraxos.md">MTG-92 adaptation</a>, <a
+href="../experiments/ataraxos-omitted-controls.md">MTG-93 controls</a>,
+their objective/runtime tests</td>
+<td>Implemented controls and historical bounded integration proof</td>
+<td>Those proofs are not scientific replications or strength
+evidence</td>
+</tr>
+<tr>
+<td><a href="mtg-105-technique-screen.html">MTG-105
+report</a>, <a
+href="../experiments/data/etu105/filter-scope-mini.json.gz">compressed
+evidence</a>, <a
+href="../experiments/data/etu105/analysis.json">analysis</a>, <a
+href="../experiments/data/etu105/closeout.json">closeout</a></td>
+<td>Completed scalar filter-scope screen, uncertainty, cost and failed
+attempts</td>
+<td>No collection-KL/prior ablation; no full fixed-state checkpoint
+distributions in the compact bundle</td>
+</tr>
+<tr>
+<td><a href="regularization-diagnostics.json">This pass’s
+diagnostics</a>, <a href="regularization-probe.py">script</a></td>
+<td>Retained identity extraction and exact arithmetic on eight
+constructed distributions</td>
+<td>Not native-root, trained-policy, gradient, or performance
+measurements</td>
+</tr>
+</tbody>
+</table>
+<p>The supplied guide is scientific direction, not evidence of a manabot
+effect. Existing tests were inspected, not rerun: no <code>.venv</code>
+or native extension is present. All 48 paths in MTG-105’s local-backup
+receipt are absent <strong>in this checkout</strong>. That does not
+contradict the producer’s historical verified-copy receipt or establish
+loss of its artifacts. No other checkout or host was used.</p>
+<h2 id="what-the-optimizer-actually-compares">What the optimizer
+actually compares</h2>
+<h3 id="entry-points-and-data-flow">Entry points and data flow</h3>
+<p><code>uv run manabot train --regime ... --out ...</code> validates a
+<code>TrainingRegime</code> and dispatches through
+<code>execute_regime</code>. The MTG-92/93/105 controls use its ordinary
+<code>TrainSelfPlay</code> stage, <code>SeatRoutedCollector</code>, and
+the optimizer owned by
+<code>NetOpponentTrainer</code>/<code>Trainer</code>.
+<code>Learning</code> selects the PPO regime update;
+<code>AtaraxosMoveLearning</code> selects the damped move update. The
+ordinary <code>uv run manabot train --preset ...</code> path instead
+reaches the stock trainer. Calling all three paths simply “PPO” obscures
+meaningful differences.</p>
+<p>Each collector stream saves the acting learner’s observation, sampled
+action, selected log probability, <strong>full</strong> masked behavior
+probabilities and normalized log probabilities, and scalar or
+categorical outcome prediction. A transition ends at that same learner’s
+next decision or game termination; intervening opponent actions get no
+learner policy-gradient row. Terminal rewards are from the learner’s
+perspective, and truncation fails rather than becoming a draw. The next
+observation is paused before sampling its action.</p>
+<p>Parameters are fixed during collection. Raw-self uses current learner
+weights for self-play; EMA-self uses averaged weights and bootstraps
+from that same pre-update averaged model. Games can span updates. The
+saved behavior is the policy that actually sampled the action, not a
+reconstructed “previous model.” These are fresh, close-to-on-policy
+batches, not full episodes under immutable weights and not
+trajectory-level importance correction.</p>
+<p>Let <code>p</code> be the current legal-action distribution,
+<code>b</code> the saved collection distribution, <code>rho</code> the
+prior at the same observation, and <code>a</code> the sampled action.
+For a retained actor row the move loss is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>L</mi><mi>π</mi></msub><mo>=</mo><mi>−</mi><mrow><mi mathvariant="normal">min</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mover><mi>A</mi><mo accent="true">̂</mo></mover><mo>,</mo><mrow><mi mathvariant="normal">clip</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mn>1</mn><mo>−</mo><mi>ϵ</mi><mo>,</mo><mn>1</mn><mo>+</mo><mi>ϵ</mi><mo stretchy="false" form="postfix">)</mo><mover><mi>A</mi><mo accent="true">̂</mo></mover><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>β</mi><munder><mo>∑</mo><mrow><mi>j</mi><mo>∈</mo><mi>L</mi></mrow></munder><msub><mi>p</mi><mi>j</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mi>j</mi></msub><mi>/</mi><msub><mi>b</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>τ</mi><munder><mo>∑</mo><mrow><mi>j</mi><mo>∈</mo><mi>L</mi></mrow></munder><msub><mi>p</mi><mi>j</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mi>j</mi></msub><mi>/</mi><msub><mi>ρ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mi>r</mi><mo>=</mo><msub><mi>p</mi><mi>a</mi></msub><mi>/</mi><msub><mi>b</mi><mi>a</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+ L_\pi=-\min(r\hat A,\operatorname{clip}(r,1-\epsilon,1+\epsilon)\hat A)
+       +\beta\sum_{j\in L}p_j\log(p_j/b_j)
+       +\tau\sum_{j\in L}p_j\log(p_j/\rho_j),\qquad r=p_a/b_a.
+</annotation></semantics></math></p>
+<p>Both sums are <code>KL(current || target)</code>; “reverse KL” in
+repository names means this explicit orientation. Clipping sees one
+sampled ratio. The KL terms see every legal offer at that row. Neither
+is a hard bound on the final update. There is no exact optimization over
+a free policy simplex: Adam updates shared network parameters, with
+gradient clipping, minibatches and a critic loss. This is not a tabular
+mirror-descent step.</p>
+<p>For the move recipe, detached policy advantages use gamma=1 and
+lambda=.5; value targets use lambda=.8. The categorical critic learns
+soft loss/draw/win lambda targets by cross-entropy; its scalar ablation
+uses mean squared error. The policy and critic losses have equal weight.
+Inclusive absolute-advantage quantile .75 plus floor .01 select rows
+before training. One epoch processes increasing learner-timestep
+minibatches, without advantage normalization. Actual ratios matter even
+in one epoch because earlier timestep minibatches change the learner
+before later ones.</p>
+<p>Behavior, references, advantages and targets are constants for
+differentiation. Current policy/value logits and shared encoder receive
+gradients. The default filter applies to actor and critic. With
+<code>filter_scope="actor"</code>, the surrogate <strong>and both
+KLs</strong> use selected actor rows but the critic uses all rows. An
+empty actor set therefore does not prevent policy movement through the
+shared encoder. An empty actor+critic set skips Adam; the EMA iteration
+clock still advances.</p>
+<p>Adam uses inherited betas .9/.999 and epsilon 1e-5. The move defaults
+are ratio radius .2, collection KL coefficient .1, max gradient norm
+.267, <code>LR(i)=clip(.5/i^1.1, 5e-6, 1e-4)</code> and
+<code>tau(i)=.05/i^.3</code>, on a one-based collection/update clock.
+EMA .999 advances after the update, including skips. Gradient norm
+clipping acts on the joint loss before Adam; it is not a bound on
+parameter displacement or policy KL. Numerical health measures parameter
+movement on the first optimizer step at iteration 1 and every 25th
+iteration.</p>
+<p>The PPO <strong>regime</strong> uses the same two KL types but
+independently configurable traces, selected-row advantage normalization,
+shuffled multi-epoch minibatches, and <code>.5*MSE</code> times
+<code>value_weight</code>. Its configured progress clock can be elapsed
+budget or iteration fraction. The stock <strong>preset trainer</strong>
+instead has an explicit <code>-ent_coef*H(p)</code> bonus, optional
+clipped value loss, and sampled <code>mean((r-1)-log(r))</code> for
+target-KL early stopping. Under exact expectation over <code>b</code>,
+that estimator corresponds to <code>KL(b || p)</code>, not the regime’s
+full <code>KL(p || b)</code>. Finite-sample stopping and ratio clipping
+still do not enforce a hard trust region. See <a
+href="../manabot/model/train.py">stock
+<code>_optimize_step</code></a>.</p>
+<h3 id="why-reference-choice-changes-the-scientific-question">Why
+reference choice changes the scientific question</h3>
+<p>Encoded-uniform means <code>rho(a)=1/N</code> for N legal offers. At
+a fixed observation,</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mi>L</mi><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">∥</mo><msub><mrow><mi mathvariant="normal">U</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">m</mi></mrow><mi>N</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mi>N</mi><mo>−</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+ KL(p\|\mathrm{Uniform}_N)=\log N-H(p).
+</annotation></semantics></math></p>
+<p>Thus fixed-reference KL to uniform and an entropy bonus of the same
+coefficient have identical policy gradients on the <strong>same
+rows</strong>, although their logged losses differ. This is a myopic
+state loss, not entropy-to-go. Changing the collector, selected rows,
+normalization, optimizer, or schedules invalidates an “entropy versus
+KL” equivalence claim for the whole experiment.</p>
+<p>The implemented structured prior is only <strong>action-type
+uniform</strong>. If G types are present and type g has n_g offers,
+<code>rho(a)=1/(G*n_g)</code>. It gives equal total mass to each type,
+then equal mass within that type. Its KL decomposes into family-mass KL
+to uniform plus policy-weighted conditional within-family KL.
+Equivalently it is <code>-H(p)+log G+E_p[log n_g]</code>. This
+compensates offer counts at the type level; it does not balance source
+cards, targets, modal semantics or complete payment outcomes within a
+type. A “fixed” prior is a fixed rule conditioned on the state’s legal
+offers, not one action vector for every state.</p>
+<p>The prior can resist loss of a rare type, but can also overweight
+pass, decline or poor types. It cannot certify useful exploration or
+equilibrium mixing. Collection KL instead resists departure from
+whatever behavior already does, including bad or collapsed behavior. At
+<code>p=b</code> its gradient is zero; after earlier minibatches, or
+initially under EMA behavior, it can be nonzero. The uniform prior can
+still exert a gradient at that same point.</p>
+<h2 id="legal-support-encodings-and-entropy">Legal support, encodings
+and entropy</h2>
+<p>The engine owns legality. The ordinary encoder emits a one-hot action
+type, validity, and object-focus indices. Its capacity validation
+rejects too many offers/focus objects before the internal bounded
+encoding loop; the <code>.take</code> inside that loop alone is not
+evidence of silent legal-action truncation. The MTG-105 receipt uses a
+64-action capacity. Runtime schemas must be pinned; neither a smaller
+tensor nor a subset of offers is an interchangeable world.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Encoded-uniform versus action-type uniform</th>
+<th>Consequence / limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Priority: 4 casts, 1 land, 1 pass</td>
+<td>Uniform assigns mass 2/3, 1/6, 1/6; type uniform assigns 1/3
+each</td>
+<td>Different strategic prior even with identical legal support</td>
+</tr>
+<tr>
+<td>Required target choice</td>
+<td>Usually all <code>ChooseTarget</code>, so the priors coincide</td>
+<td>No balancing of target categories or source spells</td>
+</tr>
+<tr>
+<td>Optional target: 3 targets plus decline</td>
+<td>Target mass 3/4 versus 1/2</td>
+<td>Structured prior changes continuation/stopping propensity</td>
+</tr>
+<tr>
+<td>Waterbend: 3 eligible taps plus pay remainder</td>
+<td>Tap mass 3/4 versus 1/2</td>
+<td>Can change mana-versus-permanent use; still uniform among taps</td>
+</tr>
+<tr>
+<td>Learn: 2 Lessons, 3 discard candidates, decline</td>
+<td>Mass 1/3, 1/2, 1/6 versus 1/3 each</td>
+<td>Distinct choice priors; duplicate card copies still count
+separately</td>
+</tr>
+<tr>
+<td>Attacker yes/no</td>
+<td>Both offers are <code>DeclareAttacker</code>; both priors are 1/2,
+1/2</td>
+<td>Representation forces the same distribution in the ordinary flat
+Agent</td>
+</tr>
+<tr>
+<td>Blocker target / no block</td>
+<td>One type with differing focus lengths</td>
+<td>Priors coincide, though the model can distinguish these offers</td>
+</tr>
+<tr>
+<td>Forced action</td>
+<td>Probability 1, entropy/KLs zero</td>
+<td>Declining aggregate entropy can simply reflect more forced
+states</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important counterexample to the guide’s general encoding
+concern:</strong> <a
+href="../managym/src/flow/action.rs"><code>compute_player_actions</code></a>
+emits a cast per castable card, followed later by target/payment
+prompts. It does not enumerate every target/payment combination as a
+priority action. More targets therefore do not directly increase that
+spell’s priority mass. They can increase conditional choice entropy and
+the number of subsequent training rows. Ordinary mana-source payment is
+not represented as a Cartesian menu here.</p>
+<p>Waterbend can have multiple sequential tap paths to the same selected
+set. Whether two paths are strategically equivalent requires checking
+final state, triggers and information, not comparing labels. The
+structured-offer path already canonicalizes selected tap IDs and rejects
+duplicates (<a
+href="../managym/src/agent/structured_offer.rs"><code>InternalOffer::Waterbend</code></a>);
+do not assume those permutation aliases survive there. Different tapped
+permanents can matter strategically. Repeated copies are not
+automatically redundant.</p>
+<p><strong>Observed representation, derived policy consequence:</strong>
+<a href="../managym/src/flow/tick.rs"><code>flow/tick.rs</code></a>
+offers true/false for the same attacker.
+<code>Observation::action_focus</code> gives both the same permanent;
+<code>ActionOption.declared</code> retains the distinction for
+presentation, but <code>encode_actions</code> does not encode that
+field. The ordinary Agent scores identical type/focus features with
+shared row-wise layers. Consequently their logits coincide for all
+weights, giving exactly 50/50 stochastic play when those are the two
+offers. This is not learned equilibrium mixing. Modal choices similarly
+omit mode index, and multiple activated abilities on one permanent omit
+ability index from the ordinary action features. Their occurrence in the
+screened matchup is not measured here. These are feature collisions
+between potentially different outcomes, distinct from redundant
+encodings of the same outcome.</p>
+<p>The separate compound trainer is not a silent fix or drop-in control:
+<a
+href="../manabot/training/compound.py"><code>optimize_games</code></a>
+regularizes conditional distributions at retained behavior prefixes.
+Summing those conditionals does not give exact joint
+<code>KL(new || behavior)</code>, which needs new-policy prefix
+occupancy. Conditional uniform is not uniform over completed subsets.
+Keep compound factorization and search-specific trust regularization
+outside this comparison.</p>
+<p><strong>Support:</strong> both implemented priors are positive on
+every legal offer and zero on padding. <code>policy_logs</code> uses a
+legal mask, finite normalized legal logs and <code>-inf</code> on
+padding. Invalid masks, empty support and inconsistent stored behavior
+are rejected. Move loss rejects zero prior probability on legal actions.
+In the mathematical forward-from-current KL, a true target zero with
+positive current mass makes KL infinite; a zero-support scripted prior
+would prohibit those actions. It would need an explicit full-support
+mixture, not an epsilon introduced unnoticed into this experiment.</p>
+<p>Finite float32 sampling can nevertheless underflow legal
+<code>exp(log p)</code> to zero. The saved legal log remains finite, KL
+uses logs, and health counts underflow; there is no probability floor.
+Thus nominal log-space support and realized exploration differ. A
+sampled action must have positive saved sampling mass. These invariants
+are covered by existing numerical-health and gradient tests, not newly
+demonstrated at a trained checkpoint here.</p>
+<h2 id="fixed-state-diagnostics-obtained-in-this-pass">Fixed-state
+diagnostics obtained in this pass</h2>
+<p>These are <strong>constructed offer sets</strong>, not native states,
+learned outputs or a reproduction of MTG-105. All values are nats. Full
+vectors and both KL orientations are in <a
+href="regularization-diagnostics.json">regularization-diagnostics.json</a>.
+The first five examples use encoded-uniform as behavior b except
+attacker, which is already 50/50.</p>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr>
+<th>Constructed decision</th>
+<th>p</th>
+<th style="text-align: right;">H(p)</th>
+<th style="text-align: right;">KL(p‖b)</th>
+<th style="text-align: right;">KL(p‖type-uniform)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Priority: casts, land, pass</td>
+<td>.1,.1,.1,.1,.1,.5</td>
+<td style="text-align: right;">1.497866</td>
+<td style="text-align: right;">.293893</td>
+<td style="text-align: right;">.155264</td>
+</tr>
+<tr>
+<td>Three targets, decline</td>
+<td>.2,.2,.2,.4</td>
+<td style="text-align: right;">1.332179</td>
+<td style="text-align: right;">.054115</td>
+<td style="text-align: right;">.020136</td>
+</tr>
+<tr>
+<td>Three taps, pay</td>
+<td>.2,.2,.2,.4</td>
+<td style="text-align: right;">1.332179</td>
+<td style="text-align: right;">.054115</td>
+<td style="text-align: right;">.020136</td>
+</tr>
+<tr>
+<td>Attacker yes/no</td>
+<td>.5,.5</td>
+<td style="text-align: right;">.693147</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>Learn: Lessons, discards, decline</td>
+<td>.1,.1,.1,.1,.1,.5</td>
+<td style="text-align: right;">1.497866</td>
+<td style="text-align: right;">.293893</td>
+<td style="text-align: right;">.068959</td>
+</tr>
+<tr>
+<td>Forced pass</td>
+<td>1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p>Two discriminating counterexamples were also calculated:</p>
+<ul>
+<li>If four encodings truly denote one equivalent outcome, uniform
+encoding entropy is 1.386294 while outcome entropy is zero. This is a
+hypothetical equivalence class, not a finding that four actual casts are
+equivalent.</li>
+<li>With <code>b=(.2,.4,.4)</code>, <code>p=(.2,.79,.01)</code> and
+sampled action 0, the sampled ratio is exactly 1 and its clip indicator
+zero, yet <code>KL(p||b)=.500760</code> and
+<code>KL(b||p)=1.203324</code>. A small clip fraction is not a
+whole-policy guarantee.</li>
+</ul>
+<p>Real fixed-root diagnostics must retain full masks, ordered native
+action identities, p, b when collection evidence exists, both priors,
+family mass, entropy and both KL directions. At arbitrary replay roots a
+preceding checkpoint distribution is <strong>checkpoint drift</strong>,
+not the actual collection KL. Do not relabel it. Use
+<code>H(p)/log N</code> only when N&gt;1, with forced rows separate;
+also report family entropy and conditional entropy. Semantic-equivalence
+entropy requires validated equivalence classes.</p>
+<h2 id="what-mtg-105-actually-measured">What MTG-105 actually
+measured</h2>
+<p>The retained mini experiment completed on 2026-10-07. It compares
+only actor+critic filtering with actor-only filtering on a two-layer
+width-64, four-head semantic model with <strong>scalar masked-mean
+critic</strong>, authored Allies/Lessons w4, raw-self behavior, four
+streams × 64 transitions, one CPU thread, float32, action-type prior and
+collection KL .1. Three paired training seeds 10501–10503 each ran 1,240
+updates / 317,440 learner transitions. The categorical move preset and
+separate proposed contrasts are not this run.</p>
+<p>Final held-out greedy scores were 42.00% [35.67,47.67] for
+actor+critic and 45.33% [40.00,49.67] for actor-only. Paired seed
+effects were +7,+7,−4 percentage points; mean +3.33 [−4.33,+11.33].
+Actor-only cost 1.45× mean training wall time (6,714.61 versus 4,626.75
+seconds). The common observed cost-window contrast was −2.33
+[−7.33,+2.67] points; the strict one-hour cutoff gave +2.33
+[−4.33,+9.00], using sparse earlier exports. Random-opponent difference
+was +2.33 [−4.00,+9.67]. These are descriptive paired-seed/common-deal
+bootstrap intervals, with only three training seeds; they neither prove
+benefit nor equivalence. The older +5-point program threshold was not
+separately preregistered for this mini. Keep actor+critic as its
+unpromoted control.</p>
+<p>The retained final-100-update means illustrate the limitation of
+aggregate optimization diagnostics:</p>
+<table>
+<thead>
+<tr>
+<th>Seed</th>
+<th>Filter</th>
+<th style="text-align: right;">Entropy</th>
+<th style="text-align: right;">Reference KL</th>
+<th style="text-align: right;">Collection KL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10501</td>
+<td>actor+critic</td>
+<td style="text-align: right;">.728750</td>
+<td style="text-align: right;">.312098</td>
+<td style="text-align: right;">.004183</td>
+</tr>
+<tr>
+<td>10501</td>
+<td>actor-only</td>
+<td style="text-align: right;">.704259</td>
+<td style="text-align: right;">.279290</td>
+<td style="text-align: right;">.001768</td>
+</tr>
+<tr>
+<td>10502</td>
+<td>actor+critic</td>
+<td style="text-align: right;">.896198</td>
+<td style="text-align: right;">.197177</td>
+<td style="text-align: right;">.001218</td>
+</tr>
+<tr>
+<td>10502</td>
+<td>actor-only</td>
+<td style="text-align: right;">.680558</td>
+<td style="text-align: right;">.298331</td>
+<td style="text-align: right;">.003197</td>
+</tr>
+<tr>
+<td>10503</td>
+<td>actor+critic</td>
+<td style="text-align: right;">.790793</td>
+<td style="text-align: right;">.261415</td>
+<td style="text-align: right;">.002091</td>
+</tr>
+<tr>
+<td>10503</td>
+<td>actor-only</td>
+<td style="text-align: right;">.650372</td>
+<td style="text-align: right;">.301080</td>
+<td style="text-align: right;">.004548</td>
+</tr>
+</tbody>
+</table>
+<p>These are averages of per-update <strong>last executed
+minibatch</strong> diagnostics, not all-row epoch averages or
+fixed-state comparisons. The logits were computed before that
+minibatch’s optimizer step; logging occurs afterward without a fresh
+forward. Under actor-only filtering the move diagnostics average all
+rows of the executed timestep, while the actor objective averages
+selected rows. Under actor+critic they see the selected population.
+Occupancy and sample populations change too. Neither lower value loss
+nor lower entropy establishes better held-out learning. The compact
+bundle omits per-update selection groups.</p>
+<p>Batch-tail bootstrap fractions were about 98–100%. No complete-return
+claim follows. LR remains at its upper clamp for iterations 1–2305, so
+this 1,240-step screen cannot measure LR decay. All 3,600 scientific
+monitoring/final games terminated with exact replay and no recorded
+legality, private-exposure or truncation failures. That supports
+evaluation integrity, not broad robustness or replay of every training
+update.</p>
+<p>Earlier failed preflight, two process-inspection
+<code>PermissionError</code> calibrations, a terminated supervisor with
+a completed child, and its successful continuation remain recorded.
+Original reserve arithmetic undercounted monitoring cohorts and final
+evaluation multipliers. No failed attempt or accounting error is removed
+from interpretation. Closeout reports 34,024.10 training seconds,
+34,273.64 scientific wall seconds, 40,056.35 additive worker-process
+seconds, and 2,834.21 final arena seconds; overlapping clocks must not
+be summed again. Conservative elapsed time from first preflight through
+closeout was 61,353.34 s. Owned-host dollar pricing is unavailable; no
+paid resource was launched. S3 publication remained credential-blocked;
+W&amp;B receipts are not model backups.</p>
+<p>The separate <a href="../experiments/current-baseline.md">ETU-118
+dated baseline note</a> records later 10,000-update training and
+development improvements, with final acceptance still unjudged at that
+note’s observation time. It is counterevidence to a blanket claim that
+the recipe cannot learn, but not an isolated KL/prior comparison. No
+live status or final outcome was inferred or fetched here.</p>
+<h3 id="identity-ledger">Identity ledger</h3>
+<p>Full six-run recipes, endpoints and hashes are extracted in the
+diagnostics artifact. Representative control endpoint: seed 10501,
+TrainingRun <code>4e71b2de1dd54e689faa42f10c5f8e09</code>, raw SHA-256
+<code>f8d903cbfb53255475ca5aa811447a4030d7a54eb8319d09669f052a1a303b74</code>.
+Its paired actor-only endpoint is
+<code>15d58f892e9dec659efd2156ec129bd7bdd0f9999f74028bd005b0917954b1b5</code>.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Identity</th>
+<th>Retained value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Actual training source</td>
+<td><code>a108ed3428a7f8c363a28c7df5dc71a4cd8d2719</code> plus the three
+archived repairs</td>
+</tr>
+<tr>
+<td>Python source bundle</td>
+<td><code>1e822ce38c8fe55c7672f0c98c6e9df3414ffaa15064e5f9c84ac692b7fb8694</code></td>
+</tr>
+<tr>
+<td>Native extension</td>
+<td><code>f12d239e1034b0f4f7f2e820da5e1fce10c4bc426dd56d511214e641d4e1fa8b</code></td>
+</tr>
+<tr>
+<td>World / content</td>
+<td>w4 /
+<code>dca9ab421ff18dc33546a35a0555c9817c302267f8fe21ff75d247e1600ce124</code></td>
+</tr>
+<tr>
+<td>Observation ABI</td>
+<td><code>b28c5dd6144d2b847fce54de773ffb08f514f8142498905b67f3833ff0e40d47</code></td>
+</tr>
+<tr>
+<td>Action ABI</td>
+<td><code>388cad683f617fae7c39bd515be1f28c2966c7414b47877559093ab2e7eacddf</code></td>
+</tr>
+<tr>
+<td>Matchup</td>
+<td><code>5b46db09a613880980ac8fbd5d0942fe24d5465ff0789984cc75709adf7be343</code></td>
+</tr>
+</tbody>
+</table>
+<p>The incidental <code>source_commit=eac2535f...</code> in TrainingRuns
+came from the parent checkout and is <strong>not</strong> the exported
+Python source identity. Historical producer paths are preserved, not
+rebound to this checkout. Current source inspection is not proof of
+byte-identical historical implementation.</p>
+<h2
+id="source-check-of-the-paper-claims-that-affect-this-decision">Source-check
+of the paper claims that affect this decision</h2>
+<p>The final Nature Methods explicitly separates prior regularization
+from four update controls: collection-policy KL, ratio clipping,
+gradient clipping and Adam learning rate. The move prior samples a
+movable piece then a legal move; the setup process uses entropy.
+Ablations remove components from the final configuration without
+retuning other hyperparameters. They support usefulness within that
+configuration, not superiority of coordinated schedules over
+independently retuned schedules or transfer to MTG. <a
+href="https://www.nature.com/articles/s41586-026-11036-y">Sokota et al.,
+Nature, Methods and Extended Data Fig. 5</a>.</p>
+<p>The supplement S3.4, equation (6), directly contains the clipped
+surrogate and both oriented KL terms. Equation (5) is categorical
+outcome cross-entropy. Table S7 specifies .2 ratio clipping, .1
+collection KL, .267 gradient cap, .5/.8 traces, the two iteration power
+laws, one epoch and .999 evaluation EMA. This confirms the implemented
+recipe’s stated source, with MTG changes to action grouping, decision
+clock and model. It does not supply an equilibrium guarantee for this
+neural implementation. <a
+href="https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-026-11036-y/MediaObjects/41586_2026_11036_MOESM1_ESM.pdf">Supplement,
+S3.4 and Table S7</a>.</p>
+<p>The distinction from mirror descent is substantive: the MMD paper’s
+equilibrium and tabular results concern its specified algorithm, not
+arbitrary Adam losses containing KL. PPO likewise introduces a surrogate
+optimization method, not a universal final-policy KL constraint. <a
+href="https://arxiv.org/abs/2206.05825">MMD paper</a>, <a
+href="https://arxiv.org/abs/1707.06347">PPO paper</a>. Search-specific
+objectives and ablation interpretation remain with the MMD task; no
+training recommendation here depends on the guide’s search-result
+claim.</p>
+<h2
+id="prospective-bounded-protocol-not-executed-or-allocated">Prospective
+bounded protocol — not executed or allocated</h2>
+<h3 id="first-establish-real-fixed-root-evidence">First: establish real
+fixed-root evidence</h3>
+<p>Propose a five-minute, one-thread CPU measurement, no optimizer
+updates, at most 256 frozen viewer-safe roots × three existing raw
+checkpoints. Reuse arena <code>replay_prefix</code>, normal checkpoint
+admission and <code>Agent</code> forward/log normalization, with
+scenario/root identities in the existing evidence store. Do not use the
+old initial-policy script’s custom default deck, deterministic argmax
+and fallback stepping as a scientific replacement for that path.</p>
+<p>Before execution, bind root replay hashes/command offsets, acting
+viewer, full native offers, encoded observations,
+source/native/content/schema/setup identities, checkpoint digests and
+the root partition. Allocate up to 32 roots each to priority, attack,
+block, target, payment, Learn/selection, modal/scry, and forced
+decisions. Report unavailable strata; never manufacture them under a
+checkpoint’s different setup. Rare custom scenarios require compatible
+checkpoint admission. Partition by whole game before selecting
+roots.</p>
+<p>Measure the quantities specified above, offer permutation/padding
+invariance, zero illegal mass, nonempty legal support, legal underflow,
+type/focus collision groups, and equality of allegedly aliased logits.
+Check true native actions rather than labels when testing equivalence. A
+failure in the predicted attack equality would falsify the source model
+and require tracing the actual runtime path before changing
+regularization. Evaluate reference-KL gradients at the same frozen
+logits if desired, without applying an optimizer step. Actual collection
+KL requires retained b; otherwise mark it unavailable.</p>
+<p>Prerequisites missing here are native runtime and compatible
+model/root bytes. Their absence is a completed research finding, not a
+reason to launch training or fetch another active experiment. If the
+proposed cap cannot cover the pinned panel, retain partial measurements
+as incomplete rather than selecting favorable states. This measurement
+alone makes no strength claim.</p>
+<h3
+id="smallest-learning-comparison-then-isolated-prior-contrasts">Smallest
+learning comparison, then isolated prior contrasts</h3>
+<p>Use the existing MTG-92/93 controls and MTG-105
+<code>collection-kl</code> contrast through
+<code>Experiment</code>/<code>ResolvedStudy</code>, the existing
+training-regime runner, arena, replay and study report. No second runner
+is needed. Freeze the scalar MTG-105 model and other recipe settings for
+continuity; the technique generator’s default is categorical with a
+value token, so both <code>value_kind="scalar"</code> and
+<code>value_aggregation="masked_mean"</code> must be explicit in both
+resolved arms. Do not silently use a PPO-package or architecture change
+as the comparison.</p>
+<p>The first scientific screen would compare beta=.1 against beta=0 with
+the same action-type prior and tau schedule. Hypothesis: beta=.1 reduces
+fixed-root policy movement/tail KL and improves held-out robustness;
+alternative: it only slows useful adaptation or has negligible effect
+under the other controls. Collecting lower training KL alone would
+support control of movement, not strategic benefit.</p>
+<p>After that, the clean design to distinguish update control and
+strategic prior is a 2×3 factorial, not a bundled algorithm swap:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Fixed-prior treatment</th>
+<th>beta=0</th>
+<th>beta=.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tau=0</td>
+<td>sampled clipping / norm / LR controls only</td>
+<td>add collection KL</td>
+</tr>
+<tr>
+<td>tau=.05/i^.3, offer uniform</td>
+<td>add entropy-equivalent regularization</td>
+<td>both controls</td>
+</tr>
+<tr>
+<td>tau=.05/i^.3, type uniform</td>
+<td>change strategic prior at same coefficient</td>
+<td>both controls with type prior</td>
+</tr>
+</tbody>
+</table>
+<p>Keep clip=.2, gradient cap=.267, Adam, traces, filtering, behavior,
+model, streams, initialization, raw endpoint selection and all other
+schedules fixed. Do not create two redundant tau=0 arms distinguished
+only by unused reference. The prior contrast is type-uniform versus
+offer-uniform; the tau contrast is uniform versus zero; the beta
+contrast and interaction are separately estimable. A later ratio-radius
+.2/.1 comparison is already implemented and would isolate sampled-ratio
+control. Do not add it to this first screen.</p>
+<p><strong>Proposed limits:</strong> three new paired training seeds,
+1,000 updates per cell, four × 64 learner transitions/update, maximum
+5,400 active training seconds per run, one learner thread on an
+available owned host. First pair: at most 9 hours training plus 2 hours
+evaluation and 1 hour preparation/diagnostics/failures, 12 hours total.
+Full 18-run factorial instead: 27 hours training, 8 evaluation, 2
+calibration, 2 diagnostics/reporting and 9 reserve, 48 hours total.
+These are ceilings, not throughput predictions or permission. Calibrate
+full-game evaluation before freezing either cohort; if it cannot fit
+with 25% margin, revise the proposal before scientific runs, not the
+scored sample afterward. One thousand updates deliberately tests early
+regularization only, while LR is clamped; it cannot answer long-run
+schedule or equilibrium questions.</p>
+<p>Equal updates fix collected learner transitions but do not fix
+selected rows, optimizer exposures, native decisions or wall cost.
+Report both an update-matched endpoint and cost-matched curves.
+Predeclare exports at 0/250/500/750/1000 updates and prospective
+900/1800/2700/3600-second cutoffs; use the last actually available
+artifact at each cutoff, compare only common observed support, and
+report checkpoint age/update lag. No interpolation, best-checkpoint
+selection or substitution for a missing endpoint. Pin the current
+cadence facility needed to export these cutoffs; if only step cadence is
+used, keep cost comparisons explicitly sparse and secondary.</p>
+<p><strong>Evaluation and uncertainty:</strong> prefreeze disjoint
+development and final whole-game deal families, 32 final four-leg
+paired-deal blocks per checkpoint/opponent, both seat/deck assignments,
+stochastic raw one-pass CPU inference, and a fixed three-opponent panel:
+scripted greedy, random diagnostic, and a compatible frozen historical
+trained anchor. All anchor hashes and fresh seed/deal ranges must be
+admitted before launch; none is selected by later scores. This is 2,304
+final games for the first pair, 6,912 for all six cells. If the trained
+anchor is unavailable, report a blocked robustness protocol rather than
+claim that greedy/random exhaust strategic diversity. New deck
+generalization needs its own compatible-world cohort; it cannot be
+inferred from two seat assignments.</p>
+<p>Report per-seed effects and paired-seed/shared-deal bootstrap
+intervals, resampling complete four-leg blocks and preserving cross-arm
+pairing. Three seeds provide descriptive screening uncertainty, not a
+confirmatory claim. Primary screen criterion proposed in advance: at
+least +5 percentage points on the equal-weight greedy/trained-anchor
+held-out score, paired 95% interval above zero, and no more than a
+5-point regression on either primary anchor. Random is diagnostic. Also
+report worst-anchor score and all family diagnostics. No promotion
+follows from entropy, training KL, or a favorable single seed. A larger
+independent-seed confirmation would need a new accepted budget; failure
+to clear this threshold is not proof of equivalence.</p>
+<p>Track all available decision families, legal-action counts, forced
+rows, selection fractions, actor/critic exposures, clipping indicators,
+gradient norm before/after cap, parameter changes, actual post-update
+fixed-root KL, and reference/family entropy. Separate occupancy-weighted
+summaries from fixed-root strata. Positive mass on illegal actions,
+hidden-information leakage, wrong world/schema/setup, nonfinite
+loss/gradients, unreplayable games or capacity overflow stop a cell and
+retain its evidence. Budget exhaustion leaves the cohort incomplete; do
+not replace seeds or stop because scores look favorable. Charge
+initialization, training, exports, monitoring, replay, failures and
+reporting, keeping overlapping wall/process clocks separate.</p>
+<h2 id="this-passs-execution-receipt-and-unresolved-conclusions">This
+pass’s execution receipt and unresolved conclusions</h2>
+<p>Limits were recorded in <a href="questions.md">questions.md</a>
+before probes. Three offline Python 3.12.12 standard-library invocations
+completed: two evidence inspections (0.05955 and 0.06025 s) and one
+retained diagnostic calculation (0.06220 s), each inside a 60-second
+alarm. Each read 15,099,233 decompressed bytes of the same retained
+bundle, below the 64 MiB cap. The arithmetic script checks normalization
+and the entropy/uniform-KL identity. These approximately 0.182 seconds
+measure probe bodies only, excluding process setup and research reading.
+No probe failed. No training, optimizer step, native game, paid
+resource, external message, experiment modification, Task launch or PR
+occurred. Current-run model/world identity is absent because no model
+was executed; historical identities are recorded above, not claimed as a
+current runtime.</p>
+<p>Still unmeasured: real fixed-state checkpoint distributions and
+final-update KL; frequency/strategic cost of feature collisions and
+redundant paths; family-conditioned entropy changes under equal state
+occupancy; causal benefit of either KL coefficient or reference choice;
+held-out historical-opponent robustness for those contrasts; long-run
+schedule interaction; equilibrium or exploitability. Existing scalar
+diagnostics do not answer these questions.</p>
+<p>Findings and protocol are ready for review. Implementation, empirical
+allocation, architecture disposition, search regularization, publication
+and delivery remain outside this completed pass.</p></main>
+</div>
+</body>
+</html>
