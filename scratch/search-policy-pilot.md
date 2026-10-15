@@ -242,3 +242,32 @@ recipe. Recursive action-reference and compound-aware PUCT admission, plus exact
 ETU-118 artifact access, remain the recorded prerequisites for their search cells.
 The two new checkpoints are development artifacts and must not be described as
 strength-trained replacements for ETU-118.
+
+## Flat attack-action aliasing — confirmed 2026-10-15
+
+Jack Heart raised a reported flat-policy attack/decline bug after the pilot. Code
+inspection confirms that `Observation::for_player` preserves `declared=true/false`,
+but both `manabot/env/observation.py::_encode_actions` and native
+`observation_encoder.rs::encode_actions` omit it. Both choices have the same
+DeclareAttacker type and the same permanent focus. `Agent._gather_informed_actions`
+and the shared per-row policy head therefore assign identical logits, regardless
+of trained weights. The ordinary stochastic flat policy cannot learn an attack
+preference at this binary prompt: it produces 50/50. This is distinct from the
+compound Command-lowering bug repaired above.
+
+A read-only, one-thread, 30-second-capped probe loaded the exact final flat
+checkpoint and replayed the first arena game's prefix. At decision index 20,
+match `search-policy-calibration-20261015:pilot-compound__pilot-flat:1910141001:0`,
+the flat player's raw options have `declared=[true,false]` and focus `[93]` for
+both. Encoded action and focus rows are exactly equal. Both logits are
+`0.0017222746973857284`, yielding probabilities `[0.5,0.5]`.
+
+The compound decoder has separate include/exclude logits and does not share this
+particular alias. The eight-game 4–4 score remains an accurate record of what ran,
+and the integration/replay result stands, but the current flat arm cannot support
+a fair representation/strength comparison. Correct and version the flat input
+contract, add a distinguishing-action regression, and retrain before selecting
+it for that comparison. More training on the existing encoding cannot fix this.
+Historical ETU-118 checkpoints need an explicit encoding audit; do not assume a
+new encoder can be applied to their bytes unchanged. No code or artifact bytes
+were changed by this diagnostic.

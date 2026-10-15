@@ -39,6 +39,11 @@
   eight paired arena games finished and replayed, with a 4–4 development score.
   This supersedes the missing-pilot-checkpoint gap for the new attempts only;
   ETU-118 access and main search/training prerequisites remain unresolved.
+- Additional admission blocker: flat action encoding drops attack/decline's
+  `declared` flag. Confirmed on the exact pilot checkpoint as identical logits and
+  50/50 probabilities. Repair/version the input contract and retrain before a
+  fair flat-versus-compound strength comparison; preserve the pilot as integration
+  evidence only. See the diagnostic in `scratch/search-policy-pilot.md`.
 
 ## Pre-execution limit for a mathematical probe
 
