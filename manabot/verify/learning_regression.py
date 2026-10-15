@@ -6,6 +6,7 @@ correct. Game uncertainty resamples complete deal blocks; cohort uncertainty als
 resamples training seeds. Incomplete evidence is never a passing learning result.
 """
 
+import argparse
 from collections import defaultdict
 from pathlib import Path
 import time
@@ -21,7 +22,7 @@ from manabot.sim.flat_mc import load_checkpoint_agent
 from manabot.training.checkpoint_queue import checkpoints
 from manabot.training.execution import atomic_json
 from manabot.training.experiment_execution import ExperimentRun
-from manabot.training.models import Strict, TrainingRun
+from manabot.training.models import Strict, TrainingRun, TrainSelfPlay
 from manabot.training.monitor_evaluation import MonitorResult
 from manabot.verify.action_cases import reorder_objects, reorder_offers
 from manabot.verify.choice_corpus import PACK, Case, collect_choices
@@ -221,6 +222,8 @@ class ActionExposure(Strict):
 class BaselineReport(Strict):
     seed: int
     regime_digest: str
+    source: str = "unavailable"
+    corpus_sha256: str = "unavailable"
     world: str
     steps: int
     software: Literal["passed", "error"] = "error"
@@ -276,6 +279,8 @@ def report_baseline(directory: Path) -> BaselineReport:
         (directory / "experiment.json").read_text()
     )
     (attempt,) = experiment.attempts
+    previous_threads = torch.get_num_threads()
+    torch.set_num_threads(1)
     report = BaselineReport(
         seed=attempt.seed,
         regime_digest="unavailable",
@@ -293,6 +298,16 @@ def report_baseline(directory: Path) -> BaselineReport:
         )
         report.regime_digest = run.regime_digest
         report.steps = run.updates_through(run.stages[-1].id)
+        report.source = experiment.runtime["source"]
+        (declared,) = run.regime.stages
+        if (
+            run.status != "completed"
+            or not isinstance(declared, TrainSelfPlay)
+            or report.steps != declared.updates
+        ):
+            raise ValueError("training did not reach its declared horizon")
+        if not sum(stage.optimizer_updates or 0 for stage in run.stages):
+            raise ValueError("no optimizer updates were executed")
         exported = checkpoints(run, include_initial=True)
         if (
             not exported
@@ -308,6 +323,15 @@ def report_baseline(directory: Path) -> BaselineReport:
         (final,) = [
             item for item in monitors if item.coordinates.updates == report.steps
         ]
+        if (
+            initial.run_id != run.id
+            or final.run_id != run.id
+            or initial.artifact != exported[0].artifact
+            or final.artifact != exported[-1].artifact
+        ):
+            raise ValueError(
+                "arena evidence does not bind this run's initial/final checkpoints"
+            )
         report.paired = _paired(initial, final)
         report.learning = learning_evidence([report.paired])
         cases, _, findings = collect_choices(
@@ -315,8 +339,8 @@ def report_baseline(directory: Path) -> BaselineReport:
         )
         if findings or not cases:
             raise ValueError(f"native corpus audit failed: {findings}")
+        report.corpus_sha256 = file_sha256(directory / "choices" / "cases.json")
         with torch.random.fork_rng():
-            torch.set_num_threads(1)
             for checkpoint in exported:
                 if (
                     file_sha256(checkpoint.artifact["path"])
@@ -348,6 +372,7 @@ def report_baseline(directory: Path) -> BaselineReport:
         report.learning = LearningEvidence(
             verdict="error", seeds=1, deals=0, reason=report.error
         )
+    torch.set_num_threads(previous_threads)
     atomic_json(directory / "learning.json", report.model_dump(mode="json"))
     lines = [
         f"# Baseline learning: {report.learning.verdict}",
@@ -386,14 +411,31 @@ def aggregate_reports(
     paths: list[Path], out: Path, *, expected_seeds: tuple[int, ...]
 ) -> LearningEvidence:
     """Require the complete declared seed cohort; partial success cannot turn green."""
-    reports = [BaselineReport.model_validate_json(path.read_text()) for path in paths]
-    errors = []
+    reports: list[BaselineReport] = []
+    errors: list[str] = []
+    for path in paths:
+        try:
+            reports.append(BaselineReport.model_validate_json(path.read_text()))
+        except (OSError, ValueError) as error:
+            errors.append(f"cannot read {path}: {error}")
+    if len(expected_seeds) < 3 or len(set(expected_seeds)) != len(expected_seeds):
+        errors.append(
+            "nightly requires at least three distinct declared training seeds"
+        )
     if sorted(report.seed for report in reports) != sorted(expected_seeds):
         errors.append("missing, duplicate or unexpected training seeds")
     if any(report.software != "passed" for report in reports):
         errors.append("a seed has failed or incomplete software/evaluation checks")
-    if len({(r.regime_digest, r.world, r.steps) for r in reports}) != 1:
-        errors.append("cohort recipe/world/horizon differs")
+    if (
+        len(
+            {
+                (r.regime_digest, r.world, r.steps, r.source, r.corpus_sha256)
+                for r in reports
+            }
+        )
+        != 1
+    ):
+        errors.append("cohort recipe/world/horizon/source/corpus differs")
     evidence = (
         LearningEvidence(
             verdict="error", seeds=len(reports), deals=0, reason="; ".join(errors)
@@ -417,8 +459,6 @@ def aggregate_reports(
 
 
 def main() -> None:
-    import argparse
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reports", nargs="+", type=Path)
     parser.add_argument("--out", type=Path, required=True)

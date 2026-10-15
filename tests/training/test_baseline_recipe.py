@@ -9,11 +9,17 @@ from typer.testing import CliRunner
 from manabot import cli
 from manabot.config.presets import DEFAULT_TRAIN_PRESET
 from manabot.training.baseline import baseline
+from manabot.training.comparison_notebook import write_comparison_notebook
 from manabot.training.models import (
     AtaraxosMoveLearning,
     IterationSchedule,
     TrainSelfPlay,
 )
+
+
+def test_recipe_report_dependency_is_installed(tmp_path: Path) -> None:
+    path = write_comparison_notebook(tmp_path, tmp_path / "comparison.ipynb")
+    assert path.is_file()
 
 
 def test_baseline_horizon_preserves_recipe_and_rate_endpoints() -> None:

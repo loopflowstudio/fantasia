@@ -231,3 +231,40 @@ normal run. Reporting tests exercise actual watchdog termination, immutable
 attempt directories, native consequences, permutation remapping, failed Discord
 payloads, confirmed-message deduplication and ambiguous-delivery suppression
 without posting to Discord.
+
+## Ordinary baseline nightly
+
+The longer nightly runs the same public recipe as:
+
+```sh
+uv run manabot train --recipe baseline --steps 256
+```
+
+Bare `uv run manabot train` still selects the tiny local smoke run. A recipe is
+above a regime: it supplies the regime, declared horizon, checkpoint cadence,
+and evaluation plan. The baseline's existing Ataraxos learning-rate and reference
+regularization curves are mapped to the requested number of updates. First and
+last rates are stable across horizons; short runs are compressed schedules, not
+prefixes of long runs. Omitted mapping preserves old regimes exactly.
+
+The nightly runs three seeds on separate GitHub CPUs, using ordinary self-play
+and terminal outcomes. No capacity labels, action bonuses or diagnostic states
+enter training. Initialization and final checkpoints each play the same 24 deals
+in all four seat/deck assignments against random. The learning decision uses
+paired score gain and a hierarchical interval over seeds and complete deal
+blocks. A positive lower bound and at least five percentage points of mean gain
+count as learning. Negative evidence is regression; uncertain evidence is
+inconclusive, never a learning pass. Missing or failed attempts are errors.
+
+All exported policies also face the same frozen native choice corpus. Reports
+show per-family relative-action and value changes, and summarize actual
+collected/retained training rows by action type. Choice movement is descriptive:
+we do not require arbitrary preferences, every family to improve, or nonzero
+logit differences. Ordinary setup/world admission, encoder parity, masks,
+reordering, batching and reload remain hard software checks.
+
+The original short suite stays on relevant PRs and runs as the nightly's sanity
+job. The generated supervised-capacity exploration remains manual. The nightly
+spends its main budget on ordinary learning and independent evaluation. Its
+[protocol and qualification](../experiments/baseline-nightly.md) retains attempts,
+limits and results. No Discord publication or paid compute is configured.

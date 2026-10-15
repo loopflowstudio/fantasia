@@ -87,3 +87,11 @@ watchdog for its reporting; setup is additional and jobs have a 35-minute cap.
 The cohort uses up to about 90 runner-minutes plus setup/evidence/sanity. The
 nightly cron only becomes active after merge. Remote calibration uses a
 branch/commit-marker trigger that will be removed before final publication.
+
+## Qualification attempts
+
+- Run 38791569833, source 793d4dd1: all three 16-update attempts stopped
+  before training because the minimal CPU environment lacked `nbformat`, used
+  by the existing experiment coordinator's notebook writer. Original artifacts
+  are retained. Add the direct runtime dependency and a report-creation preflight;
+  retry only after that repaired cause. No learning score exists for this attempt.
