@@ -140,3 +140,11 @@ fixtures; no training variation, learned-belief fit or scientific cohort launche
 The first new payment assertion exposed a fixture train/eval-mode mismatch
 (1.35e-8 probability drift); setting eval before both projections fixes the test
 without relaxing exact hidden-world invariance. All logs remain in `.runs/`.
+
+Integration update: PR288 merged; main `3b3e35fd` additionally establishes w6
+action/object identity. Preserve those encoders and architecture unchanged;
+historical w5 development checkpoints now fail current-world admission. Rebuilt
+the native extension and verified **73 Python checks** in 30.17 seconds, including
+current identity/attack parity, PUCT, world admission and initial export
+(`.runs/puct-w6-tests.log`). The complete debug Rust suite also passed
+(`.runs/puct-w6-debug.log`). No w6 pilot training or strength cohort was selected.
