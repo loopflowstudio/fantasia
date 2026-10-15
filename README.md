@@ -217,6 +217,6 @@ for names that predate Academy: `x-etude-*` headers,
 language.
 
 Jack Heart selected Manabot on 2026-10-14. The project lives at `manabot.gg`,
-with Academy at `play.manabot.gg`. The old `etude.gg` addresses redirect to the
-matching new hosts, preserving paths and queries. The GitHub repository and
-deployed service identifiers retain their existing names.
+with Academy at `play.manabot.gg` or `academy.manabot.gg`. The old `etude.gg`
+addresses redirect to the matching new hosts, preserving paths and queries.
+The GitHub repository and deployed service identifiers retain their existing names.

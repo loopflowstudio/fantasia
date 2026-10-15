@@ -40,7 +40,7 @@ def test_legacy_http_redirect_preserves_url(client: TestClient, method: str) -> 
 
 
 @pytest.mark.parametrize(
-    "host", ["play.manabot.gg", "academy-play.fly.dev", "localhost"]
+    "host", ["play.manabot.gg", "academy.manabot.gg", "academy-play.fly.dev", "localhost"]
 )
 def test_current_hosts_serve_spa(client: TestClient, host: str) -> None:
     response = client.get("/replay", headers={"host": host}, follow_redirects=False)
@@ -48,6 +48,7 @@ def test_current_hosts_serve_spa(client: TestClient, host: str) -> None:
     assert response.text == "<html>Academy</html>"
 
 
-def test_existing_websocket_clients_remain_supported(client: TestClient) -> None:
-    with client.websocket_connect("wss://play.etude.gg/ws/play") as socket:
+@pytest.mark.parametrize("host", ["play.etude.gg", "play.manabot.gg", "academy.manabot.gg"])
+def test_websocket_hosts_remain_supported(client: TestClient, host: str) -> None:
+    with client.websocket_connect(f"wss://{host}/ws/play") as socket:
         assert socket.receive_text() == "connected"

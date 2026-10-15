@@ -38,7 +38,7 @@ org="${ACADEMY_FLY_ORG:-loopflow-studio}"
 region="${ACADEMY_FLY_REGION:-sjc}"
 repo="$(git rev-parse --show-toplevel)"
 website_domains=(manabot.gg www.manabot.gg etude.gg www.etude.gg etudefantasia.com www.etudefantasia.com etudefantasia.gg www.etudefantasia.gg)
-play_domains=(play.manabot.gg play.etude.gg)
+play_domains=(play.manabot.gg academy.manabot.gg play.etude.gg)
 
 case "$app" in
   academy-play)

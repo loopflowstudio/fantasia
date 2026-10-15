@@ -6,8 +6,8 @@ following the kata/loopflow deployment pattern:
 - **fantasia-website** — the landing site (`website/`), a FastHTML app.
   Serves `manabot.gg` (canonical); `etude.gg`, `etudefantasia.com`,
   `etudefantasia.gg`, and all `www.` variants 301 onto it.
-- **academy-play** — hosted play at `play.manabot.gg`: the experience server
-  (`academy/server.py` + the managym engine) serving the built Svelte
+- **academy-play** — hosted play at `play.manabot.gg` and `academy.manabot.gg`:
+  the experience server (`academy/server.py` + the managym engine) serving the built Svelte
   frontend as a same-origin SPA (`deploy/play/`). One machine, because
   game state lives in process memory.
 
@@ -26,6 +26,11 @@ was renamed to `manabot` at Jack Heart's request on 2026-10-14. Legacy website h
 `manabot.gg`; `play.etude.gg` redirects HTTP to `play.manabot.gg` with status 308
 to preserve request methods. Both preserve encoded paths and query strings.
 Existing legacy WebSocket clients remain supported.
+
+Jack Heart selected `play.manabot.gg` and `academy.manabot.gg` as equivalent
+addresses on 2026-10-14. Both serve the same SPA, API and WebSocket endpoints
+directly from the single `academy-play` machine. Browser storage remains
+separate for each origin.
 
 ## DNS and certificates
 

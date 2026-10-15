@@ -38,6 +38,7 @@ HOSTS = {
     },
     "play.etude.gg": ("academy-play", "nw3xznd"),
     "play.manabot.gg": ("academy-play", "nw3xznd"),
+    "academy.manabot.gg": ("academy-play", "nw3xznd"),
 }
 
 

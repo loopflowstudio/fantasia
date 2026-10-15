@@ -29,8 +29,10 @@ surfaces that predate the Academy name: the `x-etude-*` wire headers,
 `etude.*` browser storage keys and schema identifiers. Hosted services are `academy-play` and `fantasia-website`, with
 deployment secrets in Doppler `manabot/prd` (Jack Heart, 2026-10-14).
 `etude.gg` and its legacy aliases redirect to `manabot.gg`, preserving paths
-and queries; hosted play moves to `play.manabot.gg`. Namecheap is the registrar
-and Cloudflare manages DNS. Existing service identifiers stay unchanged.
+and queries; hosted play is available at both `play.manabot.gg` and
+`academy.manabot.gg` (equivalent addresses selected by Jack Heart, 2026-10-14).
+Namecheap is the registrar and Cloudflare manages DNS. Existing service
+identifiers stay unchanged.
 The shared Etude experiment services retain their names. "Sepia Etude" remains
 the name of the visual language.
 
