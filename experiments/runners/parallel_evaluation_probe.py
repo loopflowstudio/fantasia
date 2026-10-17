@@ -27,6 +27,7 @@ from experiments.runners.gpu_job import (
     Worker,
     project_interpreter,
     write_json,
+    write_retained_manifest,
 )
 from experiments.runners.parallel_commands import Command, run_parallel
 
@@ -303,20 +304,7 @@ def main() -> None:
         raise
     finally:
         worker.phase("failed" if error else "completed", error=error)
-        entries: list[dict[str, object]] = []
-        for path in sorted(output.rglob("*")):
-            if not path.is_file() or path == output / "manifest.json":
-                continue
-            with path.open("rb") as stream:
-                digest = hashlib.file_digest(stream, "sha256").hexdigest()
-            entries.append(
-                {
-                    "path": str(path.relative_to(output)),
-                    "bytes": path.stat().st_size,
-                    "sha256": digest,
-                }
-            )
-        write_json(output / "manifest.json", {"files": entries})
+        write_retained_manifest(output)
 
 
 if __name__ == "__main__":
