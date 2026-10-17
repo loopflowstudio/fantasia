@@ -2,21 +2,42 @@ Never add "Co-Authored by:" tags in commits
 
 ## Naming
 
-- **Etude Fantasia** — the full project name and the product experience.
-- **Etude** — the short name wherever brevity or machine identity matters:
-  repository, service namespaces, and ordinary prose after first mention.
-  Always ASCII (never "Étude").
-- **manabot** — the agent, and the Python training library/CLI. Indefinite
+- **Manabot** — the whole project and public brand at `manabot.gg`.
+  The repository is `loopflowstudio/manabot` (renamed at Jack Heart's request
+  on 2026-10-15).
+- **Academy** — the web app players use: the `academy` package, the frontend,
+  and their service namespaces. The project website uses Manabot.
+- **manabot** — the bot, and the Python training library/CLI. Indefinite
   noun: you train *a* manabot.
 - **managym** — the rules environment the agent lives in.
+- **Etude** — the separate launching and experiment system. Its public client
+  is `loopflowstudio/etude`; the private research service is
+  `loopflowstudio/etude-studio` (repository split verified 2026-10-15).
+  The import name `etude` and the service integration variables
+  `ETUDE_URL` / `ETUDE_TOKEN_FILE` belong to that system, never to the app.
+  Always ASCII (never "Étude").
+
+Jack Heart selected Manabot and `manabot.gg` on 2026-10-14, replacing the
+provisional Fantasia project name. Academy remains the web app.
 
 Boundary rule for anything those lines don't settle: if it faces the player,
-it is Etude; if it trains or evaluates the agent, it is manabot; if it is the
-world, it is managym. So the play server, experience protocol, curated packs,
-and their env/error namespaces (`ETUDE_PLAY_*`) take Etude names, while
-training infrastructure (wandb project, presets, ops jobs, `MANABOT_*` config
-vars) correctly keeps manabot names. Frozen evidence — experiment IDs,
-contracts, receipts, wandb history — is never renamed.
+it is Academy; if it trains or evaluates the agent, it is manabot; if it is the
+world, it is managym; if it launches or records experiments, it is Etude. So
+the play server, experience protocol, curated packs, and their env/error
+namespaces (`ACADEMY_PLAY_*`) take Academy names, while training
+infrastructure (wandb project, presets, ops jobs, `MANABOT_*` config vars)
+correctly keeps manabot names. Frozen evidence — experiment IDs, contracts,
+receipts, wandb history — is never renamed, and neither are the compatibility
+surfaces that predate the Academy name: the `x-etude-*` wire headers,
+`etude.*` browser storage keys and schema identifiers. Hosted services are `academy-play` and `fantasia-website`, with
+deployment secrets in Doppler `manabot/prd` (Jack Heart, 2026-10-14).
+`etude.gg` and its legacy aliases redirect to `manabot.gg`, preserving paths
+and queries; hosted play is available at both `play.manabot.gg` and
+`academy.manabot.gg` (equivalent addresses selected by Jack Heart, 2026-10-14).
+Namecheap is the registrar and Cloudflare manages DNS. Existing service
+identifiers stay unchanged.
+The shared Etude experiment services retain their names. "Sepia Etude" remains
+the name of the visual language.
 
 ## Style
 

@@ -132,6 +132,26 @@ class Learning(Strict):
     ema: float | None = Field(default=None, ge=0, lt=1)
 
 
+class IterationSchedule(Strict):
+    """Map a declared run horizon onto a reference iteration schedule.
+
+    Both endpoints are preserved. A one-step run uses the initial rate. The
+    mapping is deterministic in completed updates, never elapsed wall time;
+    continuation must retain the original horizon rather than start a new one.
+    """
+
+    steps: int = Field(ge=1, strict=True)
+    reference_steps: int = Field(default=10_000, ge=2, strict=True)
+
+    def at(self, iteration: int) -> float:
+        if iteration < 1:
+            raise ValueError("iteration must be positive")
+        if self.steps == 1:
+            return 1.0
+        progress = min(1.0, (iteration - 1) / (self.steps - 1))
+        return 1 + progress * (self.reference_steps - 1)
+
+
 class AtaraxosMoveLearning(Strict):
     """Supplement S3.4 move update; MTG reference and batch sizes are adaptations.
 
@@ -157,6 +177,9 @@ class AtaraxosMoveLearning(Strict):
     tau_power: float = Field(default=0.3, ge=0)
     max_grad_norm: float = Field(default=0.267, gt=0)
     ema: float | None = Field(default=0.999, ge=0, lt=1)
+    iteration_schedule: IterationSchedule | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @model_validator(mode="after")
     def valid_learning_rate_bounds(self) -> "AtaraxosMoveLearning":
@@ -168,25 +191,48 @@ class AtaraxosMoveLearning(Strict):
         """One-based completed collection/update iteration, including skips."""
         if iteration < 1:
             raise ValueError("Ataraxos iteration must be positive")
-        rate = self.learning_rate_scale / iteration**self.learning_rate_power
+        position = (
+            self.iteration_schedule.at(iteration)
+            if self.iteration_schedule is not None
+            else iteration
+        )
+        rate = self.learning_rate_scale / position**self.learning_rate_power
         return (
             min(self.learning_rate_max, max(self.learning_rate_min, rate)),
-            self.tau_scale / iteration**self.tau_power,
+            self.tau_scale / position**self.tau_power,
         )
 
 
 class Execution(Strict):
     device: Literal["cpu", "cuda"] = "cpu"
     precision: Literal["float32"] = "float32"
-    workers: Literal[1] = 1
+    # Coarse native observation producers; policy/learning remain on one device.
+    workers: Literal[1, 2, 4] = 1
     threads: int = Field(default=1, ge=1, le=4)
     wall_seconds: float = Field(default=300, gt=0)
     memory_bytes: int = Field(default=32 * 1024**3, gt=0)
+    profile_collection: bool = Field(default=False, exclude_if=lambda value: not value)
 
 
 class Stage(Strict):
     id: str = Field(pattern=r"^[a-z][a-z0-9-]*$")
     execution: Execution = Execution()
+
+    @model_validator(mode="after")
+    def supported_workers(self) -> "Stage":
+        if (
+            self.execution.profile_collection
+            and getattr(self, "operation", None) != "train_self_play"
+        ):
+            raise ValueError("collection profiling requires train_self_play")
+        if (
+            self.execution.workers != 1
+            and getattr(self, "operation", None) != "train_self_play"
+        ):
+            raise ValueError(
+                "multiple producers are supported only for train_self_play"
+            )
+        return self
 
 
 class ImportPolicy(Stage):
@@ -259,6 +305,26 @@ class FrozenOpponent(Strict):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+class PretrainedPolicy(Strict):
+    """Published weights a self-play stage starts from instead of random ones.
+
+    The producer fixes what the weights mean, so its world, Agent architecture
+    and observation encoding must equal this regime's. How learning proceeds is
+    this run's own choice: the learning rule and its schedules, streams,
+    transitions, behavior, opponent and seed may all differ from the producer.
+
+    Only the policy is inherited. Adam moments, the EMA average, game streams
+    and the iteration that drives schedules all start fresh, so iteration 1 of
+    this run uses the first value of its own schedule. Use LearningStateImport
+    to extend one unchanged recipe instead.
+    """
+
+    source_run: ArtifactReference
+    source_stage: str
+    checkpoint: ArtifactReference
+    weights: Literal["raw", "ema"] = "raw"
+
+
 class LearningStateImport(Strict):
     """Portable learner state; source bytes retain historical paths and identity.
 
@@ -295,11 +361,18 @@ class TrainSelfPlay(Stage):
     operation: Literal["train_self_play"]
     trainer: Literal["net_opponent"] = "net_opponent"
     optimizer: Literal["adam"] = "adam"
-    trainable: Literal["policy_value"] = "policy_value"
-    behavior: Literal["current-self", "ema-self", "frozen"] = "current-self"
+    trainable: Literal["policy_value", "none"] = "policy_value"
+    behavior: Literal["current-self", "ema-self", "frozen", "random"] = "current-self"
+    # Omitted defaults preserve frozen historical regime identities.
+    root: Literal["lethal-target-v1"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     opponent: FrozenOpponent | None = None
     initial: str | None = None
     learning_state: LearningStateImport | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    pretrained: PretrainedPolicy | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     updates: int = Field(default=2, ge=1)
@@ -311,10 +384,29 @@ class TrainSelfPlay(Stage):
     )
     streams: int = Field(default=4, ge=2)
     transitions: int = Field(default=256, ge=1)
+    matchup_curriculum: Literal["fixed", "cross-balanced", "mirrors-balanced"] = Field(
+        default="fixed", exclude_if=lambda value: value == "fixed"
+    )
     learning: Learning | AtaraxosMoveLearning = Learning()
 
     @model_validator(mode="after")
     def valid_behavior(self) -> "TrainSelfPlay":
+        if self.execution.workers > self.streams:
+            raise ValueError("producer count cannot exceed streams")
+        if self.execution.workers != 1 and self.root is not None:
+            raise ValueError("diagnostic roots require one producer")
+        if self.matchup_curriculum != "fixed":
+            width = 12 if self.matchup_curriculum == "mirrors-balanced" else 4
+            if self.streams % width or self.behavior != "current-self":
+                raise ValueError(
+                    "balanced matchups require current-self and complete stream strata"
+                )
+        if self.pretrained is not None and (
+            self.initial is not None or self.learning_state is not None
+        ):
+            raise ValueError(
+                "pretrained weights cannot be combined with another starting state"
+            )
         if self.learning_state is not None and (
             self.initial is not None
             or self.active_seconds is not None
@@ -445,6 +537,17 @@ Operation = Annotated[
 ]
 
 
+class RecoveryPolicy(Strict):
+    """Bounded current-game replay and an awake elapsed-time allocation.
+
+    Recovery artifacts are private compressed snapshots. All created snapshots
+    remain retained; cadence bounds duplicated serialization and restart work.
+    """
+
+    max_game_microsteps: int = Field(default=40000, ge=1, le=1_000_000)
+    checkpoint_updates: int = Field(default=128, ge=1)
+
+
 class TrainingRegime(Strict):
     schema_version: Literal[1] = 1
     id: str
@@ -457,8 +560,19 @@ class TrainingRegime(Strict):
     schedule_clock: Literal["run_elapsed_budget", "iteration_fraction"] = (
         "run_elapsed_budget"
     )
-    recovery_max_microsteps: int | None = Field(default=None, ge=1, le=1_000_000)
+    recovery_max_microsteps: int | None = Field(default=None, ge=1, le=20_000_000)
+    recovery: RecoveryPolicy | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    # Cadence affects replayable progress only, never optimizer/collector updates.
+    recovery_every_updates: int = Field(
+        default=1, ge=1, le=1000, exclude_if=lambda value: value == 1
+    )
     selection: Literal["last-complete-raw"] = "last-complete-raw"
+
+    @property
+    def recoverable(self) -> bool:
+        return self.recovery is not None or self.recovery_max_microsteps is not None
 
     @model_validator(mode="after")
     def references(self) -> "TrainingRegime":
@@ -510,20 +624,29 @@ class TrainingRegime(Strict):
             raise ValueError(
                 "compound policies require compound policy stages throughout the run"
             )
-        if self.recovery_max_microsteps is not None and (
+        if self.recovery is not None and self.recovery_max_microsteps is not None:
+            raise ValueError("select one recovery contract")
+        if self.recoverable and (
             any(not isinstance(stage, TrainSelfPlay) for stage in self.stages)
-            or self.schedule_clock != "iteration_fraction"
+            or (
+                self.schedule_clock != "iteration_fraction"
+                and any(
+                    stage.learning.gradient != "ataraxos_move" for stage in self.stages
+                )
+            )
         ):
             raise ValueError(
-                "recovery requires only self-play stages and iteration_fraction schedule"
+                "recovery requires self-play with iteration_fraction or absolute Ataraxos move schedules"
             )
-        if self.recovery_max_microsteps is not None and any(
+        if self.recoverable and any(stage.root is not None for stage in self.stages):
+            raise ValueError("diagnostic roots do not support recovery")
+        if self.recoverable and any(
             isinstance(stage, TrainSelfPlay) and stage.active_seconds is not None
             for stage in self.stages
         ):
             raise ValueError("active-time process recovery is unsupported")
         if any(stage.execution.device == "cuda" for stage in self.stages):
-            if self.recovery_max_microsteps is not None:
+            if self.recoverable:
                 raise ValueError("CUDA process recovery is unsupported")
             if self.agent.belief_count_buckets or any(
                 not isinstance(stage, TrainSelfPlay) or stage.opponent is not None
@@ -641,14 +764,18 @@ class TrainingRegime(Strict):
                     )
                 if (
                     parent.execution.device != stage.execution.device
+                    or parent.execution.workers != stage.execution.workers
                     or parent.behavior != stage.behavior
                     or parent.streams != stage.streams
+                    or parent.matchup_curriculum != stage.matchup_curriculum
                     or parent.learning.ema != stage.learning.ema
                     or parent.opponent != stage.opponent
+                    or parent.root != stage.root
+                    or parent.trainable != stage.trainable
                     or parent.learning.gradient != stage.learning.gradient
                 ):
                     raise ValueError(
-                        "live self-play continuation must preserve streams, gradient, EMA clock and opponent"
+                        "live self-play continuation must preserve streams, curriculum, gradient, EMA clock, workers and opponent"
                     )
             if isinstance(stage, TrainCompound):
                 if initial and parent is not latest_compound:
@@ -678,6 +805,13 @@ class NumericalFailure(Strict):
     health: dict[str, int | float] = {}
 
 
+class PhaseTiming(Strict):
+    """Accumulated host wall seconds and calls; never device utilization."""
+
+    seconds: float = Field(ge=0, allow_inf_nan=False)
+    calls: int = Field(ge=0)
+
+
 class StageRecord(Strict):
     learning_state_origin: LearningStateOrigin | None = Field(
         default=None, exclude_if=lambda value: value is None
@@ -700,6 +834,14 @@ class StageRecord(Strict):
     learning_seconds: float = 0
     export_seconds: float = 0
     diagnostic_seconds: float = 0
+    # Attempt-local learner wall time waiting for initial evaluation admission.
+    # None means historical/unsupported measurement, rather than zero wait.
+    admission_wait_seconds: float | None = Field(
+        default=None, ge=0, exclude_if=lambda value: value is None
+    )
+    collection_timings: dict[str, PhaseTiming] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     games: int = 0
     environment_decisions: int = 0
     learner_transitions: int = 0
@@ -782,6 +924,14 @@ class TrainingRun(Strict):
     recovery_lock_path: str | None = None
     recovery_host: str | None = None
     last_recorded_wall_seconds: float | None = None
+    last_recorded_active_seconds: float | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    recovery_boot_identity: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    calendar_seconds: float = Field(default=0, exclude_if=lambda value: value == 0)
+    downtime_seconds: float = Field(default=0, exclude_if=lambda value: value == 0)
     unobserved_seconds: float = 0
     recovery_seconds: float = 0
     prior_seconds: float = 0
@@ -791,6 +941,9 @@ class TrainingRun(Strict):
     error: str | None = None
     monitoring_checkpoints: list[MonitoringCheckpoint] = []
     monitoring_export_seconds: float = 0
+    monitoring_checkpoint_milestones: tuple[int, ...] = Field(
+        default=(), exclude_if=lambda v: not v
+    )
     monitoring_checkpoint_seconds: float | None = None
     monitoring_checkpoint_updates: int | None = Field(
         default=None, gt=0, strict=True, exclude_if=lambda value: value is None

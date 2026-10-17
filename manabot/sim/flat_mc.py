@@ -163,8 +163,15 @@ class RandomMatchupPlayer:
 class AgentMatchupPlayer:
     """Trained policy player (stochastic, as in prior seat-balanced evals)."""
 
-    def __init__(self, agent: Agent, deterministic: bool = False) -> None:
+    def __init__(
+        self,
+        agent: Agent,
+        deterministic: bool = False,
+        *,
+        allow_deck_repetition: bool = False,
+    ) -> None:
         self.agent = agent
+        self.allow_deck_repetition = allow_deck_repetition
         self.deterministic = deterministic
         agent.eval()
         self.compound = (
@@ -180,7 +187,11 @@ class AgentMatchupPlayer:
     def act(self, env: Env, obs: dict[str, np.ndarray]) -> int:
         from manabot.model.world import validate_agent_setup
 
-        validate_agent_setup(self.agent, env.match.to_rust())
+        validate_agent_setup(
+            self.agent,
+            env.match.to_rust(),
+            allow_deck_repetition=self.allow_deck_repetition,
+        )
         if self.compound is not None:
             return self.compound.act(env._engine, env.last_raw_obs)
         return _select_agent_action(self.agent, obs, deterministic=self.deterministic)
@@ -221,6 +232,13 @@ def load_checkpoint_agent(
 
     world_binding = validate_checkpoint_world(checkpoint, obs_space)
     agent = Agent(obs_space, AgentSpec(**hypers["agent_hypers"]))
+    value_semantic = checkpoint.get("bc", {}).get("value_semantic")
+    if value_semantic is not None:
+        if value_semantic not in ("signed_outcome", "win_logit"):
+            raise ValueError("unsupported checkpoint value semantic")
+        if agent.value_semantic is not None and value_semantic != agent.value_semantic:
+            raise ValueError("checkpoint value semantic conflicts with its critic")
+        agent.value_semantic = value_semantic
     validate_policy_input(agent, world_binding)
     agent.world_binding = world_binding
     binding = None
@@ -323,10 +341,13 @@ def make_player(
                 c_puct=float(spec.get("c_puct", 1.5)),
                 max_steps=int(spec.get("max_steps", DEFAULT_MAX_PLAYOUT_STEPS)),
                 seed=seed,
-                evaluator=AgentLeafEvaluator(agent, obs_space),
+                evaluator=AgentLeafEvaluator(
+                    agent, obs_space, value_mode=str(spec.get("value_mode", "learned"))
+                ),
                 branch_driver_id=str(
                     spec.get("branch_driver_id", SELECTED_BRANCH_DRIVER_ID)
                 ),
+                branch_audit=bool(spec.get("branch_audit", False)),
             ),
             obs_space,
         )
@@ -422,12 +443,18 @@ def make_player(
             spec["path"], include_belief_binding=True
         )
         if agent.belief_count_buckets > 0:
+            if spec.get("allow_deck_repetition"):
+                raise ValueError(
+                    "mirror evaluation does not support belief checkpoints"
+                )
             if binding is None:
                 raise ValueError("belief-enabled checkpoint has no schema binding")
             return ManabotPlayer(agent, checkpoint_binding=binding), obs_space
         return (
             AgentMatchupPlayer(
-                agent, deterministic=bool(spec.get("deterministic", False))
+                agent,
+                deterministic=bool(spec.get("deterministic", False)),
+                allow_deck_repetition=bool(spec.get("allow_deck_repetition", False)),
             ),
             obs_space,
         )

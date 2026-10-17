@@ -918,22 +918,26 @@ pub struct PyPlayerConfig {
     pub decklist: HashMap<String, usize>,
     #[pyo3(get, set)]
     pub sideboard: HashMap<String, usize>,
+    #[pyo3(get, set)]
+    pub content_pack: Option<String>,
 }
 
 #[cfg(feature = "python")]
 #[pymethods]
 impl PyPlayerConfig {
     #[new]
-    #[pyo3(signature = (name, decklist, sideboard=None))]
+    #[pyo3(signature = (name, decklist, sideboard=None, content_pack=None))]
     fn new(
         name: String,
         decklist: HashMap<String, usize>,
         sideboard: Option<HashMap<String, usize>>,
+        content_pack: Option<String>,
     ) -> Self {
         Self {
             name,
             decklist,
             sideboard: sideboard.unwrap_or_default(),
+            content_pack,
         }
     }
 }
@@ -945,6 +949,7 @@ impl From<PyPlayerConfig> for PlayerConfig {
             name: value.name,
             decklist: value.decklist.into_iter().collect(),
             sideboard: value.sideboard.into_iter().collect(),
+            content_pack: value.content_pack,
         }
     }
 }
@@ -1334,6 +1339,8 @@ pub struct PyPermanent {
     #[pyo3(get, set)]
     pub id: i32,
     #[pyo3(get, set)]
+    pub registry_key: i32,
+    #[pyo3(get, set)]
     pub controller_id: i32,
     #[pyo3(get, set)]
     pub tapped: bool,
@@ -1365,6 +1372,7 @@ impl From<PermanentData> for PyPermanent {
     fn from(value: PermanentData) -> Self {
         Self {
             id: value.id,
+            registry_key: value.registry_key,
             controller_id: value.controller_id,
             tapped: value.tapped,
             damage: value.damage,
@@ -1386,6 +1394,7 @@ impl From<PyPermanent> for PermanentData {
     fn from(value: PyPermanent) -> Self {
         Self {
             id: value.id,
+            registry_key: value.registry_key,
             controller_id: value.controller_id,
             tapped: value.tapped,
             damage: value.damage,
@@ -1412,6 +1421,10 @@ pub struct PyAction {
     pub focus: Vec<i32>,
     #[pyo3(get, set)]
     pub declared: Option<bool>,
+    #[pyo3(get, set)]
+    pub mode_index: Option<usize>,
+    #[pyo3(get, set)]
+    pub ability_index: Option<usize>,
 }
 
 #[cfg(feature = "python")]
@@ -1517,6 +1530,8 @@ impl From<ActionOption> for PyAction {
             action_type: value.action_type.into(),
             focus: value.focus,
             declared: value.declared,
+            mode_index: value.mode_index,
+            ability_index: value.ability_index,
         }
     }
 }
@@ -1528,6 +1543,8 @@ impl From<PyAction> for ActionOption {
             action_type: value.action_type.into(),
             focus: value.focus,
             declared: value.declared,
+            mode_index: value.mode_index,
+            ability_index: value.ability_index,
         }
     }
 }
@@ -3009,7 +3026,7 @@ impl PyEnv {
     }
 
     /// Apply the shared semantic Command and return the ordinary acting
-    /// observation needed by Etude presentation and trace consumers.
+    /// observation needed by Academy presentation and trace consumers.
     fn step_semantic_command(
         &self,
         py: Python<'_>,
@@ -3337,6 +3354,7 @@ fn authored_deck_setup(pack_key: &str, deck_key: &str) -> PyResult<PyPlayerConfi
                 name: config.name,
                 decklist: config.decklist.into_iter().collect(),
                 sideboard: config.sideboard.into_iter().collect(),
+                content_pack: Some(pack_key.to_string()),
             });
         }
     }
@@ -3349,6 +3367,10 @@ fn authored_deck_setup(pack_key: &str, deck_key: &str) -> PyResult<PyPlayerConfi
 #[pymodule]
 pub fn _managym(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("WORLD_VERSION", crate::WORLD_VERSION)?;
+    m.add(
+        "CARD_DEFINITION_COUNT",
+        crate::cardsets::alpha::CardRegistry::default().len(),
+    )?;
     m.add("AgentError", py.get_type_bound::<PyAgentError>())?;
 
     m.add_class::<ZoneEnum>()?;

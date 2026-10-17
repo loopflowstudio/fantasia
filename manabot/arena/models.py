@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from manabot.sim.search_branch import branch_backend
 
 
 def canonical_json(value: Any) -> bytes:
@@ -41,7 +44,7 @@ BASE_ANCHOR_IDS = (
 
 
 class ArenaKey(StrictModel):
-    world: Literal["w2", "w3", "w4"]
+    world: Literal["w2", "w3", "w4", "w5", "w6"]
     content_suite: str
     viewer_boundary: str
     arena_version: str
@@ -65,7 +68,7 @@ class PlayerRegistration(StrictModel):
     player_spec: dict[str, Any]
     compute_class_id: str
     information_boundary: str
-    world: Literal["w2", "w3", "w4"]
+    world: Literal["w2", "w3", "w4", "w5", "w6"]
     content_suite: str
     observation_abi_sha256: str = Field(pattern=SHA256_PATTERN)
     action_abi_sha256: str = Field(pattern=SHA256_PATTERN)
@@ -123,6 +126,10 @@ class PlayerRegistration(StrictModel):
                     "device": "cpu",
                     "batch_size": 1,
                 }
+                if "allow_deck_repetition" in self.player_spec:
+                    if self.player_spec["allow_deck_repetition"] is not True:
+                        raise ValueError("deck repetition must be explicitly enabled")
+                    expected_checkpoint_spec["allow_deck_repetition"] = True
                 if (
                     self.player_spec != expected_checkpoint_spec
                     or type(self.player_spec.get("deterministic")) is not bool
@@ -175,6 +182,58 @@ class PlayerRegistration(StrictModel):
                     != "local-policy-seed-times-1000003-plus-call-mod-2pow63/v1"
                 ):
                     raise ValueError("local-update search and seed semantics differ")
+            elif kind == "agent_puct":
+                spec = self.player_spec
+                required_keys = {
+                    "kind",
+                    "sims",
+                    "worlds",
+                    "c_puct",
+                    "max_steps",
+                    "branch_driver_id",
+                    "branch_audit",
+                    "device",
+                    "batch_size",
+                    "value_mode",
+                    "implementation_source_sha256",
+                }
+                if set(spec) != required_keys:
+                    raise ValueError("agent PUCT spec must be fully explicit")
+                digest = spec["implementation_source_sha256"]
+                if (
+                    any(
+                        type(spec[k]) is not int
+                        for k in ("sims", "worlds", "max_steps")
+                    )
+                    or not 1 <= spec["worlds"] <= spec["sims"]
+                    or spec["max_steps"] < 1
+                    or type(spec["c_puct"]) not in (int, float)
+                    or not math.isfinite(spec["c_puct"])
+                    or spec["c_puct"] <= 0
+                    or spec["device"] != "cpu"
+                    or spec["batch_size"] != 1
+                    or type(spec["branch_audit"]) is not bool
+                    or spec["value_mode"] not in ("learned", "neutral")
+                    or not isinstance(digest, str)
+                    or len(digest) != 64
+                    or any(c not in "0123456789abcdef" for c in digest)
+                ):
+                    raise ValueError("invalid agent PUCT parameters or source identity")
+                branch_backend(spec["branch_driver_id"])
+                if (
+                    self.search_semantics is None
+                    or self.search_semantics.model_dump()
+                    != {
+                        "branch_audit": spec["branch_audit"],
+                        "root_prior": "checkpoint-canonical-policy/v1",
+                        "leaf_evaluator": "checkpoint-declared-value-win-score/v1"
+                        if spec["value_mode"] == "learned"
+                        else "neutral-win-score/v1",
+                    }
+                    or self.search_call_seed_derivation_id
+                    != "mcts-mix-player-seed-decision-v1"
+                ):
+                    raise ValueError("agent PUCT search and seed semantics differ")
             elif kind == "policy_prior_puct":
                 required_keys = {
                     "kind",
@@ -607,7 +666,7 @@ class MatchRow(StrictModel):
             ("ur_lessons", "gw_allies") if self.leg < 2 else ("gw_allies", "ur_lessons")
         ):
             raise ValueError("deck assignment and leg mismatch")
-        if self.arena_key.world in {"w3", "w4"} and self.seat_decks is None:
+        if self.arena_key.world in {"w3", "w4", "w5", "w6"} and self.seat_decks is None:
             raise ValueError("selected match must retain its deck assignment")
         if not failed and self.failure is not None:
             raise ValueError("completed match cannot carry a failure")

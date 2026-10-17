@@ -41,14 +41,45 @@ physical-deal baseline, history-dropout treatment and scientific limits.
 
 The recipe reuses `AgentSpec`, `ObservationSpaceHypers`, and authored
 `MatchHypers`, including both sideboards. Architecture and match binding live
-once per regime. Every stage declares its CPU device, float32 precision, one
-worker, thread count, wall and memory limits. Learning settings independently
+once per regime. Every stage declares its device, float32 precision, worker
+count, Torch thread count, wall and memory limits. Learning settings independently
 select estimators, filtering, regularization reference, schedules, and EMA.
 Schedules use `run_elapsed_budget`: elapsed wall time since run creation divided
 by the regime's total `wall_seconds`, including generation, collection, updates
 and export. Continuation stages do not reset that clock. Stage deadlines remain
 independent bounds inside the same total allowance. Evaluation is outside the
 training execution and does not consume this clock.
+
+Self-play `execution.workers` accepts 1 (the default), 2 or 4 CPU observation
+producers. Persistent threads own disjoint native stream ranges; native buffered
+stepping releases the GIL. A barrier completes all writes before the one policy
+owner reads global observations. Inference batch sizes, GPU sampling order,
+learner layout and update barriers remain unchanged. Producers share contiguous
+NumPy row views and use the global reset-seed stride, preserving stream identities
+and ordinary recovery snapshots across partitions. A live stage continuation must
+retain its worker count. Other stage kinds and diagnostic roots require one worker;
+there must be at least one stream per producer. `execution.threads` still controls
+Torch CPU threads and is independent of this producer count.
+
+TrainingRun closes producer pools on completion, interruption or failure. Direct
+`SeatRoutedCollector` users must call `close()` (for example through
+`contextlib.closing`). Worker errors settle all submitted writers before closing
+the pool; partially written observations cannot be reused after failure. Native
+calls retain their cooperative deadline behavior, so remote hard limits still
+belong to the enclosing job/process supervisor. The first matched GPU comparison
+measured an11.9% four-worker improvement at4,096streams but failed the complete
+performance/correctness gates; see [run019](../experiments/worker-scaling.md#persistent-production-producers-run019).
+More workers are not yet a recommended default.
+
+The collector retains pending learner transitions until their reward and terminal
+flag are known, then assembles an owned update batch. Collection stops before
+sampling an extra action. The direct-storage candidate was removed after
+[run020](../experiments/worker-scaling.md#direct-rollout-storage-result-run020)
+failed the large-workload performance and ordinary learned-state gates; its
+measured source and complete evidence remain retained. Native producers borrow
+immutable stream setups during stepping rather than copying every deck on each
+micro-step. This removes repeated configuration allocation without changing
+active masks, game rules or auto-reset seeds; its GPU benefit remains unmeasured.
 
 Training comparisons use [declarative typed-Python experiments](training-experiments.md):
 named components, frozen baselines/versioned presets, explicit overrides and ordered
@@ -142,7 +173,7 @@ resolution, priority exchange or newly revealed choices. Other action kinds
 remain action-aligned. A native `compound_commands_json` call lowers the sampled
 submission on an exact fork into ordinary revision-bound Commands, ending at the
 native declaration/payment boundary. Sampling and lowering leave the live root
-untouched. The ordinary checkpoint player and Etude villain execute the resulting
+untouched. The ordinary checkpoint player and Academy villain execute the resulting
 suffix without asking the model to reconsider it. Interruption rejects and clears
 a stale suffix. Canonical DecisionFrames stay action-aligned, and the existing
 local-search/sampler consumers keep their API and checkpoint fields.
@@ -300,6 +331,45 @@ can feed the existing belief/search collectors, but ordinary flat supervised
 training and compound EMA remain unsupported. Live self-play continuation and
 selection diagnostics retain their existing stage restrictions. An EMA import
 never masquerades as raw or changes `last-complete-raw` selection.
+
+### Start self-play from a pretrained policy
+
+`TrainSelfPlay.pretrained` starts one self-play stage from a published policy
+instead of random weights, under a recipe of its own:
+
+```python
+from manabot.training.models import PretrainedPolicy
+
+stage.pretrained = PretrainedPolicy(
+    source_run={"path": "/artifacts/producer/run.json",
+                "sha256": published_run_sha256, "bytes": published_run_bytes},
+    source_stage="policy",
+    checkpoint={"path": "/artifacts/producer/policy-ema.pt",
+                "sha256": published_checkpoint_sha256,
+                "bytes": published_checkpoint_bytes},
+    weights="ema",
+)
+```
+
+The settings divide by what the weights depend on:
+
+| Must equal the producer | Free to change |
+| --- | --- |
+| world | learning rule and every schedule (learning rate, tau, filtering, EMA rate) |
+| `AgentSpec` (architecture, value kind) | `streams`, `transitions`, `updates` |
+| observation contract | `behavior`, `opponent`, execution device |
+| | training seed, and the match if the checkpoint validates against it |
+
+Only the policy is inherited. Adam moments, the EMA average, game streams and
+the iteration that drives schedules start fresh: `updates` counts this run's
+own updates and iteration 1 uses the first value of this run's schedule, so
+choose a schedule meant for a trained policy rather than the from-scratch
+default. The producer must be self-play and may itself be a continuation or a
+pretrained start; `StageRecord.producer_cost` carries the summed cost of every
+ancestor. With checkpoint monitoring enabled, the update-0 checkpoint is the
+pretrained policy. To extend one unchanged recipe with its Adam and EMA state,
+use [portable learner continuation](training-recovery.md) instead. Remote jobs
+reject `pretrained` until the controller can stage and grant those bytes.
 
 Costs have two explicit meanings:
 

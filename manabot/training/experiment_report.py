@@ -5,8 +5,9 @@ figures; write_dashboard only renders those choices. Matching requires every
 retained run in a compatible cohort at the same stage/update coordinate.
 """
 
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
+from functools import cached_property
 from html import escape
 from io import StringIO
 import json
@@ -26,6 +27,11 @@ from manabot.training.models import TrainingRegime, TrainingRun
 from manabot.training.monitor_evaluation import MonitorResult
 from manabot.training.monitoring import Scalar, training_dashboard
 from manabot.training.report_study import ScientificStudy
+from manabot.training.time_profile import (
+    training_intervals,
+    training_profiles,
+    training_time_report,
+)
 
 
 class RetainedRegime(TrainingRegime):
@@ -72,11 +78,25 @@ class ReportEvidence:
     failed_directories: tuple[Path, ...]
     paths: tuple[Path, ...]
 
+    @cached_property
+    def runs_by_id(self) -> dict[str, TrainingRun]:
+        return {run.id: run for run in self.runs}
+
+    def logical_run_id(self, run_id: str) -> str:
+        """A recovery child extends its original seed, never another replicate."""
+        seen: set[str] = set()
+        while (
+            run := self.runs_by_id.get(run_id)
+        ) is not None and run.parent_run_id is not None:
+            if run_id in seen:
+                raise ValueError("cyclic recovery lineage")
+            seen.add(run_id)
+            run_id = run.parent_run_id
+        return run_id
+
     def label(self, run_id: str) -> str:
-        return next(
-            (f"{r.regime.id} · seed {r.seed}" for r in self.runs if r.id == run_id),
-            run_id,
-        )
+        run = self.runs_by_id.get(run_id)
+        return f"{run.regime.id} · seed {run.seed}" if run is not None else run_id
 
     def metrics(self, run: TrainingRun) -> list[dict[str, Scalar]]:
         """Expose all saved diagnostics for notebook-selected deeper analysis."""
@@ -139,10 +159,10 @@ def compatible_panels(evidence: ReportEvidence) -> dict[str, list[MonitorResult]
 
 def matched_milestones(evidence: ReportEvidence) -> dict[str, list[MonitorResult]]:
     """Intersect stage/update coordinates across all expected runs, without interpolation."""
-    expected = {r.id for r in evidence.runs}
+    expected = {evidence.logical_run_id(r.id) for r in evidence.runs}
     if any(
         a.status in {"pending", "running", "failed", "interrupted"}
-        and a.run_id not in expected
+        and a.run_id not in evidence.runs_by_id
         for e in evidence.executions
         for a in e.attempts
     ):
@@ -156,7 +176,8 @@ def matched_milestones(evidence: ReportEvidence) -> dict[str, list[MonitorResult
         rows = [
             r
             for group in by_coordinate.values()
-            if {r.run_id for r in group} == expected and len(group) == len(expected)
+            if {evidence.logical_run_id(r.run_id) for r in group} == expected
+            and len(group) == len(expected)
             for r in group
         ]
         if rows:
@@ -176,11 +197,14 @@ def strength_figures(
         "environment_decisions",
     ] = "updates",
     *,
+    matched_only: bool = True,
     per_run: bool = False,
 ) -> list[Figure]:
-    """Plot matched milestones per seed; bands are saved deal uncertainty, not seed CIs."""
+    """Plot each seed's milestones; bands are saved deal uncertainty, not seed CIs."""
     figures: list[Figure] = []
-    panels = matched_milestones(evidence)
+    panels = (
+        matched_milestones(evidence) if matched_only else compatible_panels(evidence)
+    )
     if axis == "updates" and any(
         stage.operation != "train_self_play"
         for run in evidence.runs
@@ -188,16 +212,25 @@ def strength_figures(
     ):
         return []
     if per_run:
-        # Explicit within-run histories do not claim compatibility across variants.
+        # A resumed seed remains one history, including its parent checkpoints.
+        logical_ids = {evidence.logical_run_id(run.id) for run in evidence.runs}
         panels = {
-            f"{panel}/{run.id}": results
-            for run in evidence.runs
+            f"{panel}/{run_id}": results
+            for run_id in sorted(logical_ids)
             for panel, results in matched_milestones(
                 replace(
                     evidence,
-                    runs=(run,),
+                    runs=tuple(
+                        run
+                        for run in evidence.runs
+                        if evidence.logical_run_id(run.id) == run_id
+                    ),
                     executions=(),
-                    monitors=tuple(m for m in evidence.monitors if m.run_id == run.id),
+                    monitors=tuple(
+                        result
+                        for result in evidence.monitors
+                        if evidence.logical_run_id(result.run_id) == run_id
+                    ),
                 )
             ).items()
         }
@@ -207,11 +240,11 @@ def strength_figures(
             continue
         fig = Figure(figsize=(9, 3.5), layout="constrained")
         ax = fig.subplots()
-        for run_id in sorted({r.run_id for r in results}):
-            rows = sorted(
-                (r for r in results if r.run_id == run_id),
-                key=lambda r: getattr(r.coordinates, axis),
-            )
+        by_run: dict[str, list[MonitorResult]] = {}
+        for result in results:
+            by_run.setdefault(evidence.logical_run_id(result.run_id), []).append(result)
+        for run_id, rows in sorted(by_run.items()):
+            rows.sort(key=lambda r: getattr(r.coordinates, axis))
             x = [getattr(r.coordinates, axis) for r in rows]
             rates = [r.win for r in rows if r.win is not None]
             ax.errorbar(
@@ -241,8 +274,10 @@ def strength_figures(
                 "Within-run monitoring history"
                 if per_run
                 else "Matched stage/update milestones"
+                if matched_only
+                else "Individual trajectories (unmatched)"
             )
-            + f" · cohort {panel[:8]}",
+            + f" · {results[0].protocol.opponent} · cohort {panel[:8]}",
         )
         ax.legend(fontsize=8)
         figures.append(fig)
@@ -458,6 +493,54 @@ def _svg(figure: Figure) -> str:
     return stream.getvalue()[stream.getvalue().index("<svg") :]
 
 
+def _training_time(evidence: ReportEvidence, output: Path) -> str:
+    """Write the downloadable projection and render its existing training records."""
+    time_path = output.with_name(output.stem + "-training-time.json")
+    intervals, unavailable = training_intervals(evidence.runs, evidence.executions)
+    time_path.write_text(
+        json.dumps(
+            {
+                "units": "seconds",
+                "profiles": [asdict(p) for p in training_profiles(evidence.runs)],
+                "intervals": [asdict(i) for i in intervals],
+                "unavailable_intervals": unavailable,
+                "sources": [
+                    {
+                        "path": str(p.relative_to(evidence.root)),
+                        "sha256": file_sha256(p),
+                    }
+                    for p in evidence.paths
+                    if p.name in {"run.json", "experiment.json"}
+                ],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    return training_time_report(evidence.runs, evidence.executions) + (
+        f'<p><a href="{escape(time_path.name, quote=True)}" download>'
+        "Download training time accounting and source hashes (JSON)</a></p>"
+    )
+
+
+def write_time_profile(evidence: ReportEvidence, output: Path) -> Path:
+    """Write a selectable training cohort from existing offline evidence."""
+    from manabot.training.time_cohort import (
+        TimingSource,
+        native_cohort,
+        write_cohort_report,
+    )
+
+    sources = tuple(
+        TimingSource(str(p.relative_to(evidence.root)), file_sha256(p))
+        for p in evidence.paths
+        if p.name in {"run.json", "experiment.json"}
+    )
+    return write_cohort_report(
+        native_cohort(evidence.runs, evidence.executions, sources), output
+    )
+
+
 def write_dashboard(
     evidence: ReportEvidence,
     output: Path,
@@ -489,7 +572,7 @@ def write_dashboard(
         )
         guide_html = guide_html.replace(
             'href="evidence/',
-            'href="https://github.com/loopflowstudio/etude/blob/main/docs/evidence/',
+            'href="https://github.com/loopflowstudio/manabot/blob/main/docs/evidence/',
         )
         guide_path.write_text(
             '<!doctype html><html lang="en"><meta charset="utf-8">'
@@ -573,6 +656,12 @@ def write_dashboard(
             f"{statuses['completed']}/{len(execution.attempts)} regime-seed runs complete · {statuses['running']} running · {statuses['pending']} pending · {statuses['failed'] + statuses['interrupted']} failed/interrupted<br>"
             f"{link('Evidence freshness', 'freshness')}: {as_of} · {age} s old · status {execution.status}</p>"
         )
+        schedule = execution.intent.get("schedule")
+        if isinstance(schedule, dict) and schedule.get("active_runtime") is True:
+            parts.append(
+                f"<p>Active allocation charged: {_number(execution.elapsed_seconds)} s; calendar: {_number(execution.calendar_seconds)} s; known downtime: {_number(execution.downtime_seconds)} s; uncertain restart charge: {_number(execution.uncertain_seconds)} s. "
+                f"{'Paused at a committed boundary.' if execution.paused else 'No automatic statistical plateau stop.'}</p>"
+            )
     scientific_sections = "".join(
         section(title, anchor, figures)
         for title, anchor, figures in sections
@@ -609,24 +698,61 @@ def write_dashboard(
                 f"{_number(updates)} / {planned or 'unavailable'} updates; {run.status}",
                 f"{_number(latest.get('throughput/learner_transitions_per_second'))} transitions/s",
                 loss,
+                datetime.fromtimestamp(
+                    run.last_recorded_wall_seconds, timezone.utc
+                ).isoformat(timespec="seconds")
+                if run.last_recorded_wall_seconds
+                else "unavailable",
+                str(
+                    max(
+                        0,
+                        run.updates_through()
+                        - max(
+                            (
+                                r.coordinates.updates
+                                for r in evidence.monitors
+                                if evidence.logical_run_id(r.run_id)
+                                == evidence.logical_run_id(run.id)
+                                and r.status == "completed"
+                            ),
+                            default=0,
+                        ),
+                    )
+                ),
             ]
         )
     parts.append(f"<h2>{link('Progress, throughput and latest loss', 'learning')}</h2>")
     parts.append(
         _table(
-            ["Variant / seed", "Recorded / planned", "SPS", "Latest applicable loss"],
+            [
+                "Variant / seed",
+                "Recorded / planned",
+                "SPS",
+                "Latest applicable loss",
+                "Last saved update (UTC)",
+                "Updates awaiting evaluation",
+            ],
             rows,
         )
     )
     parts.append(
         '<p class="muted">SPS = cumulative learner transitions / recorded training seconds. RL loss is the last optimized minibatch objective, never log loss. Updates include empty-filter skips.</p>'
     )
+    parts.append(
+        '<p class="muted">Missing updates or failed evaluations are operational signals, not evidence of a statistical plateau. Inspect repeated strength estimates and uncertainty before requesting a safe pause.</p>'
+    )
     eval_rows: list[list[str]] = []
     for run in evidence.runs:
         results = [r for r in evidence.monitors if r.run_id == run.id]
         if not results:
             eval_rows.append(
-                [evidence.label(run.id), "pending / unavailable", "—", "—"]
+                [
+                    evidence.label(run.id),
+                    "pending / unavailable",
+                    "—",
+                    "—",
+                    "unavailable",
+                ]
             )
             continue
         result = max(results, key=lambda r: r.coordinates.training_seconds)
@@ -656,6 +782,11 @@ def write_dashboard(
                 f"{c.updates} updates; {c.learner_transitions} transitions; lag {lag} training s",
                 f"{result.opponent.display_name}; {sum(r.valid for r in result.rows)}/{result.expected_games} games",
                 rate,
+                datetime.fromtimestamp(result.finished_unix, timezone.utc).isoformat(
+                    timespec="seconds"
+                )
+                if result.finished_unix
+                else "unavailable",
             ]
         )
     if evidence.monitors or study is None:
@@ -669,6 +800,7 @@ def write_dashboard(
                     "Checkpoint / age",
                     "Opponent / games",
                     "Win rate [95% interval]",
+                    "Evaluation finished (UTC)",
                 ],
                 eval_rows,
             )
@@ -677,6 +809,7 @@ def write_dashboard(
             '<p class="muted">Intervals resample complete deals for one checkpoint, not training seeds. A one-deal fixture can have a zero-width interval; this is not precision or strength evidence.</p>'
         )
     parts.append(f"<h2>{link('Costs, resources and failures', 'costs')}</h2>")
+    parts.append(_training_time(evidence, output))
     rss = [
         s.sampled_peak_rss_bytes
         for r in evidence.runs
@@ -692,32 +825,6 @@ def write_dashboard(
         parts.append(
             f"<p>Scientific evaluation: {study.seconds:.2f} s. {escape(study.accounting)}</p>"
         )
-    parts.append(
-        _table(
-            [
-                "Regime / seed",
-                "Collection s",
-                "Learning s",
-                "Export s",
-                "Diagnostics s",
-            ],
-            [
-                [
-                    evidence.label(r.id),
-                    *[
-                        _number(sum(getattr(stage, field) for stage in r.stages))
-                        for field in (
-                            "collection_seconds",
-                            "learning_seconds",
-                            "export_seconds",
-                            "diagnostic_seconds",
-                        )
-                    ],
-                ]
-                for r in evidence.runs
-            ],
-        )
-    )
     if not evidence.executions:
         parts.append(
             f"<p>Sampled training peak RSS {_number(peak_mib)} MiB. Host price and execution heartbeat unavailable.</p>"
@@ -758,7 +865,7 @@ def write_dashboard(
         + "</p>"
     )
     parts.append(
-        f"<p>{link('Comparison rules', 'comparisons')}: Matched monitoring panels require common stage/update milestones across every retained run. Explicit within-run histories make no cross-regime comparison. Scientific panels use the declared study cohort. Work counts and time remain distinct; no unequal latest-checkpoint ranking.</p>"
+        f"<p>{link('Comparison rules', 'comparisons')}: Matched monitoring panels require common stage/update milestones across every retained run. Individual trajectories may show unmatched progress; explicit within-run histories make no cross-regime comparison. Scientific panels use the declared study cohort. Work counts and time remain distinct; no unequal latest-checkpoint ranking.</p>"
     )
     parts.append(
         f"<h2>{link('Diagnostic sampling and missing updates', 'sampling')}</h2>"
@@ -792,7 +899,7 @@ def write_dashboard(
             + "</details>"
         )
         parts.append(
-            '<p>Batch counts cover collected rows; gradient and parameter effect sample the first step at iteration 1 and every 25th iteration. Missing samples are unavailable. Forced choices and filtering can explain zeros; missing gradients or zero parameter movement need investigation. <a href="https://github.com/loopflowstudio/etude/blob/main/docs/numerical-health.md">Metric definitions and failure investigation</a>.</p>'
+            '<p>Batch counts cover collected rows; gradient and parameter effect sample the first step at iteration 1 and every 25th iteration. Missing samples are unavailable. Forced choices and filtering can explain zeros; missing gradients or zero parameter movement need investigation. <a href="https://github.com/loopflowstudio/manabot/blob/main/docs/numerical-health.md">Metric definitions and failure investigation</a>.</p>'
         )
     for title, anchor, figures in sections:
         if anchor != "comparisons":

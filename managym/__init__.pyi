@@ -162,6 +162,7 @@ class VectorEnv:
     ) -> List[Tuple[Observation, float, bool, bool, Dict[str, Any]]]: ...
     def set_buffers(self, buffers: Dict[str, np.ndarray]) -> None: ...
     def reset_all_into_buffers(self, player_configs: List[PlayerConfig]) -> None: ...
+    def reset_each_into_buffers(self, player_configs: list[list[PlayerConfig]]) -> None: ...
     def step_into_buffers(self, actions: List[int]) -> None: ...
     def skip_trivial_counts(self) -> List[int]: ...
     def get_last_info(self) -> List[Dict[str, Any]]: ...
@@ -172,10 +173,12 @@ class PlayerConfig:
         name: str,
         decklist: Dict[str, int],
         sideboard: Optional[Dict[str, int]] = None,
+        content_pack: str | None = None,
     ) -> None: ...
     name: str
     decklist: Dict[str, int]
     sideboard: Dict[str, int]
+    content_pack: str | None
 
 def authored_deck_setup(pack_key: str, deck_key: str) -> PlayerConfig: ...
 
@@ -344,6 +347,7 @@ class SideboardCard:
 
 class Permanent:
     id: int
+    registry_key: int
     controller_id: int
     tapped: bool
     damage: int
@@ -367,6 +371,9 @@ class Turn:
 class Action:
     action_type: ActionEnum
     focus: List[int]
+    declared: bool | None
+    mode_index: int | None
+    ability_index: int | None
 
 class ActionSpace:
     action_space_type: ActionSpaceEnum
@@ -416,3 +423,6 @@ class Observation:
     def toJSON(self) -> str: ...
 
 class AgentError(RuntimeError): ...
+
+WORLD_VERSION: str
+CARD_DEFINITION_COUNT: int

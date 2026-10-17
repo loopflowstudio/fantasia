@@ -38,8 +38,10 @@ import numpy as np
 import torch
 
 from manabot.env import Match, ObservationSpace, Reward
-from manabot.env.observation import ActionEnum
+from manabot.env.observation import ACTION_TYPE_DIM, ActionEnum
+from manabot.infra.profiler import Profiler
 from manabot.model.agent import Agent
+from manabot.model.inference import PolicyInference
 from manabot.model.policy_distribution import (
     NumericalError,
     legal_mask,
@@ -47,12 +49,14 @@ from manabot.model.policy_distribution import (
     require,
 )
 from manabot.model.train import Trainer
+from manabot.sim.producers import ShardedVectorEnv
 from manabot.sim.rollout import (
     OBS_KEYS,
     BatchedSampler,
     RandomBatchController,
     _allocate_buffers,
 )
+from manabot.training.matchups import Curriculum, stream_matches
 from manabot.training.self_play import SelfPlayCounter, deck_identity
 import managym
 
@@ -118,6 +122,7 @@ class CollectorStats:
     seconds: float = 0.0
     opponent_action_types: dict[str, int] = field(default_factory=dict)
     learner_action_types: dict[str, int] = field(default_factory=dict)
+    games_by_stream: dict[int, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -131,7 +136,16 @@ class CollectorStats:
             "seconds": self.seconds,
             "opponent_action_types": dict(self.opponent_action_types),
             "learner_action_types": dict(self.learner_action_types),
+            "games_by_stream": dict(self.games_by_stream),
         }
+
+
+@dataclass
+class CurrentGames:
+    """Native reset seeds and only the unfinished games' legal action prefixes."""
+
+    seeds: list[int]
+    actions: list[list[int]]
 
 
 @dataclass
@@ -147,6 +161,7 @@ class CollectorSnapshot:
     buffers: dict[str, np.ndarray]
     sampling_rng: torch.Tensor
     stats: CollectorStats
+    current_games: CurrentGames | None = None
 
 
 _ACTION_TYPE_NAMES = {int(member): member.name.lower() for member in ActionEnum}
@@ -177,7 +192,15 @@ class SeatRoutedCollector:
         opponent_agent: Agent | None = None,
         device: str = "cpu",
         recovery_max_microsteps: int | None = None,
+        recovery_max_game_microsteps: int | None = None,
+        root: str | None = None,
+        matchup_curriculum: Curriculum = "fixed",
+        workers: int = 1,
     ) -> None:
+        if workers not in (1, 2, 4) or workers > num_envs:
+            raise ValueError("workers must be 1, 2 or 4 and cannot exceed streams")
+        if workers != 1 and root is not None:
+            raise ValueError("diagnostic roots require one producer")
         if opponent_mode not in OPPONENT_MODES:
             raise ValueError(
                 f"opponent_mode must be one of {OPPONENT_MODES}, got {opponent_mode!r}"
@@ -187,58 +210,95 @@ class SeatRoutedCollector:
 
         self.observation_space = observation_space
         self.match = match
-        self.stream_matches = [match] * num_envs
         self.reward = reward
         self.num_envs = num_envs
         self.opponent_mode = opponent_mode
         self.device = torch.device(device)
         self.stats = CollectorStats()
-        if recovery_max_microsteps is not None and opponent_mode != "self":
+        # The calling training stage owns enablement and resets this timer.
+        # Only the collector thread records host intervals; workers never share it.
+        self.profiler = Profiler(enabled=False)
+        if (
+            recovery_max_microsteps is not None
+            or recovery_max_game_microsteps is not None
+        ) and opponent_mode != "self":
             raise ValueError("recovery supports current-self opponents only")
         self._recovery_limit = recovery_max_microsteps
+        self._game_recovery_limit = recovery_max_game_microsteps
+        self._game_actions: list[list[int]] = [[] for _ in range(num_envs)]
         self._journal: list[tuple[list[int], list[bool]]] = []
 
-        self._env = managym.VectorEnv(
-            num_envs=num_envs,
-            seed=seed,
-            skip_trivial=True,
-            opponent_policy="none",
-        )
-        self._buffers = _allocate_buffers(observation_space, num_envs)
-        self._env.set_buffers(self._buffers)
-        self._env.reset_all_into_buffers(match.to_rust())
-
-        self._self_play_decks = [
-            (
-                deck_identity(m.hero_deck, m.hero_sideboard),
-                deck_identity(m.villain_deck, m.villain_sideboard),
+        if root is None:
+            self._env = (
+                ShardedVectorEnv(num_envs, seed, workers)
+                if workers > 1
+                else managym.VectorEnv(
+                    num_envs=num_envs,
+                    seed=seed,
+                    skip_trivial=True,
+                    opponent_policy="none",
+                )
             )
-            for m in self.stream_matches
-        ]
+        else:
+            from manabot.env.target_practice import TargetPracticeVector
 
-        #: Learner seat per stream: stream s seats the learner at s % 2, so
-        #: half the streams have the learner on the play — seat-balanced.
-        self.learner_seat = np.arange(num_envs, dtype=np.int64) % 2
+            if (
+                root != "lethal-target-v1"
+                or recovery_max_microsteps is not None
+                or recovery_max_game_microsteps is not None
+            ):
+                raise ValueError("unsupported training root or root recovery")
+            self._env = TargetPracticeVector(observation_space, match, num_envs, seed)
+        try:
+            self._buffers = _allocate_buffers(observation_space, num_envs)
+            self._env.set_buffers(self._buffers)
+            self.stream_matches = stream_matches(match, num_envs, matchup_curriculum)
+            if matchup_curriculum == "fixed":
+                self._env.reset_all_into_buffers(match.to_rust())
+            else:
+                self._env.reset_each_into_buffers(
+                    [m.to_rust() for m in self.stream_matches]
+                )
 
-        self._streams: list[list[_Transition]] = [[] for _ in range(num_envs)]
-        self._pending: list[_Pending | None] = [None] * num_envs
+            self._self_play_decks = [
+                (
+                    deck_identity(m.hero_deck, m.hero_sideboard),
+                    deck_identity(m.villain_deck, m.villain_sideboard),
+                )
+                for m in self.stream_matches
+            ]
 
-        if opponent_mode == "random":
-            self._opponent: Any = RandomBatchController(seed=seed + 1)
-        elif opponent_mode == "frozen":
-            self._opponent = BatchedSampler(
-                opponent_agent, deterministic=False, seed=seed + 1, device=device
-            )
-        else:  # self-play: live learner weights, bound at collect() time
-            self._opponent = None
-        self._self_rng = torch.Generator(device=self.device).manual_seed(seed + 1)
+            #: Learner seat per stream: stream s seats the learner at s % 2, so
+            #: half the streams have the learner on the play — seat-balanced.
+            self.learner_seat = np.arange(num_envs, dtype=np.int64) % 2
 
-        self._win_reward = float(reward.hypers.win_reward)
-        self._lose_reward = float(reward.hypers.lose_reward)
+            self._streams: list[list[_Transition]] = [[] for _ in range(num_envs)]
+            self._pending: list[_Pending | None] = [None] * num_envs
+
+            if opponent_mode == "random":
+                self._opponent: Any = RandomBatchController(seed=seed + 1)
+            elif opponent_mode == "frozen":
+                self._opponent = BatchedSampler(
+                    opponent_agent, deterministic=False, seed=seed + 1, device=device
+                )
+            else:  # self-play: live learner weights, bound at collect() time
+                self._opponent = None
+            self._self_rng = torch.Generator(device=self.device).manual_seed(seed + 1)
+
+            self._win_reward = float(reward.hypers.win_reward)
+            self._lose_reward = float(reward.hypers.lose_reward)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        """Join owned CPU producers; ordinary single-vector collectors own no pool."""
+        if isinstance(self._env, ShardedVectorEnv):
+            self._env.close()
 
     def snapshot(self) -> CollectorSnapshot:
         """Capture a completed update boundary, including native RNG replay."""
-        if self._recovery_limit is None:
+        if self._recovery_limit is None and self._game_recovery_limit is None:
             raise ValueError("collector recovery is disabled")
         if any(self._streams) or any(p is not None for p in self._pending):
             raise ValueError("collector snapshot requires an update boundary")
@@ -247,21 +307,58 @@ class SeatRoutedCollector:
             {key: value.copy() for key, value in self._buffers.items()},
             self._self_rng.get_state().clone(),
             deepcopy(self.stats),
+            CurrentGames(self._env.current_game_seeds(), deepcopy(self._game_actions))
+            if self._game_recovery_limit is not None
+            else None,
         )
 
     def restore(self, state: CollectorSnapshot, check: Callable[[], None]) -> None:
         """Replay into a fresh collector; reject divergence before any learning."""
         if self.stats.micro_steps or self._journal:
             raise ValueError("restore requires a fresh collector")
-        if (
-            self._recovery_limit is None
-            or state.stats.micro_steps > self._recovery_limit
-        ):
-            raise ValueError("collector replay exceeds recovery bound")
-        for actions, active in state.journal:
-            check()
-            self._env.step_into_buffers(actions, active)
+        if state.current_games is not None:
+            games = state.current_games
+            if (
+                self._game_recovery_limit is None
+                or len(games.seeds) != self.num_envs
+                or len(games.actions) != self.num_envs
+                or sum(map(len, games.actions)) > self._game_recovery_limit
+            ):
+                raise ValueError("current-game replay exceeds recovery bound")
+            self._env.reset_seeds_into_buffers(games.seeds)
+            for index in range(max(map(len, games.actions), default=0)):
+                check()
+                active = [index < len(row) for row in games.actions]
+                actions = [
+                    row[index] if enabled else 0
+                    for row, enabled in zip(games.actions, active, strict=True)
+                ]
+                self._env.step_into_buffers(actions, active)
+                if (
+                    self._buffers["terminated"].any()
+                    or self._buffers["truncated"].any()
+                ):
+                    raise ValueError("current-game replay crossed a terminal boundary")
+            self._game_actions = deepcopy(games.actions)
+        else:
+            if (
+                self._recovery_limit is None
+                or state.stats.micro_steps > self._recovery_limit
+            ):
+                raise ValueError("collector replay exceeds recovery bound")
+            for actions, active in state.journal:
+                check()
+                self._env.step_into_buffers(actions, active)
         for key, expected in state.buffers.items():
+            # At an update boundary the terminal flags describe the preceding
+            # step; the encoded observation already belongs to its auto-reset root.
+            if state.current_games is not None and key in {
+                "rewards",
+                "terminated",
+                "truncated",
+            }:
+                self._buffers[key][...] = expected
+                continue
             if not np.array_equal(self._buffers[key], expected):
                 raise ValueError(f"collector replay diverged: {key}")
         self._journal = deepcopy(state.journal)
@@ -273,9 +370,11 @@ class SeatRoutedCollector:
 
     # -- opponent routing -----------------------------------------------------
 
-    def _opponent_actions(self, agent: Agent, rows: np.ndarray) -> np.ndarray:
+    def _opponent_actions(
+        self, agent: Agent, rows: np.ndarray, inference: PolicyInference
+    ) -> np.ndarray:
         if self.opponent_mode == "self":
-            obs = self._slice_obs_tensors(rows)
+            obs = self._slice_obs_tensors(rows, inference)
             with torch.inference_mode():
                 logits, _ = agent.forward(obs)
                 probs = self._policy_logs(logits, obs).exp()
@@ -297,20 +396,29 @@ class SeatRoutedCollector:
             )
             raise
 
-    def _slice_obs_tensors(self, rows: np.ndarray) -> Dict[str, torch.Tensor]:
+    def _slice_obs_tensors(
+        self, rows: np.ndarray, inference: PolicyInference | None = None
+    ) -> dict[str, torch.Tensor]:
         obs = {}
         for key in OBS_KEYS:
             tensor = torch.from_numpy(self._buffers[key][rows])
             if key == "action_focus":
                 # Training convention (VectorEnv): action_focus as float32.
                 tensor = tensor.float()
-            obs[key] = tensor.to(self.device)
-        return obs
+            obs[key] = tensor
+        if inference is not None:
+            if inference.device.type != self.device.type or (
+                self.device.index is not None
+                and inference.device.index != self.device.index
+            ):
+                raise ValueError("collector and inference policy devices differ")
+            return inference.prepare(obs)
+        return {key: tensor.to(self.device) for key, tensor in obs.items()}
 
     def _count_action_types(
         self, counter: dict[str, int], rows: np.ndarray, actions: np.ndarray
     ) -> None:
-        chosen = self._buffers["actions"][rows, actions, :-1]
+        chosen = self._buffers["actions"][rows, actions, :ACTION_TYPE_DIM]
         type_indices = chosen.argmax(axis=1)
         typed = chosen.max(axis=1) > 0
         for idx, has_type in zip(type_indices, typed):
@@ -331,6 +439,27 @@ class SeatRoutedCollector:
     ) -> RolloutBatch:
         """Advance all streams until every env has ``num_steps`` finalized
         learner transitions, stopping before the bootstrap action is sampled."""
+
+        # No cache or prepared observation survives learning, snapshot or restore.
+        # Both seats in self-play use this same unchanged behavior-policy scope.
+        with self.profiler.track("Collection"), PolicyInference(agent) as inference:
+            return self._collect(
+                agent,
+                num_steps,
+                inference,
+                deadline_monotonic=deadline_monotonic,
+                check=check,
+            )
+
+    def _collect(
+        self,
+        agent: Agent,
+        num_steps: int,
+        inference: PolicyInference,
+        *,
+        deadline_monotonic: float | None,
+        check: Callable[[], None] | None,
+    ) -> RolloutBatch:
 
         start = time.perf_counter()
         buffers = self._buffers
@@ -362,54 +491,60 @@ class SeatRoutedCollector:
             opp_rows = np.flatnonzero(active & (acting != self.learner_seat))
 
             if len(learner_rows):
-                obs_t = self._slice_obs_tensors(learner_rows)
-                with torch.no_grad():
-                    outcomes: np.ndarray | None = None
-                    if agent.hypers.value_kind == "categorical_wdl":
-                        logits, outcome_logits = agent.forward_distribution(obs_t)
-                        outcome_t = outcome_logits.softmax(dim=-1)
-                        value_t = outcome_t[:, 2] - outcome_t[:, 0]
-                        outcomes = outcome_t.cpu().numpy()
-                    else:
-                        logits, value_t = agent(obs_t)
-                    logs = self._policy_logs(logits, obs_t)
-                    require(
-                        torch.isfinite(value_t),
-                        "nonfinite_collection_values",
-                        values=value_t,
-                        valid=obs_t["actions_valid"] > 0,
+                with self.profiler.track("Observation preparation"):
+                    obs_t = self._slice_obs_tensors(learner_rows, inference)
+                with self.profiler.track("Policy inference and action selection"):
+                    with torch.no_grad():
+                        outcomes: np.ndarray | None = None
+                        if agent.hypers.value_kind == "categorical_wdl":
+                            logits, outcome_logits = agent.forward_distribution(obs_t)
+                            outcome_t = outcome_logits.softmax(dim=-1)
+                            value_t = outcome_t[:, 2] - outcome_t[:, 0]
+                            outcomes = outcome_t.cpu().numpy()
+                        else:
+                            logits, value_t = agent(obs_t)
+                        logs = self._policy_logs(logits, obs_t)
+                        require(
+                            torch.isfinite(value_t),
+                            "nonfinite_collection_values",
+                            values=value_t,
+                            valid=obs_t["actions_valid"] > 0,
+                        )
+                        weights = logs.exp()
+                        action_t = torch.multinomial(
+                            weights, 1, generator=self._self_rng
+                        ).squeeze(-1)
+                        logprob_t = logs.gather(-1, action_t[:, None]).squeeze(-1)
+                        probabilities = weights.cpu().numpy()
+                        log_probabilities = logs.cpu().numpy()
+                    acts = action_t.cpu().numpy().astype(np.int64)
+                    logprobs = logprob_t.cpu().numpy()
+                    values = value_t.view(-1).cpu().numpy()
+                with self.profiler.track("Rollout recording"):
+                    # One copied slice per key; per-row dicts view into it.
+                    obs_rows = {
+                        key: buffers[key][learner_rows].copy() for key in OBS_KEYS
+                    }
+                    for j, row in enumerate(learner_rows):
+                        self._pending[row] = _Pending(
+                            obs={key: obs_rows[key][j] for key in OBS_KEYS},
+                            action=int(acts[j]),
+                            logprob=float(logprobs[j]),
+                            value=float(values[j]),
+                            probabilities=probabilities[j].copy(),
+                            log_probabilities=log_probabilities[j].copy(),
+                            outcome_probabilities=(
+                                None if outcomes is None else outcomes[j].copy()
+                            ),
+                        )
+                    actions[learner_rows] = acts
+                    self._count_action_types(
+                        self.stats.learner_action_types, learner_rows, acts
                     )
-                    weights = logs.exp()
-                    action_t = torch.multinomial(
-                        weights, 1, generator=self._self_rng
-                    ).squeeze(-1)
-                    logprob_t = logs.gather(-1, action_t[:, None]).squeeze(-1)
-                    probabilities = weights.cpu().numpy()
-                    log_probabilities = logs.cpu().numpy()
-                acts = action_t.cpu().numpy().astype(np.int64)
-                logprobs = logprob_t.cpu().numpy()
-                values = value_t.view(-1).cpu().numpy()
-                # One copied slice per key; per-row dicts view into it.
-                obs_rows = {key: buffers[key][learner_rows].copy() for key in OBS_KEYS}
-                for j, row in enumerate(learner_rows):
-                    self._pending[row] = _Pending(
-                        obs={key: obs_rows[key][j] for key in OBS_KEYS},
-                        action=int(acts[j]),
-                        logprob=float(logprobs[j]),
-                        value=float(values[j]),
-                        probabilities=probabilities[j].copy(),
-                        log_probabilities=log_probabilities[j].copy(),
-                        outcome_probabilities=(
-                            None if outcomes is None else outcomes[j].copy()
-                        ),
-                    )
-                actions[learner_rows] = acts
-                self._count_action_types(
-                    self.stats.learner_action_types, learner_rows, acts
-                )
 
             if len(opp_rows):
-                opp_acts = self._opponent_actions(agent, opp_rows)
+                with self.profiler.track("Opponent policy"):
+                    opp_acts = self._opponent_actions(agent, opp_rows, inference)
                 actions[opp_rows] = opp_acts
                 self.stats.opponent_decisions += len(opp_rows)
                 self._count_action_types(
@@ -420,16 +555,28 @@ class SeatRoutedCollector:
                 if self.stats.micro_steps + int(active.sum()) > self._recovery_limit:
                     raise RuntimeError("collector recovery journal limit exceeded")
                 self._journal.append((actions.tolist(), active.tolist()))
-            env.step_into_buffers(actions.tolist(), active.tolist())
+            with self.profiler.track("Environment step and encoding"):
+                env.step_into_buffers(actions.tolist(), active.tolist())
             self.stats.micro_steps += int(active.sum())
 
             done = (buffers["terminated"] > 0) | (buffers["truncated"] > 0)
+            if self._game_recovery_limit is not None:
+                for row in np.flatnonzero(active):
+                    if done[row]:
+                        self._game_actions[row].clear()
+                    else:
+                        self._game_actions[row].append(int(actions[row]))
+                if sum(map(len, self._game_actions)) > self._game_recovery_limit:
+                    raise RuntimeError("current-game recovery journal limit exceeded")
             if done.any():
                 infos = env.get_last_info()
                 for row in np.flatnonzero(done):
                     winner = infos[row].get("winner_index")
                     winner = int(winner) if winner is not None else None
                     self.stats.games += 1
+                    self.stats.games_by_stream[int(row)] = (
+                        self.stats.games_by_stream.get(int(row), 0) + 1
+                    )
                     if buffers["truncated"][row]:
                         self.stats.truncations += 1
                         raise RuntimeError(
@@ -449,7 +596,8 @@ class SeatRoutedCollector:
                     if self._pending[row] is not None:
                         self._finalize(int(row), reward=reward, done=True)
 
-        batch = self._build_batch(num_steps)
+        with self.profiler.track("Batch assembly"):
+            batch = self._build_batch(num_steps)
         self.stats.seconds += time.perf_counter() - start
         return batch
 

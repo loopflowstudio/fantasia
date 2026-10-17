@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 import platform
 import socket
-import subprocess
 import time
 from typing import TYPE_CHECKING
 import uuid
@@ -32,6 +31,7 @@ from manabot.belief.sampling_fit import (
 from manabot.env import Match, ObservationSpace, Reward
 from manabot.infra import Experiment
 from manabot.infra.hypers import ExperimentHypers, RewardHypers, TrainHypers
+from manabot.infra.profiler import Profiler
 from manabot.model.agent import Agent
 from manabot.model.architecture import architecture_identity
 from manabot.model.policy_distribution import NumericalError
@@ -48,7 +48,7 @@ from manabot.sim.teacher1_evidence import runtime_fingerprints, source_bundle_sh
 import managym
 
 from .admission import admit_policy
-from .clock import watchdog_seconds
+from .clock import boot_identity, watchdog_seconds
 from .compound import CompoundStatistics, collect_game, optimize_games, replay_game
 from .incidents import save_incident
 from .learning_state import admit_learning_state, validate_adam
@@ -63,6 +63,7 @@ from .models import (
     ImportPolicy,
     MonitoringCheckpoint,
     NumericalFailure,
+    PhaseTiming,
     StageRecord,
     TrainBelief,
     TrainCompound,
@@ -73,6 +74,8 @@ from .models import (
 )
 from .objectives import update_ema, update_iteration
 from .recovery import (
+    TrainingPaused,
+    UpdateSnapshot,
     attempt_lock,
     load_update,
     restore_learning,
@@ -81,6 +84,7 @@ from .recovery import (
 )
 from .selection_analysis import analyze_selection, write_selection_report
 from .selection_data import SelectionDataset, collect_selection_game
+from .source_bundle import source_commit
 
 if TYPE_CHECKING:
     from manabot.verify.store import VerifyStore
@@ -109,12 +113,21 @@ def export_training_run(
     return run
 
 
-def validate_regime(regime: TrainingRegime | Mapping[str, object]) -> TrainingRegime:
+def validate_regime(
+    regime: TrainingRegime | Mapping[str, object], *, require_current_world: bool = True
+) -> TrainingRegime:
+    """Validate a recipe; execution additionally requires the native world.
+
+    Offline authoring can resolve historical recipes without relabeling them.
+    Every execution entry point retains the current-world check by default.
+    """
     regime = TrainingRegime.model_validate(
         regime.model_dump() if isinstance(regime, TrainingRegime) else regime
     )
-    if regime.world != managym.WORLD_VERSION:
+    if require_current_world and regime.world != managym.WORLD_VERSION:
         raise ValueError("regime world differs from native runtime")
+    if regime.world not in {"w2", "w3", "w4", "w5", managym.WORLD_VERSION}:
+        raise ValueError("unsupported regime world")
     if regime.agent.belief_count_buckets:
         raise ValueError("regime stages do not produce belief inputs")
     return regime
@@ -139,9 +152,7 @@ def _runtime_identities(
         ),
         torch=torch.__version__,
         policy_numerics="masked-log-softmax-v1",
-        source_commit=subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], text=True
-        ).strip(),
+        source_commit=source_commit(),
     )
     if any(stage.execution.device == "cuda" for stage in regime.stages):
         if not torch.cuda.is_available():
@@ -166,12 +177,22 @@ def execute_regime(
     *,
     resume_from: str | None = None,
     checkpoint_seconds: float | None = None,
-    checkpoint_updates: int | None = None,
+    checkpoint_updates: int | tuple[int, ...] | None = None,
     initial_admission: Path | None = None,
     allocation: Allocation | None = None,
+    pause_path: Path | None = None,
 ) -> TrainingRun:
     """Execute under a local lease, including admission and crash settlement."""
     regime = validate_regime(regime)
+    # Explicit milestones retain the historical multi-stage/hourly contract;
+    # an integer is the prospective, single-stage absolute-update cadence.
+    checkpoint_milestones = (
+        checkpoint_updates if isinstance(checkpoint_updates, tuple) else ()
+    )
+    if isinstance(checkpoint_updates, tuple):
+        checkpoint_updates = None
+    if any(type(n) is not int or n <= 0 for n in checkpoint_milestones):
+        raise ValueError("checkpoint milestones must be positive integers")
     if initial_admission is not None and (
         (checkpoint_seconds is None and checkpoint_updates is None)
         or resume_from is not None
@@ -205,11 +226,15 @@ def execute_regime(
             )
         if time.time() >= allocation.pause_at:
             raise ValueError("allocation reserves exhausted before training admission")
+    if pause_path is not None and not regime.recoverable:
+        raise ValueError("safe pause requires complete-state recovery")
     destination = Path(out).resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
     lease = destination.with_name(destination.name + ".writer.lock")
     with ExitStack() as leases:
         leases.enter_context(attempt_lock(lease))
+        parent = None
+        snapshot = None
         if resume_from is not None:
             parent = store.training_run(resume_from)
             if parent.recovery_lock_path is None:
@@ -221,12 +246,13 @@ def execute_regime(
                 regime.model_dump(mode="json")
             ):
                 raise ValueError("recovery recipe or seed mismatch")
-            if (checkpoint_updates, checkpoint_seconds) != (
+            if (checkpoint_updates, checkpoint_seconds, checkpoint_milestones) != (
                 parent.monitoring_checkpoint_updates,
                 parent.monitoring_checkpoint_seconds,
+                parent.monitoring_checkpoint_milestones,
             ):
                 raise ValueError("recovery checkpoint cadence differs from parent")
-            load_update(parent)
+            snapshot = load_update(parent, store)
             if parent.identities != _runtime_identities(
                 seed, regime, ObservationSpace(regime.observation)
             ):
@@ -236,14 +262,22 @@ def execute_regime(
                 # Preserve the old run.json and snapshots. The canonical record
                 # explains settlement, including the explicitly estimated cost.
                 store.save_training_run(settled)
+            parent = settled
+            if parent.status not in {"failed", "interrupted", "paused"}:
+                raise ValueError(
+                    "recovery requires a stopped failed, interrupted or paused attempt"
+                )
         return _execute_regime(
             regime,
             seed,
             destination,
             store,
-            resume_from=resume_from,
+            parent=parent,
+            snapshot=snapshot,
             checkpoint_seconds=checkpoint_seconds,
             checkpoint_updates=checkpoint_updates,
+            checkpoint_milestones=checkpoint_milestones,
+            pause_path=pause_path,
             initial_admission=initial_admission,
             allocation=allocation,
         )
@@ -255,26 +289,16 @@ def _execute_regime(
     out: str | Path,
     store: "VerifyStore",
     *,
-    resume_from: str | None = None,
+    parent: TrainingRun | None,
+    snapshot: UpdateSnapshot | None,
     checkpoint_seconds: float | None = None,
     checkpoint_updates: int | None = None,
+    checkpoint_milestones: tuple[int, ...] = (),
+    pause_path: Path | None = None,
     initial_admission: Path | None = None,
     allocation: Allocation | None = None,
 ) -> TrainingRun:
-    regime = validate_regime(regime)
-    parent = store.training_run(resume_from) if resume_from is not None else None
-    if parent is not None:
-        if parent.status not in {"failed", "interrupted", "paused"}:
-            raise ValueError(
-                "recovery requires a stopped failed, interrupted or paused attempt"
-            )
-        if (
-            regime.recovery_max_microsteps is None
-            or parent.seed != seed
-            or parent.regime_digest != canonical_sha256(regime.model_dump(mode="json"))
-        ):
-            raise ValueError("recovery recipe or seed mismatch")
-    snapshot = load_update(parent) if parent is not None else None
+    """Execute admitted inputs while the caller holds both recovery writer leases."""
     # A retry can fail during setup before reaching its stage. Walk the retained
     # lineage so that failure cannot erase a stage allowance or completion receipt.
     prior_records: dict[str, StageRecord] = {}
@@ -290,7 +314,9 @@ def _execute_regime(
     out = Path(out).resolve()
     out.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
-    watchdog_start = watchdog_seconds()
+    budget_now = time.monotonic if regime.recovery is not None else watchdog_seconds
+    calendar_start = time.time()
+    watchdog_start = budget_now()
     seeds = {
         name: seed + offset
         for name, offset in (
@@ -312,10 +338,13 @@ def _execute_regime(
         status="running",
         monitoring_checkpoint_seconds=checkpoint_seconds,
         monitoring_checkpoint_updates=checkpoint_updates,
+        monitoring_checkpoint_milestones=checkpoint_milestones,
         allocation_deadline=allocation.deadline if allocation is not None else None,
         recovery_lock_path=str(out.with_name(out.name + ".writer.lock")),
         recovery_host=socket.gethostname(),
         last_recorded_wall_seconds=time.time(),
+        last_recorded_active_seconds=time.monotonic(),
+        recovery_boot_identity=boot_identity() if regime.recovery else None,
         parent_run_id=parent.id if parent is not None else None,
         prior_seconds=parent.prior_seconds + parent.seconds
         if parent is not None
@@ -326,7 +355,7 @@ def _execute_regime(
         recovery_artifact=parent.recovery_artifact if parent is not None else None,
         stages=deepcopy(snapshot.completed_stages) if snapshot is not None else [],
     )
-    if parent is not None and checkpoint_updates is not None:
+    if parent is not None and (checkpoint_updates is not None or checkpoint_milestones):
         assert snapshot is not None
         restored_updates = sum(
             len(s.diagnostics) for s in (*snapshot.completed_stages, snapshot.record)
@@ -352,6 +381,7 @@ def _execute_regime(
     outputs = {}
     self_play_session = None
     resources = ExitStack()
+    producers = resources.enter_context(ExitStack())
     game_index = 0
     fixed_validation_dataset: dict[str, np.ndarray] | None = None
     last_monitor_seconds = 0.0
@@ -371,8 +401,11 @@ def _execute_regime(
         """
         nonlocal last_export, export_wait
         run.seconds = time.perf_counter() - start
-        run.watchdog_seconds = watchdog_seconds() - watchdog_start
+        run.watchdog_seconds = budget_now() - watchdog_start
         run.last_recorded_wall_seconds = time.time()
+        run.last_recorded_active_seconds = time.monotonic()
+        run.calendar_seconds = max(0.0, run.last_recorded_wall_seconds - calendar_start)
+        run.downtime_seconds = max(0.0, run.calendar_seconds - run.seconds)
         store.save_training_run(run)
         began = time.monotonic()
         if progress and began - last_export < export_wait:
@@ -444,10 +477,18 @@ def _execute_regime(
             else time.perf_counter() - start - run.monitoring_export_seconds
         )
         point = coordinates()
+        if (
+            isinstance(stage, TrainSelfPlay)
+            and len(record.diagnostics) == stage.updates
+        ):
+            return
+        scheduled = point["updates"] in checkpoint_milestones and not any(
+            c.updates == point["updates"] for c in run.monitoring_checkpoints
+        )
         if checkpoint_updates is not None:
             if point["updates"] == 0 or point["updates"] % checkpoint_updates:
                 return
-        elif (
+        elif not scheduled and (
             checkpoint_seconds is None
             or elapsed - last_monitor_seconds < checkpoint_seconds
         ):
@@ -541,6 +582,11 @@ def _execute_regime(
                 record.optimizer_updates = (
                     record.observed_optimizer_updates() if snapshot is not None else 0
                 )
+                if not restoring_completed:
+                    record.admission_wait_seconds = 0.0
+                    record.collection_timings = (
+                        {} if stage.execution.profile_collection else None
+                    )
             if not restoring_completed:
                 record.status = "running"
                 record.error = None
@@ -558,7 +604,7 @@ def _execute_regime(
                 record.cumulative_seconds = None
             run.stages.append(record)
             stage_start = time.perf_counter()
-            stage_watchdog_start = watchdog_seconds()
+            stage_watchdog_start = budget_now()
             prior_stage_watchdog = (
                 prior_records[stage.id].watchdog_seconds
                 if stage.id in prior_records
@@ -594,10 +640,11 @@ def _execute_regime(
             if not restoring_completed:
                 record.actual_threads = torch.get_num_threads()
 
+            last_memory_sample = float("-inf")
+
             def check() -> None:
-                charged = (
-                    run.prior_watchdog_seconds + watchdog_seconds() - watchdog_start
-                )
+                nonlocal last_memory_sample
+                charged = run.prior_watchdog_seconds + budget_now() - watchdog_start
                 if (
                     time.perf_counter() >= deadline
                     or (
@@ -608,15 +655,20 @@ def _execute_regime(
                     and charged >= regime.wall_seconds
                     or (
                         allocation is None
-                        and regime.recovery_max_microsteps is not None
+                        and regime.recoverable
                         and not restoring_completed
-                        and prior_stage_watchdog
-                        + watchdog_seconds()
-                        - stage_watchdog_start
+                        and prior_stage_watchdog + budget_now() - stage_watchdog_start
                         >= stage.execution.wall_seconds
                     )
                 ):
                     raise TimeoutError("training resource wall deadline exceeded")
+                # Deadline checks run at every native step. On macOS, recursive
+                # child discovery scans the whole host process table; sampling
+                # RSS once per second avoids making supervision the workload.
+                now = time.perf_counter()
+                if now - last_memory_sample < 1.0:
+                    return
+                last_memory_sample = now
                 process = psutil.Process()
                 memory = process.memory_info().rss + sum(
                     p.memory_info().rss
@@ -800,9 +852,13 @@ def _execute_regime(
                                     stats.interrupted_microchoices += sum(
                                         '"command":' in line for line in partial
                                     )
-                            record.diagnostics = [asdict(stats)]
                             raise
-                        record.collection_seconds += time.perf_counter() - tick
+                        finally:
+                            # Failed collection/replay still consumes the run's
+                            # collection budget; retain that cost before settlement.
+                            record.collection_seconds += time.perf_counter() - tick
+                            stats.collection_seconds = record.collection_seconds
+                            record.diagnostics = [asdict(stats)]
                         record.artifacts[f"game-{game_index}"] = artifact(target)
                         stats.record_game(game)
                         record.games = stats.games
@@ -1015,6 +1071,36 @@ def _execute_regime(
                         seeds[name] += imported.origin.iteration
                     run.seed_streams = dict(seeds)
                     persist()
+                pretrained = None
+                if stage.pretrained is not None and snapshot is None:
+                    # A recovered attempt restores its own learner snapshot; the
+                    # producer was admitted, and its copies retained, only once.
+                    record.inputs.update(
+                        {
+                            "pretrained/source_run": dict(stage.pretrained.source_run),
+                            "pretrained/checkpoint": dict(stage.pretrained.checkpoint),
+                        }
+                    )
+                    persist()
+                    tick = time.perf_counter()
+                    admitted = admit_policy(
+                        stage.pretrained, regime, out, name=f"{stage.id}-pretrained"
+                    )
+                    record.artifacts["pretrained"] = admitted.checkpoint
+                    record.artifacts["pretrained_run"] = admitted.source_run
+                    record.producer_cost = admitted.producer_cost
+                    # Fork RNG so loading never shifts this run's own streams.
+                    with torch.random.fork_rng(devices=[]):
+                        pretrained, _ = load_checkpoint_agent(
+                            admitted.checkpoint["path"]
+                        )
+                    if any(
+                        not torch.isfinite(value).all()
+                        for value in pretrained.state_dict().values()
+                    ):
+                        raise ValueError("pretrained policy contains nonfinite tensors")
+                    record.export_seconds += time.perf_counter() - tick
+                    persist()
                 opponent_agent = None
                 if stage.opponent is not None:
                     # Validate before every stage, even when retaining the live
@@ -1049,11 +1135,13 @@ def _execute_regime(
                     agent = Agent(space, regime.agent).to(stage.execution.device)
                     if imported is not None:
                         agent.load_state_dict(imported.raw.state_dict())
-                    if (
-                        stage.opponent is not None
-                        or checkpoint_seconds is not None
-                        or (checkpoint_updates is not None and imported is None)
-                    ) and snapshot is None:
+                    if pretrained is not None:
+                        # Only weights are inherited: Adam, the EMA average and
+                        # the schedule iteration below all start fresh.
+                        agent.load_state_dict(pretrained.state_dict())
+                        pretrained = None
+                    if snapshot is None:
+                        phase = "export_seconds"
                         tick = time.perf_counter()
                         target = out / f"{stage.id}-initial-raw.pt"
                         temporary = target.with_suffix(".tmp")
@@ -1066,6 +1154,7 @@ def _execute_regime(
                                 "run_id": run.id,
                                 "stage_id": stage.id,
                                 "weights": "initial_raw",
+                                "value_semantic": "signed_outcome",
                                 "regime_digest": run.regime_digest,
                             },
                         )
@@ -1087,14 +1176,21 @@ def _execute_regime(
                             # after its initialization cohort is complete and
                             # durably published. Waiting consumes the watchdog,
                             # never collection/learning time or RNG draws.
-                            while not initial_admission.exists():
-                                check()
-                                time.sleep(0.2)
+                            admission_started = time.perf_counter()
+                            try:
+                                while not initial_admission.exists():
+                                    check()
+                                    time.sleep(0.2)
+                            finally:
+                                record.admission_wait_seconds = (
+                                    time.perf_counter() - admission_started
+                                )
                             if (
                                 initial_admission.read_text().strip()
                                 != record.artifacts["initial_raw"]["sha256"]
                             ):
                                 raise ValueError("initial evaluation admission differs")
+                    producers.close()
                     collector = SeatRoutedCollector(
                         space,
                         Match(regime.match),
@@ -1103,11 +1199,20 @@ def _execute_regime(
                         seed=seeds["collection"],
                         opponent_mode="frozen"
                         if stage.opponent is not None
+                        else "random"
+                        if stage.behavior == "random"
                         else "self",
                         opponent_agent=opponent_agent,
                         recovery_max_microsteps=regime.recovery_max_microsteps,
+                        recovery_max_game_microsteps=regime.recovery.max_game_microsteps
+                        if regime.recovery
+                        else None,
+                        root=stage.root,
+                        matchup_curriculum=stage.matchup_curriculum,
                         device=stage.execution.device,
+                        workers=stage.execution.workers,
                     )
+                    producers.callback(collector.close)
                     experiment = Experiment(
                         ExperimentHypers(
                             wandb=False,
@@ -1140,6 +1245,9 @@ def _execute_regime(
                         imported = None
                 if not restoring_completed:
                     record.actual_device = str(next(trainer.agent.parameters()).device)
+                trainer.collector.profiler = Profiler(
+                    enabled=stage.execution.profile_collection
+                )
                 before = deepcopy(trainer.collector.stats)
                 rng = np.random.default_rng(seeds["minibatches"] + iteration)
                 first_update = 0
@@ -1163,13 +1271,15 @@ def _execute_regime(
                     continue
 
                 def checkpoint(label: str) -> None:
-                    if regime.recovery_max_microsteps is None:
+                    nonlocal phase
+                    if not regime.recoverable:
                         return
                     tick = time.perf_counter()
                     record.watchdog_seconds = (
-                        prior_stage_watchdog + watchdog_seconds() - stage_watchdog_start
+                        prior_stage_watchdog + budget_now() - stage_watchdog_start
                     )
-                    target = out / f"{stage.id}-{label}.pt"
+                    suffix = ".pt.gz" if regime.recovery else ".pt"
+                    target = out / f"{stage.id}-{label}{suffix}"
                     save_update(
                         target, trainer, ema, rng, iteration, record, run, before
                     )
@@ -1209,9 +1319,7 @@ def _execute_regime(
                             )
                             if allocation is not None
                             else deadline,
-                            check=check
-                            if regime.recovery_max_microsteps is not None
-                            else None,
+                            check=check if regime.recoverable else None,
                         )
                     except TimeoutError:
                         if allocation is None or time.time() < allocation.pause_at:
@@ -1221,25 +1329,51 @@ def _execute_regime(
                     finally:
                         synchronize()
                         record.collection_seconds += time.perf_counter() - tick
+                        if stage.execution.profile_collection:
+                            # Subphases inherit the existing collection boundary.
+                            # Copy after it closes; reporting overhead is outside it.
+                            record.collection_timings = {
+                                path.removeprefix("Collection/"): PhaseTiming(
+                                    seconds=stats["total_time"],
+                                    calls=int(stats["count"]),
+                                )
+                                for path, stats in trainer.collector.profiler.get_stats().items()
+                                if path.startswith("Collection/")
+                            }
                     check()
                     tick = time.perf_counter()
                     try:
-                        diagnostic = update_iteration(
-                            trainer,
-                            batch,
-                            stage.learning,
-                            update_index / stage.updates
-                            if regime.schedule_clock == "iteration_fraction"
-                            else (
-                                time.perf_counter()
-                                - start
-                                - run.monitoring_export_seconds
+                        diagnostic = (
+                            update_iteration(
+                                trainer,
+                                batch,
+                                stage.learning,
+                                update_index / stage.updates
+                                if regime.schedule_clock == "iteration_fraction"
+                                else (
+                                    time.perf_counter()
+                                    - start
+                                    - run.monitoring_export_seconds
+                                )
+                                / regime.wall_seconds,
+                                rng,
+                                iteration=iteration + 1,
+                                bootstrap_agent=behavior_agent,
                             )
-                            / regime.wall_seconds,
-                            rng,
-                            iteration=iteration + 1,
-                            bootstrap_agent=behavior_agent,
+                            if stage.trainable == "policy_value"
+                            else {
+                                "rows": stage.streams * stage.transitions,
+                                "optimizer_exposures": 0,
+                                "retained": 0,
+                                "numerical": {"optimizer_steps": 0},
+                            }
                         )
+                        if stage.matchup_curriculum != "fixed":
+                            diagnostic["matchup_curriculum"] = stage.matchup_curriculum
+                            diagnostic["cumulative_games_by_stream"] = {
+                                str(k): v
+                                for k, v in trainer.collector.stats.games_by_stream.items()
+                            }
                         diagnostic["behavior"] = stage.behavior
                         diagnostic["behavior_iteration"] = iteration
                         if stage.learning.gradient != "ataraxos_move":
@@ -1270,20 +1404,34 @@ def _execute_regime(
                         - before.learner_transitions
                     )
                     diagnostic["coordinates"] = coordinates()
-                    # The completed stage export owns an active-time endpoint;
-                    # do not enqueue a duplicate monitoring cohort at that point.
-                    if checkpoint_updates is not None:
-                        # The final raw export owns an exact endpoint, including
-                        # one that also lies on the regular cadence grid.
-                        if update_index + 1 < stage.updates:
-                            monitor_checkpoint(trainer.agent)
-                    elif stage.active_seconds is None or (
+                    if stage.active_seconds is None or (
                         record.collection_seconds + record.learning_seconds
                         < stage.active_seconds
                     ):
                         monitor_checkpoint(trainer.agent)
-                    checkpoint(f"update-{iteration:08d}")
-                    persist(progress=True)
+                    pausing = pause_path is not None and pause_path.exists()
+                    cadence = (
+                        regime.recovery.checkpoint_updates
+                        if regime.recovery
+                        else regime.recovery_every_updates
+                    )
+                    checkpoint_due = (
+                        iteration % cadence == 0
+                        or pausing
+                        or (
+                            update_index + 1 == stage.updates
+                            if regime.recovery
+                            else iteration == 1
+                        )
+                    )
+                    if checkpoint_due:
+                        checkpoint(f"update-{iteration:08d}")
+                    if not regime.recovery or checkpoint_due:
+                        persist(progress=True)
+                    if pausing:
+                        raise TrainingPaused(
+                            "requested pause committed at an update boundary"
+                        )
                 if stage.active_seconds is not None and (
                     record.collection_seconds + record.learning_seconds
                     < stage.active_seconds
@@ -1435,7 +1583,7 @@ def _execute_regime(
             # Freeze the admission cost; later persistence belongs to later outputs.
             record.cumulative_seconds = run.prior_seconds + time.perf_counter() - start
             record.watchdog_seconds = (
-                prior_stage_watchdog + watchdog_seconds() - stage_watchdog_start
+                prior_stage_watchdog + budget_now() - stage_watchdog_start
             )
             if isinstance(stage, TrainSelfPlay):
                 try:
@@ -1447,7 +1595,7 @@ def _execute_regime(
                 record.seconds = time.perf_counter() - stage_start
                 record.cpu_seconds = time.process_time() - cpu_start
                 record.watchdog_seconds = (
-                    prior_stage_watchdog + watchdog_seconds() - stage_watchdog_start
+                    prior_stage_watchdog + budget_now() - stage_watchdog_start
                 )
                 record.cumulative_seconds = (
                     run.prior_seconds + time.perf_counter() - start
@@ -1472,13 +1620,13 @@ def _execute_regime(
         )
         run.error = f"{type(error).__name__}: {error}"
         if run.stages and run.stages[-1].status != "completed":
-            run.stages[-1].watchdog_seconds = (
-                prior_stage_watchdog + watchdog_seconds() - stage_watchdog_start
-            )
-            run.stages[-1].status = run.status
-            run.stages[-1].error = run.error
-            run.stages[-1].seconds = time.perf_counter() - stage_start
             record = run.stages[-1]
+            record.watchdog_seconds = (
+                prior_stage_watchdog + budget_now() - stage_watchdog_start
+            )
+            record.status = run.status
+            record.error = run.error
+            record.seconds = time.perf_counter() - stage_start
             retained_paths = {item["path"] for item in record.artifacts.values()}
             for journal in out.glob(f"{record.id}-*.receipts.jsonl"):
                 if str(journal) not in retained_paths:
@@ -1490,7 +1638,8 @@ def _execute_regime(
                 - record.collection_seconds
                 - record.learning_seconds
                 - record.export_seconds
-                - record.diagnostic_seconds,
+                - record.diagnostic_seconds
+                - (record.admission_wait_seconds or 0.0),
             )
             # Unmeasured setup, persistence and waits are never active training.
             # Self-play operation timers settle in finally, including failed work.
@@ -1531,12 +1680,8 @@ def _execute_regime(
                     record.error = run.error
                 record.diagnostic_seconds += time.perf_counter() - capture_start
                 record.seconds = time.perf_counter() - stage_start
-        run.seconds = time.perf_counter() - start
-        run.watchdog_seconds = watchdog_seconds() - watchdog_start
-        run.last_recorded_wall_seconds = time.time()
         try:
-            store.save_training_run(run)
-            export_training_run(run.id, store, out)
+            persist()
         except Exception as telemetry_error:
             error.add_note(
                 f"terminal telemetry failed: {type(telemetry_error).__name__}"

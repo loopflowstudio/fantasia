@@ -50,7 +50,11 @@ jobs:
       - name: Run unit tests
         run: |
           uv run --python 3.12 --extra dev pytest tests/infra/ \
-            tests/etude/test_clean_machine_verifier.py
+            tests/academy/test_clean_machine_verifier.py deploy/play/tests/
+
+      - name: Website routing tests
+        working-directory: website
+        run: uv run --python 3.12 --extra test pytest -q
 
   integration:
     name: Integration (${{ matrix.os }})
@@ -91,16 +95,29 @@ jobs:
       - name: Build managym extension
         run: uv run --python 3.12 --extra play maturin develop --features python --manifest-path managym/Cargo.toml
 
+      - name: Setup Node for offline report tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Integration tests
         run: |
-          uv run --python 3.12 --extra dev --extra notebook --extra artifacts pytest tests/env/ tests/agent/ tests/model/ tests/remote/ \
+          uv run --python 3.12 --extra dev --extra notebook --extra artifacts --extra reports pytest tests/env/ tests/agent/ tests/model/ tests/remote/ \
             tests/sim/test_structured_policy.py \
             tests/verify/test_checkpoint_scenarios.py tests/training/test_scenario_validation.py \
+            tests/arena/test_mirror_admission.py tests/training/test_matchups.py \
+            tests/training/test_mirror_long.py tests/training/test_local_service.py \
             tests/training/test_allocation.py tests/training/test_step_cadence.py tests/training/test_learning_state.py \
             tests/training/test_numerical_health.py tests/training/test_ataraxos_gradients.py \
             tests/training/test_ataraxos_regime.py tests/training/test_rl_objectives.py tests/sim/test_net_opponent.py \
             tests/training/test_monitoring.py tests/training/test_monitor_evaluation.py \
             tests/training/test_experiment_report.py tests/training/test_learning_dashboard.py \
+            tests/training/test_time_profile.py tests/training/test_time_cohort.py \
+            tests/training/test_active_training.py tests/training/test_active_recovery.py \
+            tests/training/test_producers.py tests/training/test_inference_preparation.py \
+            tests/training/test_basic_profile_study.py tests/training/test_profile_artifacts.py \
+            tests/training/test_learner_witnesses.py \
+            tests/bench/test_native_variants.py tests/bench/test_pipeline_benchmark.py tests/bench/test_worker_scaling.py \
             tests/training/test_checkpoint_queue.py tests/training/test_experiment_runner.py \
             tests/training/test_experiments.py tests/training/test_architecture_recipes.py \
             tests/training/test_technique_screen.py tests/training/test_filter_scope_mini.py tests/training/test_capacity_study.py tests/training/test_depth_screen.py \
@@ -166,11 +183,11 @@ jobs:
       - name: Certify Rust and Python
         run: |
           cargo test --manifest-path managym/Cargo.toml --test experience_protocol_tests
-          uv run --extra dev pytest tests/etude/test_experience_protocol.py -q
-          uv run --extra dev pytest tests/etude/test_server.py -k protocol_v1 -q
+          uv run --extra dev pytest tests/academy/test_experience_protocol.py -q
+          uv run --extra dev pytest tests/academy/test_server.py -k protocol_v1 -q
 
       - name: Launcher contract tests
-        run: uv run --extra dev pytest tests/etude/test_play_launcher.py -q
+        run: uv run --extra dev pytest tests/academy/test_play_launcher.py -q
 
       - name: Certify TypeScript
         working-directory: frontend
@@ -281,14 +298,14 @@ jobs:
       - name: Compare committed visual references
         if: ${{ github.event_name != 'workflow_dispatch' || !inputs.update_visual_references }}
         run: |
-          uv run --no-sync pytest tests/etude/test_release_prompt_matrix.py -q
+          uv run --no-sync pytest tests/academy/test_release_prompt_matrix.py -q
           npm --prefix frontend run test:e2e:release
 
       - name: Generate visual reference artifact
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.update_visual_references }}
         run: |
           npm --prefix frontend run test:e2e:release -- --update-snapshots
-          uv run --no-sync pytest tests/etude/test_release_prompt_matrix.py -q
+          uv run --no-sync pytest tests/academy/test_release_prompt_matrix.py -q
           npm --prefix frontend run test:e2e:release
 
       - name: Upload generated visual references

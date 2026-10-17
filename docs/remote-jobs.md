@@ -550,6 +550,10 @@ IDs and allocations that cannot fit the remaining deadline. An explicit insertio
 may extend the cohort deadline within a separately admitted access expiry; it
 never changes an existing job deadline or resets consumed money. A lost response is
 reconciled by rereading the same insertion; it never admits a replacement job.
+A cohort binds one insertion boundary. Later entries are added by submitting the
+bound insertion with new entries appended: existing entries, the boundary and
+admitted deadline or access limits cannot change, and the appended entries pass
+the same budget, deadline and admitted-successor checks.
 
 On restart, the scheduler checks remote state once before applying its cached
 observation cutoff, so an insertion accepted while it was offline remains visible.
@@ -591,8 +595,9 @@ source checkouts and credentials until every dependent allocation settles.
 
 ### Queued price rejection and startup clocks
 
-Public worker source is `loopflowstudio/fantasia`, not the private service repository
-`loopflowstudio/etude`. Admission checks the pinned commit/tree; Git fallback also
+Public worker source is `loopflowstudio/manabot`. The separate Etude client is
+`loopflowstudio/etude`; its private research service is `loopflowstudio/etude-studio`.
+Admission checks the pinned commit/tree; Git fallback also
 checks lock bytes. An API 403 may use the controller's existing `gh` login, then
 public Git fetch. No controller GitHub credential is forwarded to the rental.
 

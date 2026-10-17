@@ -19,6 +19,7 @@ from manabot.sim.search_supervised import (
     train_search_supervised,
 )
 from manabot.training import execution, monitoring
+from manabot.training.checkpoint_queue import checkpoints
 from manabot.training.execution import execute_regime
 from manabot.training.models import (
     CollectSearch,
@@ -36,6 +37,7 @@ from manabot.training.monitoring import (
 )
 from manabot.verify.store import VerifyStore
 from manabot.verify.util import INTERACTIVE_DECK
+import managym
 from tests.sim.test_search_supervised import _dataset
 
 
@@ -43,6 +45,8 @@ def _recipe() -> TrainingRegime:
     value = TrainingRegime.model_validate_json(
         Path("experiments/regimes/direct-self-play.json").read_text()
     )
+    value.world = managym.WORLD_VERSION
+    value.id = f"test-{value.world}-{value.id}"
     value.stages = value.stages[:1]
     stage = value.stages[0]
     assert isinstance(stage, TrainSelfPlay)
@@ -133,7 +137,11 @@ def test_monitor_exports_do_not_change_learning_and_survive_reload(
             recipe, 197, tmp_path / "monitored", store, checkpoint_seconds=1e-9
         )
         assert store.training_run(monitored.id) == monitored
-    assert len(monitored.monitoring_checkpoints) == 2
+    # The stage's raw export owns the endpoint; monitoring must not duplicate it.
+    assert [c.updates for c in monitored.monitoring_checkpoints] == [1]
+    evaluated = checkpoints(monitored)
+    assert [c.coordinates.updates for c in evaluated] == [1, 2]
+    assert evaluated[-1].artifact == monitored.selected_artifact
     for checkpoint in monitored.monitoring_checkpoints:
         assert checkpoint.error is None and checkpoint.artifact is not None
         load_checkpoint_agent(checkpoint.artifact["path"])
@@ -218,7 +226,7 @@ def test_executor_streams_fixed_and_growing_validation(
     monkeypatch.setattr(execution, "generate_selfplay_shard", collect)
     recipe = TrainingRegime(
         id="distillation-fixture",
-        world="w4",
+        world=managym.WORLD_VERSION,
         match=MatchHypers(
             hero_deck=dict(INTERACTIVE_DECK), villain_deck=dict(INTERACTIVE_DECK)
         ),

@@ -78,17 +78,22 @@ pub struct PyVectorEnv {
 #[pymethods]
 impl PyVectorEnv {
     #[new]
-    #[pyo3(signature = (num_envs, seed=0, skip_trivial=true, opponent_policy="none"))]
+    #[pyo3(signature = (num_envs, seed=0, skip_trivial=true, opponent_policy="none", seed_stride=None))]
     fn new(
         num_envs: usize,
         seed: u64,
         skip_trivial: bool,
         opponent_policy: &str,
+        seed_stride: Option<u64>,
     ) -> PyResult<Self> {
         let policy = parse_opponent_policy(opponent_policy)?;
+        let mut inner = VectorEnv::new(num_envs, seed, skip_trivial, policy);
+        if let Some(stride) = seed_stride {
+            inner = inner.with_seed_stride(stride).map_err(map_agent_err)?;
+        }
 
         Ok(Self {
-            inner: VectorEnv::new(num_envs, seed, skip_trivial, policy),
+            inner,
             config: ObservationEncoderConfig::default(),
             num_envs,
             buffers: None,
@@ -156,6 +161,23 @@ impl PyVectorEnv {
         })
     }
 
+    fn reset_each_into_buffers(
+        &mut self,
+        py: Python<'_>,
+        player_configs: Vec<Vec<PyPlayerConfig>>,
+    ) -> PyResult<()> {
+        let configs = player_configs
+            .into_iter()
+            .map(|row| row.into_iter().map(PlayerConfig::from).collect())
+            .collect();
+        self.run_into_buffers(py, move |inner, write_buffers, config| {
+            inner.reset_each_into(configs, |env_index, obs, reward, terminated, truncated| {
+                write_buffers
+                    .write_encoded_row(env_index, obs, reward, terminated, truncated, &config)
+            })
+        })
+    }
+
     #[pyo3(signature = (actions, active=None))]
     fn step_into_buffers(
         &mut self,
@@ -197,6 +219,18 @@ impl PyVectorEnv {
     /// decision is pending).
     fn current_agent_indices(&self) -> Vec<i64> {
         self.inner.current_agent_indices()
+    }
+
+    fn current_game_seeds(&self) -> Vec<u64> {
+        self.inner.current_game_seeds()
+    }
+
+    fn reset_seeds_into_buffers(&mut self, py: Python<'_>, seeds: Vec<u64>) -> PyResult<()> {
+        self.run_into_buffers(py, move |inner, write_buffers, config| {
+            inner.reset_seeds_into(seeds, |index, obs, reward, terminated, truncated| {
+                write_buffers.write_encoded_row(index, obs, reward, terminated, truncated, &config)
+            })
+        })
     }
 
     fn get_last_info(&self, py: Python<'_>) -> Vec<PyObject> {
