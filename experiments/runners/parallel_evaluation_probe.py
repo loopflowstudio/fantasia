@@ -225,13 +225,17 @@ def run(worker: Worker, output: Path) -> None:
             str(output / name),
         )
 
-    serial: dict[str, PanelEvidence] = {}
     start = time.monotonic()
     for anchor in ANCHORS:
         name = f"serial-{anchor}"
         command(name, list(panel_argv(name, anchor)), 600)
-        serial[anchor] = panel_evidence(output / name, anchor)
     serial_seconds = time.monotonic() - start
+    # Compare command/coordinator wall time in both phases. Canonical trace
+    # auditing belongs outside both measured intervals.
+    serial = {
+        anchor: panel_evidence(output / f"serial-{anchor}", anchor)
+        for anchor in ANCHORS
+    }
     write_json(
         output / "serial.json",
         {
